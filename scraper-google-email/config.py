@@ -14,6 +14,9 @@ GOOGLE_SEARCH_URL_BASE = "https://www.google.com/search"
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 MAX_SEARCH_PAGES = int(os.getenv("MAX_SEARCH_PAGES", "3"))
 MAX_SITES_PER_RUN = int(os.getenv("MAX_SITES_PER_RUN", "100"))
+SITE_MAX_PAGES = int(os.getenv("SITE_MAX_PAGES", "20"))
+SITE_MAX_DEPTH = int(os.getenv("SITE_MAX_DEPTH", "2"))
+SITE_SAME_DOMAIN_ONLY = os.getenv("SITE_SAME_DOMAIN_ONLY", "true").lower() == "true"
 USE_WEBDRIVER_MANAGER = os.getenv("USE_WEBDRIVER_MANAGER", "true").lower() == "true"
 
 # Delay aleatório entre requisições
