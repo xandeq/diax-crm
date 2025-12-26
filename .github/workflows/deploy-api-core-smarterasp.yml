@@ -54,21 +54,19 @@ jobs:
             $cmd.CommandTimeout = 120
 
             # Se o schema do banco estiver incompatível (ex.: tabela customers antiga),
-            # a opção segura é recriar (apaga dados) via workflow_dispatch input reset_db.
+            # a opção segura é recriar (apaga dados) via flag [reset-db] na mensagem do commit.
             $cmd.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[customers]') IS NULL THEN 0 ELSE 1 END"
             $customersExists = [int]$cmd.ExecuteScalar()
 
             if ($customersExists -eq 1) {
-              $cmd.CommandText = @"
-SELECT
-  CASE WHEN COL_LENGTH('customers','id') IS NULL THEN 1 ELSE 0 END AS MissingId,
-  CASE WHEN COL_LENGTH('customers','name') IS NULL THEN 1 ELSE 0 END AS MissingName,
-  CASE WHEN COL_LENGTH('customers','person_type') IS NULL THEN 1 ELSE 0 END AS MissingPersonType,
-  CASE WHEN COL_LENGTH('customers','email') IS NULL THEN 1 ELSE 0 END AS MissingEmail,
-  CASE WHEN COL_LENGTH('customers','source') IS NULL THEN 1 ELSE 0 END AS MissingSource,
-  CASE WHEN COL_LENGTH('customers','status') IS NULL THEN 1 ELSE 0 END AS MissingStatus,
-  CASE WHEN COL_LENGTH('customers','created_at') IS NULL THEN 1 ELSE 0 END AS MissingCreatedAt;
-"@
+              $cmd.CommandText = "SELECT " +
+                "CASE WHEN COL_LENGTH('customers','id') IS NULL THEN 1 ELSE 0 END AS MissingId, " +
+                "CASE WHEN COL_LENGTH('customers','name') IS NULL THEN 1 ELSE 0 END AS MissingName, " +
+                "CASE WHEN COL_LENGTH('customers','person_type') IS NULL THEN 1 ELSE 0 END AS MissingPersonType, " +
+                "CASE WHEN COL_LENGTH('customers','email') IS NULL THEN 1 ELSE 0 END AS MissingEmail, " +
+                "CASE WHEN COL_LENGTH('customers','source') IS NULL THEN 1 ELSE 0 END AS MissingSource, " +
+                "CASE WHEN COL_LENGTH('customers','status') IS NULL THEN 1 ELSE 0 END AS MissingStatus, " +
+                "CASE WHEN COL_LENGTH('customers','created_at') IS NULL THEN 1 ELSE 0 END AS MissingCreatedAt;"
               $reader = $cmd.ExecuteReader()
               $missing = @()
               if ($reader.Read()) {
@@ -84,14 +82,11 @@ SELECT
 
               if ($missing.Count -gt 0) {
                 if (-not $resetDb) {
-                  throw "Tabela customers incompatível (faltando: $($missing -join ', ')). Rode manualmente o workflow com reset_db=true (isso apaga dados) ou aponte a connection string para um banco novo/limpo."
+                  throw "Tabela customers incompatível (faltando: $($missing -join ', ')). Faça um commit no branch main contendo '[reset-db]' (isso apaga dados) ou aponte a connection string para um banco novo/limpo."
                 }
 
                 Write-Host "RESET_DB=true: dropando customers e __EFMigrationsHistory para recriar via migrations."
-                $cmd.CommandText = @"
-IF OBJECT_ID(N'[customers]') IS NOT NULL DROP TABLE [customers];
-IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NOT NULL DROP TABLE [__EFMigrationsHistory];
-"@
+                $cmd.CommandText = "IF OBJECT_ID(N'[customers]') IS NOT NULL DROP TABLE [customers]; IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NOT NULL DROP TABLE [__EFMigrationsHistory];"
                 [void]$cmd.ExecuteNonQuery()
               }
             }
