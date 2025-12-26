@@ -6,13 +6,7 @@ on:
     paths:
       - "api-core/**"
       - ".github/workflows/deploy-api-core-smarterasp.yml"
-  workflow_dispatch:
-    inputs:
-      reset_db:
-        description: "Drop e recria o schema do banco (PERIGOSO: apaga dados)"
-        type: boolean
-        required: false
-        default: false
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy-api-core-smarterasp
@@ -22,7 +16,7 @@ jobs:
   build-and-deploy:
     runs-on: windows-latest
     env:
-      RESET_DB: ${{ github.event_name == 'workflow_dispatch' && inputs.reset_db || 'false' }}
+      RESET_DB: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[reset-db]') }}
 
     steps:
       - name: Checkout
@@ -51,7 +45,7 @@ jobs:
             throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
           }
 
-          $resetDb = ($env:RESET_DB -eq 'true')
+          $resetDb = ($env:RESET_DB -match '^(?i:true|1)$')
 
           $sqlConn = New-Object System.Data.SqlClient.SqlConnection($conn)
           $sqlConn.Open()
