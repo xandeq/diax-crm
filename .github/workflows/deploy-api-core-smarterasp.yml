@@ -29,6 +29,25 @@ jobs:
         working-directory: api-core
         run: dotnet restore
 
+      - name: Install dotnet-ef
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.*
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Apply EF Core Migrations (remote DB)
+        shell: pwsh
+        run: |
+          $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
+          if ([string]::IsNullOrWhiteSpace($conn)) {
+            throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
+          }
+
+          dotnet ef database update `
+            --project "api-core/src/Diax.Infrastructure/Diax.Infrastructure.csproj" `
+            --startup-project "api-core/src/Diax.Api/Diax.Api.csproj" `
+            --connection "$conn"
+
       - name: Publish (Release)
         working-directory: api-core
         run: dotnet publish "src/Diax.Api/Diax.Api.csproj" -c Release -o "${{ github.workspace }}/_publish"
