@@ -2,7 +2,7 @@ name: Deploy API-Core to SmarterASP (FTP)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - "api-core/**"
       - ".github/workflows/deploy-api-core-smarterasp.yml"
@@ -33,35 +33,20 @@ jobs:
         working-directory: api-core
         run: dotnet publish "src/Diax.Api/Diax.Api.csproj" -c Release -o "${{ github.workspace }}/_publish"
 
-      - name: Inject DB ConnectionString (web.config)
+      - name: Inject DB ConnectionString (appsettings.Production.json)
         shell: pwsh
         run: |
           $publishDir = "${{ github.workspace }}/_publish"
-          $webConfigPath = Join-Path $publishDir "web.config"
           $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
 
           if ([string]::IsNullOrWhiteSpace($conn)) {
             throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
           }
 
-          $xml = @"
-<?xml version=\"1.0\" encoding=\"utf-8\"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <add name=\"aspNetCore\" path=\"*\" verb=\"*\" modules=\"AspNetCoreModuleV2\" resourceType=\"Unspecified\" />
-    </handlers>
-    <aspNetCore processPath=\"dotnet\" arguments=\".\\Diax.Api.dll\" stdoutLogEnabled=\"false\" hostingModel=\"inprocess\">
-      <environmentVariables>
-        <environmentVariable name=\"ASPNETCORE_ENVIRONMENT\" value=\"Production\" />
-        <environmentVariable name=\"DIAX_ConnectionStrings__DefaultConnection\" value=\"$conn\" />
-      </environmentVariables>
-    </aspNetCore>
-  </system.webServer>
-</configuration>
-"@
-
-          Set-Content -Path $webConfigPath -Value $xml -Encoding utf8
+          $payload = @{ ConnectionStrings = @{ DefaultConnection = $conn } }
+          $json = $payload | ConvertTo-Json -Depth 5
+          $path = Join-Path $publishDir "appsettings.Production.json"
+          Set-Content -Path $path -Value $json -Encoding utf8
 
       - name: Deploy via FTP (SmarterASP)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
