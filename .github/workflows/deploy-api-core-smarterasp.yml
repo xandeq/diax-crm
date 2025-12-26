@@ -1,6 +1,6 @@
 name: Deploy API-Core to SmarterASP (FTP)
 
-'on':
+on:
   push:
     branches: [ "main" ]
     paths:
