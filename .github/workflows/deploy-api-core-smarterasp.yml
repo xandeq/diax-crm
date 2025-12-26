@@ -35,6 +35,122 @@ jobs:
           dotnet tool install --global dotnet-ef --version 8.*
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Ensure DB Schema (baseline/reconcile)
+        shell: pwsh
+        run: |
+          $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
+          if ([string]::IsNullOrWhiteSpace($conn)) {
+            throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
+          }
+
+          $sql = @'
+SET NOCOUNT ON;
+
+-- 1) Garante tabela de histórico de migrations
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+BEGIN
+  CREATE TABLE [__EFMigrationsHistory] (
+    [MigrationId] nvarchar(150) NOT NULL,
+    [ProductVersion] nvarchar(32) NOT NULL,
+    CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+  );
+END
+
+-- 2) Garante tabela customers (sem dropar dados)
+IF OBJECT_ID(N'[customers]') IS NULL
+BEGIN
+  CREATE TABLE [customers] (
+    [id] uniqueidentifier NOT NULL,
+    [name] nvarchar(200) NOT NULL,
+    [company_name] nvarchar(200) NULL,
+    [person_type] int NOT NULL,
+    [document] nvarchar(14) NULL,
+    [email] nvarchar(255) NOT NULL,
+    [secondary_email] nvarchar(255) NULL,
+    [phone] nvarchar(20) NULL,
+    [whats_app] nvarchar(20) NULL,
+    [website] nvarchar(500) NULL,
+    [source] int NOT NULL,
+    [source_details] nvarchar(500) NULL,
+    [notes] nvarchar(4000) NULL,
+    [tags] nvarchar(500) NULL,
+    [status] int NOT NULL,
+    [converted_at] datetime2 NULL,
+    [last_contact_at] datetime2 NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(100) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(100) NULL,
+    CONSTRAINT [PK_customers] PRIMARY KEY ([id])
+  );
+END
+ELSE
+BEGIN
+  -- Adiciona colunas opcionais se estiverem faltando (evita quebra por "Invalid column name")
+  IF COL_LENGTH('customers','company_name') IS NULL ALTER TABLE [customers] ADD [company_name] nvarchar(200) NULL;
+  IF COL_LENGTH('customers','secondary_email') IS NULL ALTER TABLE [customers] ADD [secondary_email] nvarchar(255) NULL;
+  IF COL_LENGTH('customers','phone') IS NULL ALTER TABLE [customers] ADD [phone] nvarchar(20) NULL;
+  IF COL_LENGTH('customers','whats_app') IS NULL ALTER TABLE [customers] ADD [whats_app] nvarchar(20) NULL;
+  IF COL_LENGTH('customers','website') IS NULL ALTER TABLE [customers] ADD [website] nvarchar(500) NULL;
+  IF COL_LENGTH('customers','source_details') IS NULL ALTER TABLE [customers] ADD [source_details] nvarchar(500) NULL;
+  IF COL_LENGTH('customers','notes') IS NULL ALTER TABLE [customers] ADD [notes] nvarchar(4000) NULL;
+  IF COL_LENGTH('customers','tags') IS NULL ALTER TABLE [customers] ADD [tags] nvarchar(500) NULL;
+  IF COL_LENGTH('customers','converted_at') IS NULL ALTER TABLE [customers] ADD [converted_at] datetime2 NULL;
+  IF COL_LENGTH('customers','last_contact_at') IS NULL ALTER TABLE [customers] ADD [last_contact_at] datetime2 NULL;
+  IF COL_LENGTH('customers','created_by') IS NULL ALTER TABLE [customers] ADD [created_by] nvarchar(100) NULL;
+  IF COL_LENGTH('customers','updated_at') IS NULL ALTER TABLE [customers] ADD [updated_at] datetime2 NULL;
+  IF COL_LENGTH('customers','updated_by') IS NULL ALTER TABLE [customers] ADD [updated_by] nvarchar(100) NULL;
+
+  -- Se as colunas obrigatórias não existirem, não dá pra corrigir com segurança aqui.
+  IF COL_LENGTH('customers','id') IS NULL
+     OR COL_LENGTH('customers','name') IS NULL
+     OR COL_LENGTH('customers','person_type') IS NULL
+     OR COL_LENGTH('customers','email') IS NULL
+     OR COL_LENGTH('customers','source') IS NULL
+     OR COL_LENGTH('customers','status') IS NULL
+     OR COL_LENGTH('customers','created_at') IS NULL
+  BEGIN
+    THROW 51000, 'Tabela customers já existe mas está incompatível com o schema esperado. Recomendação: usar um banco limpo (novo DB) ou dropar/recriar customers.', 1;
+  END
+END
+
+-- 3) Índices (cria somente se não existirem)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Email' AND object_id = OBJECT_ID(N'[customers]'))
+  CREATE UNIQUE INDEX [IX_Customers_Email] ON [customers]([email]);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Document' AND object_id = OBJECT_ID(N'[customers]'))
+  CREATE INDEX [IX_Customers_Document] ON [customers]([document]) WHERE [document] IS NOT NULL;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Status' AND object_id = OBJECT_ID(N'[customers]'))
+  CREATE INDEX [IX_Customers_Status] ON [customers]([status]);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Source' AND object_id = OBJECT_ID(N'[customers]'))
+  CREATE INDEX [IX_Customers_Source] ON [customers]([source]);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Status_CreatedAt' AND object_id = OBJECT_ID(N'[customers]'))
+  CREATE INDEX [IX_Customers_Status_CreatedAt] ON [customers]([status], [created_at]);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Name' AND object_id = OBJECT_ID(N'[customers]'))
+  CREATE INDEX [IX_Customers_Name] ON [customers]([name]);
+
+-- 4) Marca migration como aplicada (baseline)
+IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20251226100104_InitialCreate')
+  INSERT INTO [__EFMigrationsHistory]([MigrationId], [ProductVersion])
+  VALUES (N'20251226100104_InitialCreate', N'8.0.11');
+'@
+
+          $sqlConn = New-Object System.Data.SqlClient.SqlConnection($conn)
+          $sqlConn.Open()
+          try {
+            $cmd = $sqlConn.CreateCommand()
+            $cmd.CommandTimeout = 120
+            $cmd.CommandText = $sql
+            [void]$cmd.ExecuteNonQuery()
+          }
+          finally {
+            $sqlConn.Close()
+          }
+
       - name: Apply EF Core Migrations (remote DB)
         shell: pwsh
         run: |
