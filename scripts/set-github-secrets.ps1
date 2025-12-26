@@ -46,18 +46,12 @@ function Set-GhSecretFromValue {
         [Parameter(Mandatory = $true)][string]$Value
     )
 
-    $tempFile = New-TemporaryFile
-    try {
-        Set-Content -Path $tempFile -Value $Value -NoNewline -Encoding utf8
-        & gh secret set $Name --repo $Repo --body-file $tempFile.FullName *> $null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Falha ao definir secret: $Name"
-        }
-        Write-Host "OK: $Name"
+    # Para evitar expor o valor em argumentos, enviamos via STDIN.
+    $Value | & gh secret set $Name --repo $Repo --app actions *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao definir secret: $Name"
     }
-    finally {
-        Remove-Item -Force -ErrorAction SilentlyContinue $tempFile
-    }
+    Write-Host "OK: $Name"
 }
 
 function Read-HostWithDefault {
