@@ -34,3 +34,32 @@ digital-controller/
     automation/             # Fluxos de automação (n8n, scripts, webhooks)
     infra/                  # Infraestrutura, deploy, Docker, CI/CD
     docs/                   # Documentação funcional e técnica
+
+```
+
+---
+
+## Deploy da API (.NET) via GitHub Actions (SmarterASP)
+
+O deploy da Web API em `api-core/` é feito pelo workflow:
+
+- `.github/workflows/deploy-api-core-smarterasp.yml`
+
+### GitHub Secrets necessários
+
+Crie os secrets abaixo no repositório (Actions secrets):
+
+- `SMARTERASP_FTP_SERVER`
+- `SMARTERASP_FTP_USERNAME`
+- `SMARTERASP_FTP_PASSWORD`
+- `SMARTERASP_FTP_REMOTE_DIR`
+
+### Criar secrets via linha de comando
+
+Pré-requisito: GitHub CLI (`gh`) autenticado (`gh auth login`).
+
+No PowerShell:
+
+```powershell
+./scripts/set-github-secrets.ps1
+```
