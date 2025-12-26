@@ -87,6 +87,7 @@ jobs:
             "ELSE",
             "BEGIN",
             "  -- Adiciona colunas opcionais se estiverem faltando (evita quebra por Invalid column name)",
+            "  IF COL_LENGTH('customers','document') IS NULL ALTER TABLE [customers] ADD [document] nvarchar(14) NULL;",
             "  IF COL_LENGTH('customers','company_name') IS NULL ALTER TABLE [customers] ADD [company_name] nvarchar(200) NULL;",
             "  IF COL_LENGTH('customers','secondary_email') IS NULL ALTER TABLE [customers] ADD [secondary_email] nvarchar(255) NULL;",
             "  IF COL_LENGTH('customers','phone') IS NULL ALTER TABLE [customers] ADD [phone] nvarchar(20) NULL;",
