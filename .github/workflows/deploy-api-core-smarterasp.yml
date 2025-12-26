@@ -6,7 +6,13 @@ on:
     paths:
       - "api-core/**"
       - ".github/workflows/deploy-api-core-smarterasp.yml"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      reset_db:
+        description: "Drop e recria o schema do banco (PERIGOSO: apaga dados)"
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: deploy-api-core-smarterasp
@@ -15,6 +21,8 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: windows-latest
+    env:
+      RESET_DB: ${{ github.event_name == 'workflow_dispatch' && inputs.reset_db || 'false' }}
 
     steps:
       - name: Checkout
@@ -43,112 +51,56 @@ jobs:
             throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
           }
 
-          $sqlLines = @(
-            "SET NOCOUNT ON;",
-            "",
-            "-- 1) Garante tabela de histórico de migrations",
-            "IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL",
-            "BEGIN",
-            "  CREATE TABLE [__EFMigrationsHistory] (",
-            "    [MigrationId] nvarchar(150) NOT NULL,",
-            "    [ProductVersion] nvarchar(32) NOT NULL,",
-            "    CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])",
-            "  );",
-            "END",
-            "",
-            "-- 2) Garante tabela customers (sem dropar dados)",
-            "IF OBJECT_ID(N'[customers]') IS NULL",
-            "BEGIN",
-            "  CREATE TABLE [customers] (",
-            "    [id] uniqueidentifier NOT NULL,",
-            "    [name] nvarchar(200) NOT NULL,",
-            "    [company_name] nvarchar(200) NULL,",
-            "    [person_type] int NOT NULL,",
-            "    [document] nvarchar(14) NULL,",
-            "    [email] nvarchar(255) NOT NULL,",
-            "    [secondary_email] nvarchar(255) NULL,",
-            "    [phone] nvarchar(20) NULL,",
-            "    [whats_app] nvarchar(20) NULL,",
-            "    [website] nvarchar(500) NULL,",
-            "    [source] int NOT NULL,",
-            "    [source_details] nvarchar(500) NULL,",
-            "    [notes] nvarchar(4000) NULL,",
-            "    [tags] nvarchar(500) NULL,",
-            "    [status] int NOT NULL,",
-            "    [converted_at] datetime2 NULL,",
-            "    [last_contact_at] datetime2 NULL,",
-            "    [created_at] datetime2 NOT NULL,",
-            "    [created_by] nvarchar(100) NULL,",
-            "    [updated_at] datetime2 NULL,",
-            "    [updated_by] nvarchar(100) NULL,",
-            "    CONSTRAINT [PK_customers] PRIMARY KEY ([id])",
-            "  );",
-            "END",
-            "ELSE",
-            "BEGIN",
-            "  -- Adiciona colunas opcionais se estiverem faltando (evita quebra por Invalid column name)",
-            "  IF COL_LENGTH('customers','document') IS NULL ALTER TABLE [customers] ADD [document] nvarchar(14) NULL;",
-            "  IF COL_LENGTH('customers','company_name') IS NULL ALTER TABLE [customers] ADD [company_name] nvarchar(200) NULL;",
-            "  IF COL_LENGTH('customers','secondary_email') IS NULL ALTER TABLE [customers] ADD [secondary_email] nvarchar(255) NULL;",
-            "  IF COL_LENGTH('customers','phone') IS NULL ALTER TABLE [customers] ADD [phone] nvarchar(20) NULL;",
-            "  IF COL_LENGTH('customers','whats_app') IS NULL ALTER TABLE [customers] ADD [whats_app] nvarchar(20) NULL;",
-            "  IF COL_LENGTH('customers','website') IS NULL ALTER TABLE [customers] ADD [website] nvarchar(500) NULL;",
-            "  IF COL_LENGTH('customers','source_details') IS NULL ALTER TABLE [customers] ADD [source_details] nvarchar(500) NULL;",
-            "  IF COL_LENGTH('customers','notes') IS NULL ALTER TABLE [customers] ADD [notes] nvarchar(4000) NULL;",
-            "  IF COL_LENGTH('customers','tags') IS NULL ALTER TABLE [customers] ADD [tags] nvarchar(500) NULL;",
-            "  IF COL_LENGTH('customers','converted_at') IS NULL ALTER TABLE [customers] ADD [converted_at] datetime2 NULL;",
-            "  IF COL_LENGTH('customers','last_contact_at') IS NULL ALTER TABLE [customers] ADD [last_contact_at] datetime2 NULL;",
-            "  IF COL_LENGTH('customers','created_by') IS NULL ALTER TABLE [customers] ADD [created_by] nvarchar(100) NULL;",
-            "  IF COL_LENGTH('customers','updated_at') IS NULL ALTER TABLE [customers] ADD [updated_at] datetime2 NULL;",
-            "  IF COL_LENGTH('customers','updated_by') IS NULL ALTER TABLE [customers] ADD [updated_by] nvarchar(100) NULL;",
-            "",
-            "  -- Se as colunas obrigatórias não existirem, não dá pra corrigir com segurança aqui.",
-            "  IF COL_LENGTH('customers','id') IS NULL",
-            "     OR COL_LENGTH('customers','name') IS NULL",
-            "     OR COL_LENGTH('customers','person_type') IS NULL",
-            "     OR COL_LENGTH('customers','email') IS NULL",
-            "     OR COL_LENGTH('customers','source') IS NULL",
-            "     OR COL_LENGTH('customers','status') IS NULL",
-            "     OR COL_LENGTH('customers','created_at') IS NULL",
-            "  BEGIN",
-            "    THROW 51000, 'Tabela customers já existe mas está incompatível com o schema esperado. Recomendação: usar um banco limpo (novo DB) ou dropar/recriar customers.', 1;",
-            "  END",
-            "END",
-            "",
-            "-- 3) Índices (cria somente se não existirem)",
-            "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Email' AND object_id = OBJECT_ID(N'[customers]'))",
-            "  EXEC(N'CREATE UNIQUE INDEX [IX_Customers_Email] ON [customers]([email]);');",
-            "",
-            "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Document' AND object_id = OBJECT_ID(N'[customers]'))",
-            "  EXEC(N'CREATE INDEX [IX_Customers_Document] ON [customers]([document]) WHERE [document] IS NOT NULL;');",
-            "",
-            "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Status' AND object_id = OBJECT_ID(N'[customers]'))",
-            "  EXEC(N'CREATE INDEX [IX_Customers_Status] ON [customers]([status]);');",
-            "",
-            "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Source' AND object_id = OBJECT_ID(N'[customers]'))",
-            "  EXEC(N'CREATE INDEX [IX_Customers_Source] ON [customers]([source]);');",
-            "",
-            "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Status_CreatedAt' AND object_id = OBJECT_ID(N'[customers]'))",
-            "  EXEC(N'CREATE INDEX [IX_Customers_Status_CreatedAt] ON [customers]([status], [created_at]);');",
-            "",
-            "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Name' AND object_id = OBJECT_ID(N'[customers]'))",
-            "  EXEC(N'CREATE INDEX [IX_Customers_Name] ON [customers]([name]);');",
-            "",
-            "-- 4) Marca migration como aplicada (baseline)",
-            "IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20251226100104_InitialCreate')",
-            "  INSERT INTO [__EFMigrationsHistory]([MigrationId], [ProductVersion])",
-            "  VALUES (N'20251226100104_InitialCreate', N'8.0.11');"
-          )
-
-          $sql = ($sqlLines -join "`n")
+          $resetDb = ($env:RESET_DB -eq 'true')
 
           $sqlConn = New-Object System.Data.SqlClient.SqlConnection($conn)
           $sqlConn.Open()
           try {
             $cmd = $sqlConn.CreateCommand()
             $cmd.CommandTimeout = 120
-            $cmd.CommandText = $sql
-            [void]$cmd.ExecuteNonQuery()
+
+            # Se o schema do banco estiver incompatível (ex.: tabela customers antiga),
+            # a opção segura é recriar (apaga dados) via workflow_dispatch input reset_db.
+            $cmd.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[customers]') IS NULL THEN 0 ELSE 1 END"
+            $customersExists = [int]$cmd.ExecuteScalar()
+
+            if ($customersExists -eq 1) {
+              $cmd.CommandText = @"
+SELECT
+  CASE WHEN COL_LENGTH('customers','id') IS NULL THEN 1 ELSE 0 END AS MissingId,
+  CASE WHEN COL_LENGTH('customers','name') IS NULL THEN 1 ELSE 0 END AS MissingName,
+  CASE WHEN COL_LENGTH('customers','person_type') IS NULL THEN 1 ELSE 0 END AS MissingPersonType,
+  CASE WHEN COL_LENGTH('customers','email') IS NULL THEN 1 ELSE 0 END AS MissingEmail,
+  CASE WHEN COL_LENGTH('customers','source') IS NULL THEN 1 ELSE 0 END AS MissingSource,
+  CASE WHEN COL_LENGTH('customers','status') IS NULL THEN 1 ELSE 0 END AS MissingStatus,
+  CASE WHEN COL_LENGTH('customers','created_at') IS NULL THEN 1 ELSE 0 END AS MissingCreatedAt;
+"@
+              $reader = $cmd.ExecuteReader()
+              $missing = @()
+              if ($reader.Read()) {
+                if ($reader.GetInt32(0) -eq 1) { $missing += 'id' }
+                if ($reader.GetInt32(1) -eq 1) { $missing += 'name' }
+                if ($reader.GetInt32(2) -eq 1) { $missing += 'person_type' }
+                if ($reader.GetInt32(3) -eq 1) { $missing += 'email' }
+                if ($reader.GetInt32(4) -eq 1) { $missing += 'source' }
+                if ($reader.GetInt32(5) -eq 1) { $missing += 'status' }
+                if ($reader.GetInt32(6) -eq 1) { $missing += 'created_at' }
+              }
+              $reader.Close()
+
+              if ($missing.Count -gt 0) {
+                if (-not $resetDb) {
+                  throw "Tabela customers incompatível (faltando: $($missing -join ', ')). Rode manualmente o workflow com reset_db=true (isso apaga dados) ou aponte a connection string para um banco novo/limpo."
+                }
+
+                Write-Host "RESET_DB=true: dropando customers e __EFMigrationsHistory para recriar via migrations."
+                $cmd.CommandText = @"
+IF OBJECT_ID(N'[customers]') IS NOT NULL DROP TABLE [customers];
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NOT NULL DROP TABLE [__EFMigrationsHistory];
+"@
+                [void]$cmd.ExecuteNonQuery()
+              }
+            }
           }
           finally {
             $sqlConn.Close()
