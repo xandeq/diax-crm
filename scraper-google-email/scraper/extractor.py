@@ -14,6 +14,23 @@ from .utils import LOGGER_NAME, normalize_text
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 PHONE_REGEX = re.compile(r"\+?\d[\d\s().-]{8,}")
 IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tif", "tiff", "ico"}
+
+# Estados brasileiros para extração
+BRAZILIAN_STATES = {
+    "AC": "Acre", "AL": "Alagoas", "AP": "Amapá", "AM": "Amazonas",
+    "BA": "Bahia", "CE": "Ceará", "DF": "Distrito Federal", "ES": "Espírito Santo",
+    "GO": "Goiás", "MA": "Maranhão", "MT": "Mato Grosso", "MS": "Mato Grosso do Sul",
+    "MG": "Minas Gerais", "PA": "Pará", "PB": "Paraíba", "PR": "Paraná",
+    "PE": "Pernambuco", "PI": "Piauí", "RJ": "Rio de Janeiro", "RN": "Rio Grande do Norte",
+    "RS": "Rio Grande do Sul", "RO": "Rondônia", "RR": "Roraima", "SC": "Santa Catarina",
+    "SP": "São Paulo", "SE": "Sergipe", "TO": "Tocantins"
+}
+
+# Regex para capturar padrões de cidade/estado
+CITY_STATE_REGEX = re.compile(
+    r"([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*)[\s,\-]+([A-Z]{2})\b",
+    re.UNICODE
+)
 PLACEHOLDER_DOMAINS = {"example.com", "test.com", "invalid.com", "localhost"}
 COMMON_TLDS = {
     "com",
@@ -63,6 +80,8 @@ class EmailRecord:
     company_name: str
     email: str
     phone: str
+    city: str
+    state: str
     website: str
     source_url: str
 
@@ -146,6 +165,16 @@ def _extract_phone(html: str) -> str:
     return normalize_text(matches[0])
 
 
+def _extract_city_state(html: str) -> tuple[str, str]:
+    """Extrai cidade e estado do HTML usando padrões comuns."""
+    matches = CITY_STATE_REGEX.findall(html)
+    for city_candidate, state_abbr in matches:
+        state_upper = state_abbr.upper()
+        if state_upper in BRAZILIAN_STATES:
+            return normalize_text(city_candidate), state_upper
+    return "", ""
+
+
 def extract_emails_and_company(page: PageContent) -> List[EmailRecord]:
     """Extrai emails e associa ao nome da empresa para uma página."""
     logger = logging.getLogger(LOGGER_NAME)
@@ -158,6 +187,7 @@ def extract_emails_and_company(page: PageContent) -> List[EmailRecord]:
     company_name = _extract_company_name(soup, page.url)
     emails = _extract_emails(page.html)
     phone = _extract_phone(page.html)
+    city, state = _extract_city_state(page.html)
     website = page.url
 
     logger.debug("Página %s: %d emails encontrados", page.url, len(emails))
@@ -167,6 +197,8 @@ def extract_emails_and_company(page: PageContent) -> List[EmailRecord]:
             company_name=company_name,
             email=email,
             phone=phone,
+            city=city,
+            state=state,
             website=website,
             source_url=page.url,
         )

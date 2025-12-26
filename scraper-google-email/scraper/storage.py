@@ -79,13 +79,13 @@ def save_to_csv(records: Iterable[EmailRecord], search_query: str, output_path: 
     path = _build_output_path(search_query, output_path)
 
     fieldnames = [
-        "company_name",
+        "name",
         "email",
         "phone",
-        "website",
-        "source_url",
-        "search_query",
+        "city",
+        "state",
         "timestamp",
+        "sent",
     ]
     timestamp = datetime.utcnow().isoformat()
     file_exists = path.exists() and path.stat().st_size > 0
@@ -98,13 +98,13 @@ def save_to_csv(records: Iterable[EmailRecord], search_query: str, output_path: 
         for record in records:
             writer.writerow(
                 {
-                    "company_name": record.company_name,
+                    "name": record.company_name,
                     "email": record.email,
                     "phone": record.phone,
-                    "website": record.website,
-                    "source_url": record.source_url,
-                    "search_query": search_query,
+                    "city": record.city,
+                    "state": record.state,
                     "timestamp": timestamp,
+                    "sent": "",
                 }
             )
 
@@ -112,11 +112,12 @@ def save_to_csv(records: Iterable[EmailRecord], search_query: str, output_path: 
 
 
 def save_site_emails(records: Iterable[EmailRecord], site_url: str, output_path: str) -> None:
-    """Salva somente nome e email em arquivo com padrão emails_<dom>-data-hora.csv."""
+    """Salva registros em arquivo com padrão emails_<dom>-data-hora.csv."""
     logger = logging.getLogger(LOGGER_NAME)
     path = _build_site_output_path(site_url, output_path)
 
-    fieldnames = ["name", "email"]
+    fieldnames = ["name", "email", "phone", "city", "state", "timestamp", "sent"]
+    timestamp = datetime.utcnow().isoformat()
     file_exists = path.exists() and path.stat().st_size > 0
 
     with path.open(mode="a", newline="", encoding="utf-8") as csvfile:
@@ -125,6 +126,14 @@ def save_site_emails(records: Iterable[EmailRecord], site_url: str, output_path:
             writer.writeheader()
 
         for record in records:
-            writer.writerow({"name": record.company_name, "email": record.email})
+            writer.writerow({
+                "name": record.company_name,
+                "email": record.email,
+                "phone": record.phone,
+                "city": record.city,
+                "state": record.state,
+                "timestamp": timestamp,
+                "sent": "",
+            })
 
     logger.info("Registros salvos em %s", path)

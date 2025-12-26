@@ -1,0 +1,193 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 10
+            }
+          ]
+        }
+      },
+      "id": "Cron",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [-1040, 1024]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "12obtoigJl3LZ23McnM1o7FJHGG1qGtMZhGTJNVgbW6w",
+        "range": "topo de funil!A2:H",
+        "options": {
+          "valueRenderMode": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING",
+          "returnAllMatches": true,
+          "keyRow": 1
+        }
+      },
+      "id": "Google Sheets - Read",
+      "name": "Google Sheets - Read",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [-752, 1024],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"sent\"]}}",
+              "operation": "isEmpty"
+            },
+            {
+              "value1": "={{$json[\"sent\"]}}",
+              "operation": "notEqual",
+              "value2": "ENVIADO"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "Filter Not Sent",
+      "name": "Filter Not Sent",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-496, 1024]
+    },
+    {
+      "parameters": {
+        "mode": "keepItems",
+        "keep": "first",
+        "limit": 1
+      },
+      "id": "Take First",
+      "name": "Take First",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [-240, 1024]
+    },
+    {
+      "parameters": {
+        "fromEmail": "=envio@alexandrequeiroz.com.br",
+        "toEmail": "={{$json[\"email\"]}}",
+        "subject": "Olá {{$json[\"name\"] || \"\"}} — Oferta especial para sua empresa",
+        "emailFormat": "html",
+        "html": "<p>Olá {{$json[\"name\"] || \"\"}},</p><p>Preparamos uma oferta especial para sua empresa em {{$json[\"city\"] || \"sua cidade\"}}.</p><p>Website: {{$json[\"website\"] || \"n/d\"}}<br>Fonte: {{$json[\"source_url\"] || \"n/d\"}}<br>Telefone: {{$json[\"phone\"] || \"n/d\"}}</p><p>Obrigado!</p>",
+        "options": {}
+      },
+      "id": "Send Email",
+      "name": "Email - SMARTERASP",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [0, 1024],
+      "credentials": {
+        "smtp": {
+          "id": "wmsv8RspUoMF3G8W",
+          "name": "SMTP Envios AlexandreQueiroz"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetId": "12obtoigJl3LZ23McnM1o7FJHGG1qGtMZhGTJNVgbW6w",
+        "range": "topo de funil!A1:H",
+        "key": "={{$json[\"rowNumber\"]}}",
+        "keyType": "row",
+        "options": {
+          "valueInputMode": "RAW"
+        },
+        "updateAll": false,
+        "values": [
+          {
+            "column": "sent",
+            "value": "ENVIADO"
+          }
+        ]
+      },
+      "id": "Mark Sent",
+      "name": "Mark Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [240, 1024],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CRED_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Read": {
+      "main": [
+        [
+          {
+            "node": "Filter Not Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Not Sent": {
+      "main": [
+        [
+          {
+            "node": "Take First",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Take First": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Mark Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

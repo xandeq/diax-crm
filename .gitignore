@@ -10,6 +10,9 @@ __pycache__/
 env/
 venv/
 
+# Scraper outputs
+scraper-google-email/output/
+
 # Dotnet
 bin/
 obj/
