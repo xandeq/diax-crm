@@ -48,6 +48,41 @@ jobs:
           $path = Join-Path $publishDir "appsettings.Production.json"
           Set-Content -Path $path -Value $json -Encoding utf8
 
+      - name: Take App Offline (app_offline.htm)
+        shell: pwsh
+        run: |
+          $server = "${{ secrets.SMARTERASP_FTP_SERVER }}"
+          $username = "${{ secrets.SMARTERASP_FTP_USERNAME }}"
+          $password = "${{ secrets.SMARTERASP_FTP_PASSWORD }}"
+          $remoteDir = "${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}"
+
+          if ([string]::IsNullOrWhiteSpace($server) -or [string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) {
+            throw "Secrets de FTP não estão definidos."
+          }
+
+          $remoteDir = $remoteDir.Trim()
+          if (-not $remoteDir.StartsWith("/")) { $remoteDir = "/" + $remoteDir }
+          if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
+
+          $uri = "ftp://$server$remoteDir" + "app_offline.htm"
+          $body = "<html><head><title>Offline</title></head><body><h1>Atualizando...</h1></body></html>"
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+
+          $req = [System.Net.FtpWebRequest]::Create($uri)
+          $req.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
+          $req.Credentials = New-Object System.Net.NetworkCredential($username, $password)
+          $req.UseBinary = $true
+          $req.KeepAlive = $false
+
+          $stream = $req.GetRequestStream()
+          $stream.Write($bytes, 0, $bytes.Length)
+          $stream.Close()
+
+          $resp = $req.GetResponse()
+          $resp.Close()
+
+          Start-Sleep -Seconds 8
+
       - name: Deploy via FTP (SmarterASP)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -61,3 +96,29 @@ jobs:
             **/.git*
             **/.github/**
             **/appsettings.Development.json
+
+      - name: Bring App Online (remove app_offline.htm)
+        shell: pwsh
+        run: |
+          $server = "${{ secrets.SMARTERASP_FTP_SERVER }}"
+          $username = "${{ secrets.SMARTERASP_FTP_USERNAME }}"
+          $password = "${{ secrets.SMARTERASP_FTP_PASSWORD }}"
+          $remoteDir = "${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}"
+
+          $remoteDir = $remoteDir.Trim()
+          if (-not $remoteDir.StartsWith("/")) { $remoteDir = "/" + $remoteDir }
+          if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
+
+          $uri = "ftp://$server$remoteDir" + "app_offline.htm"
+
+          try {
+            $req = [System.Net.FtpWebRequest]::Create($uri)
+            $req.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
+            $req.Credentials = New-Object System.Net.NetworkCredential($username, $password)
+            $req.KeepAlive = $false
+            $resp = $req.GetResponse()
+            $resp.Close()
+          }
+          catch {
+            Write-Host "Aviso: não foi possível remover app_offline.htm (ok se já não existir)."
+          }
