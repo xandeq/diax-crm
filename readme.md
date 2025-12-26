@@ -54,6 +54,8 @@ Crie os secrets abaixo no repositório (Actions secrets):
 - `SMARTERASP_FTP_PASSWORD`
 - `SMARTERASP_FTP_REMOTE_DIR`
 
+- `SMARTERASP_DB_CONNECTIONSTRING`
+
 ### Criar secrets via linha de comando
 
 Pré-requisito: GitHub CLI (`gh`) autenticado (`gh auth login`).

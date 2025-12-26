@@ -6,7 +6,12 @@ param(
     # Optional defaults for convenience.
     [string]$FtpServer = "",
     [string]$FtpUsername = "",
-    [string]$FtpRemoteDir = ""
+    [string]$FtpRemoteDir = "",
+
+    # DB (optional). If omitted, prompts with defaults.
+    [string]$DbHost = "",
+    [string]$DbName = "",
+    [string]$DbUser = ""
 )
 
 $ErrorActionPreference = 'Stop'
@@ -77,6 +82,10 @@ $defaultServer = "win1151.site4now.net"
 $defaultUsername = "partiurock-003"
 $defaultRemoteDir = "/api-diax-crm/"
 
+$defaultDbHost = "sql1002.site4now.net"
+$defaultDbName = "db_aaf0a8_diaxcrm"
+$defaultDbUser = "db_aaf0a8_diaxcrm_admin"
+
 if (-not $FtpServer) {
     $FtpServer = Read-HostWithDefault -Prompt "SMARTERASP_FTP_SERVER (hostname do FTP)" -Default $defaultServer
 }
@@ -92,15 +101,36 @@ $passwordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($passwordSecure)
 )
 
+if (-not $DbHost) {
+    $DbHost = Read-HostWithDefault -Prompt "DB_HOST" -Default $defaultDbHost
+}
+if (-not $DbName) {
+    $DbName = Read-HostWithDefault -Prompt "DB_NAME" -Default $defaultDbName
+}
+if (-not $DbUser) {
+    $DbUser = Read-HostWithDefault -Prompt "DB_USER" -Default $defaultDbUser
+}
+
+$dbPasswordSecure = Read-Host "DB_PASSWORD" -AsSecureString
+$dbPasswordPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+    [Runtime.InteropServices.Marshal]::SecureStringToBSTR($dbPasswordSecure)
+)
+
+$dbConnectionString = "Server=$DbHost;Database=$DbName;User ID=$DbUser;Password=$dbPasswordPlain;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
+
 try {
     Set-GhSecretFromValue -Repo $Repo -Name "SMARTERASP_FTP_SERVER" -Value $FtpServer
     Set-GhSecretFromValue -Repo $Repo -Name "SMARTERASP_FTP_USERNAME" -Value $FtpUsername
     Set-GhSecretFromValue -Repo $Repo -Name "SMARTERASP_FTP_PASSWORD" -Value $passwordPlain
     Set-GhSecretFromValue -Repo $Repo -Name "SMARTERASP_FTP_REMOTE_DIR" -Value $FtpRemoteDir
 
+    Set-GhSecretFromValue -Repo $Repo -Name "SMARTERASP_DB_CONNECTIONSTRING" -Value $dbConnectionString
+
     Write-Host "\nSecrets configurados com sucesso para $Repo."
 }
 finally {
     # Best-effort cleanup
     $passwordPlain = ""
+    $dbPasswordPlain = ""
+    $dbConnectionString = ""
 }
