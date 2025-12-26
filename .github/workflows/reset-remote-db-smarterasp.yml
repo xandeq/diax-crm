@@ -1,6 +1,8 @@
 name: Reset Remote DB (SmarterASP)
 
 on:
+  push:
+    branches: ["reset-db"]
   workflow_dispatch: {}
 
 jobs:
