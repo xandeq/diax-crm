@@ -1,5 +1,7 @@
 name: Deploy API-Core to SmarterASP (FTP)
 
+# Trigger note: commits com "[reset-db]" no message permitem reset do schema remoto.
+
 on:
   push:
     branches: ["main"]
