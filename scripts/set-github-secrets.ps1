@@ -60,20 +60,37 @@ function Set-GhSecretFromValue {
     }
 }
 
+function Read-HostWithDefault {
+    param(
+        [Parameter(Mandatory = $true)][string]$Prompt,
+        [Parameter(Mandatory = $true)][string]$Default
+    )
+
+    $value = Read-Host "$Prompt [$Default]"
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $Default
+    }
+    return $value
+}
+
 if (-not $Repo) {
     $Repo = Get-RepoFromGitRemote
 }
 
 Assert-GhCli
 
+$defaultServer = "win1151.site4now.net"
+$defaultUsername = "partiurock-003"
+$defaultRemoteDir = "/api-diax-crm/"
+
 if (-not $FtpServer) {
-    $FtpServer = Read-Host "SMARTERASP_FTP_SERVER (ex: win1151.site4now.net)"
+    $FtpServer = Read-HostWithDefault -Prompt "SMARTERASP_FTP_SERVER (hostname do FTP)" -Default $defaultServer
 }
 if (-not $FtpUsername) {
-    $FtpUsername = Read-Host "SMARTERASP_FTP_USERNAME"
+    $FtpUsername = Read-HostWithDefault -Prompt "SMARTERASP_FTP_USERNAME" -Default $defaultUsername
 }
 if (-not $FtpRemoteDir) {
-    $FtpRemoteDir = Read-Host "SMARTERASP_FTP_REMOTE_DIR (ex: /api-diax-crm/)"
+    $FtpRemoteDir = Read-HostWithDefault -Prompt "SMARTERASP_FTP_REMOTE_DIR (pasta remota)" -Default $defaultRemoteDir
 }
 
 $passwordSecure = Read-Host "SMARTERASP_FTP_PASSWORD" -AsSecureString
