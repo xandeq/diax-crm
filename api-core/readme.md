@@ -1,122 +1,179 @@
-\# API Core – DIAX CRM (Digital Controller)
+# DIAX CRM - Core API
 
-A \*\*API Core\*\* é o backend central do ecossistema DIAX CRM.  
+**Backend central do ecossistema DIAX CRM** - A fonte única de verdade para todos os dados e operações da empresa.
 
-Ela funciona como a \*\*fonte única de verdade\*\* do sistema, conectando:
+## 🎯 Visão Geral
 
+Esta API é o núcleo central de dados e operações da DIAX, funcionando como o "sistema nervoso" do negócio. Ela centraliza:
 
+- Cadastro de clientes e leads
+- Histórico de relacionamento
+- Controle financeiro básico
+- Base de e-mails para automações
+- Cadastro de projetos e serviços
+- Prompts de IA
+- Integrações com sistemas externos
 
-\- CRM Web (Next.js)
+## 🏗️ Arquitetura
 
-\- Scraper Google Email (Python)
-
-\- n8n (automação)
-
-\- Banco de dados (MySQL ou SQL Server)
-
-\- Futuras integrações (apps mobile, serviços externos, dashboards)
-
-
-
-Tudo passa por ela.
-
-
-
----
-
-
-
-\## 🎯 Objetivo Principal
-
-
-
-Fornecer uma API segura, consistente e escalável para toda a plataforma DIAX.  
-
-Ela centraliza:
-
-
-
-\- Regras de negócio  
-
-\- Persistência de dados  
-
-\- Validações  
-
-\- Autenticação e autorização  
-
-\- Histórico de operações  
-
-\- Log e rastreabilidade  
-
-\- Endpoint de controle de campanhas e scraping  
-
-
-
-Este módulo é o \*\*coração\*\* de todo o sistema.
-
-
-
----
-
-
-
-\## 🧱 Tecnologias recomendadas
-
-
-
-\- \*\*.NET 8 ou 9 (ASP.NET Core Web API)\*\*
-
-\- Entity Framework Core
-
-\- FluentValidation
-
-\- AutoMapper
-
-\- JWT Authentication
-
-\- Swagger (OpenAPI)
-
-\- Arquitetura limpa (Clean Architecture) opcional
-
-
-
----
-
-
-
-\## 🗂 Estrutura de Diretórios (sugerida)
-
-
-
-```text
-
+```
 api-core/
+├── src/
+│   ├── Diax.Api/              # Controllers, Middlewares, Configurações
+│   ├── Diax.Application/      # Casos de uso, DTOs, Validators, Services
+│   ├── Diax.Domain/           # Entidades, Value Objects, Interfaces
+│   ├── Diax.Infrastructure/   # EF Core, Repositórios, Serviços externos
+│   └── Diax.Shared/           # Utilitários, Extensions, Result Pattern
+├── tests/
+│   ├── Diax.UnitTests/        # Testes unitários
+│   └── Diax.IntegrationTests/ # Testes de integração
+└── Diax.CRM.sln               # Solution principal
+```
 
-&nbsp;   src/
+## 🛠️ Tecnologias
 
-&nbsp;       Api/                # Controllers, middlewares, configs
+- **.NET 8** - Framework principal
+- **ASP.NET Core Web API** - Framework web
+- **Entity Framework Core 8** - ORM
+- **SQL Server** - Banco de dados
+- **FluentValidation** - Validações
+- **Serilog** - Logging estruturado
+- **Swagger/OpenAPI** - Documentação da API
+- **xUnit** - Framework de testes
 
-&nbsp;       Application/        # Regras de negócio, DTOs, validadores, serviços
+## 🚀 Como Executar
 
-&nbsp;       Domain/             # Entidades e interfaces
+### Pré-requisitos
 
-&nbsp;       Infrastructure/     # EF Core, repositórios, banco, emails etc.
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- SQL Server (local ou remoto)
 
-&nbsp;       Tests/              # Testes unitários e de integração
+### Configuração
 
-&nbsp;   configs/
+1. Clone o repositório
+2. Configure a connection string em `src/Diax.Api/appsettings.json`
+3. Execute as migrations
 
-&nbsp;       appsettings.json    # Configurações padrão
+### Comandos
 
-&nbsp;       appsettings.\*.json  # Ambientes
+```bash
+# Restaurar pacotes
+dotnet restore
 
-&nbsp;   scripts/
+# Compilar
+dotnet build
 
-&nbsp;       migrate.sh          # Scripts de migração
+# Criar migration (executar na pasta api-core)
+dotnet ef migrations add NomeDaMigration --project src/Diax.Infrastructure --startup-project src/Diax.Api --output-dir Data/Migrations
 
-&nbsp;       seed.sh             # Seed inicial
+# Aplicar migrations
+dotnet ef database update --project src/Diax.Infrastructure --startup-project src/Diax.Api
 
-&nbsp;   README.md
+# Executar API
+dotnet run --project src/Diax.Api
 
+# Executar testes
+dotnet test
+```
 
+## 📡 Endpoints Disponíveis
 
+### Health Check
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/` | Redireciona para Swagger |
+| GET | `/health` | Health check básico |
+| GET | `/api/v1/health` | Health check com detalhes |
+
+### Customers (Leads/Clientes)
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/v1/customers` | Lista com paginação e filtros |
+| GET | `/api/v1/customers/{id}` | Obtém por ID |
+| POST | `/api/v1/customers` | Cria novo customer/lead |
+| PUT | `/api/v1/customers/{id}` | Atualiza customer |
+| PATCH | `/api/v1/customers/{id}/status` | Atualiza status |
+| POST | `/api/v1/customers/{id}/contact` | Registra contato |
+| POST | `/api/v1/customers/{id}/convert` | Converte lead → cliente |
+| DELETE | `/api/v1/customers/{id}` | Exclui customer |
+
+## 📊 Modelo de Dados: Customer
+
+O modelo unificado de **Customer** representa tanto Leads quanto Clientes:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        CUSTOMER                              │
+├─────────────────────────────────────────────────────────────┤
+│ Id (GUID)                    │ PK                           │
+│ Name                         │ Nome/Razão Social            │
+│ CompanyName                  │ Nome da empresa (opcional)   │
+│ PersonType                   │ PF (0) / PJ (1)              │
+│ Document                     │ CPF/CNPJ                     │
+│ Email                        │ E-mail principal (único)     │
+│ SecondaryEmail               │ E-mail secundário            │
+│ Phone                        │ Telefone                     │
+│ WhatsApp                     │ WhatsApp                     │
+│ Website                      │ Site                         │
+│ Source                       │ Origem do lead               │
+│ SourceDetails                │ Detalhes da origem           │
+│ Notes                        │ Observações                  │
+│ Tags                         │ Tags (separadas por vírgula) │
+│ Status                       │ Status no pipeline           │
+│ ConvertedAt                  │ Data de conversão            │
+│ LastContactAt                │ Último contato               │
+│ CreatedAt / CreatedBy        │ Auditoria criação            │
+│ UpdatedAt / UpdatedBy        │ Auditoria atualização        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Pipeline de Status
+
+```
+Lead → Contacted → Qualified → Negotiating → Customer → Inactive/Churned
+ (0)      (1)         (2)          (3)          (4)        (5)/(6)
+```
+
+### Origens (LeadSource)
+
+| Valor | Descrição |
+|-------|-----------|
+| 0 | Unknown |
+| 1 | Manual |
+| 2 | Website |
+| 3 | Referral (Indicação) |
+| 4 | Scraping |
+| 5 | Social Media |
+| 6 | Email Campaign |
+| 7 | Paid Ads |
+| 8 | Event |
+| 9 | Partnership |
+| 10 | Import |
+
+## 📐 Convenções
+
+### Naming
+- **Classes/Interfaces**: PascalCase
+- **Métodos**: PascalCase
+- **Variáveis/Parâmetros**: camelCase
+- **Campos privados**: _camelCase
+
+### Estrutura de DTOs
+- **Request**: `CreateCustomerRequest`, `UpdateCustomerRequest`
+- **Response**: `CustomerResponse`
+
+### Versionamento de API
+- URL-based: `/api/v1/`, `/api/v2/`
+
+## 📝 Próximos Passos
+
+1. [x] Implementar domínio de Customers (Leads/Clientes)
+2. [ ] Adicionar autenticação JWT
+3. [ ] Implementar domínio de Interações/Histórico
+4. [ ] Implementar domínio Financeiro
+5. [ ] Adicionar cache com Redis
+6. [ ] Configurar CI/CD
+
+## 📄 Licença
+
+Projeto proprietário - DIAX © 2024

@@ -1,0 +1,120 @@
+using Diax.Domain.Customers;
+using Diax.Domain.Customers.Enums;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Diax.Infrastructure.Data.Configurations;
+
+/// <summary>
+/// Configuração EF Core para a entidade Customer.
+/// </summary>
+public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
+{
+    public void Configure(EntityTypeBuilder<Customer> builder)
+    {
+        // ===== TABELA =====
+        builder.ToTable("customers");
+
+        // ===== CHAVE PRIMÁRIA =====
+        builder.HasKey(c => c.Id);
+
+        // ===== IDENTIDADE =====
+        builder.Property(c => c.Name)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        builder.Property(c => c.CompanyName)
+            .HasMaxLength(200);
+
+        builder.Property(c => c.PersonType)
+            .IsRequired()
+            .HasConversion<int>();
+
+        builder.Property(c => c.Document)
+            .HasMaxLength(14); // CNPJ tem 14 dígitos
+
+        // ===== CONTATO =====
+        builder.Property(c => c.Email)
+            .IsRequired()
+            .HasMaxLength(255);
+
+        builder.Property(c => c.SecondaryEmail)
+            .HasMaxLength(255);
+
+        builder.Property(c => c.Phone)
+            .HasMaxLength(20);
+
+        builder.Property(c => c.WhatsApp)
+            .HasMaxLength(20);
+
+        builder.Property(c => c.Website)
+            .HasMaxLength(500);
+
+        // ===== ORIGEM E CONTEXTO =====
+        builder.Property(c => c.Source)
+            .IsRequired()
+            .HasConversion<int>();
+
+        builder.Property(c => c.SourceDetails)
+            .HasMaxLength(500);
+
+        builder.Property(c => c.Notes)
+            .HasMaxLength(4000); // Texto longo para observações
+
+        builder.Property(c => c.Tags)
+            .HasMaxLength(500);
+
+        // ===== STATUS E FLAGS =====
+        builder.Property(c => c.Status)
+            .IsRequired()
+            .HasConversion<int>();
+
+        // IsLead e IsActiveCustomer são propriedades calculadas, não mapeadas
+        builder.Ignore(c => c.IsLead);
+        builder.Ignore(c => c.IsActiveCustomer);
+
+        builder.Property(c => c.ConvertedAt);
+
+        builder.Property(c => c.LastContactAt);
+
+        // ===== AUDITORIA =====
+        builder.Property(c => c.CreatedAt)
+            .IsRequired();
+
+        builder.Property(c => c.CreatedBy)
+            .HasMaxLength(100);
+
+        builder.Property(c => c.UpdatedAt);
+
+        builder.Property(c => c.UpdatedBy)
+            .HasMaxLength(100);
+
+        // ===== ÍNDICES =====
+
+        // Índice único no e-mail (cada cliente tem e-mail único)
+        builder.HasIndex(c => c.Email)
+            .IsUnique()
+            .HasDatabaseName("IX_Customers_Email");
+
+        // Índice no documento (para buscas por CPF/CNPJ)
+        builder.HasIndex(c => c.Document)
+            .HasDatabaseName("IX_Customers_Document")
+            .HasFilter("[document] IS NOT NULL"); // Índice parcial
+
+        // Índice no status (filtros frequentes)
+        builder.HasIndex(c => c.Status)
+            .HasDatabaseName("IX_Customers_Status");
+
+        // Índice na origem (relatórios por fonte)
+        builder.HasIndex(c => c.Source)
+            .HasDatabaseName("IX_Customers_Source");
+
+        // Índice composto para listagens comuns
+        builder.HasIndex(c => new { c.Status, c.CreatedAt })
+            .HasDatabaseName("IX_Customers_Status_CreatedAt");
+
+        // Índice para busca por nome
+        builder.HasIndex(c => c.Name)
+            .HasDatabaseName("IX_Customers_Name");
+    }
+}

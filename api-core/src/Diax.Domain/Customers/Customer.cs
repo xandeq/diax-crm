@@ -1,0 +1,251 @@
+using Diax.Domain.Common;
+using Diax.Domain.Customers.Enums;
+
+namespace Diax.Domain.Customers;
+
+/// <summary>
+/// Entidade principal que representa tanto Leads quanto Clientes.
+/// A evolução de Lead → Cliente ocorre através do Status.
+/// </summary>
+public class Customer : AuditableEntity
+{
+    // ===== IDENTIDADE =====
+
+    /// <summary>
+    /// Nome completo da pessoa ou nome fantasia da empresa.
+    /// </summary>
+    public string Name { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Razão social ou nome da empresa (opcional para PF).
+    /// </summary>
+    public string? CompanyName { get; private set; }
+
+    /// <summary>
+    /// Tipo de pessoa: Física (Individual) ou Jurídica (Company).
+    /// </summary>
+    public PersonType PersonType { get; private set; }
+
+    /// <summary>
+    /// CPF ou CNPJ (sem formatação, apenas números).
+    /// Opcional no início do cadastro.
+    /// </summary>
+    public string? Document { get; private set; }
+
+    // ===== CONTATO =====
+
+    /// <summary>
+    /// E-mail principal de contato.
+    /// </summary>
+    public string Email { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// E-mail secundário (opcional).
+    /// </summary>
+    public string? SecondaryEmail { get; private set; }
+
+    /// <summary>
+    /// Telefone principal (com DDD).
+    /// </summary>
+    public string? Phone { get; private set; }
+
+    /// <summary>
+    /// WhatsApp (pode ser diferente do telefone).
+    /// </summary>
+    public string? WhatsApp { get; private set; }
+
+    /// <summary>
+    /// Website da empresa/pessoa.
+    /// </summary>
+    public string? Website { get; private set; }
+
+    // ===== ORIGEM E CONTEXTO =====
+
+    /// <summary>
+    /// De onde veio esse lead/cliente.
+    /// </summary>
+    public LeadSource Source { get; private set; }
+
+    /// <summary>
+    /// Detalhes adicionais sobre a origem (ex: nome do evento, campanha específica).
+    /// </summary>
+    public string? SourceDetails { get; private set; }
+
+    /// <summary>
+    /// Observações livres sobre o cliente/lead.
+    /// </summary>
+    public string? Notes { get; private set; }
+
+    /// <summary>
+    /// Tags separadas por vírgula para categorização.
+    /// Ex: "premium,tech,startup"
+    /// </summary>
+    public string? Tags { get; private set; }
+
+    // ===== STATUS E FLAGS =====
+
+    /// <summary>
+    /// Status atual no pipeline de vendas.
+    /// </summary>
+    public CustomerStatus Status { get; private set; }
+
+    /// <summary>
+    /// Indica se é um lead (ainda não converteu).
+    /// Calculado automaticamente baseado no Status.
+    /// </summary>
+    public bool IsLead => Status < CustomerStatus.Customer;
+
+    /// <summary>
+    /// Indica se é um cliente ativo (já converteu e não deu churn).
+    /// </summary>
+    public bool IsActiveCustomer => Status == CustomerStatus.Customer;
+
+    /// <summary>
+    /// Data em que o lead foi convertido para cliente.
+    /// </summary>
+    public DateTime? ConvertedAt { get; private set; }
+
+    /// <summary>
+    /// Data do último contato/interação.
+    /// </summary>
+    public DateTime? LastContactAt { get; private set; }
+
+    // ===== CONSTRUTORES =====
+
+    /// <summary>
+    /// Construtor para EF Core.
+    /// </summary>
+    protected Customer() { }
+
+    /// <summary>
+    /// Cria um novo Lead/Cliente.
+    /// </summary>
+    public Customer(
+        string name,
+        string email,
+        PersonType personType = PersonType.Individual,
+        LeadSource source = LeadSource.Manual)
+    {
+        Name = name;
+        Email = email;
+        PersonType = personType;
+        Source = source;
+        Status = CustomerStatus.Lead; // Sempre começa como Lead
+    }
+
+    // ===== MÉTODOS DE DOMÍNIO =====
+
+    /// <summary>
+    /// Atualiza as informações básicas do cliente.
+    /// </summary>
+    public void UpdateBasicInfo(
+        string name,
+        string email,
+        PersonType personType,
+        string? companyName = null,
+        string? document = null)
+    {
+        Name = name;
+        Email = email;
+        PersonType = personType;
+        CompanyName = companyName;
+        Document = document;
+    }
+
+    /// <summary>
+    /// Atualiza as informações de contato.
+    /// </summary>
+    public void UpdateContactInfo(
+        string? phone = null,
+        string? whatsApp = null,
+        string? secondaryEmail = null,
+        string? website = null)
+    {
+        Phone = phone;
+        WhatsApp = whatsApp;
+        SecondaryEmail = secondaryEmail;
+        Website = website;
+    }
+
+    /// <summary>
+    /// Atualiza o status no pipeline.
+    /// </summary>
+    public void UpdateStatus(CustomerStatus newStatus)
+    {
+        var previousStatus = Status;
+        Status = newStatus;
+
+        // Se converteu para cliente, registra a data
+        if (previousStatus < CustomerStatus.Customer && newStatus == CustomerStatus.Customer)
+        {
+            ConvertedAt = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Registra um contato/interação.
+    /// </summary>
+    public void RegisterContact()
+    {
+        LastContactAt = DateTime.UtcNow;
+
+        // Se ainda é Lead, avança para Contacted
+        if (Status == CustomerStatus.Lead)
+        {
+            Status = CustomerStatus.Contacted;
+        }
+    }
+
+    /// <summary>
+    /// Atualiza as observações.
+    /// </summary>
+    public void UpdateNotes(string? notes)
+    {
+        Notes = notes;
+    }
+
+    /// <summary>
+    /// Atualiza as tags.
+    /// </summary>
+    public void UpdateTags(string? tags)
+    {
+        Tags = tags;
+    }
+
+    /// <summary>
+    /// Atualiza informações de origem.
+    /// </summary>
+    public void UpdateSource(LeadSource source, string? sourceDetails = null)
+    {
+        Source = source;
+        SourceDetails = sourceDetails;
+    }
+
+    /// <summary>
+    /// Converte o lead para cliente.
+    /// </summary>
+    public void ConvertToCustomer()
+    {
+        if (Status == CustomerStatus.Customer)
+            return;
+
+        Status = CustomerStatus.Customer;
+        ConvertedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Marca como inativo.
+    /// </summary>
+    public void Deactivate()
+    {
+        Status = CustomerStatus.Inactive;
+    }
+
+    /// <summary>
+    /// Marca como churn (cancelou).
+    /// </summary>
+    public void MarkAsChurned()
+    {
+        Status = CustomerStatus.Churned;
+    }
+}

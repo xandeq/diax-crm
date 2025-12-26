@@ -1,0 +1,48 @@
+name: Deploy API-Core to SmarterASP (FTP)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "api-core/**"
+      - ".github/workflows/deploy-api-core-smarterasp.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api-core-smarterasp
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        working-directory: api-core
+        run: dotnet restore
+
+      - name: Publish (Release)
+        working-directory: api-core
+        run: dotnet publish "src/Diax.Api/Diax.Api.csproj" -c Release -o "${{ github.workspace }}/_publish"
+
+      - name: Deploy via FTP (SmarterASP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.SMARTERASP_FTP_SERVER }}
+          username: ${{ secrets.SMARTERASP_FTP_USERNAME }}
+          password: ${{ secrets.SMARTERASP_FTP_PASSWORD }}
+          protocol: ftp
+          local-dir: "${{ github.workspace }}/_publish/"
+          server-dir: ${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/appsettings.Development.json
