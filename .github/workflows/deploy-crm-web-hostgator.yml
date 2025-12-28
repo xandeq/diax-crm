@@ -29,6 +29,35 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Validate required secrets
+        env:
+          HOSTGATOR_FTP_SERVER: ${{ secrets.HOSTGATOR_FTP_SERVER }}
+          HOSTGATOR_FTP_USERNAME: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
+          HOSTGATOR_FTP_PASSWORD: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
+          HOSTGATOR_FTP_REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
+          CRM_WEB_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
+        run: |
+          missing=0
+          check() {
+            name="$1"
+            value="$2"
+            if [ -z "$value" ]; then
+              echo "::error::Missing required secret: $name"
+              missing=1
+            fi
+          }
+
+          check "HOSTGATOR_FTP_SERVER" "$HOSTGATOR_FTP_SERVER"
+          check "HOSTGATOR_FTP_USERNAME" "$HOSTGATOR_FTP_USERNAME"
+          check "HOSTGATOR_FTP_PASSWORD" "$HOSTGATOR_FTP_PASSWORD"
+          check "HOSTGATOR_FTP_REMOTE_DIR" "$HOSTGATOR_FTP_REMOTE_DIR"
+          check "CRM_WEB_API_BASE_URL" "$CRM_WEB_API_BASE_URL"
+
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::One or more required secrets are missing. Run scripts/set-github-secrets-frontend.ps1 (or set them in GitHub Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
