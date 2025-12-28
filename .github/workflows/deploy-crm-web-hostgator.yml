@@ -67,13 +67,15 @@ jobs:
         run: npm run build
 
       - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           username: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
           password: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
-          protocol: ftp
+          protocol: ftps
           port: 21
+          security: loose
+          timeout: 120000
           local-dir: crm-web/out/
           server-dir: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
           exclude: |
