@@ -140,8 +140,7 @@ try
 catch (Exception ex)
 {
     Log.Error(ex, "Failed to migrate/seed database on startup.");
-    if (!builder.Environment.IsDevelopment())
-        throw;
+    // Em produção, preferimos manter a API no ar e deixar o pipeline cuidar das migrations.
 }
 
 // ===== MIDDLEWARE PIPELINE =====
