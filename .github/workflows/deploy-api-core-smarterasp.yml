@@ -131,6 +131,8 @@ jobs:
           $publishDir = "${{ github.workspace }}/_publish"
           $logsDir = Join-Path $publishDir "logs"
           New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+          # Placeholder para forçar o FTP deploy a criar a pasta logs/ no servidor.
+          Set-Content -Path (Join-Path $logsDir "keep.txt") -Value "keep" -Encoding ascii
 
           $path = Join-Path $publishDir "web.config"
           $xml = Get-Content -Path $path -Raw
@@ -273,6 +275,35 @@ jobs:
           if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
 
           $logsUri = "ftp://$server$remoteDir" + "logs/"
+
+          # Também baixa o web.config remoto para confirmar que o deploy aplicou o stdoutLogEnabled.
+          try {
+            $webConfigUri = "ftp://$server$remoteDir" + "web.config"
+            $outDir = "${{ github.workspace }}/_stdoutlogs"
+            New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+            $webConfigPath = Join-Path $outDir "web.config.remote"
+
+            $wcReq = [System.Net.FtpWebRequest]::Create($webConfigUri)
+            $wcReq.Method = [System.Net.WebRequestMethods+Ftp]::DownloadFile
+            $wcReq.Credentials = New-Object System.Net.NetworkCredential($username, $password)
+            $wcReq.UseBinary = $true
+            $wcReq.UsePassive = $true
+            $wcReq.KeepAlive = $false
+            $wcResp = $wcReq.GetResponse()
+            $wcStream = $wcResp.GetResponseStream()
+            $wcFile = [System.IO.File]::Open($webConfigPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            $wcStream.CopyTo($wcFile)
+            $wcFile.Close(); $wcStream.Close(); $wcResp.Close()
+
+            $remoteCfg = Get-Content -Path $webConfigPath -Raw
+            if ($remoteCfg -match 'stdoutLogEnabled="true"') {
+              Write-Host "web.config remoto: stdoutLogEnabled=true"
+            } else {
+              Write-Host "web.config remoto: stdoutLogEnabled NÃO está true (ver arquivo no artifact)."
+            }
+          } catch {
+            Write-Host "Aviso: não consegui baixar web.config remoto para validação."
+          }
 
           function New-FtpRequest([string]$uri, [string]$method) {
             $req = [System.Net.FtpWebRequest]::Create($uri)
