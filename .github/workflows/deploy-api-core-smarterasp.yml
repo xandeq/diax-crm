@@ -129,21 +129,27 @@ jobs:
         shell: pwsh
         run: |
           $publishDir = "${{ github.workspace }}/_publish"
-          $logsDir = Join-Path $publishDir "logs"
-          New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
-          # Placeholder para forçar o FTP deploy a criar a pasta logs/ no servidor.
-          Set-Content -Path (Join-Path $logsDir "keep.txt") -Value "keep" -Encoding ascii
+          $dataLogsDir = Join-Path $publishDir "App_Data/logs"
+          New-Item -ItemType Directory -Path $dataLogsDir -Force | Out-Null
+          # Placeholder para forçar o FTP deploy a criar a pasta App_Data/logs no servidor.
+          Set-Content -Path (Join-Path $dataLogsDir "keep.txt") -Value "keep" -Encoding ascii
 
           $path = Join-Path $publishDir "web.config"
-          $xml = Get-Content -Path $path -Raw
-          if ($xml -notmatch 'stdoutLogEnabled="') {
-            throw "Não encontrei stdoutLogEnabled no web.config; não posso habilitar logs com segurança."
+          if (-not (Test-Path $path)) {
+            throw "web.config não encontrado em $path"
           }
 
-          $xml = $xml -replace 'stdoutLogEnabled="false"', 'stdoutLogEnabled="true"'
-          Set-Content -Path $path -Value $xml -Encoding utf8
+          [xml]$doc = Get-Content -Path $path
+          $node = $doc.SelectSingleNode("//aspNetCore")
+          if ($null -eq $node) {
+            throw "Não encontrei o nó <aspNetCore> no web.config; não posso habilitar logs."
+          }
 
-          Write-Host "stdout logging habilitado (stdoutLogEnabled=true)."
+          $node.SetAttribute("stdoutLogEnabled", "true")
+          $node.SetAttribute("stdoutLogFile", ".\\App_Data\\logs\\stdout")
+          $doc.Save($path)
+
+          Write-Host "stdout logging habilitado (stdoutLogEnabled=true) em App_Data/logs."
 
       - name: Inject DB ConnectionString (appsettings.Production.json)
         shell: pwsh
@@ -274,7 +280,7 @@ jobs:
           if (-not $remoteDir.StartsWith("/")) { $remoteDir = "/" + $remoteDir }
           if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
 
-          $logsUri = "ftp://$server$remoteDir" + "logs/"
+          $logsUri = "ftp://$server$remoteDir" + "App_Data/logs/"
 
           # Também baixa o web.config remoto para confirmar que o deploy aplicou o stdoutLogEnabled.
           try {
@@ -334,7 +340,7 @@ jobs:
           }
 
           $latest = ($stdoutFiles | Sort-Object)[-1]
-          $downloadUri = "ftp://$server$remoteDir" + "logs/$latest"
+          $downloadUri = "ftp://$server$remoteDir" + "App_Data/logs/$latest"
 
           $outDir = "${{ github.workspace }}/_stdoutlogs"
           New-Item -ItemType Directory -Path $outDir -Force | Out-Null
