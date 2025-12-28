@@ -66,6 +66,28 @@ jobs:
           NEXT_PUBLIC_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
         run: npm run build
 
+      - name: Network diagnostics (FTP)
+        env:
+          HOST: ${{ secrets.HOSTGATOR_FTP_SERVER }}
+        run: |
+          echo "Host: $HOST"
+          echo "DNS (getent hosts):"
+          getent hosts "$HOST" || true
+
+          test_port() {
+            port="$1"
+            echo "Testing TCP $HOST:$port ..."
+            if timeout 8 bash -lc "cat < /dev/null > /dev/tcp/$HOST/$port" 2>/dev/null; then
+              echo "OK: TCP $HOST:$port reachable"
+            else
+              echo "FAIL: TCP $HOST:$port not reachable (timeout/refused/blocked)"
+            fi
+          }
+
+          test_port 21
+          test_port 990
+          test_port 22
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
