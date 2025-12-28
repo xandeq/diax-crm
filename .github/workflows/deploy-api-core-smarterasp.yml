@@ -120,11 +120,30 @@ jobs:
           $publishDir = "${{ github.workspace }}/_publish"
           $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
 
+          $jwtKey = "${{ secrets.DIAX_JWT_KEY }}"
+          $adminEmail = "${{ secrets.DIAX_AUTH_ADMIN_EMAIL }}"
+          $adminPassword = "${{ secrets.DIAX_AUTH_ADMIN_PASSWORD }}"
+
           if ([string]::IsNullOrWhiteSpace($conn)) {
             throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
           }
 
-          $payload = @{ ConnectionStrings = @{ DefaultConnection = $conn } }
+          if ([string]::IsNullOrWhiteSpace($jwtKey)) {
+            throw "DIAX_JWT_KEY não está definido (necessário para /api/v1/auth/*)."
+          }
+          if ([string]::IsNullOrWhiteSpace($adminEmail) -or [string]::IsNullOrWhiteSpace($adminPassword)) {
+            throw "DIAX_AUTH_ADMIN_EMAIL/DIAX_AUTH_ADMIN_PASSWORD não estão definidos (necessário para /api/v1/auth/login)."
+          }
+
+          $payload = @{
+            ConnectionStrings = @{ DefaultConnection = $conn }
+            Jwt = @{ Key = $jwtKey }
+            Auth = @{ AdminEmail = $adminEmail; AdminPassword = $adminPassword }
+            Cors = @{ AllowedOrigins = @(
+              "https://crm.alexandrequeiroz.com.br",
+              "http://localhost:3000"
+            )}
+          }
           $json = $payload | ConvertTo-Json -Depth 5
           $path = Join-Path $publishDir "appsettings.Production.json"
           Set-Content -Path $path -Value $json -Encoding utf8

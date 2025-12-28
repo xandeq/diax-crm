@@ -2,7 +2,10 @@ using Asp.Versioning;
 using Diax.Api.Configuration;
 using Diax.Application;
 using Diax.Infrastructure;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,13 +60,62 @@ builder.Services.AddSwaggerConfiguration();
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        var configured = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        var allowedOrigins = (configured is { Length: > 0 })
+            ? configured
+            : new[]
+            {
+                "https://crm.alexandrequeiroz.com.br",
+                "http://localhost:3000"
+            };
+
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
+// JWT Auth
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "DiaxCRM";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "DiaxCRM";
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? builder.Configuration["Jwt:Secret"]
+    ?? builder.Configuration["Jwt:SigningKey"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        jwtKey = "dev-only-insecure-key-change-me-please-32chars";
+        Log.Warning("JWT key not configured. Using development fallback key.");
+    }
+    else
+    {
+        throw new InvalidOperationException("JWT key not configured. Set Jwt:Key (recommended) or Jwt:Secret via DIAX_Jwt__Key / DIAX_Jwt__Secret.");
+    }
+}
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // Health Checks
 builder.Services.AddHealthChecks();
@@ -84,7 +136,7 @@ app.UseSwaggerUI(c =>
 app.UseSerilogRequestLogging();
 
 // CORS
-app.UseCors("AllowAll");
+app.UseCors("Frontend");
 
 // HTTPS Redirection
 app.UseHttpsRedirection();
