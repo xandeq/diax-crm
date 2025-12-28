@@ -251,3 +251,80 @@ jobs:
           catch {
             Write-Host "Aviso: não foi possível remover app_offline.htm (ok se já não existir)."
           }
+
+      - name: Fetch stdout logs (best-effort)
+        if: always()
+        shell: pwsh
+        run: |
+          Start-Sleep -Seconds 10
+
+          $server = "${{ secrets.SMARTERASP_FTP_SERVER }}"
+          $username = "${{ secrets.SMARTERASP_FTP_USERNAME }}"
+          $password = "${{ secrets.SMARTERASP_FTP_PASSWORD }}"
+          $remoteDir = "${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}"
+
+          if ([string]::IsNullOrWhiteSpace($server) -or [string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) {
+            Write-Host "FTP secrets ausentes; não dá para coletar stdout logs."
+            exit 0
+          }
+
+          $remoteDir = $remoteDir.Trim()
+          if (-not $remoteDir.StartsWith("/")) { $remoteDir = "/" + $remoteDir }
+          if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
+
+          $logsUri = "ftp://$server$remoteDir" + "logs/"
+
+          function New-FtpRequest([string]$uri, [string]$method) {
+            $req = [System.Net.FtpWebRequest]::Create($uri)
+            $req.Method = $method
+            $req.Credentials = New-Object System.Net.NetworkCredential($username, $password)
+            $req.UseBinary = $true
+            $req.UsePassive = $true
+            $req.KeepAlive = $false
+            return $req
+          }
+
+          try {
+            $listReq = New-FtpRequest $logsUri ([System.Net.WebRequestMethods+Ftp]::ListDirectory)
+            $listResp = $listReq.GetResponse()
+            $reader = New-Object System.IO.StreamReader($listResp.GetResponseStream())
+            $files = @()
+            while (-not $reader.EndOfStream) { $files += $reader.ReadLine() }
+            $reader.Close(); $listResp.Close()
+          } catch {
+            Write-Host "Não foi possível listar $logsUri (talvez não exista)."
+            exit 0
+          }
+
+          $stdoutFiles = $files | Where-Object { $_ -match '^stdout' }
+          if (-not $stdoutFiles -or $stdoutFiles.Count -eq 0) {
+            Write-Host "Nenhum stdout log encontrado em logs/."
+            exit 0
+          }
+
+          $latest = ($stdoutFiles | Sort-Object)[-1]
+          $downloadUri = "ftp://$server$remoteDir" + "logs/$latest"
+
+          $outDir = "${{ github.workspace }}/_stdoutlogs"
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+          $outPath = Join-Path $outDir $latest
+
+          try {
+            $dlReq = New-FtpRequest $downloadUri ([System.Net.WebRequestMethods+Ftp]::DownloadFile)
+            $dlResp = $dlReq.GetResponse()
+            $respStream = $dlResp.GetResponseStream()
+            $fileStream = [System.IO.File]::Open($outPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            $respStream.CopyTo($fileStream)
+            $fileStream.Close(); $respStream.Close(); $dlResp.Close()
+            Write-Host "Baixado stdout log: $latest"
+          } catch {
+            Write-Host "Falha ao baixar $downloadUri"
+            exit 0
+          }
+
+      - name: Upload stdout logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smarterasp-stdout-logs
+          path: _stdoutlogs/**
