@@ -14,11 +14,12 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     defaults:
       run:
         working-directory: crm-web
+        shell: pwsh
 
     steps:
       - name: Checkout
@@ -37,26 +38,25 @@ jobs:
           HOSTGATOR_FTP_REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
           CRM_WEB_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
         run: |
-          missing=0
-          check() {
-            name="$1"
-            value="$2"
-            if [ -z "$value" ]; then
-              echo "::error::Missing required secret: $name"
-              missing=1
-            fi
+          $missing = $false
+
+          function Check-Secret([string]$name, [string]$value) {
+            if ([string]::IsNullOrWhiteSpace($value)) {
+              Write-Host "::error::Missing required secret: $name"
+              $script:missing = $true
+            }
           }
 
-          check "HOSTGATOR_FTP_SERVER" "$HOSTGATOR_FTP_SERVER"
-          check "HOSTGATOR_FTP_USERNAME" "$HOSTGATOR_FTP_USERNAME"
-          check "HOSTGATOR_FTP_PASSWORD" "$HOSTGATOR_FTP_PASSWORD"
-          check "HOSTGATOR_FTP_REMOTE_DIR" "$HOSTGATOR_FTP_REMOTE_DIR"
-          check "CRM_WEB_API_BASE_URL" "$CRM_WEB_API_BASE_URL"
+          Check-Secret "HOSTGATOR_FTP_SERVER" $env:HOSTGATOR_FTP_SERVER
+          Check-Secret "HOSTGATOR_FTP_USERNAME" $env:HOSTGATOR_FTP_USERNAME
+          Check-Secret "HOSTGATOR_FTP_PASSWORD" $env:HOSTGATOR_FTP_PASSWORD
+          Check-Secret "HOSTGATOR_FTP_REMOTE_DIR" $env:HOSTGATOR_FTP_REMOTE_DIR
+          Check-Secret "CRM_WEB_API_BASE_URL" $env:CRM_WEB_API_BASE_URL
 
-          if [ "$missing" -ne 0 ]; then
-            echo "::error::One or more required secrets are missing. Run scripts/set-github-secrets-frontend.ps1 (or set them in GitHub Settings > Secrets and variables > Actions)."
+          if ($missing) {
+            Write-Host "::error::One or more required secrets are missing."
             exit 1
-          fi
+          }
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
@@ -70,23 +70,23 @@ jobs:
         env:
           HOST: ${{ secrets.HOSTGATOR_FTP_SERVER }}
         run: |
-          echo "Host: $HOST"
-          echo "DNS (getent hosts):"
-          getent hosts "$HOST" || true
-
-          test_port() {
-            port="$1"
-            echo "Testing TCP $HOST:$port ..."
-            if timeout 8 bash -lc "cat < /dev/null > /dev/tcp/$HOST/$port" 2>/dev/null; then
-              echo "OK: TCP $HOST:$port reachable"
-            else
-              echo "FAIL: TCP $HOST:$port not reachable (timeout/refused/blocked)"
-            fi
+          Write-Host "Host: $env:HOST"
+          try {
+            $dns = Resolve-DnsName -Name $env:HOST -Type A -ErrorAction Stop
+            $ips = $dns | Where-Object { $_.IPAddress } | Select-Object -ExpandProperty IPAddress
+            if ($ips) { Write-Host ("DNS A: " + ($ips -join ', ')) }
+          } catch {
+            Write-Host "DNS lookup failed: $($_.Exception.Message)"
           }
 
-          test_port 21
-          test_port 990
-          test_port 22
+          foreach ($port in @(21, 990, 22)) {
+            $res = Test-NetConnection -ComputerName $env:HOST -Port $port -WarningAction SilentlyContinue
+            if ($res.TcpTestSucceeded) {
+              Write-Host "OK: TCP $($env:HOST):$port reachable"
+            } else {
+              Write-Host "FAIL: TCP $($env:HOST):$port not reachable"
+            }
+          }
 
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
