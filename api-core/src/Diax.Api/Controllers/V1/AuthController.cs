@@ -2,8 +2,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Asp.Versioning;
+using Diax.Infrastructure.Data;
+using Diax.Shared.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Diax.Api.Controllers.V1;
@@ -15,29 +18,59 @@ namespace Diax.Api.Controllers.V1;
 public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly DiaxDbContext _db;
 
-    public AuthController(IConfiguration configuration)
+    public AuthController(IConfiguration configuration, DiaxDbContext db)
     {
         _configuration = configuration;
+        _db = db;
     }
 
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+            return Unauthorized(new { message = "Invalid credentials." });
+
+        var email = request.Email.Trim();
+
+        // Prefer DB-backed admin users
+        var hasDbAdmins = await _db.AdminUsers.AnyAsync();
+        if (hasDbAdmins)
+        {
+            var admin = await _db.AdminUsers
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Email == email);
+
+            if (admin is null || !admin.IsActive)
+                return Unauthorized(new { message = "Invalid credentials." });
+
+            if (!PasswordHash.Verify(admin.PasswordHash, request.Password))
+                return Unauthorized(new { message = "Invalid credentials." });
+
+            return Ok(CreateTokenResponse(admin.Email));
+        }
+
+        // Fallback (temporary): allow config-based admin while DB is empty
         var adminEmail = _configuration["Auth:AdminEmail"];
         var adminPassword = _configuration["Auth:AdminPassword"];
 
         if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
             return Unauthorized(new { message = "Auth is not configured." });
 
-        if (!string.Equals(request.Email?.Trim(), adminEmail, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(email, adminEmail, StringComparison.OrdinalIgnoreCase))
             return Unauthorized(new { message = "Invalid credentials." });
 
         if (!string.Equals(request.Password, adminPassword, StringComparison.Ordinal))
             return Unauthorized(new { message = "Invalid credentials." });
 
+        return Ok(CreateTokenResponse(adminEmail));
+    }
+
+    private LoginResponse CreateTokenResponse(string adminEmail)
+    {
         var issuer = _configuration["Jwt:Issuer"] ?? "DiaxCRM";
         var audience = _configuration["Jwt:Audience"] ?? "DiaxCRM";
         var key = _configuration["Jwt:Key"]
@@ -45,7 +78,7 @@ public class AuthController : ControllerBase
             ?? _configuration["Jwt:SigningKey"];
 
         if (string.IsNullOrWhiteSpace(key))
-            return Unauthorized(new { message = "JWT key not configured." });
+            throw new InvalidOperationException("JWT key not configured.");
 
         var expiresMinutes = int.TryParse(_configuration["Jwt:ExpirationInMinutes"], out var m) ? m : 60;
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(expiresMinutes);
@@ -70,7 +103,7 @@ public class AuthController : ControllerBase
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-        return Ok(new LoginResponse(accessToken, expiresAtUtc));
+        return new LoginResponse(accessToken, expiresAtUtc);
     }
 
     [Authorize]

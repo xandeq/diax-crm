@@ -1,4 +1,5 @@
 using Diax.Domain.Common;
+using Diax.Domain.Auth;
 using Diax.Domain.Customers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -38,6 +39,7 @@ public class DiaxDbContext : DbContext
 
     // ===== DbSets =====
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

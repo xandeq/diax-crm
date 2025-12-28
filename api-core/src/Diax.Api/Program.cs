@@ -2,7 +2,10 @@ using Asp.Versioning;
 using Diax.Api.Configuration;
 using Diax.Application;
 using Diax.Infrastructure;
+using Diax.Infrastructure.Data;
+using Diax.Infrastructure.Data.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
@@ -121,6 +124,25 @@ builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
+
+// ===== DB MIGRATIONS + SEED (admin) =====
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
+
+    // Keep schema updated (no-op if already up to date)
+    db.Database.Migrate();
+
+    // Seed initial admin (idempotent)
+    AdminUserSeeder.SeedInitialAdmin(db, builder.Configuration);
+}
+catch (Exception ex)
+{
+    Log.Error(ex, "Failed to migrate/seed database on startup.");
+    if (!builder.Environment.IsDevelopment())
+        throw;
+}
 
 // ===== MIDDLEWARE PIPELINE =====
 
