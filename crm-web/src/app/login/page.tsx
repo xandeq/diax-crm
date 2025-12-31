@@ -1,6 +1,7 @@
 'use client';
 
 import { login } from '@/services/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Loader2, Lock, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +19,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login: authLogin } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,7 +40,8 @@ export default function LoginPage() {
     setServerError(null);
 
     try {
-      await login(data.email, data.password);
+      const response = await login(data.email, data.password);
+      authLogin(response.accessToken);
       router.push('/dashboard/');
     } catch (err) {
       if (err instanceof Error) {

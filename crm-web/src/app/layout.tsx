@@ -1,4 +1,6 @@
 import './globals.css';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { Header } from '@/components/Header';
 
 export const metadata = {
   title: 'CRM',
@@ -13,18 +15,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        <div className="container">
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <strong>CRM</strong>
-            <nav style={{ display: 'flex', gap: 12 }}>
-              <a href="/">Início</a>
-              <a href="/login/">Login</a>
-              <a href="/dashboard/">Dashboard</a>
-              <a href="/leads/">Leads</a>
-            </nav>
-          </header>
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="container">
+            <Header />
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { me, MeResponse } from '@/services/auth';
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
   const [data, setData] = useState<MeResponse | null>(null);
