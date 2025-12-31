@@ -1,12 +1,12 @@
 'use client';
 
+import { login } from '@/services/auth';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, Loader2, Lock, Mail } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
-import { login } from '@/services/auth';
-import { useRouter } from 'next/navigation';
 
 // Schema de validação
 const loginSchema = z.object({
@@ -158,7 +158,7 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-        
+
         <div className="mt-6 text-center text-sm">
           <span className="text-slate-500">Não tem uma conta? </span>
           <a href="#" className="font-medium text-slate-900 hover:underline">
