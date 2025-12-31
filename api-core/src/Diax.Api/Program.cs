@@ -130,12 +130,15 @@ try
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
+    var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("AdminUserSeeder");
 
     // Keep schema updated (no-op if already up to date)
     db.Database.Migrate();
+    Log.Information("Database migrations applied successfully.");
 
-    // Seed initial admin (idempotent)
-    AdminUserSeeder.SeedInitialAdmin(db, builder.Configuration);
+    // Seed initial admin (idempotent) — usa app.Configuration (após Build)
+    AdminUserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
+    Log.Information("AdminUserSeeder completed.");
 }
 catch (Exception ex)
 {
