@@ -20,6 +20,7 @@ export default function RootLayout({
               <a href="/">Início</a>
               <a href="/login/">Login</a>
               <a href="/dashboard/">Dashboard</a>
+              <a href="/leads/">Leads</a>
             </nav>
           </header>
           {children}
