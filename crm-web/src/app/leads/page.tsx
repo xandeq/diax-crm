@@ -30,7 +30,7 @@ const leadSchema = z.object({
   email: z.string().email('Email inválido'),
   phone: z.string().optional(),
   companyName: z.string().optional(),
-  personType: z.number().default(0), // 0 = Física
+  personType: z.number(),
 });
 
 type LeadFormValues = z.infer<typeof leadSchema>;
@@ -59,6 +59,10 @@ export default function LeadsPage() {
   } = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
     defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      companyName: '',
       personType: 0
     }
   });
