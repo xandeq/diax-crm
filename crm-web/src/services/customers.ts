@@ -79,7 +79,7 @@ export async function getCustomers(page = 1, pageSize = 10, search = '', status?
     pageSize: pageSize.toString(),
     onlyCustomers: 'true'
   });
-  
+
   if (search) params.append('search', search);
   if (status !== undefined) params.append('status', status.toString());
 

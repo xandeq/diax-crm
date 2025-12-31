@@ -1,6 +1,6 @@
-import './globals.css';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { Header } from '@/components/Header';
+import { AuthProvider } from '@/contexts/AuthContext';
+import './globals.css';
 
 export const metadata = {
   title: 'CRM',

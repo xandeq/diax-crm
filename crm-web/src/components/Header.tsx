@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut } from 'lucide-react';
+import Link from 'next/link';
 import { Logo } from './Logo';
 
 export function Header() {
@@ -28,7 +28,7 @@ export function Header() {
       </Link>
       <nav className="flex gap-4 items-center text-sm font-medium text-slate-600">
         <Link href="/" className="hover:text-slate-900">Início</Link>
-        
+
         {!isAuthenticated && (
           <Link href="/login/" className="hover:text-slate-900">Login</Link>
         )}
@@ -38,7 +38,7 @@ export function Header() {
             <Link href="/dashboard/">Dashboard</Link>
             <Link href="/leads/">Leads</Link>
             <Link href="/customers/">Clientes</Link>
-            <button 
+            <button
               onClick={logout}
               className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium"
               title="Sair"

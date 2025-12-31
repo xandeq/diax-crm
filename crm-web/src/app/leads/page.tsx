@@ -1,28 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
-  ChevronLeft, 
-  ChevronRight, 
-  Loader2,
-  Filter,
-  MoreHorizontal
-} from 'lucide-react';
-import { 
-  getLeads, 
-  createLead, 
-  updateLead, 
-  deleteLead, 
-  Lead, 
-  CustomerStatus 
+import {
+    createLead,
+    CustomerStatus,
+    deleteLead,
+    getLeads,
+    Lead,
+    updateLead
 } from '@/services/leads';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+    ChevronLeft,
+    ChevronRight,
+    Edit2,
+    Loader2,
+    Plus,
+    Search,
+    Trash2
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 // Schema de validação
 const leadSchema = z.object({
@@ -105,7 +103,7 @@ export default function LeadsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este lead?')) return;
-    
+
     try {
       await deleteLead(id);
       fetchLeads();
@@ -142,7 +140,7 @@ export default function LeadsPage() {
     };
     const label = CustomerStatus[status] || 'Desconhecido';
     const style = styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800';
-    
+
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${style}`}>
         {label}
@@ -158,7 +156,7 @@ export default function LeadsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Gerenciamento de Leads</h1>
           <p className="text-slate-500">Visualize e gerencie seus potenciais clientes.</p>
         </div>
-        <button 
+        <button
           onClick={handleOpenCreate}
           className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 h-10 px-4 py-2"
         >
@@ -235,14 +233,14 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleOpenEdit(lead)}
                           className="p-1 hover:bg-slate-200 rounded-md text-slate-600 transition-colors"
                           title="Editar"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(lead.id)}
                           className="p-1 hover:bg-red-100 rounded-md text-red-600 transition-colors"
                           title="Excluir"
@@ -257,7 +255,7 @@ export default function LeadsPage() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
           <div className="text-sm text-slate-500">
@@ -294,7 +292,7 @@ export default function LeadsPage() {
                 ✕
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Nome Completo</label>
@@ -317,7 +315,7 @@ export default function LeadsPage() {
                   />
                   {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Telefone</label>
                   <input

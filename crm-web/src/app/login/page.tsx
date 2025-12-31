@@ -1,14 +1,14 @@
 'use client';
 
-import { login } from '@/services/auth';
+import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
+import { login } from '@/services/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Loader2, Lock, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { Logo } from '@/components/Logo';
 
 // Schema de validação
 const loginSchema = z.object({

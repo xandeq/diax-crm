@@ -8,8 +8,8 @@ interface LogoProps {
 }
 
 export function Logo({ variant = 'full', className = '', width, height }: LogoProps) {
-  const src = variant === 'full' 
-    ? '/images/logo_xandao_400.png' 
+  const src = variant === 'full'
+    ? '/images/logo_xandao_400.png'
     : '/images/logo_logo.png';
 
   const alt = variant === 'full' ? 'Alexandre Queiroz CRM' : 'AQ Logo';
