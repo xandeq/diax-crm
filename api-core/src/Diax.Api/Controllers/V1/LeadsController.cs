@@ -20,7 +20,7 @@ public class LeadsController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResponse<CustomerResponse>>> GetList(
+    public async Task<IActionResult> GetList(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? search = null,
@@ -40,41 +40,36 @@ public class LeadsController : BaseApiController
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<CustomerResponse>> GetById(Guid id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _service.GetByIdAsync(id);
-        return result.Match<ActionResult<CustomerResponse>>(
-            onSuccess: Ok,
-            onFailure: HandleFailure);
+        return HandleResult(result);
     }
 
     [HttpPost]
-    public async Task<ActionResult<CustomerResponse>> Create([FromBody] CreateCustomerRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request)
     {
-        // Força status inicial como Lead se não especificado, mas o serviço já deve tratar isso.
-        // O CreateCustomerRequest tem Source, etc.
-
         var result = await _service.CreateAsync(request);
-        return result.Match<ActionResult<CustomerResponse>>(
-            onSuccess: response => CreatedAtAction(nameof(GetById), new { id = response.Id }, response),
-            onFailure: HandleFailure);
+        
+        if (result.IsSuccess)
+        {
+            return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
+        }
+
+        return HandleResult(result);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<CustomerResponse>> Update(Guid id, [FromBody] UpdateCustomerRequest request)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerRequest request)
     {
         var result = await _service.UpdateAsync(id, request);
-        return result.Match<ActionResult<CustomerResponse>>(
-            onSuccess: Ok,
-            onFailure: HandleFailure);
+        return HandleResult(result);
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<ActionResult> Delete(Guid id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         var result = await _service.DeleteAsync(id);
-        return result.Match<ActionResult>(
-            onSuccess: () => NoContent(),
-            onFailure: HandleFailure);
+        return HandleResult(result);
     }
 }
