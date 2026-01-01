@@ -50,7 +50,7 @@ public class LeadsController : BaseApiController
     public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request)
     {
         var result = await _service.CreateAsync(request);
-        
+
         if (result.IsSuccess)
         {
             return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);

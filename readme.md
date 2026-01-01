@@ -8,7 +8,7 @@ Ele concentra todos os módulos que formam o “controlador digital” da empres
 
 ## Visão geral do projeto
 
-O **Digital Controller** é o sistema nervoso da operação digital da empresa.  
+O **Digital Controller** é o sistema nervoso da operação digital da empresa.
 Ele integra:
 
 - Coleta automatizada de leads pela internet

@@ -1,5 +1,6 @@
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
+using Diax.Domain.Finance;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Repositories;
 using Microsoft.Data.SqlClient;
@@ -136,6 +137,9 @@ public static class DependencyInjection
 
         // ===== REPOSITÓRIOS =====
         services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<IIncomeRepository, IncomeRepository>();
+        services.AddScoped<IExpenseRepository, ExpenseRepository>();
+        services.AddScoped<ICreditCardRepository, CreditCardRepository>();
 
         return services;
     }

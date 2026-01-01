@@ -42,10 +42,10 @@ if (-not $Repo) {
 
 Write-Host "Repo: $Repo" -ForegroundColor Cyan
 
-$ftpServer = Read-Host "HOSTGATOR_FTP_SERVER" 
+$ftpServer = Read-Host "HOSTGATOR_FTP_SERVER"
 if ([string]::IsNullOrWhiteSpace($ftpServer)) { $ftpServer = "ftp.alexandrequeiroz.com.br" }
 
-$ftpUser = Read-Host "HOSTGATOR_FTP_USERNAME" 
+$ftpUser = Read-Host "HOSTGATOR_FTP_USERNAME"
 if ([string]::IsNullOrWhiteSpace($ftpUser)) { $ftpUser = "crm@alexandrequeiroz.com.br" }
 
 $ftpDir = Read-Host "HOSTGATOR_FTP_REMOTE_DIR"

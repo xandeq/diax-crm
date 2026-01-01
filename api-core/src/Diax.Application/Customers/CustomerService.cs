@@ -65,7 +65,7 @@ public class CustomerService : IApplicationService
             items = items.Where(c => c.IsLead);
             totalCount = items.Count();
         }
-        
+
         // OnlyCustomers agora retorna tudo (comportamento "All") se não houver status específico
 
         var responses = items.Select(CustomerResponse.FromEntity);

@@ -1,4 +1,5 @@
 using Diax.Application.Customers;
+using Diax.Application.Finance;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,6 +16,9 @@ public static class DependencyInjection
 
         // Registra os serviços de aplicação
         services.AddScoped<CustomerService>();
+        services.AddScoped<IncomeService>();
+        services.AddScoped<ExpenseService>();
+        services.AddScoped<CreditCardService>();
 
         return services;
     }

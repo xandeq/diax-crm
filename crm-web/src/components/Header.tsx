@@ -28,6 +28,7 @@ export function Header() {
       </Link>
       <nav className="flex gap-4 items-center text-sm font-medium text-slate-600">
         <Link href="/" className="hover:text-slate-900">Início</Link>
+        <Link href="/finance" className="hover:text-slate-900">Financeiro</Link>
 
         {!isAuthenticated && (
           <Link href="/login/" className="hover:text-slate-900">Login</Link>

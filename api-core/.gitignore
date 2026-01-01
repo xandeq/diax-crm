@@ -94,3 +94,6 @@ coverage/
 
 # JetBrains Rider
 *.sln.iml
+
+_localpublish/
+_localpublish_rid/

@@ -40,6 +40,9 @@ public class DiaxDbContext : DbContext
     // ===== DbSets =====
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
+    public DbSet<Diax.Domain.Finance.Income> Incomes => Set<Diax.Domain.Finance.Income>();
+    public DbSet<Diax.Domain.Finance.Expense> Expenses => Set<Diax.Domain.Finance.Expense>();
+    public DbSet<Diax.Domain.Finance.CreditCard> CreditCards => Set<Diax.Domain.Finance.CreditCard>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

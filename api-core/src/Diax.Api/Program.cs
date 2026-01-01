@@ -67,14 +67,21 @@ builder.Services.AddCors(options =>
     {
         var configured = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
         var allowedOrigins = (configured is { Length: > 0 })
-            ? configured
-            : new[]
+            ? configured.Select(o => o.Trim().TrimEnd('/')).ToList()
+            : new List<string>
             {
                 "https://crm.alexandrequeiroz.com.br",
                 "http://localhost:3000"
             };
 
-        policy.WithOrigins(allowedOrigins)
+        // Garantir que a origem de produção esteja sempre permitida
+        var productionOrigin = "https://crm.alexandrequeiroz.com.br";
+        if (!allowedOrigins.Contains(productionOrigin))
+        {
+            allowedOrigins.Add(productionOrigin);
+        }
+
+        policy.WithOrigins(allowedOrigins.ToArray())
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();

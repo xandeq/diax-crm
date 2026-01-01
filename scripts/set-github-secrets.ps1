@@ -19,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 function Get-RepoFromGitRemote {
     $originUrl = (git remote get-url origin 2>$null)
     if (-not $originUrl) {
-        throw "Não foi possível obter a URL do remote 'origin'. Passe -Repo owner/repo." 
+        throw "Não foi possível obter a URL do remote 'origin'. Passe -Repo owner/repo."
     }
 
     # Supports:
