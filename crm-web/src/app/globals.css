@@ -1,65 +1,138 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-serif: var(--font-calistoga), Georgia, serif;
+  --font-mono: var(--font-mono), "JetBrains Mono", monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-secondary: var(--accent-secondary);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+}
+
 :root {
-  color-scheme: light;
+  --background: #FAFAFA;
+  --foreground: #0F172A;
+
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+
+  --primary: #0F172A;
+  --primary-foreground: #F8FAFC;
+
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+
+  --accent: #0052FF;
+  --accent-foreground: #FFFFFF;
+  --accent-secondary: #4D7CFF;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #F8FAFC;
+
+  --ring: #0052FF;
+
+  --radius: 0.75rem;
 }
 
-* { box-sizing: border-box; }
+.dark {
+  --background: #020817;
+  --foreground: #F8FAFC;
 
-html, body {
-  margin: 0;
-  padding: 0;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+
+  --card: #020817;
+  --card-foreground: #F8FAFC;
+
+  --popover: #020817;
+  --popover-foreground: #F8FAFC;
+
+  --border: #1E293B;
+  --input: #1E293B;
+
+  --primary: #F8FAFC;
+  --primary-foreground: #020817;
+
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+
+  --accent: #0052FF;
+  --accent-foreground: #FFFFFF;
+  --accent-secondary: #4D7CFF;
+
+  --destructive: #7F1D1D;
+  --destructive-foreground: #F8FAFC;
+
+  --ring: #1E293B;
 }
 
-body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  line-height: 1.4;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 
-a {
-  color: inherit;
-  text-decoration: underline;
-}
+/* Utility classes for the design system */
+@layer utilities {
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-accent-secondary bg-clip-text text-transparent;
+  }
 
-.container {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 16px;
-}
-
-.row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-}
-
-.button {
-  padding: 10px 14px;
-  border: 1px solid #111827;
-  background: #111827;
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.button.secondary {
-  background: white;
-  color: #111827;
-}
-
-.error {
-  color: #b91c1c;
+  .gradient-border {
+    @apply relative rounded-xl bg-gradient-to-br from-accent via-accent-secondary to-accent p-[2px];
+  }
 }

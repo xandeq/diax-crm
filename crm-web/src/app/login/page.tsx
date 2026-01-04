@@ -9,6 +9,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 // Schema de validação
 const loginSchema = z.object({
@@ -57,120 +60,94 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-lg border border-slate-100">
-        <div className="flex flex-col items-center text-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 items-center text-center">
           <Logo variant="icon" width={60} height={60} className="mb-4" />
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">
-            Bem-vindo de volta
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <CardTitle className="text-2xl font-bold">Bem-vindo de volta</CardTitle>
+          <CardDescription>
             Entre com suas credenciais para acessar o painel
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4">
-            {/* Email Field */}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700">
-                Email
-              </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                   <Mail className="h-5 w-5" />
                 </div>
-                <input
+                <Input
                   id="email"
                   type="email"
-                  autoComplete="email"
-                  disabled={isLoading}
                   placeholder="seu@email.com"
-                  className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                    errors.email ? 'border-red-500 focus-visible:ring-red-500' : 'border-slate-300 focus-visible:ring-slate-950'
-                  }`}
+                  disabled={isLoading}
+                  className={`pl-10 ${errors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   {...register('email')}
                 />
               </div>
               {errors.email && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" /> {errors.email.message}
                 </p>
               )}
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700">
+                <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground">
                   Senha
                 </label>
-                <a href="#" className="text-sm font-medium text-slate-900 hover:underline">
+                <a href="#" className="text-sm font-medium text-primary hover:underline">
                   Esqueceu a senha?
                 </a>
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                   <Lock className="h-5 w-5" />
                 </div>
-                <input
+                <Input
                   id="password"
                   type="password"
-                  autoComplete="current-password"
-                  disabled={isLoading}
                   placeholder="••••••••"
-                  className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                    errors.password ? 'border-red-500 focus-visible:ring-red-500' : 'border-slate-300 focus-visible:ring-slate-950'
-                  }`}
+                  disabled={isLoading}
+                  className={`pl-10 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   {...register('password')}
                 />
               </div>
               {errors.password && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" /> {errors.password.message}
                 </p>
               )}
             </div>
-          </div>
 
-          {serverError && (
-            <div className="rounded-md bg-red-50 p-4 border border-red-200">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Erro na autenticação</h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>{serverError}</p>
-                  </div>
-                </div>
+            {serverError && (
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {serverError}
               </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 text-white hover:bg-slate-800 h-10 px-4 py-2 w-full"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Entrando...
-              </>
-            ) : (
-              'Entrar'
             )}
-          </button>
-        </form>
 
-        <div className="mt-6 text-center text-sm">
-          <span className="text-slate-500">Não tem uma conta? </span>
-          <a href="#" className="font-medium text-slate-900 hover:underline">
-            Criar conta
-          </a>
-        </div>
-      </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <div className="text-sm text-muted-foreground">
+            Não tem uma conta?{' '}
+            <a href="#" className="font-medium text-primary hover:underline">
+              Criar conta
+            </a>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
