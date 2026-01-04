@@ -5,11 +5,13 @@ using Diax.Application.Customers.Dtos;
 using Diax.Domain.Customers.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
 
 namespace Diax.Api.Controllers.V1;
 
 [Authorize]
-[Route("api/v1/leads")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/leads")]
 public class LeadsController : BaseApiController
 {
     private readonly CustomerService _service;
