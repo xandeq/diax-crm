@@ -1,7 +1,12 @@
 export function getApiBaseUrl(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!base) throw new Error('NEXT_PUBLIC_API_BASE_URL is not set');
-  return base.replace(/\/$/, '');
+  const cleanBase = base.replace(/\/$/, '');
+  // Ensure the base URL ends with /api/v1
+  if (!cleanBase.endsWith('/api/v1')) {
+    return `${cleanBase}/api/v1`;
+  }
+  return cleanBase;
 }
 
 export function getAccessToken(): string | null {
