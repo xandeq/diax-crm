@@ -58,33 +58,33 @@ export async function getLeads(page = 1, pageSize = 10, search = '', status?: Cu
   if (search) params.append('search', search);
   if (status !== undefined) params.append('status', status.toString());
 
-  return apiFetch<PagedResponse<Lead>>(`/api/v1/leads?${params.toString()}`, {
+  return apiFetch<PagedResponse<Lead>>(`/leads?${params.toString()}`, {
     method: 'GET'
   });
 }
 
 export async function getLead(id: string) {
-  return apiFetch<Lead>(`/api/v1/leads/${id}`, {
+  return apiFetch<Lead>(`/leads/${id}`, {
     method: 'GET'
   });
 }
 
 export async function createLead(data: CreateLeadRequest) {
-  return apiFetch<Lead>('/api/v1/leads', {
+  return apiFetch<Lead>('/leads', {
     method: 'POST',
     body: JSON.stringify(data)
   });
 }
 
 export async function updateLead(id: string, data: UpdateLeadRequest) {
-  return apiFetch<Lead>(`/api/v1/leads/${id}`, {
+  return apiFetch<Lead>(`/leads/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data)
   });
 }
 
 export async function deleteLead(id: string) {
-  return apiFetch<void>(`/api/v1/leads/${id}`, {
+  return apiFetch<void>(`/leads/${id}`, {
     method: 'DELETE'
   });
 }

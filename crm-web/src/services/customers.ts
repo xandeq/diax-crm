@@ -83,33 +83,33 @@ export async function getCustomers(page = 1, pageSize = 10, search = '', status?
   if (search) params.append('search', search);
   if (status !== undefined) params.append('status', status.toString());
 
-  return apiFetch<PagedResponse<Customer>>(`/api/v1/customers?${params.toString()}`, {
+  return apiFetch<PagedResponse<Customer>>(`/customers?${params.toString()}`, {
     method: 'GET'
   });
 }
 
 export async function getCustomer(id: string) {
-  return apiFetch<Customer>(`/api/v1/customers/${id}`, {
+  return apiFetch<Customer>(`/customers/${id}`, {
     method: 'GET'
   });
 }
 
 export async function createCustomer(data: CreateCustomerRequest) {
-  return apiFetch<Customer>('/api/v1/customers', {
+  return apiFetch<Customer>('/customers', {
     method: 'POST',
     body: JSON.stringify(data)
   });
 }
 
 export async function updateCustomer(id: string, data: UpdateCustomerRequest) {
-  return apiFetch<Customer>(`/api/v1/customers/${id}`, {
+  return apiFetch<Customer>(`/customers/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data)
   });
 }
 
 export async function deleteCustomer(id: string) {
-  return apiFetch<void>(`/api/v1/customers/${id}`, {
+  return apiFetch<void>(`/customers/${id}`, {
     method: 'DELETE'
   });
 }

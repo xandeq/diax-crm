@@ -6,7 +6,7 @@ export type LoginResponse = {
 };
 
 export async function login(email: string, password: string) {
-  const data = await apiFetch<LoginResponse>('/api/v1/auth/login', {
+  const data = await apiFetch<LoginResponse>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
   });
@@ -21,7 +21,7 @@ export type MeResponse = {
 };
 
 export async function me() {
-  return apiFetch<MeResponse>('/api/v1/auth/me', {
+  return apiFetch<MeResponse>('/auth/me', {
     method: 'GET'
   });
 }
