@@ -25,10 +25,20 @@ jobs:
       - name: Install dotnet-ef
         shell: pwsh
         run: |
-          dotnet tool install --global dotnet-ef --version 8.*
+          try {
+            dotnet tool install --global dotnet-ef --version 8.*
+          } catch {
+            dotnet tool update --global dotnet-ef --version 8.*
+          }
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: DROP tables (customers, __EFMigrationsHistory)
+      - name: Install SqlServer module
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name SqlServer -Scope CurrentUser -Force -AllowClobber
+
+      - name: DROP ALL tables
         shell: pwsh
         run: |
           $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
@@ -36,22 +46,27 @@ jobs:
             throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
           }
 
+          # Script to drop all tables and constraints to ensure a clean slate
           $sql = @"
-IF OBJECT_ID(N'[customers]') IS NOT NULL DROP TABLE [customers];
-IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NOT NULL DROP TABLE [__EFMigrationsHistory];
-"@
+          DECLARE @sql NVARCHAR(MAX) = N'';
 
-          $sqlConn = New-Object System.Data.SqlClient.SqlConnection($conn)
-          $sqlConn.Open()
-          try {
-            $cmd = $sqlConn.CreateCommand()
-            $cmd.CommandTimeout = 120
-            $cmd.CommandText = $sql
-            [void]$cmd.ExecuteNonQuery()
-          }
-          finally {
-            $sqlConn.Close()
-          }
+          -- Drop Foreign Keys
+          SELECT @sql += 'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(schema_id)) + '.' + QUOTENAME(parent.name) +
+                         ' DROP CONSTRAINT ' + QUOTENAME(name) + ';'
+          FROM sys.foreign_keys as parent;
+
+          EXEC sp_executesql @sql;
+
+          SET @sql = N'';
+
+          -- Drop Tables
+          SELECT @sql += 'DROP TABLE ' + QUOTENAME(SCHEMA_NAME(schema_id)) + '.' + QUOTENAME(name) + ';'
+          FROM sys.tables;
+
+          EXEC sp_executesql @sql;
+          "@
+
+          Invoke-Sqlcmd -ConnectionString $conn -Query $sql -ConnectionTimeout 120
 
       - name: Apply EF Core Migrations
         shell: pwsh
