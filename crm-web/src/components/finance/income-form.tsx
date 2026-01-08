@@ -13,12 +13,13 @@ import {
 import {
     financeService,
     Income,
+    IncomeCategory,
     PaymentMethod
 } from '@/services/finance';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
@@ -26,7 +27,7 @@ const formSchema = z.object({
   description: z.string().min(3, 'Descrição deve ter no mínimo 3 caracteres'),
   amount: z.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
-  category: z.string().optional(),
+  incomeCategoryId: z.string().min(1, 'Categoria é obrigatória'),
   paymentMethod: z.number(),
   isRecurring: z.boolean(),
 });
@@ -41,7 +42,24 @@ interface IncomeFormProps {
 export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<IncomeCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCategories() {
+        try {
+            const data = await financeService.getIncomeCategories();
+            setCategories(data);
+        } catch (err) {
+            console.error(err);
+            setError('Falha ao carregar categorias.');
+        } finally {
+            setLoadingCategories(false);
+        }
+    }
+    loadCategories();
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -49,7 +67,7 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
       description: initialData?.description || '',
       amount: initialData?.amount || 0,
       date: initialData?.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      category: initialData?.category || '',
+      incomeCategoryId: initialData?.incomeCategoryId || '',
       paymentMethod: initialData?.paymentMethod ?? PaymentMethod.Pix,
       isRecurring: initialData?.isRecurring || false,
     },
@@ -62,13 +80,13 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
     try {
       if (isEditing && initialData) {
         await financeService.updateIncome(initialData.id, {
-          ...data,
-          category: data.category || undefined,
+            ...data,
+            incomeCategoryId: data.incomeCategoryId
         });
       } else {
         await financeService.createIncome({
-          ...data,
-          category: data.category || undefined,
+            ...data,
+            incomeCategoryId: data.incomeCategoryId
         });
       }
       router.push('/finance/incomes');
@@ -113,8 +131,26 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="category">Categoria</Label>
-            <Input id="category" {...form.register('category')} />
+            <Label htmlFor="incomeCategoryId">Categoria</Label>
+            <Select
+                onValueChange={(value) => form.setValue('incomeCategoryId', value)}
+                value={form.watch('incomeCategoryId')}
+                disabled={loadingCategories}
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder={loadingCategories ? "Carregando..." : "Selecione..."} />
+                </SelectTrigger>
+                <SelectContent>
+                    {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            {form.formState.errors.incomeCategoryId && (
+                <p className="text-red-500 text-xs">{form.formState.errors.incomeCategoryId.message}</p>
+            )}
         </div>
       </div>
 
@@ -122,7 +158,7 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
         <Label>Método de Pagamento</Label>
         <Select
           onValueChange={(value) => form.setValue('paymentMethod', Number(value))}
-          defaultValue={String(form.getValues('paymentMethod'))}
+          defaultValue={String(form.getValues('paymentMethod') ?? PaymentMethod.Pix)}
           value={String(form.watch('paymentMethod'))}
         >
           <SelectTrigger>

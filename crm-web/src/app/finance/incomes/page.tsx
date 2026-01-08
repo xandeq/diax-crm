@@ -109,7 +109,7 @@ export default function IncomesPage() {
                   {new Date(income.date).toLocaleDateString('pt-BR')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{income.category || 'Geral'}</span>
+                  <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{income.incomeCategoryName || 'Geral'}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{PaymentMethod[income.paymentMethod]}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

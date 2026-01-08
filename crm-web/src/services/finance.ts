@@ -10,13 +10,20 @@ export enum PaymentMethod {
     Other = 6
 }
 
+export interface IncomeCategory {
+    id: string;
+    name: string;
+    isActive: boolean;
+}
+
 export interface Income {
     id: string;
     description: string;
     amount: number;
     date: string;
     paymentMethod: PaymentMethod;
-    category?: string;
+    incomeCategoryId: string;
+    incomeCategoryName?: string;
     isRecurring: boolean;
     createdAt: string;
     updatedAt?: string;
@@ -27,7 +34,7 @@ export interface CreateIncomeRequest {
     amount: number;
     date: string;
     paymentMethod: PaymentMethod;
-    category?: string;
+    incomeCategoryId: string;
     isRecurring: boolean;
 }
 
@@ -36,7 +43,7 @@ export interface UpdateIncomeRequest {
     amount: number;
     date: string;
     paymentMethod: PaymentMethod;
-    category?: string;
+    incomeCategoryId: string;
     isRecurring: boolean;
 }
 
@@ -101,6 +108,11 @@ export interface UpdateCreditCardRequest {
 }
 
 export const financeService = {
+    // Categories
+    getIncomeCategories: async () => {
+        return apiFetch<IncomeCategory[]>('/income-categories');
+    },
+
     // Incomes
     getIncomes: async () => {
         return apiFetch<Income[]>('/incomes');
