@@ -9,11 +9,13 @@ namespace Diax.Application.Finance;
 public class IncomeService : IApplicationService
 {
     private readonly IIncomeRepository _repository;
+    private readonly IIncomeCategoryRepository _categoryRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public IncomeService(IIncomeRepository repository, IUnitOfWork unitOfWork)
+    public IncomeService(IIncomeRepository repository, IIncomeCategoryRepository categoryRepository, IUnitOfWork unitOfWork)
     {
         _repository = repository;
+        _categoryRepository = categoryRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -43,12 +45,18 @@ public class IncomeService : IApplicationService
 
     public async Task<Result<Guid>> CreateAsync(CreateIncomeRequest request, CancellationToken cancellationToken = default)
     {
+        var category = await _categoryRepository.GetByIdAsync(request.IncomeCategoryId, cancellationToken);
+        if (category == null || !category.IsActive)
+        {
+            return Result.Failure<Guid>(new Error("Income.InvalidCategory", "Invalid or inactive income category"));
+        }
+
         var income = new Income(
             request.Description,
             request.Amount,
             request.Date,
             request.PaymentMethod,
-            request.Category,
+            request.IncomeCategoryId,
             request.IsRecurring
         );
 
@@ -66,12 +74,18 @@ public class IncomeService : IApplicationService
             return Result.Failure(new Error("Income.NotFound", "Income not found"));
         }
 
+        var category = await _categoryRepository.GetByIdAsync(request.IncomeCategoryId, cancellationToken);
+        if (category == null || !category.IsActive)
+        {
+            return Result.Failure(new Error("Income.InvalidCategory", "Invalid or inactive income category"));
+        }
+
         income.Update(
             request.Description,
             request.Amount,
             request.Date,
             request.PaymentMethod,
-            request.Category,
+            request.IncomeCategoryId,
             request.IsRecurring
         );
 
@@ -103,7 +117,8 @@ public class IncomeService : IApplicationService
             income.Amount,
             income.Date,
             income.PaymentMethod,
-            income.Category,
+            income.IncomeCategoryId,
+            income.IncomeCategory?.Name,
             income.IsRecurring,
             income.CreatedAt,
             income.UpdatedAt

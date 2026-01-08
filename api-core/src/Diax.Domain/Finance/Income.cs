@@ -8,22 +8,25 @@ public class Income : AuditableEntity
     public decimal Amount { get; private set; }
     public DateTime Date { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
-    public string? Category { get; private set; }
+    public Guid IncomeCategoryId { get; private set; }
+    public virtual IncomeCategory? IncomeCategory { get; private set; }
     public bool IsRecurring { get; private set; }
+
+    protected Income() { }
 
     public Income(
         string description,
         decimal amount,
         DateTime date,
         PaymentMethod paymentMethod,
-        string? category,
+        Guid incomeCategoryId,
         bool isRecurring)
     {
         Description = description;
         Amount = amount;
         Date = date;
         PaymentMethod = paymentMethod;
-        Category = category;
+        IncomeCategoryId = incomeCategoryId;
         IsRecurring = isRecurring;
     }
 
@@ -32,14 +35,14 @@ public class Income : AuditableEntity
         decimal amount,
         DateTime date,
         PaymentMethod paymentMethod,
-        string? category,
+        Guid incomeCategoryId,
         bool isRecurring)
     {
         Description = description;
         Amount = amount;
         Date = date;
         PaymentMethod = paymentMethod;
-        Category = category;
+        IncomeCategoryId = incomeCategoryId;
         IsRecurring = isRecurring;
     }
 }

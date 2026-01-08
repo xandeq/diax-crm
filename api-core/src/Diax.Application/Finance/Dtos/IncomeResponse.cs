@@ -8,7 +8,8 @@ public record IncomeResponse(
     decimal Amount,
     DateTime Date,
     PaymentMethod PaymentMethod,
-    string? Category,
+    Guid IncomeCategoryId,
+    string? IncomeCategoryName,
     bool IsRecurring,
     DateTime CreatedAt,
     DateTime? UpdatedAt

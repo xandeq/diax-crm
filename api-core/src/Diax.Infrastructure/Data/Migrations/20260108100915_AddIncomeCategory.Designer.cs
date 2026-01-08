@@ -4,6 +4,7 @@ using Diax.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Diax.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(DiaxDbContext))]
-    partial class DiaxDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260108100915_AddIncomeCategory")]
+    partial class AddIncomeCategory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -399,8 +402,8 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("name");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -414,65 +417,7 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("income_categories", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Salário"
-                        },
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Serviço"
-                        },
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Marketing"
-                        },
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Venda"
-                        },
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000005"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Comissão"
-                        },
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000006"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Reembolso"
-                        },
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000007"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Empréstimo"
-                        },
-                        new
-                        {
-                            Id = new Guid("10000000-0000-0000-0000-000000000008"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Outros"
-                        });
+                    b.ToTable("income_categories");
                 });
 
             modelBuilder.Entity("Diax.Domain.Finance.Expense", b =>

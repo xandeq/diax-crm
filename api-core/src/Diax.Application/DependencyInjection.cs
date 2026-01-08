@@ -17,6 +17,7 @@ public static class DependencyInjection
         // Registra os serviços de aplicação
         services.AddScoped<CustomerService>();
         services.AddScoped<IncomeService>();
+        services.AddScoped<IncomeCategoryService>();
         services.AddScoped<ExpenseService>();
         services.AddScoped<CreditCardService>();
 

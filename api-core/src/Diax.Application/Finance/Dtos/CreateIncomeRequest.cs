@@ -7,6 +7,6 @@ public record CreateIncomeRequest(
     decimal Amount,
     DateTime Date,
     PaymentMethod PaymentMethod,
-    string? Category,
+    Guid IncomeCategoryId,
     bool IsRecurring
 );
