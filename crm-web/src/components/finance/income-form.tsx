@@ -24,11 +24,11 @@ import * as z from 'zod';
 
 const formSchema = z.object({
   description: z.string().min(3, 'Descrição deve ter no mínimo 3 caracteres'),
-  amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
+  amount: z.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
   category: z.string().optional(),
-  paymentMethod: z.coerce.number(),
-  isRecurring: z.boolean().default(false),
+  paymentMethod: z.number(),
+  isRecurring: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -96,7 +96,7 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
 
         <div className="space-y-2">
             <Label htmlFor="amount">Valor</Label>
-            <Input id="amount" type="number" step="0.01" {...form.register('amount')} />
+            <Input id="amount" type="number" step="0.01" {...form.register('amount', { valueAsNumber: true })} />
             {form.formState.errors.amount && (
                 <p className="text-red-500 text-xs">{form.formState.errors.amount.message}</p>
             )}

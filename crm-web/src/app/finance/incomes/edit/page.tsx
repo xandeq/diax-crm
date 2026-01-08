@@ -1,22 +1,30 @@
 'use client';
 
-import { IncomeForm } from '@/components/finance/income-form';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { financeService, Income } from '@/services/finance';
+import { IncomeForm } from '@/components/finance/income-form';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
-export default function EditIncomePage({ params }: { params: { id: string } }) {
+function EditIncomeContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
   const [income, setIncome] = useState<Income | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadIncome();
-  }, []);
+    if (id) {
+      loadIncome(id);
+    } else {
+        setLoading(false);
+        setError("ID não fornecido");
+    }
+  }, [id]);
 
-  const loadIncome = async () => {
+  const loadIncome = async (incomeId: string) => {
     try {
-      const data = await financeService.getIncomeById(params.id);
+      const data = await financeService.getIncomeById(incomeId);
       setIncome(data);
     } catch (err) {
       setError('Não foi possível carregar os dados da receita.');
@@ -37,4 +45,12 @@ export default function EditIncomePage({ params }: { params: { id: string } }) {
       </div>
     </div>
   );
+}
+
+export default function EditIncomePage() {
+    return (
+        <Suspense fallback={<div className="p-8">Carregando...</div>}>
+            <EditIncomeContent />
+        </Suspense>
+    )
 }

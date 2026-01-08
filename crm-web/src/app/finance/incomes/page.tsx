@@ -114,7 +114,7 @@ export default function IncomesPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{PaymentMethod[income.paymentMethod]}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end gap-2">
-                    <Link href={`/finance/incomes/${income.id}`}>
+                    <Link href={`/finance/incomes/edit?id=${income.id}`}>
                       <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Editar">
                         <Edit size={18} />
                       </button>
