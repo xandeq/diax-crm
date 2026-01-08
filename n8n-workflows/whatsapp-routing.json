@@ -1,0 +1,325 @@
+{
+  "name": "WhatsApp Routing & Conservative Responder",
+  "nodes": [
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.data.key.remoteJid }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "endsWith",
+              "value2": "@g.us"
+            },
+            {
+              "operation": "endsWith",
+              "value2": "@s.whatsapp.net",
+              "output": 1
+            }
+          ]
+        },
+        "fallbackOutput": 1
+      },
+      "id": "1a0cf058-632c-4395-8ac4-54edb9792e34",
+      "name": "Route Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        224,
+        432
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "2684004f-f9e0-44df-b85c-6c3548d6dc4c",
+      "name": "Group Logic",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        432,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e5fe8415-effc-4503-9ffd-7c7ec537a342",
+      "name": "Private Logic",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        432,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "caf9f1ad-c291-491f-8ad7-49b1b1717415",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        464
+      ],
+      "id": "e07063cc-3ef1-401e-88fc-b95164f49751",
+      "name": "Webhook",
+      "webhookId": "caf9f1ad-c291-491f-8ad7-49b1b1717415"
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "unit": "minutes",
+              "value": 5
+            }
+          ]
+        }
+      },
+      "id": "Cron",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { groupJid: '120363000000000000@g.us' } },\n  { json: { groupJid: '120363000000000001@g.us' } },\n  { json: { groupJid: '120363000000000002@g.us' } },\n  { json: { groupJid: '120363000000000003@g.us' } },\n  { json: { groupJid: '120363000000000004@g.us' } }\n];"
+      },
+      "id": "Define Groups",
+      "name": "Define 5 Groups",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        172,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "SplitInBatches",
+      "name": "Process Groups One by One",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        392,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-api.yourdomain.com/chat/fetchMessages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_EVOLUTION_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "remoteJid",
+              "value": "={{ $json.groupJid }}"
+            },
+            {
+              "name": "limit",
+              "value": 1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Fetch Last Message",
+      "name": "Fetch Last Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        612,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepseek.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_DEEPSEEK_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "jsonBody": "={\n  \"model\": \"deepseek-chat\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a firm and serious conservative right-wing militant. Your goal is to refute the following argument or message found in a WhatsApp group. The message likely contains left-wing policies or general conversation. Respond in Portuguese, maintaining a serious and combative tone.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.messages[0].message.conversation || $json.messages[0].message.extendedTextMessage.text || '' }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "DeepSeek Analysis",
+      "name": "DeepSeek Refutation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        832,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-api.yourdomain.com/message/sendText/YOUR_INSTANCE_NAME",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "YOUR_EVOLUTION_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('SplitInBatches').item.json.groupJid }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.choices[0].message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Send Reply",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1052,
+        800
+      ]
+    }
+  ],
+  "connections": {
+    "Route Message Type": {
+      "main": [
+        [
+          {
+            "node": "Group Logic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Private Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Define Groups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Define Groups": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Fetch Last Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Last Message": {
+      "main": [
+        [
+          {
+            "node": "DeepSeek Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Analysis": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reply": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "c231a2c067a22e26ce144efb4419d17e840dc6bf9a8e81a9940815a007e9a69f"
+  }
+}

@@ -1,0 +1,12 @@
+Você está desenvolvendo um sistema CRM em Next.js 14 na pasta crm-web
+e uma API em .NET Core com Entity Framework e Migrations
+na pasta api-core e você desenvolveu frontend, backend,
+banco de dados e devops da aplicação.
+
+
+
+* ENDPOINT
+O endpoint GET https://api.alexandrequeiroz.com.br/incomes está
+retornando erro 404 Not Found, impedindo o carregamento de receitas
+no frontend.
+

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BRIEFING EXPRESS: IDENTIDADE VISUAL Agência: Alexandre Queiroz | Web Design & Marketing Digital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f172a; /* Dark Blue/Grey */
+      --secondary: #334155; /* Medium Grey */
+      --accent: #2563eb; /* Blue */
+      --text: #475569; /* Light Grey Text */
+      --border: #e2e8f0;
+      --bg-header: #f8fafc;
+      --page-bg: #f3f4f6;
+    }
+
+    /* Page Setup (A4) */
+    @page {
+      size: A4;
+      margin: 0;
+      @top-center { content: element(docHeader); }
+      @bottom-center { content: element(docFooter); }
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--page-bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      line-height: 1.5;
+      font-size: 11pt;
+    }
+
+    .page {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,.06);
+      padding: 0;
+      box-sizing: border-box;
+      min-height: 297mm;
+    }
+
+    .content-wrapper {
+        padding: 20mm;
+        padding-top: 40px;
+    }
+
+    /* Modern Header - Adapted for Print Repetition */
+    .modern-header {
+        background-color: #0F6A42;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        color: white;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        
+        position: running(docHeader);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .modern-header .left-col {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .modern-header .logo-img {
+        max-height: 50px;
+        width: auto;
+        filter: brightness(0) invert(1);
+    }
+
+    .modern-header .brand-text {
+        font-family: 'Inter', sans-serif;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+
+    .modern-header .brand-name {
+        font-weight: 700;
+        font-size: 14pt;
+        text-transform: uppercase;
+    }
+
+    .modern-header .brand-sub {
+        font-weight: 300;
+        font-size: 10pt;
+        opacity: 0.9;
+    }
+
+    .modern-header .right-col {
+        text-align: right;
+        font-size: 10pt;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .modern-header .contact-item {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .modern-header .icon-circle {
+        width: 6px;
+        height: 6px;
+        background-color: var(--accent);
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    /* Footer - Added for Print Repetition */
+    .doc-footer {
+        border-top: 1px solid var(--border);
+        padding: 15px 40px;
+        background: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 9pt;
+        color: var(--secondary);
+        
+        position: running(docFooter);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 16pt;
+      color: var(--primary);
+      border-left: 4px solid var(--accent);
+      padding-left: 10px;
+      margin: 30px 0 15px;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 14pt;
+      color: var(--secondary);
+      margin-top: 25px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+      font-weight: 600;
+    }
+    h3 { font-size: 12pt; color: var(--secondary); font-weight: 600; }
+    p, ul, ol { margin-bottom: 12px; text-align: justify; }
+    strong { color: var(--primary); font-weight: 600; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      page-break-inside: avoid;
+      font-size: 10pt;
+    }
+    th, td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: top; }
+    th { background: var(--bg-header); color: var(--primary); font-weight: 600; text-transform: uppercase; font-size: 9pt; }
+    .right { text-align: right; white-space: nowrap; }
+
+    /* Sections */
+    .section { page-break-inside: avoid; margin-bottom: 20px; }
+
+    /* Existing Classes Refined */
+    .topline { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt; }
+    .brand { font-weight: 700; color: var(--primary); font-size: 12pt; }
+    .meta { text-align: right; color: var(--secondary); }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      margin: 10px 0;
+      font-size: 10pt;
+      background: var(--bg-header);
+      padding: 15px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .kv .k { color: var(--secondary); font-weight: 600; text-transform: uppercase; font-size: 9pt; }
+    .kv .v { color: var(--primary); }
+
+    .note {
+      background: #eff6ff;
+      border-left: 4px solid var(--accent);
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+
+    hr { border: 0; border-top: 1px solid var(--border); margin: 30px 0; }
+    .small { font-size: 9pt; color: var(--secondary); }
+
+    @media print {
+      body { background: white; margin: 0; padding: 0; }
+      .page { margin: 0; padding: 0; box-shadow: none; max-width: none; overflow: visible; }
+      
+      .modern-header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 90px;
+          z-index: 1000;
+          margin: 0;
+      }
+
+      .doc-footer {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 50px;
+          z-index: 1000;
+          margin: 0;
+          background: white;
+      }
+
+      .content-wrapper {
+          margin-top: 90px; 
+          margin-bottom: 50px;
+      }
+      
+      .page-number::after { content: "Página " counter(page); }
+    }
+  </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="modern-header">
+        <div class="left-col">
+            <img src="../images/logo.png" alt="Logo" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-name">Alexandre Queiroz</span>
+                <span class="brand-sub">Marketing Digital</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="contact-item">
+                <span class="icon-circle"></span> alexandrequeiroz.com.br
+            </div>
+            <div class="contact-item">
+                <span class="icon-circle"></span> xandeq@gmail.com
+            </div>
+            <div class="contact-item">
+                <span class="icon-circle"></span> +55 27 99984 0101
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+        <div>
+            <strong>Contato:</strong> Alexandre Queiroz | xandeq@gmail.com | +55 27 99984 0101 | @alexandrequeirozmd
+        </div>
+        <div>
+            <strong>Validade:</strong> 15 dias
+        </div>
+        <div class="page-number"></div>
+    </div>
+
+  <main class="page">
+    <div class="content-wrapper">
+        <div class="topline"><div class="doc-title" style="font-size: 18pt; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 5px;">BRIEFING EXPRESS: IDENTIDADE VISUAL Agência: Alexandre Queiroz | Web Design & Marketing Digital</div></div><hr />
+<div class="section"><h2>1. A EMPRESA</h2></div>
+<ul>
+<li>Nome exato da marca: (Como deve aparecer no logo)</li>
+<li>O que você vende? (Resuma seu principal produto ou serviço)</li>
+</ul>
+<div class="section"><h2>2. O OBJETIVO</h2></div>
+<ul>
+<li>Qual a necessidade atual? ( ) Criar marca do zero (Novo negócio) ( ) Modernizar marca antiga (Redesign) ( ) Apenas vetorizar (Recuperar arquivo)</li>
+</ul>
+<div class="section"><h2>3. PÚBLICO-ALVO</h2></div>
+<ul>
+<li>Quem é seu cliente ideal? (Defina faixa etária, gênero e classe social predominante).</li>
+<li>Onde seu cliente está? (Bairro, Cidade ou Nacional).</li>
+</ul>
+<div class="section"><h2>4. POSICIONAMENTO</h2></div>
+<ul>
+<li>Que imagem a marca deve transmitir? (Ex: Sólida, Sofisticada, Popular, Moderna, Divertida).</li>
+<li>Qual seu principal diferencial? (Por que o cliente escolhe você e não o concorrente?).</li>
+</ul>
+<div class="section"><h2>5. PREFERÊNCIAS VISUAIS</h2></div>
+<ul>
+<li>Cores: Quais cores você gosta e quais não devemos usar?</li>
+<li>Estilo: Prefere algo mais clássico/tradicional ou moderno/clean?</li>
+</ul>
+<div class="section"><h2>6. ELEMENTOS E SÍMBOLOS</h2></div>
+<ul>
+<li>Símbolos: Existe algum desenho obrigatório? (Ex: animal, objeto, iniciais).</li>
+<li>Restrições: Existe algo que não pode ter na logomarca?</li>
+</ul>
+<div class="section"><h2>7. REFERÊNCIAS E CONCORRÊNCIA</h2></div>
+<ul>
+<li>Concorrentes: Cite 2 principais concorrentes diretos.</li>
+<li>Inspiração: Cite 1 marca visual que você admira (pode ser de outro segmento).</li>
+</ul>
+<div class="section"><h2>8. APLICAÇÃO</h2></div>
+<ul>
+<li>Onde a marca será mais vista? (Ex: Fachada, Instagram, Uniforme, Site).</li>
+</ul>
+    </div>
+  </main>
+</body>
+</html>

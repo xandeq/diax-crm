@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposta Comercial - Alexandre Queiroz Marketing Digital</title>
+    <style>
+        /* Typography & Colors */
+        :root {
+            --primary-color: #2c3e50; /* Deep Slate Blue */
+            --secondary-color: #34495e; /* Slate Grey */
+            --accent-color: #3498db; /* Professional Blue */
+            --text-color: #333333;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            font-family: 'Inter', 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: #ffffff; /* Print background usually white */
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Page Setup (A4) */
+        @page {
+            size: A4;
+            margin: 0; /* Full bleed for header/footer */
+            @top-center { content: element(docHeader); }
+            @bottom-center { content: element(docFooter); }
+        }
+
+        /* Header Integration */
+        .doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px; /* Internal spacing */
+            margin: 0; /* No external spacing */
+            background-color: #0F6A42; /* Professional Green */
+            color: white;
+            position: running(docHeader);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-logo {
+            max-height: 50px;
+            width: auto;
+            border-radius: 4px;
+        }
+
+        .header-branding {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .branding-name {
+            font-family: 'Inter', 'Montserrat', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .branding-tagline {
+            font-family: 'Inter', 'Montserrat', sans-serif;
+            font-size: 14px;
+            font-weight: 300;
+            color: #dbeafe;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 10pt;
+            color: white;
+            /* line-height: 1.4; removed to use stack */
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 4px;
+            gap: 8px;
+        }
+
+        .contact-icon {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: #3498db;
+            border-radius: 50%;
+        }
+
+        /* Footer Integration */
+        .doc-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 15px 40px; /* Internal spacing */
+            margin: 0; /* No external spacing */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--secondary-color);
+            position: running(docFooter);
+            width: 100%;
+            box-sizing: border-box;
+            background: white;
+        }
+
+        /* Content Container */
+        .doc-content {
+            /* Content IS NOT full bleed, so it needs margins */
+            margin: 20mm; /* Standard A4 margin for text */
+            margin-top: 50px; /* Buffer from Header */
+            margin-bottom: 50px; /* Buffer from Footer */
+        }
+
+        /* Typography Hierarchy */
+        h1 {
+            color: var(--primary-color);
+            font-size: 26px;
+            font-weight: 700;
+            border-left: 5px solid var(--accent-color);
+            padding-left: 15px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            page-break-after: avoid;
+        }
+
+        h1:first-of-type { margin-top: 0; }
+
+        h4 {
+            color: var(--secondary-color);
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 30px;
+            margin-bottom: 12px;
+            page-break-after: avoid;
+        }
+
+        h5 {
+            color: var(--secondary-color);
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+
+        p { margin-bottom: 15px; text-align: justify; }
+        ul, ol { margin-bottom: 20px; padding-left: 25px; }
+        li { margin-bottom: 8px; }
+
+        /* Table Enhancement */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            page-break-inside: avoid;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--light-bg);
+            color: var(--primary-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        tr:nth-child(even) { background-color: #fbfbfb; }
+
+        /* Meta Info Box */
+        .meta-info {
+            background-color: var(--light-bg);
+            border-left: 4px solid var(--primary-color);
+            padding: 20px;
+            margin-bottom: 40px;
+            border-radius: 0 4px 4px 0;
+            page-break-inside: avoid;
+        }
+        .meta-info p { margin-bottom: 8px; font-size: 14px; }
+        .meta-info hr { border-color: var(--border-color); margin: 15px 0; }
+
+        /* Smart Page Breaks */
+        section, .section-block { page-break-inside: avoid; }
+
+        /* Browser Print Fallback */
+        @media print {
+            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
+
+            .doc-header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                /* Height auto is better if possible, but fixed needed for overlap calc */
+                height: 90px;
+                z-index: 1000;
+                margin: 0;
+                padding: 20px 40px;
+                box-sizing: border-box;
+            }
+
+            .doc-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 50px;
+                z-index: 1000;
+                margin: 0;
+                padding: 15px 40px;
+                box-sizing: border-box;
+                background: white;
+            }
+
+            .doc-content {
+                /* Margins for the print body content */
+                margin-top: 110px; /* Header space */
+                margin-bottom: 60px; /* Footer space */
+                margin-left: 20mm;
+                margin-right: 20mm;
+            }
+
+            /* Pagination */
+            .page-number::after { content: "Página " counter(page); }
+        }
+
+        /* Screen Preview */
+        @media screen {
+            body { background: #f0f2f5; padding: 40px; }
+
+            .doc-content {
+                max-width: 210mm; /* A4 width */
+                margin: 0 auto;
+                background: white;
+                padding: 60px 40px; /* Simulate margins */
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+
+            .doc-header {
+                max-width: 210mm;
+                margin: 0 auto;
+                /* Flush on top of visual container */
+            }
+
+            .doc-footer {
+                max-width: 210mm;
+                margin: 0 auto;
+            }
+
+            .page-container {
+                /* Optional wrapper context */
+            }
+        }
+    </style>
+</head>
+<body>
+
+
+    <header class="doc-header">
+        <div class="header-left">
+            <img src="../images/logo.png" alt="Logo" class="header-logo">
+            <div class="header-branding">
+                <span class="branding-name">Alexandre Queiroz</span>
+                <span class="branding-tagline">Marketing Digital</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="contact-item">
+                <span>www.alexandrequeiroz.com.br</span>
+                <span class="contact-icon"></span>
+            </div>
+            <div class="contact-item">
+                <span>@alexandrequeirozmd</span>
+                <span class="contact-icon"></span>
+            </div>
+            <div class="contact-item">
+                <span>(27) 99984-0101</span>
+                <span class="contact-icon"></span>
+            </div>
+            <div class="contact-item">
+                <span>xandeq@gmail.com</span>
+                <span class="contact-icon"></span>
+            </div>
+        </div>
+    </header>
+
+        <main class="doc-content">
+
+            <!-- Intro / Meta Section -->
+            <div class="meta-info">
+                <p><strong>Agência:</strong> Alexandre Queiroz Marketing Digital</p>
+                <p><strong>Site:</strong> alexandrequeiroz.com.br | <strong>Instagram:</strong> @alexandrequeirozmd</p>
+                <p><strong>E-mail:</strong> <a href="mailto:xandeq@gmail.com" style="color: inherit; text-decoration: none;">xandeq@gmail.com</a> | <strong>Telefone:</strong> +55 27 99984 0101</p>
+                <hr>
+                <p><strong>Cliente:</strong> Mark Giovani</p>
+                <p><strong>Segmento:</strong> Rastreadores Veiculares</p>
+                <p><strong>Data:</strong> 02/01/2026 | <strong>Validade:</strong> 7 dias</p>
+            </div>
+
+            <!-- Content Preserved from Source -->
+            <h1>1) Resumo executivo</h1>
+
+            <p>Objetivo do projeto: profissionalizar a presença digital e criar um funil simples de aquisição, unindo:</p>
+
+            <ul>
+                <li>Landing page direta com botão de WhatsApp</li>
+                <li>Instagram com rotina de conteúdo (2 posts por semana) e impulsionamento para gerar leads</li>
+                <li>Segmentação por região usando sua base atual</li>
+                <li>Disparo oficial por WhatsApp para reativação e conversão de listas</li>
+                <li>Google Ads com orçamento enxuto e foco em intenção de compra</li>
+            </ul>
+
+            <p>A prioridade será Instagram e WhatsApp, com Facebook apenas como redistribuição automática do conteúdo.</p>
+
+            <h1>2) Escopo por serviço (descrição, entregas e prazo)</h1>
+
+            <div class="section-block">
+                <h4>A) Landing page de apresentação + WhatsApp</h4>
+                <p><strong>O que é</strong>: página única objetiva para converter visitas em conversa no WhatsApp.</p>
+                <p><strong>Entregas</strong></p>
+                <ul>
+                    <li>Layout responsivo e copy focada em conversão</li>
+                    <li>Botão de WhatsApp fixo e CTAs ao longo da página</li>
+                    <li>Seções: benefícios, prova social, regiões atendidas, perguntas frequentes, chamada para ação</li>
+                    <li>Integração de métricas (Meta Pixel e Google Tag, se aplicável)</li>
+                </ul>
+                <p><strong>Prazo</strong>: 7 dias úteis após envio de logo, textos base e referências</p>
+            </div>
+
+            <div class="section-block">
+                <h4>B) Revitalização do Instagram (setup)</h4>
+                <p><strong>O que é</strong>: arrumar a casa para parecer profissional e preparar a base para anúncios.</p>
+                <p><strong>Entregas</strong></p>
+                <ul>
+                    <li>Bio otimizada, destaques, identidade visual base</li>
+                    <li>Padronização de capa de destaques e grid inicial</li>
+                    <li>Linha editorial simples por região e por dor do público (furto, seguro, controle, tranquilidade)</li>
+                </ul>
+                <p><strong>Prazo</strong>: 3 dias úteis</p>
+            </div>
+
+            <div class="section-block">
+                <h4>C) Gestão do Instagram 2x por semana (1 orgânico + 1 impulsionado)</h4>
+                <p><strong>O que é</strong>: rotina semanal para crescer e gerar leads com baixo custo.</p>
+                <p><strong>Entregas mensais</strong></p>
+                <ul>
+                    <li>8 posts/mês (4 orgânicos + 4 com impulsionamento)</li>
+                    <li>Criação de artes e legendas, CTA para WhatsApp</li>
+                    <li>Configuração e otimização dos impulsionamentos (Click to WhatsApp)</li>
+                    <li>Relatório mensal simples: alcance, leads, custo por conversa, regiões com melhor retorno</li>
+                </ul>
+                <p><strong>Prazo de início</strong>: 3 dias úteis após contratação do item</p>
+            </div>
+
+            <div class="section-block">
+                <h4>D) Compartilhamento automático Instagram → Facebook</h4>
+                <p><strong>O que é</strong>: replicar posts e stories do Instagram no Facebook sem trabalho extra.</p>
+                <p><strong>Entregas</strong></p>
+                <ul>
+                    <li>Vinculação correta de contas e ativação do crosspost</li>
+                    <li>Checklist de permissões e testes</li>
+                </ul>
+                <p><strong>Prazo</strong>: 1 dia útil</p>
+            </div>
+
+            <div class="section-block">
+                <h4>E) Campanhas de WhatsApp oficial segmentadas por região</h4>
+                <p><strong>O que é</strong>: disparos oficiais para sua base por região, com templates aprovados e métricas.</p>
+                <p><strong>Entregas</strong></p>
+                <ul>
+                    <li>Estrutura de segmentação por região (listas e tags)</li>
+                    <li>Criação de 2 templates (ex: oferta + follow up)</li>
+                    <li>Orientação de janela de atendimento e roteiros de resposta</li>
+                </ul>
+                <p><strong>Prazo</strong>: 5 a 10 dias (depende de configuração e aprovação de templates)</p>
+            </div>
+
+            <div class="section-block">
+                <h4>F) Google Ads mensal com orçamento fixo (opção enxuta)</h4>
+                <p><strong>O que é</strong>: captar pessoas com intenção (pesquisando por rastreador veicular, rastreamento, etc).</p>
+                <p><strong>Entregas mensais</strong></p>
+                <ul>
+                    <li>Campanha de pesquisa + palavras chave por região</li>
+                    <li>Anúncios e extensões (chamada, local, sitelinks quando aplicável)</li>
+                    <li>Otimização semanal e relatório mensal simples</li>
+                </ul>
+                <p><strong>Prazo de início</strong>: 3 dias úteis após contratação do item</p>
+            </div>
+
+            <h1>3) Tabela de preços (modular) com parcelamento até 3x</h1>
+
+            <h4>Setup (pagamento único)</h4>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Serviço</th>
+                        <th style="text-align: right;">Valor</th>
+                        <th style="text-align: right;">1x</th>
+                        <th style="text-align: right;">2x</th>
+                        <th style="text-align: right;">3x</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>A) Landing page + WhatsApp</td>
+                        <td style="text-align: right;">R$ 1.490</td>
+                        <td style="text-align: right;">R$ 1.490</td>
+                        <td style="text-align: right;">R$ 745</td>
+                        <td style="text-align: right;">R$ 497</td>
+                    </tr>
+                    <tr>
+                        <td>B) Revitalização Instagram (setup)</td>
+                        <td style="text-align: right;">R$ 690</td>
+                        <td style="text-align: right;">R$ 690</td>
+                        <td style="text-align: right;">R$ 345</td>
+                        <td style="text-align: right;">R$ 230</td>
+                    </tr>
+                    <tr>
+                        <td>D) Crosspost IG → Facebook</td>
+                        <td style="text-align: right;">R$ 190</td>
+                        <td style="text-align: right;">R$ 190</td>
+                        <td style="text-align: right;">R$ 95</td>
+                        <td style="text-align: right;">R$ 63</td>
+                    </tr>
+                    <tr>
+                        <td>E) WhatsApp oficial (setup + 2 templates)</td>
+                        <td style="text-align: right;">R$ 790</td>
+                        <td style="text-align: right;">R$ 790</td>
+                        <td style="text-align: right;">R$ 395</td>
+                        <td style="text-align: right;">R$ 263</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Gestão mensal (recorrente)</h4>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Serviço mensal</th>
+                        <th style="text-align: right;">Valor mensal</th>
+                        <th style="text-align: right;">1x</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>C) Instagram 2 posts/semana + impulsionamento</td>
+                        <td style="text-align: right;">R$ 1.190</td>
+                        <td style="text-align: right;">R$ 1.190</td>
+                    </tr>
+                    <tr>
+                        <td>E) Operação WhatsApp segmentada (1 campanha/mês)</td>
+                        <td style="text-align: right;">R$ 390</td>
+                        <td style="text-align: right;">R$ 390</td>
+                    </tr>
+                    <tr>
+                        <td>F) Gestão Google Ads</td>
+                        <td style="text-align: right;">R$ 490</td>
+                        <td style="text-align: right;">R$ 490</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Verbas de mídia (pagas direto nas plataformas)</h4>
+
+            <ul>
+                <li>Instagram Ads: recomendado a partir de R$ 200/mês (ajustável por região)</li>
+                <li>Google Ads: exemplo de R$ 200/mês (CPC varia, orçamento é controlável)</li>
+                <li>WhatsApp oficial: custo variável por volume e categoria. Se você já trabalha com referência de R$ 0,33 por envio, usamos como estimativa inicial e ajustamos após os primeiros disparos, mantendo controle por região.</li>
+            </ul>
+
+            <h1>4) Investimento mensal estimado (cenários)</h1>
+
+            <h4>Cenário 1: Enxuto e focado em Instagram + WhatsApp</h4>
+
+            <ul>
+                <li>C) Instagram gestão: R$ 1.190</li>
+                <li>E) Operação WhatsApp: R$ 390</li>
+                <li>Verba IG: R$ 200</li>
+            </ul>
+            <p><strong>Total estimado:</strong> R$ 1.780/mês + custo WhatsApp (variável)</p>
+
+            <h4>Cenário 2: Aquisição completa (Instagram + Google)</h4>
+
+            <ul>
+                <li>C) R$ 1.190</li>
+                <li>F) R$ 490</li>
+                <li>Verba IG: R$ 200</li>
+                <li>Verba Google: R$ 200</li>
+            </ul>
+            <p><strong>Total estimado:</strong> R$ 2.080/mês</p>
+
+            <h4>Cenário 3: Estrutura completa (com landing + setup WhatsApp)</h4>
+
+            <ul>
+                <li>Setup: A + B + E (+ D opcional)</li>
+                <li>Mensal: Cenário 1 ou 2</li>
+            </ul>
+            <p>Ideal para maximizar conversão e rastreio de resultados desde o início.</p>
+
+            <h1>5) Próximos passos</h1>
+
+            <ol>
+                <li>Escolher os módulos desejados e a forma de pagamento (1x, 2x ou 3x)</li>
+                <li>Reunião presencial para fechar escopo, regiões prioritárias e calendário de campanhas</li>
+                <li>Assinatura do contrato e início do onboarding (acessos e base segmentada)</li>
+            </ol>
+
+            <p><strong>Sugestão de reunião presencial:</strong> 06/01/2026 ou 07/01/2026</p>
+
+        </main>
+
+        <footer class="doc-footer">
+            <div>Alexandre Queiroz Marketing Digital © 2026</div>
+            <div>www.alexandrequeiroz.com.br</div>
+            <div class="page-number"></div>
+        </footer>
+
+    </div>
+
+</body>
+</html>

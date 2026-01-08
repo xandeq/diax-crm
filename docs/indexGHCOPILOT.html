@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Proposta Comercial - Mark Giovani (Rastreadores Veiculares)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f172a; /* Dark Blue/Grey */
+      --secondary: #334155; /* Medium Grey */
+      --accent: #2563eb; /* Blue */
+      --text: #475569; /* Light Grey Text */
+      --border: #e2e8f0;
+      --bg-header: #f8fafc;
+      --page-bg: #f3f4f6;
+    }
+
+    /* Page Setup (A4) - Copied from ANTIGRAVITY */
+    @page {
+      size: A4;
+      margin: 0;
+      @top-center { content: element(docHeader); }
+      @bottom-center { content: element(docFooter); }
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--page-bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      line-height: 1.5;
+      font-size: 11pt;
+    }
+
+    .page {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,.06);
+      padding: 0;
+      box-sizing: border-box;
+      min-height: 297mm;
+      /* overflow: hidden; Removed to avoid clipping in print */
+    }
+
+    .content-wrapper {
+        padding: 20mm;
+        padding-top: 40px;
+    }
+
+    /* Modern Header - Adapted for Print Repetition */
+    .modern-header {
+        background-color: #0F6A42;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        color: white;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+
+        /* ANTIGRAVITY Technique: Running element for PDF generators */
+        position: running(docHeader);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .modern-header .left-col {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .modern-header .logo-img {
+        max-height: 50px;
+        width: auto;
+        filter: brightness(0) invert(1); /* Make logo white if it's not */
+    }
+
+    .modern-header .brand-text {
+        font-family: 'Inter', sans-serif;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+
+    .modern-header .brand-name {
+        font-weight: 700;
+        font-size: 14pt;
+        text-transform: uppercase;
+    }
+
+    .modern-header .brand-sub {
+        font-weight: 300;
+        font-size: 10pt;
+        opacity: 0.9;
+    }
+
+    .modern-header .right-col {
+        text-align: right;
+        font-size: 10pt;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .modern-header .contact-item {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .modern-header .icon-circle {
+        width: 6px;
+        height: 6px;
+        background-color: var(--accent);
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    /* Footer - Added for Print Repetition */
+    .doc-footer {
+        border-top: 1px solid var(--border);
+        padding: 15px 40px;
+        background: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 9pt;
+        color: var(--secondary);
+
+        /* ANTIGRAVITY Technique: Running element for PDF generators */
+        position: running(docFooter);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 16pt;
+      color: var(--primary);
+      border-left: 4px solid var(--accent);
+      padding-left: 10px;
+      margin: 30px 0 15px;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 14pt;
+      color: var(--secondary);
+      margin-top: 25px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+      font-weight: 600;
+    }
+    h3 { font-size: 12pt; color: var(--secondary); font-weight: 600; }
+    p, ul, ol { margin-bottom: 12px; text-align: justify; }
+    strong { color: var(--primary); font-weight: 600; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      page-break-inside: avoid;
+      font-size: 10pt;
+    }
+    th, td { border: 1px solid var(--border); padding: 12px; text-align: left; vertical-align: top; }
+    th { background: var(--bg-header); color: var(--primary); font-weight: 600; text-transform: uppercase; font-size: 9pt; }
+    .right { text-align: right; white-space: nowrap; }
+
+    /* Sections */
+    .section { page-break-inside: avoid; margin-bottom: 20px; }
+
+    /* Existing Classes Refined */
+    .topline { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt; }
+    .brand { font-weight: 700; color: var(--primary); font-size: 12pt; }
+    .meta { text-align: right; color: var(--secondary); }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      margin: 10px 0;
+      font-size: 10pt;
+      background: var(--bg-header);
+      padding: 15px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .kv .k { color: var(--secondary); font-weight: 600; text-transform: uppercase; font-size: 9pt; }
+    .kv .v { color: var(--primary); }
+
+    .note {
+      background: #eff6ff;
+      border-left: 4px solid var(--accent);
+      padding: 15px;
+      margin: 20px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+
+    hr { border: 0; border-top: 1px solid var(--border); margin: 30px 0; }
+    .small { font-size: 9pt; color: var(--secondary); }
+
+    @media print {
+      body { background: white; margin: 0; padding: 0; }
+      .page { margin: 0; padding: 0; box-shadow: none; max-width: none; overflow: visible; }
+
+      /* ANTIGRAVITY Technique: Fixed positioning for browser print */
+      .modern-header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 90px; /* Fixed height for overlap calculation */
+          z-index: 1000;
+          margin: 0;
+      }
+
+      .doc-footer {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 50px; /* Fixed height for overlap calculation */
+          z-index: 1000;
+          margin: 0;
+          background: white;
+      }
+
+      .content-wrapper {
+          /* Margins to clear fixed header/footer */
+          margin-top: 90px;
+          margin-bottom: 50px;
+      }
+
+      /* Pagination */
+      .page-number::after { content: "Página " counter(page); }
+    }
+  </style>
+</head>
+
+<body>
+    <!-- Header moved out for print repetition -->
+    <div class="modern-header">
+        <div class="left-col">
+            <img src="../images/logo.png" alt="Logo" class="logo-img">
+            <div class="brand-text">
+                <span class="brand-name">Alexandre Queiroz</span>
+                <span class="brand-sub">Marketing Digital</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="contact-item">
+                <span class="icon-circle"></span> alexandrequeiroz.com.br
+            </div>
+            <div class="contact-item">
+                <span class="icon-circle"></span> xandeq@gmail.com
+            </div>
+            <div class="contact-item">
+                <span class="icon-circle"></span> +55 27 99984 0101
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer added for print repetition -->
+    <div class="doc-footer">
+        <div>
+            <strong>Contato:</strong> Alexandre Queiroz | xandeq@gmail.com | +55 27 99984 0101 | @alexandrequeirozmd
+        </div>
+        <div>
+            <strong>Validade:</strong> 15 dias (até 17/01/2026)
+        </div>
+        <div class="page-number"></div>
+    </div>
+
+  <main class="page">
+    <div class="content-wrapper">
+        <div class="topline">
+          <div>
+            <div class="doc-title" style="font-size: 18pt; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 5px;">PROPOSTA DE ORÇAMENTO</div>
+            <div class="small">Proposta comercial para contratação de serviços de marketing digital</div>
+          </div>
+          <div class="meta">
+            <div><strong>Data:</strong> 02/01/2026</div>
+            <div><strong>Validade:</strong> 15 dias</div>
+          </div>
+        </div>
+
+        <hr />
+
+    <div class="kv">
+      <div class="k">Cliente</div><div class="v"><strong>Mark Giovani</strong></div>
+      <div class="k">Segmento</div><div class="v"><strong>Rastreadores Veiculares</strong></div>
+    </div>
+
+    <div class="section">
+      <h1>Resumo executivo</h1>
+      <p>
+        Objetivo do projeto: profissionalizar a presença digital e criar um funil simples de aquisição, unindo:
+      </p>
+      <ul>
+        <li>Landing page direta com botão de WhatsApp</li>
+        <li>Instagram com rotina de conteúdo (2 posts por semana) e impulsionamento para gerar leads</li>
+        <li>Segmentação por região usando sua base atual</li>
+        <li>Disparo oficial por WhatsApp para reativação e conversão de listas</li>
+        <li>Google Ads com orçamento enxuto e foco em intenção de compra</li>
+      </ul>
+      <p>
+        A prioridade será Instagram e WhatsApp, com Facebook apenas como redistribuição automática do conteúdo.
+      </p>
+    </div>
+
+    <div class="section">
+      <h1>Escopo por serviço (descrição, entregas e prazo)</h1>
+    </div>
+
+    <div class="section">
+      <h2>A) Landing page de apresentação + WhatsApp</h2>
+      <p><strong>O que é:</strong> página única objetiva para converter visitas em conversa no WhatsApp.</p>
+      <p><strong>Entregas</strong></p>
+      <ul>
+        <li>Layout responsivo e copy focada em conversão</li>
+        <li>Botão de WhatsApp fixo e CTAs ao longo da página</li>
+        <li>Seções: benefícios, prova social, regiões atendidas, perguntas frequentes, chamada para ação</li>
+        <li>Integração de métricas (Meta Pixel e Google Tag, se aplicável)</li>
+      </ul>
+      <p><strong>Prazo:</strong> 7 dias úteis após envio de logo, textos base e referências</p>
+    </div>
+
+    <div class="section">
+      <h2>B) Revitalização do Instagram (setup)</h2>
+      <p><strong>O que é:</strong> arrumar a casa para parecer profissional e preparar a base para anúncios.</p>
+      <p><strong>Entregas</strong></p>
+      <ul>
+        <li>Bio otimizada, destaques, identidade visual base</li>
+        <li>Padronização de capa de destaques e grid inicial</li>
+        <li>Linha editorial simples por região e por dor do público (furto, seguro, controle, tranquilidade)</li>
+      </ul>
+      <p><strong>Prazo:</strong> 3 dias úteis</p>
+    </div>
+
+    <div class="section">
+      <h2>C) Gestão do Instagram 2x por semana (1 orgânico + 1 impulsionado)</h2>
+      <p><strong>O que é:</strong> rotina semanal para crescer e gerar leads com baixo custo.</p>
+      <p><strong>Entregas mensais</strong></p>
+      <ul>
+        <li>8 posts/mês (4 orgânicos + 4 com impulsionamento)</li>
+        <li>Criação de artes e legendas, CTA para WhatsApp</li>
+        <li>Configuração e otimização dos impulsionamentos (Click to WhatsApp)</li>
+        <li>Relatório mensal simples: alcance, leads, custo por conversa, regiões com melhor retorno</li>
+      </ul>
+      <p><strong>Prazo de início:</strong> 3 dias úteis após contratação do item</p>
+    </div>
+
+    <div class="section">
+      <h2>D) Compartilhamento automático Instagram → Facebook</h2>
+      <p><strong>O que é:</strong> replicar posts e stories do Instagram no Facebook sem trabalho extra.</p>
+      <p><strong>Entregas</strong></p>
+      <ul>
+        <li>Vinculação correta de contas e ativação do crosspost</li>
+        <li>Checklist de permissões e testes</li>
+      </ul>
+      <p><strong>Prazo:</strong> 1 dia útil</p>
+    </div>
+
+    <div class="section">
+      <h2>E) Campanhas de WhatsApp oficial segmentadas por região</h2>
+      <p><strong>O que é:</strong> disparos oficiais para sua base por região, com templates aprovados e métricas.</p>
+      <p><strong>Entregas</strong></p>
+      <ul>
+        <li>Estrutura de segmentação por região (listas e tags)</li>
+        <li>Criação de 2 templates (ex: oferta + follow up)</li>
+        <li>Orientação de janela de atendimento e roteiros de resposta</li>
+      </ul>
+      <p><strong>Prazo:</strong> 5 a 10 dias (depende de configuração e aprovação de templates)</p>
+    </div>
+
+    <div class="section">
+      <h2>F) Google Ads mensal com orçamento fixo (opção enxuta)</h2>
+      <p><strong>O que é:</strong> captar pessoas com intenção (pesquisando por rastreador veicular, rastreamento, etc).</p>
+      <p><strong>Entregas mensais</strong></p>
+      <ul>
+        <li>Campanha de pesquisa + palavras chave por região</li>
+        <li>Anúncios e extensões (chamada, local, sitelinks quando aplicável)</li>
+        <li>Otimização semanal e relatório mensal simples</li>
+      </ul>
+      <p><strong>Prazo de início:</strong> 3 dias úteis após contratação do item</p>
+    </div>
+
+    <div class="section">
+      <h1>Tabela de preços (modular) com parcelamento até 3x</h1>
+
+      <div class="note">
+        <strong>Observação:</strong> valores de mídia (Instagram e Google) são pagos diretamente nas plataformas. O custo do WhatsApp oficial pode variar conforme volume e modelo de cobrança vigente.
+      </div>
+
+      <p><strong>Setup (pagamento único)</strong></p>
+      <table>
+        <thead>
+          <tr>
+            <th>Serviço</th>
+            <th class="right">Valor</th>
+            <th class="right">1x</th>
+            <th class="right">2x</th>
+            <th class="right">3x</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A) Landing page + WhatsApp</td>
+            <td class="right">R$ 1.490</td>
+            <td class="right">R$ 1.490</td>
+            <td class="right">R$ 745</td>
+            <td class="right">R$ 497</td>
+          </tr>
+          <tr>
+            <td>B) Revitalização Instagram (setup)</td>
+            <td class="right">R$ 690</td>
+            <td class="right">R$ 690</td>
+            <td class="right">R$ 345</td>
+            <td class="right">R$ 230</td>
+          </tr>
+          <tr>
+            <td>D) Crosspost IG → Facebook</td>
+            <td class="right">R$ 190</td>
+            <td class="right">R$ 190</td>
+            <td class="right">R$ 95</td>
+            <td class="right">R$ 63</td>
+          </tr>
+          <tr>
+            <td>E) WhatsApp oficial (setup + 2 templates)</td>
+            <td class="right">R$ 790</td>
+            <td class="right">R$ 790</td>
+            <td class="right">R$ 395</td>
+            <td class="right">R$ 263</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>Gestão mensal (recorrente)</strong></p>
+      <p class="small" style="margin-top: -10px; margin-bottom: 10px;">*Parcelamento em 2x ou 3x disponível apenas para pagamento anual antecipado.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Serviço mensal</th>
+            <th class="right">Valor mensal</th>
+            <th class="right">1x</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>C) Instagram 2 posts/semana + impulsionamento</td>
+            <td class="right">R$ 1.190</td>
+            <td class="right">R$ 1.190</td>
+          </tr>
+          <tr>
+            <td>E) Operação WhatsApp segmentada (1 campanha/mês)</td>
+            <td class="right">R$ 390</td>
+            <td class="right">R$ 390</td>
+          </tr>
+          <tr>
+            <td>F) Gestão Google Ads</td>
+            <td class="right">R$ 490</td>
+            <td class="right">R$ 490</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <p><strong>Verbas de mídia (pagas direto nas plataformas)</strong></p>
+      <ul>
+        <li>Instagram Ads: recomendado a partir de R$ 200/mês (ajustável por região)</li>
+        <li>Google Ads: exemplo de R$ 200/mês (CPC varia, orçamento é controlável)</li>
+        <li>WhatsApp oficial: custo variável por volume e categoria. Se você já trabalha com referência de R$ 0,33 por envio, usamos como estimativa inicial e ajustamos após os primeiros disparos, mantendo controle por região.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h1>Investimento mensal estimado (cenários)</h1>
+
+      <h2>Cenário 1: Enxuto e focado em Instagram + WhatsApp</h2>
+      <ul>
+        <li>C) Instagram gestão: R$ 1.190</li>
+        <li>E) Operação WhatsApp: R$ 390</li>
+        <li>Verba IG: R$ 200</li>
+      </ul>
+      <p><strong>Total estimado:</strong> R$ 1.780/mês + custo WhatsApp (variável)</p>
+
+      <h2>Cenário 2: Aquisição completa (Instagram + Google)</h2>
+      <ul>
+        <li>C) R$ 1.190</li>
+        <li>F) R$ 490</li>
+        <li>Verba IG: R$ 200</li>
+        <li>Verba Google: R$ 200</li>
+      </ul>
+      <p><strong>Total estimado:</strong> R$ 2.080/mês</p>
+
+      <h2>Cenário 3: Estrutura completa (com landing + setup WhatsApp)</h2>
+      <ul>
+        <li>Setup: A + B + E (D opcional)</li>
+        <li>Mensal: Cenário 1 ou 2</li>
+      </ul>
+      <p>Ideal para maximizar conversão e rastreio de resultados desde o início.</p>
+    </div>
+
+    <div class="section">
+      <h1>Reuniões</h1>
+      <p>O cliente tem direito a 2 reuniões por vídeo conferência de 1 hora cada uma. Não fazemos reuniões presenciais.</p>
+    </div>
+
+    <div class="section">
+      <h1>Considerações Gerais</h1>
+
+      <h2>1. Escopo do serviço</h2>
+      <p>Deixa claro exatamente o que está incluso e o que não está. Evita aquela expectativa fora da realidade e pedidos extras não combinados.</p>
+
+      <h2>2. Prazo de execução e entregas</h2>
+      <p>Define quando o trabalho começa, prazos de entrega e frequência de atividades. Protege a agência e organiza o cliente.</p>
+
+      <h2>3. Valores, forma de pagamento e reajustes</h2>
+      <p>Informa preço, forma de pagamento, vencimentos e se existe reajuste em contratos recorrentes. Evita dor de cabeça financeira.</p>
+
+      <h2>4. Alterações e demandas extras</h2>
+      <p>Deixa claro que mudanças fora do escopo ou pedidos adicionais geram novo orçamento ou custo extra. Essencial para não trabalhar de graça.</p>
+
+      <h2>5. Cancelamento e rescisão</h2>
+      <p>Explica como funciona o cancelamento, aviso prévio e se há multa ou pagamento proporcional. Protege os dois lados caso algo mude.</p>
+    </div>
+
+    <hr />
+
+    <p class="small">
+      <strong>Observação:</strong> valores de mídia e WhatsApp variam conforme plataforma, volume e regras vigentes.
+    </p>
+  </div>
+  </main>
+</body>
+</html>

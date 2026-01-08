@@ -1,0 +1,40 @@
+**Situação**
+Você está desenvolvendo um sistema CRM com frontend em Next.js 14 (pasta crm-web) e API em .NET (pasta api-core).
+O endpoint
+POST https://api.alexandrequeiroz.com.br/api/v1/api/v1/auth/login
+está retornando erro 404 Not Found, impedindo o carregamento de receitas no frontend.
+
+**Tarefa**
+O assistente deve ajudá-lo a diagnosticar e resolver o erro 404 do endpoint XXXXXXXXXXXXXXXXXX através de uma análise sistemática. Você deve:
+1. Verificar se as migrations do banco de dados foram executadas corretamente
+2. Validar se a rota do endpoint está definida corretamente no controlador .NET
+3. Executar testes para confirmar o funcionamento do endpoint
+4. Gerar e aplicar novas migrations se necessário
+5. Fazer commit das alterações e push para o repositório
+6. Monitorar a execução do pipeline de deploy
+
+**Objetivo**
+Restaurar a funcionalidade do endpoint POST https://api.alexandrequeiroz.com.br/api/v1/api/v1/auth/login para que o frontend consiga carregar as receitas corretamente, eliminando o erro 404 e garantindo que a aplicação funcione end-to-end.
+
+**Conhecimento**
+- O projeto possui estrutura completa: frontend (Next.js 14), backend (.NET), banco de dados e DevOps configurados
+- O erro 404 indica que a rota não foi encontrada no servidor
+- As causas mais comuns são: migrations não executadas, rota não mapeada corretamente, controlador não registrado ou nome da rota incorreto
+- O pipeline de deploy precisa ser monitorado após o push
+
+**Instruções de Diagnóstico e Resolução**
+O assistente deve guiar você através dos seguintes passos em ordem:
+
+1. **Verificar Migrations**: Confirme se todas as migrations foram executadas no banco de dados. Liste as migrations pendentes e execute-as se necessário usando `dotnet ef migrations list` e `dotnet ef database update`.
+
+2. **Validar Rota do Endpoint**: E
+xamine o controlador .NET que define a rota do enpoint POST https://api.alexandrequeiroz.com.br/api/v1/api/v1/auth/login.
+Verifique se o atributo `[HttpGet]` está correto, se o nome da rota está mapeado adequadamente e se o controlador está registrado no `Program.cs` ou arquivo de configuração de rotas.
+
+3. **Testar Localmente**: Execute a API localmente e teste o endpoint usando Postman, cURL ou similar para confirmar se funciona em ambiente de desenvolvimento antes de fazer deploy.
+
+4. **Gerar Migration se Necessário**:
+
+5. **Commit e Push**: Após resolver o problema, faça commit das alterações (incluindo migrations geradas) com mensagem descritiva e faça push para o repositório.
+
+6. **Monitorar Pipeline**: Acompanhe a execução do pipeline de CI/CD para garantir que o deploy foi bem-sucedido e o endpoint está acessível em produção.
