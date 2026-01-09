@@ -3,6 +3,7 @@ using Diax.Domain.Customers;
 using Diax.Domain.Finance;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Repositories;
+using Diax.Infrastructure.Finance;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -141,6 +142,7 @@ public static class DependencyInjection
         services.AddScoped<IIncomeCategoryRepository, IncomeCategoryRepository>();
         services.AddScoped<IExpenseRepository, ExpenseRepository>();
         services.AddScoped<ICreditCardRepository, CreditCardRepository>();
+        services.AddScoped<ICreditCardGroupRepository, CreditCardGroupRepository>();
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
 

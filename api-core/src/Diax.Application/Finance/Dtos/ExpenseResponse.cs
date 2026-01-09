@@ -13,6 +13,8 @@ public record ExpenseResponse(
     Guid? CreditCardId,
     Guid? CreditCardInvoiceId,
     Guid? FinancialAccountId,
+    ExpenseStatus Status,
+    DateTime? PaidDate,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

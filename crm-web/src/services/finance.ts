@@ -19,6 +19,28 @@ export enum AccountType {
     DigitalWallet = 5
 }
 
+export enum CardBrand {
+    Unknown = 0,
+    Visa = 1,
+    Mastercard = 2,
+    Elo = 3,
+    Amex = 4,
+    Hipercard = 5,
+    Diners = 6,
+    Discover = 7,
+    JCB = 8
+}
+
+export enum CardKind {
+    Physical = 1,
+    Virtual = 2
+}
+
+export enum ExpenseStatus {
+    Pending = 1,
+    Paid = 2
+}
+
 export interface IncomeCategory {
     id: string;
     name: string;
@@ -70,6 +92,8 @@ export interface Expense {
     creditCardId?: string;
     creditCardInvoiceId?: string;
     financialAccountId?: string;
+    status: ExpenseStatus;
+    paidDate?: string;
     createdAt: string;
     updatedAt?: string;
 }
@@ -84,6 +108,8 @@ export interface CreateExpenseRequest {
     creditCardId?: string;
     creditCardInvoiceId?: string;
     financialAccountId?: string;
+    status?: ExpenseStatus;
+    paidDate?: string;
 }
 
 export interface UpdateExpenseRequest {
@@ -96,6 +122,8 @@ export interface UpdateExpenseRequest {
     creditCardId?: string;
     creditCardInvoiceId?: string;
     financialAccountId?: string;
+    status?: ExpenseStatus;
+    paidDate?: string;
 }
 
 export interface CreditCard {
@@ -105,6 +133,11 @@ export interface CreditCard {
     closingDay: number;
     dueDay: number;
     limit: number;
+    brand: CardBrand;
+    cardKind: CardKind;
+    isActive: boolean;
+    creditCardGroupId?: string;
+    creditCardGroupName?: string;
     createdAt: string;
     updatedAt?: string;
 }
@@ -115,6 +148,10 @@ export interface CreateCreditCardRequest {
     closingDay: number;
     dueDay: number;
     limit: number;
+    brand?: CardBrand;
+    cardKind?: CardKind;
+    isActive?: boolean;
+    creditCardGroupId?: string;
 }
 
 export interface UpdateCreditCardRequest {
@@ -123,6 +160,10 @@ export interface UpdateCreditCardRequest {
     closingDay: number;
     dueDay: number;
     limit: number;
+    brand?: CardBrand;
+    cardKind?: CardKind;
+    isActive?: boolean;
+    creditCardGroupId?: string;
 }
 
 export interface FinancialAccount {
@@ -151,8 +192,8 @@ export interface UpdateFinancialAccountRequest {
 
 export interface CreditCardInvoice {
     id: string;
-    creditCardId: string;
-    creditCardName: string;
+    creditCardGroupId: string;
+    creditCardGroupName: string;
     referenceMonth: number;
     referenceYear: number;
     closingDate: string;
@@ -166,7 +207,8 @@ export interface CreditCardInvoice {
 }
 
 export interface CreateCreditCardInvoiceRequest {
-    creditCardId: string;
+    creditCardId?: string;
+    creditCardGroupId?: string;
     referenceMonth: number;
     referenceYear: number;
 }
@@ -174,6 +216,57 @@ export interface CreateCreditCardInvoiceRequest {
 export interface PayCreditCardInvoiceRequest {
     paymentDate: string;
     paidFromAccountId?: string;
+}
+
+export interface CreditCardGroup {
+    id: string;
+    name: string;
+    bank: string;
+    closingDay: number;
+    dueDay: number;
+    sharedLimit: number;
+    isActive: boolean;
+    totalCardLimits: number;
+    availableLimit: number;
+    cardCount: number;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface CreateCreditCardGroupRequest {
+    name: string;
+    bank: string;
+    closingDay: number;
+    dueDay: number;
+    sharedLimit: number;
+    isActive?: boolean;
+}
+
+export interface UpdateCreditCardGroupRequest {
+    name: string;
+    bank: string;
+    closingDay: number;
+    dueDay: number;
+    sharedLimit: number;
+    isActive: boolean;
+}
+
+export interface FinancialSummary {
+    startDate: string;
+    endDate: string;
+    totalIncome: number;
+    totalExpenses: number;
+    totalPaidExpenses: number;
+    totalPendingExpenses: number;
+    pendingCash: number;
+    pendingCredit: number;
+    netCashFlow: number;
+    projectedCashFlow: number;
+}
+
+export interface FinancialSummaryRequest {
+    startDate?: string;
+    endDate?: string;
 }
 
 export const financeService = {
@@ -237,6 +330,20 @@ export const financeService = {
             method: 'DELETE',
         });
     },
+    markExpenseAsPaid: async (id: string, paidDate?: string) => {
+        return apiFetch<void>(`/expenses/${id}/mark-paid`, {
+            method: 'POST',
+            body: JSON.stringify({ paidDate }),
+        });
+    },
+    markExpenseAsPending: async (id: string) => {
+        return apiFetch<void>(`/expenses/${id}/mark-pending`, {
+            method: 'POST',
+        });
+    },
+    getExpensesByStatus: async (status: ExpenseStatus) => {
+        return apiFetch<Expense[]>(`/expenses/status/${status}`);
+    },
 
     // Credit Cards
     getCreditCards: async () => {
@@ -259,6 +366,34 @@ export const financeService = {
     },
     deleteCreditCard: async (id: string) => {
         return apiFetch<void>(`/creditcards/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Credit Card Groups
+    getCreditCardGroups: async () => {
+        return apiFetch<CreditCardGroup[]>('/creditcardgroups');
+    },
+    getActiveCreditCardGroups: async () => {
+        return apiFetch<CreditCardGroup[]>('/creditcardgroups/active');
+    },
+    getCreditCardGroupById: async (id: string) => {
+        return apiFetch<CreditCardGroup>(`/creditcardgroups/${id}`);
+    },
+    createCreditCardGroup: async (data: CreateCreditCardGroupRequest) => {
+        return apiFetch<string>('/creditcardgroups', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateCreditCardGroup: async (id: string, data: UpdateCreditCardGroupRequest) => {
+        return apiFetch<void>(`/creditcardgroups/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteCreditCardGroup: async (id: string) => {
+        return apiFetch<void>(`/creditcardgroups/${id}`, {
             method: 'DELETE',
         });
     },
@@ -325,5 +460,14 @@ export const financeService = {
         return apiFetch<void>(`/creditcardinvoices/${id}`, {
             method: 'DELETE',
         });
+    },
+
+    // Financial Summary
+    getFinancialSummary: async (params?: FinancialSummaryRequest) => {
+        const queryParams = new URLSearchParams();
+        if (params?.startDate) queryParams.append('startDate', params.startDate);
+        if (params?.endDate) queryParams.append('endDate', params.endDate);
+        const queryString = queryParams.toString();
+        return apiFetch<FinancialSummary>(`/finance/summary${queryString ? '?' + queryString : ''}`);
     },
 };

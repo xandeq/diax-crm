@@ -9,18 +9,23 @@ namespace Diax.Application.Finance;
 public class CreditCardService : IApplicationService
 {
     private readonly ICreditCardRepository _repository;
+    private readonly ICreditCardGroupRepository _groupRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreditCardService(ICreditCardRepository repository, IUnitOfWork unitOfWork)
+    public CreditCardService(
+        ICreditCardRepository repository,
+        ICreditCardGroupRepository groupRepository,
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
+        _groupRepository = groupRepository;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<Result<IEnumerable<CreditCardResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var creditCards = await _repository.GetAllAsync(cancellationToken);
-        var response = creditCards.Select(MapToResponse);
+        var response = creditCards.Select(c => MapToResponse(c));
         return Result<IEnumerable<CreditCardResponse>>.Success(response);
     }
 
@@ -31,7 +36,15 @@ public class CreditCardService : IApplicationService
         {
             return Result.Failure<CreditCardResponse>(new Error("CreditCard.NotFound", "Credit card not found"));
         }
-        return Result<CreditCardResponse>.Success(MapToResponse(creditCard));
+
+        string? groupName = null;
+        if (creditCard.CreditCardGroupId.HasValue)
+        {
+            var group = await _groupRepository.GetByIdAsync(creditCard.CreditCardGroupId.Value);
+            groupName = group?.Name;
+        }
+
+        return Result<CreditCardResponse>.Success(MapToResponse(creditCard, groupName));
     }
 
     public async Task<Result<Guid>> CreateAsync(CreateCreditCardRequest request, CancellationToken cancellationToken = default)
@@ -41,7 +54,11 @@ public class CreditCardService : IApplicationService
             request.LastFourDigits,
             request.Limit,
             request.ClosingDay,
-            request.DueDay
+            request.DueDay,
+            request.Brand,
+            request.CardKind,
+            request.IsActive,
+            request.CreditCardGroupId
         );
 
         await _repository.AddAsync(creditCard, cancellationToken);
@@ -63,7 +80,11 @@ public class CreditCardService : IApplicationService
             request.LastFourDigits,
             request.Limit,
             request.ClosingDay,
-            request.DueDay
+            request.DueDay,
+            request.Brand,
+            request.CardKind,
+            request.IsActive,
+            request.CreditCardGroupId
         );
 
         await _repository.UpdateAsync(creditCard, cancellationToken);
@@ -86,7 +107,7 @@ public class CreditCardService : IApplicationService
         return Result.Success();
     }
 
-    private static CreditCardResponse MapToResponse(CreditCard creditCard)
+    private static CreditCardResponse MapToResponse(CreditCard creditCard, string? groupName = null)
     {
         return new CreditCardResponse(
             creditCard.Id,
@@ -95,6 +116,11 @@ public class CreditCardService : IApplicationService
             creditCard.ClosingDay,
             creditCard.DueDay,
             creditCard.Limit,
+            creditCard.Brand,
+            creditCard.CardKind,
+            creditCard.IsActive,
+            creditCard.CreditCardGroupId,
+            groupName,
             creditCard.CreatedAt,
             creditCard.UpdatedAt
         );

@@ -2,8 +2,8 @@ namespace Diax.Application.Finance.Dtos;
 
 public record CreditCardInvoiceResponse(
     Guid Id,
-    Guid CreditCardId,
-    string CreditCardName,
+    Guid CreditCardGroupId,
+    string CreditCardGroupName,
     int ReferenceMonth,
     int ReferenceYear,
     DateTime ClosingDate,

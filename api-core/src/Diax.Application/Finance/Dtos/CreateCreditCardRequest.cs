@@ -1,3 +1,5 @@
+using Diax.Domain.Finance;
+
 namespace Diax.Application.Finance.Dtos;
 
 public record CreateCreditCardRequest(
@@ -5,5 +7,9 @@ public record CreateCreditCardRequest(
     string LastFourDigits,
     int ClosingDay,
     int DueDay,
-    decimal Limit
+    decimal Limit,
+    CardBrand Brand = CardBrand.Unknown,
+    CardKind CardKind = CardKind.Physical,
+    bool IsActive = true,
+    Guid? CreditCardGroupId = null
 );

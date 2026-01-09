@@ -11,5 +11,7 @@ public record UpdateExpenseRequest(
     bool IsRecurring,
     Guid? CreditCardId,
     Guid? CreditCardInvoiceId = null,
-    Guid? FinancialAccountId = null
+    Guid? FinancialAccountId = null,
+    ExpenseStatus Status = ExpenseStatus.Pending,
+    DateTime? PaidDate = null
 );

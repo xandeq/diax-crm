@@ -20,8 +20,10 @@ public static class DependencyInjection
         services.AddScoped<IncomeCategoryService>();
         services.AddScoped<ExpenseService>();
         services.AddScoped<CreditCardService>();
+        services.AddScoped<CreditCardGroupService>();
         services.AddScoped<FinancialAccountService>();
         services.AddScoped<CreditCardInvoiceService>();
+        services.AddScoped<FinancialSummaryService>();
 
         return services;
     }

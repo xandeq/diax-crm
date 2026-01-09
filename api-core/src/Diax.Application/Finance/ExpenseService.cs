@@ -52,7 +52,9 @@ public class ExpenseService : IApplicationService
             request.IsRecurring,
             request.CreditCardId,
             request.CreditCardInvoiceId,
-            request.FinancialAccountId
+            request.FinancialAccountId,
+            request.Status,
+            request.PaidDate
         );
 
         await _repository.AddAsync(expense, cancellationToken);
@@ -78,7 +80,9 @@ public class ExpenseService : IApplicationService
             request.IsRecurring,
             request.CreditCardId,
             request.CreditCardInvoiceId,
-            request.FinancialAccountId
+            request.FinancialAccountId,
+            request.Status,
+            request.PaidDate
         );
 
         await _repository.UpdateAsync(expense, cancellationToken);
@@ -101,6 +105,44 @@ public class ExpenseService : IApplicationService
         return Result.Success();
     }
 
+    public async Task<Result> MarkAsPaidAsync(Guid id, DateTime? paidDate = null, CancellationToken cancellationToken = default)
+    {
+        var expense = await _repository.GetByIdAsync(id, cancellationToken);
+        if (expense == null)
+        {
+            return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
+        }
+
+        expense.MarkAsPaid(paidDate);
+        await _repository.UpdateAsync(expense, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> MarkAsPendingAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var expense = await _repository.GetByIdAsync(id, cancellationToken);
+        if (expense == null)
+        {
+            return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
+        }
+
+        expense.MarkAsPending();
+        await _repository.UpdateAsync(expense, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result<IEnumerable<ExpenseResponse>>> GetByStatusAsync(ExpenseStatus status, CancellationToken cancellationToken = default)
+    {
+        var allExpenses = await _repository.GetAllAsync(cancellationToken);
+        var filteredExpenses = allExpenses.Where(e => e.Status == status);
+        var response = filteredExpenses.Select(MapToResponse);
+        return Result<IEnumerable<ExpenseResponse>>.Success(response);
+    }
+
     private static ExpenseResponse MapToResponse(Expense expense)
     {
         return new ExpenseResponse(
@@ -114,6 +156,8 @@ public class ExpenseService : IApplicationService
             expense.CreditCardId,
             expense.CreditCardInvoiceId,
             expense.FinancialAccountId,
+            expense.Status,
+            expense.PaidDate,
             expense.CreatedAt,
             expense.UpdatedAt
         );

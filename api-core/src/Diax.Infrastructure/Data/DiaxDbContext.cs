@@ -44,6 +44,7 @@ public class DiaxDbContext : DbContext
     public DbSet<Diax.Domain.Finance.IncomeCategory> IncomeCategories => Set<Diax.Domain.Finance.IncomeCategory>();
     public DbSet<Diax.Domain.Finance.Expense> Expenses => Set<Diax.Domain.Finance.Expense>();
     public DbSet<Diax.Domain.Finance.CreditCard> CreditCards => Set<Diax.Domain.Finance.CreditCard>();
+    public DbSet<Diax.Domain.Finance.CreditCardGroup> CreditCardGroups => Set<Diax.Domain.Finance.CreditCardGroup>();
     public DbSet<Diax.Domain.Finance.FinancialAccount> FinancialAccounts => Set<Diax.Domain.Finance.FinancialAccount>();
     public DbSet<Diax.Domain.Finance.CreditCardInvoice> CreditCardInvoices => Set<Diax.Domain.Finance.CreditCardInvoice>();
 

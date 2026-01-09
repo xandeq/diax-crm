@@ -7,8 +7,8 @@ namespace Diax.Domain.Finance;
 /// </summary>
 public class CreditCardInvoice : AuditableEntity
 {
-    public Guid CreditCardId { get; private set; }
-    public virtual CreditCard CreditCard { get; private set; } = null!;
+    public Guid CreditCardGroupId { get; private set; }
+    public virtual CreditCardGroup CreditCardGroup { get; private set; } = null!;
 
     public int ReferenceMonth { get; private set; }
     public int ReferenceYear { get; private set; }
@@ -27,7 +27,7 @@ public class CreditCardInvoice : AuditableEntity
     protected CreditCardInvoice() { }
 
     public CreditCardInvoice(
-        Guid creditCardId,
+        Guid creditCardGroupId,
         int referenceMonth,
         int referenceYear,
         DateTime closingDate,
@@ -39,7 +39,7 @@ public class CreditCardInvoice : AuditableEntity
         if (referenceYear < 2000)
             throw new ArgumentException("Year must be 2000 or later", nameof(referenceYear));
 
-        CreditCardId = creditCardId;
+        CreditCardGroupId = creditCardGroupId;
         ReferenceMonth = referenceMonth;
         ReferenceYear = referenceYear;
         ClosingDate = closingDate;

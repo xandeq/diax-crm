@@ -10,17 +10,20 @@ public class CreditCardInvoiceService : IApplicationService
 {
     private readonly ICreditCardInvoiceRepository _invoiceRepository;
     private readonly ICreditCardRepository _creditCardRepository;
+    private readonly ICreditCardGroupRepository _creditCardGroupRepository;
     private readonly IExpenseRepository _expenseRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public CreditCardInvoiceService(
         ICreditCardInvoiceRepository invoiceRepository,
         ICreditCardRepository creditCardRepository,
+        ICreditCardGroupRepository creditCardGroupRepository,
         IExpenseRepository expenseRepository,
         IUnitOfWork unitOfWork)
     {
         _invoiceRepository = invoiceRepository;
         _creditCardRepository = creditCardRepository;
+        _creditCardGroupRepository = creditCardGroupRepository;
         _expenseRepository = expenseRepository;
         _unitOfWork = unitOfWork;
     }
@@ -58,16 +61,42 @@ public class CreditCardInvoiceService : IApplicationService
 
     public async Task<Result<Guid>> CreateOrGetInvoiceAsync(CreateCreditCardInvoiceRequest request, CancellationToken cancellationToken = default)
     {
-        // Verify credit card exists
-        var creditCard = await _creditCardRepository.GetByIdAsync(request.CreditCardId, cancellationToken);
-        if (creditCard == null)
+        Guid groupId;
+
+        // Resolve group ID from either CreditCardGroupId or CreditCardId
+        if (request.CreditCardGroupId.HasValue)
         {
-            return Result.Failure<Guid>(new Error("CreditCard.NotFound", "Credit card not found"));
+            groupId = request.CreditCardGroupId.Value;
+        }
+        else if (request.CreditCardId.HasValue)
+        {
+            // Lookup card to get its group
+            var card = await _creditCardRepository.GetByIdAsync(request.CreditCardId.Value, cancellationToken);
+            if (card == null)
+            {
+                return Result.Failure<Guid>(new Error("CreditCard.NotFound", "Credit card not found"));
+            }
+            if (!card.CreditCardGroupId.HasValue)
+            {
+                return Result.Failure<Guid>(new Error("CreditCard.NoGroup", "Credit card is not associated with a group"));
+            }
+            groupId = card.CreditCardGroupId.Value;
+        }
+        else
+        {
+            return Result.Failure<Guid>(new Error("CreditCardInvoice.InvalidRequest", "Either CreditCardId or CreditCardGroupId must be provided"));
         }
 
-        // Check if invoice already exists for this period
-        var existingInvoice = await _invoiceRepository.GetByCardAndPeriodAsync(
-            request.CreditCardId,
+        // Verify group exists
+        var group = await _creditCardGroupRepository.GetByIdAsync(groupId);
+        if (group == null)
+        {
+            return Result.Failure<Guid>(new Error("CreditCardGroup.NotFound", "Credit card group not found"));
+        }
+
+        // Check if invoice already exists for this group and period
+        var existingInvoice = await _invoiceRepository.GetByGroupAndPeriodAsync(
+            groupId,
             request.ReferenceMonth,
             request.ReferenceYear,
             cancellationToken);
@@ -77,12 +106,12 @@ public class CreditCardInvoiceService : IApplicationService
             return Result<Guid>.Success(existingInvoice.Id);
         }
 
-        // Calculate closing and due dates
-        var closingDate = CalculateClosingDate(request.ReferenceYear, request.ReferenceMonth, creditCard.ClosingDay);
-        var dueDate = CalculateDueDate(closingDate, creditCard.DueDay);
+        // Calculate closing and due dates using group's dates
+        var closingDate = CalculateClosingDate(request.ReferenceYear, request.ReferenceMonth, group.ClosingDay);
+        var dueDate = CalculateDueDate(closingDate, group.DueDay);
 
         var invoice = new CreditCardInvoice(
-            request.CreditCardId,
+            groupId,
             request.ReferenceMonth,
             request.ReferenceYear,
             closingDate,
@@ -103,10 +132,21 @@ public class CreditCardInvoiceService : IApplicationService
             return Result.Failure<Guid>(new Error("CreditCard.NotFound", "Credit card not found"));
         }
 
-        // Determine which invoice period this expense belongs to
-        var (month, year) = CalculateInvoicePeriod(expenseDate, creditCard.ClosingDay);
+        if (!creditCard.CreditCardGroupId.HasValue)
+        {
+            return Result.Failure<Guid>(new Error("CreditCard.NoGroup", "Credit card is not associated with a group"));
+        }
 
-        var request = new CreateCreditCardInvoiceRequest(creditCardId, month, year);
+        var group = await _creditCardGroupRepository.GetByIdAsync(creditCard.CreditCardGroupId.Value);
+        if (group == null)
+        {
+            return Result.Failure<Guid>(new Error("CreditCardGroup.NotFound", "Credit card group not found"));
+        }
+
+        // Determine which invoice period this expense belongs to
+        var (month, year) = CalculateInvoicePeriod(expenseDate, group.ClosingDay);
+
+        var request = new CreateCreditCardInvoiceRequest(null, group.Id, month, year);
         return await CreateOrGetInvoiceAsync(request, cancellationToken);
     }
 
@@ -191,8 +231,8 @@ public class CreditCardInvoiceService : IApplicationService
     {
         return new CreditCardInvoiceResponse(
             invoice.Id,
-            invoice.CreditCardId,
-            invoice.CreditCard?.Name ?? string.Empty,
+            invoice.CreditCardGroupId,
+            invoice.CreditCardGroup?.Name ?? string.Empty,
             invoice.ReferenceMonth,
             invoice.ReferenceYear,
             invoice.ClosingDate,

@@ -12,7 +12,8 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     public async Task<CreditCardInvoice?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Include(i => i.CreditCard)
+            .Include(i => i.CreditCardGroup)
+            .ThenInclude(g => g.Cards)
             .Include(i => i.PaidFromAccount)
             .Include(i => i.Expenses)
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
@@ -21,7 +22,7 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     public async Task<List<CreditCardInvoice>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Include(i => i.CreditCard)
+            .Include(i => i.CreditCardGroup)
             .OrderByDescending(i => i.ReferenceYear)
             .ThenByDescending(i => i.ReferenceMonth)
             .ToListAsync(cancellationToken);
@@ -29,8 +30,13 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
 
     public async Task<List<CreditCardInvoice>> GetByCreditCardIdAsync(Guid creditCardId, CancellationToken cancellationToken = default)
     {
+        // Note: This method is kept for backward compatibility but now looks for invoices by group
+        var card = await Context.CreditCards.FindAsync(new object[] { creditCardId }, cancellationToken);
+        if (card?.CreditCardGroupId == null)
+            return new List<CreditCardInvoice>();
+
         return await DbSet
-            .Where(i => i.CreditCardId == creditCardId)
+            .Where(i => i.CreditCardGroupId == card.CreditCardGroupId)
             .Include(i => i.Expenses)
             .OrderByDescending(i => i.ReferenceYear)
             .ThenByDescending(i => i.ReferenceMonth)
@@ -39,10 +45,37 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
 
     public async Task<CreditCardInvoice?> GetByCardAndPeriodAsync(Guid creditCardId, int month, int year, CancellationToken cancellationToken = default)
     {
+        // Note: This method is kept for backward compatibility but now looks for invoices by group
+        var card = await Context.CreditCards.FindAsync(new object[] { creditCardId }, cancellationToken);
+        if (card?.CreditCardGroupId == null)
+            return null;
+
         return await DbSet
-            .Include(i => i.CreditCard)
+            .Include(i => i.CreditCardGroup)
+            .ThenInclude(g => g.Cards)
             .Include(i => i.Expenses)
-            .FirstOrDefaultAsync(i => i.CreditCardId == creditCardId
+            .FirstOrDefaultAsync(i => i.CreditCardGroupId == card.CreditCardGroupId
+                && i.ReferenceMonth == month
+                && i.ReferenceYear == year, cancellationToken);
+    }
+
+    public async Task<List<CreditCardInvoice>> GetByGroupIdAsync(Guid creditCardGroupId, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(i => i.CreditCardGroupId == creditCardGroupId)
+            .Include(i => i.Expenses)
+            .OrderByDescending(i => i.ReferenceYear)
+            .ThenByDescending(i => i.ReferenceMonth)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<CreditCardInvoice?> GetByGroupAndPeriodAsync(Guid creditCardGroupId, int month, int year, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(i => i.CreditCardGroup)
+            .ThenInclude(g => g.Cards)
+            .Include(i => i.Expenses)
+            .FirstOrDefaultAsync(i => i.CreditCardGroupId == creditCardGroupId
                 && i.ReferenceMonth == month
                 && i.ReferenceYear == year, cancellationToken);
     }
@@ -51,7 +84,8 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     {
         return await DbSet
             .Where(i => !i.IsPaid)
-            .Include(i => i.CreditCard)
+            .Include(i => i.CreditCardGroup)
+            .ThenInclude(g => g.Cards)
             .OrderBy(i => i.DueDate)
             .ToListAsync(cancellationToken);
     }

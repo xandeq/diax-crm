@@ -30,9 +30,9 @@ public class CreditCardInvoiceConfiguration : IEntityTypeConfiguration<CreditCar
         builder.Property(x => x.PaymentDate);
 
         // Relationships
-        builder.HasOne(x => x.CreditCard)
-            .WithMany()
-            .HasForeignKey(x => x.CreditCardId)
+        builder.HasOne(x => x.CreditCardGroup)
+            .WithMany(g => g.Invoices)
+            .HasForeignKey(x => x.CreditCardGroupId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.PaidFromAccount)
@@ -46,8 +46,8 @@ public class CreditCardInvoiceConfiguration : IEntityTypeConfiguration<CreditCar
             .OnDelete(DeleteBehavior.SetNull);
 
         // Indexes
-        builder.HasIndex(x => new { x.CreditCardId, x.ReferenceMonth, x.ReferenceYear })
+        builder.HasIndex(x => new { x.CreditCardGroupId, x.ReferenceMonth, x.ReferenceYear })
             .IsUnique()
-            .HasDatabaseName("IX_CreditCardInvoices_Card_Period");
+            .HasDatabaseName("IX_CreditCardInvoices_Group_Period");
     }
 }
