@@ -9,5 +9,7 @@ public record UpdateExpenseRequest(
     PaymentMethod PaymentMethod,
     string? Category,
     bool IsRecurring,
-    Guid? CreditCardId
+    Guid? CreditCardId,
+    Guid? CreditCardInvoiceId = null,
+    Guid? FinancialAccountId = null
 );

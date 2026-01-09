@@ -11,6 +11,8 @@ public record ExpenseResponse(
     string? Category,
     bool IsRecurring,
     Guid? CreditCardId,
+    Guid? CreditCardInvoiceId,
+    Guid? FinancialAccountId,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

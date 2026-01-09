@@ -14,6 +14,12 @@ public class Expense : AuditableEntity
     public Guid? CreditCardId { get; private set; }
     public CreditCard? CreditCard { get; private set; }
 
+    public Guid? CreditCardInvoiceId { get; private set; }
+    public CreditCardInvoice? CreditCardInvoice { get; private set; }
+
+    public Guid? FinancialAccountId { get; private set; }
+    public FinancialAccount? FinancialAccount { get; private set; }
+
     public Expense(
         string description,
         decimal amount,
@@ -21,7 +27,9 @@ public class Expense : AuditableEntity
         PaymentMethod paymentMethod,
         string? category,
         bool isRecurring,
-        Guid? creditCardId = null)
+        Guid? creditCardId = null,
+        Guid? creditCardInvoiceId = null,
+        Guid? financialAccountId = null)
     {
         Description = description;
         Amount = amount;
@@ -30,6 +38,8 @@ public class Expense : AuditableEntity
         Category = category;
         IsRecurring = isRecurring;
         CreditCardId = creditCardId;
+        CreditCardInvoiceId = creditCardInvoiceId;
+        FinancialAccountId = financialAccountId;
     }
 
     public void Update(
@@ -39,7 +49,9 @@ public class Expense : AuditableEntity
         PaymentMethod paymentMethod,
         string? category,
         bool isRecurring,
-        Guid? creditCardId)
+        Guid? creditCardId,
+        Guid? creditCardInvoiceId = null,
+        Guid? financialAccountId = null)
     {
         Description = description;
         Amount = amount;
@@ -48,5 +60,7 @@ public class Expense : AuditableEntity
         Category = category;
         IsRecurring = isRecurring;
         CreditCardId = creditCardId;
+        CreditCardInvoiceId = creditCardInvoiceId;
+        FinancialAccountId = financialAccountId;
     }
 }

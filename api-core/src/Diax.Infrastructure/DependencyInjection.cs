@@ -141,6 +141,8 @@ public static class DependencyInjection
         services.AddScoped<IIncomeCategoryRepository, IncomeCategoryRepository>();
         services.AddScoped<IExpenseRepository, ExpenseRepository>();
         services.AddScoped<ICreditCardRepository, CreditCardRepository>();
+        services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
+        services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
 
         return services;
     }

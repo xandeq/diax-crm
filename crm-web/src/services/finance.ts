@@ -10,6 +10,15 @@ export enum PaymentMethod {
     Other = 6
 }
 
+export enum AccountType {
+    Checking = 0,
+    Business = 1,
+    Savings = 2,
+    Cash = 3,
+    Investment = 4,
+    DigitalWallet = 5
+}
+
 export interface IncomeCategory {
     id: string;
     name: string;
@@ -25,6 +34,7 @@ export interface Income {
     incomeCategoryId: string;
     incomeCategoryName?: string;
     isRecurring: boolean;
+    financialAccountId?: string;
     createdAt: string;
     updatedAt?: string;
 }
@@ -36,6 +46,7 @@ export interface CreateIncomeRequest {
     paymentMethod: PaymentMethod;
     incomeCategoryId: string;
     isRecurring: boolean;
+    financialAccountId?: string;
 }
 
 export interface UpdateIncomeRequest {
@@ -45,6 +56,7 @@ export interface UpdateIncomeRequest {
     paymentMethod: PaymentMethod;
     incomeCategoryId: string;
     isRecurring: boolean;
+    financialAccountId?: string;
 }
 
 export interface Expense {
@@ -56,6 +68,8 @@ export interface Expense {
     category?: string;
     isRecurring: boolean;
     creditCardId?: string;
+    creditCardInvoiceId?: string;
+    financialAccountId?: string;
     createdAt: string;
     updatedAt?: string;
 }
@@ -68,6 +82,8 @@ export interface CreateExpenseRequest {
     category?: string;
     isRecurring: boolean;
     creditCardId?: string;
+    creditCardInvoiceId?: string;
+    financialAccountId?: string;
 }
 
 export interface UpdateExpenseRequest {
@@ -78,6 +94,8 @@ export interface UpdateExpenseRequest {
     category?: string;
     isRecurring: boolean;
     creditCardId?: string;
+    creditCardInvoiceId?: string;
+    financialAccountId?: string;
 }
 
 export interface CreditCard {
@@ -105,6 +123,57 @@ export interface UpdateCreditCardRequest {
     closingDay: number;
     dueDay: number;
     limit: number;
+}
+
+export interface FinancialAccount {
+    id: string;
+    name: string;
+    accountType: AccountType;
+    initialBalance: number;
+    balance: number;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface CreateFinancialAccountRequest {
+    name: string;
+    accountType: AccountType;
+    initialBalance: number;
+    isActive?: boolean;
+}
+
+export interface UpdateFinancialAccountRequest {
+    name: string;
+    accountType: AccountType;
+    isActive: boolean;
+}
+
+export interface CreditCardInvoice {
+    id: string;
+    creditCardId: string;
+    creditCardName: string;
+    referenceMonth: number;
+    referenceYear: number;
+    closingDate: string;
+    dueDate: string;
+    totalAmount: number;
+    isPaid: boolean;
+    paymentDate?: string;
+    paidFromAccountId?: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface CreateCreditCardInvoiceRequest {
+    creditCardId: string;
+    referenceMonth: number;
+    referenceYear: number;
+}
+
+export interface PayCreditCardInvoiceRequest {
+    paymentDate: string;
+    paidFromAccountId?: string;
 }
 
 export const financeService = {
@@ -190,6 +259,70 @@ export const financeService = {
     },
     deleteCreditCard: async (id: string) => {
         return apiFetch<void>(`/creditcards/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Financial Accounts
+    getFinancialAccounts: async () => {
+        return apiFetch<FinancialAccount[]>('/financialaccounts');
+    },
+    getActiveFinancialAccounts: async () => {
+        return apiFetch<FinancialAccount[]>('/financialaccounts/active');
+    },
+    getFinancialAccountById: async (id: string) => {
+        return apiFetch<FinancialAccount>(`/financialaccounts/${id}`);
+    },
+    createFinancialAccount: async (data: CreateFinancialAccountRequest) => {
+        return apiFetch<string>('/financialaccounts', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateFinancialAccount: async (id: string, data: UpdateFinancialAccountRequest) => {
+        return apiFetch<void>(`/financialaccounts/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteFinancialAccount: async (id: string) => {
+        return apiFetch<void>(`/financialaccounts/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Credit Card Invoices
+    getCreditCardInvoices: async () => {
+        return apiFetch<CreditCardInvoice[]>('/creditcardinvoices');
+    },
+    getUnpaidInvoices: async () => {
+        return apiFetch<CreditCardInvoice[]>('/creditcardinvoices/unpaid');
+    },
+    getInvoicesByCreditCard: async (creditCardId: string) => {
+        return apiFetch<CreditCardInvoice[]>(`/creditcardinvoices/creditcard/${creditCardId}`);
+    },
+    getInvoiceById: async (id: string) => {
+        return apiFetch<CreditCardInvoice>(`/creditcardinvoices/${id}`);
+    },
+    createOrGetInvoice: async (data: CreateCreditCardInvoiceRequest) => {
+        return apiFetch<string>('/creditcardinvoices', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    payInvoice: async (id: string, data: PayCreditCardInvoiceRequest) => {
+        return apiFetch<void>(`/creditcardinvoices/${id}/pay`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    unpayInvoice: async (id: string) => {
+        return apiFetch<void>(`/creditcardinvoices/${id}/unpay`, {
+            method: 'POST',
+        });
+    },
+    deleteInvoice: async (id: string) => {
+        return apiFetch<void>(`/creditcardinvoices/${id}`, {
             method: 'DELETE',
         });
     },

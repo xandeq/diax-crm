@@ -9,9 +9,9 @@ public class IncomeCategoryConfiguration : IEntityTypeConfiguration<IncomeCatego
     public void Configure(EntityTypeBuilder<IncomeCategory> builder)
     {
         builder.ToTable("income_categories");
-        
+
         builder.HasKey(x => x.Id);
-        
+
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(100);
@@ -30,10 +30,10 @@ public class IncomeCategoryConfiguration : IEntityTypeConfiguration<IncomeCatego
 
     private static object Create(Guid id, string name)
     {
-        return new 
-        { 
-            Id = id, 
-            Name = name, 
+        return new
+        {
+            Id = id,
+            Name = name,
             IsActive = true,
             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         };

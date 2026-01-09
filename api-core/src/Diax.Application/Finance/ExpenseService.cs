@@ -50,7 +50,9 @@ public class ExpenseService : IApplicationService
             request.PaymentMethod,
             request.Category,
             request.IsRecurring,
-            request.CreditCardId
+            request.CreditCardId,
+            request.CreditCardInvoiceId,
+            request.FinancialAccountId
         );
 
         await _repository.AddAsync(expense, cancellationToken);
@@ -74,7 +76,9 @@ public class ExpenseService : IApplicationService
             request.PaymentMethod,
             request.Category,
             request.IsRecurring,
-            request.CreditCardId
+            request.CreditCardId,
+            request.CreditCardInvoiceId,
+            request.FinancialAccountId
         );
 
         await _repository.UpdateAsync(expense, cancellationToken);
@@ -108,6 +112,8 @@ public class ExpenseService : IApplicationService
             expense.Category,
             expense.IsRecurring,
             expense.CreditCardId,
+            expense.CreditCardInvoiceId,
+            expense.FinancialAccountId,
             expense.CreatedAt,
             expense.UpdatedAt
         );

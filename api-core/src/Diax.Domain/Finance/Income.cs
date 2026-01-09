@@ -12,6 +12,9 @@ public class Income : AuditableEntity
     public virtual IncomeCategory? IncomeCategory { get; private set; }
     public bool IsRecurring { get; private set; }
 
+    public Guid? FinancialAccountId { get; private set; }
+    public virtual FinancialAccount? FinancialAccount { get; private set; }
+
     protected Income() { }
 
     public Income(
@@ -20,7 +23,8 @@ public class Income : AuditableEntity
         DateTime date,
         PaymentMethod paymentMethod,
         Guid incomeCategoryId,
-        bool isRecurring)
+        bool isRecurring,
+        Guid? financialAccountId = null)
     {
         Description = description;
         Amount = amount;
@@ -28,6 +32,7 @@ public class Income : AuditableEntity
         PaymentMethod = paymentMethod;
         IncomeCategoryId = incomeCategoryId;
         IsRecurring = isRecurring;
+        FinancialAccountId = financialAccountId;
     }
 
     public void Update(
@@ -36,7 +41,8 @@ public class Income : AuditableEntity
         DateTime date,
         PaymentMethod paymentMethod,
         Guid incomeCategoryId,
-        bool isRecurring)
+        bool isRecurring,
+        Guid? financialAccountId = null)
     {
         Description = description;
         Amount = amount;
@@ -44,5 +50,6 @@ public class Income : AuditableEntity
         PaymentMethod = paymentMethod;
         IncomeCategoryId = incomeCategoryId;
         IsRecurring = isRecurring;
+        FinancialAccountId = financialAccountId;
     }
 }

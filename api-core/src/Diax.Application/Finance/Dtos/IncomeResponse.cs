@@ -11,6 +11,7 @@ public record IncomeResponse(
     Guid IncomeCategoryId,
     string? IncomeCategoryName,
     bool IsRecurring,
+    Guid? FinancialAccountId,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

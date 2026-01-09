@@ -57,7 +57,8 @@ public class IncomeService : IApplicationService
             request.Date,
             request.PaymentMethod,
             request.IncomeCategoryId,
-            request.IsRecurring
+            request.IsRecurring,
+            request.FinancialAccountId
         );
 
         await _repository.AddAsync(income, cancellationToken);
@@ -86,7 +87,8 @@ public class IncomeService : IApplicationService
             request.Date,
             request.PaymentMethod,
             request.IncomeCategoryId,
-            request.IsRecurring
+            request.IsRecurring,
+            request.FinancialAccountId
         );
 
         await _repository.UpdateAsync(income, cancellationToken);
@@ -120,6 +122,7 @@ public class IncomeService : IApplicationService
             income.IncomeCategoryId,
             income.IncomeCategory?.Name,
             income.IsRecurring,
+            income.FinancialAccountId,
             income.CreatedAt,
             income.UpdatedAt
         );

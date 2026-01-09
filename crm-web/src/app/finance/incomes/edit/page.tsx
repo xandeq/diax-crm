@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { financeService, Income } from '@/services/finance';
 import { IncomeForm } from '@/components/finance/income-form';
+import { financeService, Income } from '@/services/finance';
 import { Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 function EditIncomeContent() {
   const searchParams = useSearchParams();
