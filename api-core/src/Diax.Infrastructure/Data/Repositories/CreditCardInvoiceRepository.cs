@@ -42,8 +42,8 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
         return await DbSet
             .Include(i => i.CreditCard)
             .Include(i => i.Expenses)
-            .FirstOrDefaultAsync(i => i.CreditCardId == creditCardId 
-                && i.ReferenceMonth == month 
+            .FirstOrDefaultAsync(i => i.CreditCardId == creditCardId
+                && i.ReferenceMonth == month
                 && i.ReferenceYear == year, cancellationToken);
     }
 

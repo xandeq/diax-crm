@@ -14,10 +14,10 @@ public class CreditCardInvoice : AuditableEntity
     public int ReferenceYear { get; private set; }
     public DateTime ClosingDate { get; private set; }
     public DateTime DueDate { get; private set; }
-    
+
     public bool IsPaid { get; private set; }
     public DateTime? PaymentDate { get; private set; }
-    
+
     public Guid? PaidFromAccountId { get; private set; }
     public virtual FinancialAccount? PaidFromAccount { get; private set; }
 
