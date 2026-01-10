@@ -8,7 +8,10 @@ public class Expense : AuditableEntity
     public decimal Amount { get; private set; }
     public DateTime Date { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
+    [Obsolete("Use ExpenseCategoryId instead")]
     public string? Category { get; private set; }
+    public Guid ExpenseCategoryId { get; private set; }
+    public ExpenseCategory? ExpenseCategory { get; private set; }
     public bool IsRecurring { get; private set; }
     public ExpenseStatus Status { get; private set; }
     public DateTime? PaidDate { get; private set; }
@@ -22,12 +25,15 @@ public class Expense : AuditableEntity
     public Guid? FinancialAccountId { get; private set; }
     public FinancialAccount? FinancialAccount { get; private set; }
 
+    // Constructor for EF Core
+    protected Expense() { }
+
     public Expense(
         string description,
         decimal amount,
         DateTime date,
         PaymentMethod paymentMethod,
-        string? category,
+        Guid expenseCategoryId,
         bool isRecurring,
         Guid? creditCardId = null,
         Guid? creditCardInvoiceId = null,
@@ -41,11 +47,14 @@ public class Expense : AuditableEntity
         if (amount <= 0)
             throw new ArgumentException("Amount must be greater than zero", nameof(amount));
 
+        if (expenseCategoryId == Guid.Empty)
+            throw new ArgumentException("ExpenseCategoryId cannot be empty", nameof(expenseCategoryId));
+
         Description = description;
         Amount = amount;
         Date = date;
         PaymentMethod = paymentMethod;
-        Category = category;
+        ExpenseCategoryId = expenseCategoryId;
         IsRecurring = isRecurring;
         CreditCardId = creditCardId;
         CreditCardInvoiceId = creditCardInvoiceId;
@@ -83,7 +92,7 @@ public class Expense : AuditableEntity
         decimal amount,
         DateTime date,
         PaymentMethod paymentMethod,
-        string? category,
+        Guid expenseCategoryId,
         bool isRecurring,
         Guid? creditCardId,
         Guid? creditCardInvoiceId = null,
@@ -97,11 +106,14 @@ public class Expense : AuditableEntity
         if (amount <= 0)
             throw new ArgumentException("Amount must be greater than zero", nameof(amount));
 
+        if (expenseCategoryId == Guid.Empty)
+            throw new ArgumentException("ExpenseCategoryId cannot be empty", nameof(expenseCategoryId));
+
         Description = description;
         Amount = amount;
         Date = date;
         PaymentMethod = paymentMethod;
-        Category = category;
+        ExpenseCategoryId = expenseCategoryId;
         IsRecurring = isRecurring;
         CreditCardId = creditCardId;
         CreditCardInvoiceId = creditCardInvoiceId;

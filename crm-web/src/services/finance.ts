@@ -1,13 +1,12 @@
 import { apiFetch } from './api';
 
 export enum PaymentMethod {
-    CreditCard = 0,
-    DebitCard = 1,
-    Pix = 2,
-    Cash = 3,
+    Cash = 0,
+    CreditCard = 1,
+    DebitCard = 2,
+    Pix = 3,
     BankTransfer = 4,
-    Boleto = 5,
-    Other = 6
+    Boleto = 5
 }
 
 export enum AccountType {

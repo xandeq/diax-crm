@@ -7,7 +7,7 @@ public record UpdateExpenseRequest(
     decimal Amount,
     DateTime Date,
     PaymentMethod PaymentMethod,
-    string? Category,
+    Guid ExpenseCategoryId,
     bool IsRecurring,
     Guid? CreditCardId,
     Guid? CreditCardInvoiceId = null,
