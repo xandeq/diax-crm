@@ -109,7 +109,6 @@ export default function NewExpensePage() {
             <option value={PaymentMethod.Cash}>Dinheiro</option>
             <option value={PaymentMethod.BankTransfer}>Transferência Bancária</option>
             <option value={PaymentMethod.Boleto}>Boleto</option>
-            <option value={PaymentMethod.Other}>Outro</option>
           </select>
         </div>
 

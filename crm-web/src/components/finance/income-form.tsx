@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/select';
 import {
     financeService,
+    FinancialAccount,
     Income,
     IncomeCategory,
-    PaymentMethod,
-    FinancialAccount
+    PaymentMethod
 } from '@/services/finance';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -207,7 +207,6 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
             <SelectItem value={String(PaymentMethod.Cash)}>Dinheiro</SelectItem>
             <SelectItem value={String(PaymentMethod.BankTransfer)}>Transferência</SelectItem>
             <SelectItem value={String(PaymentMethod.Boleto)}>Boleto</SelectItem>
-            <SelectItem value={String(PaymentMethod.Other)}>Outro</SelectItem>
           </SelectContent>
         </Select>
       </div>
