@@ -14,7 +14,8 @@ import {
     financeService,
     Income,
     IncomeCategory,
-    PaymentMethod
+    PaymentMethod,
+    FinancialAccount
 } from '@/services/finance';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -28,6 +29,7 @@ const formSchema = z.object({
   amount: z.number().min(0.01, 'Valor deve ser maior que zero'),
   date: z.string().min(1, 'Data é obrigatória'),
   incomeCategoryId: z.string().min(1, 'Categoria é obrigatória'),
+  financialAccountId: z.string().min(1, 'Conta financeira é obrigatória'),
   paymentMethod: z.number(),
   isRecurring: z.boolean(),
 });
@@ -44,21 +46,28 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<IncomeCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadCategories() {
+    async function loadData() {
         try {
-            const data = await financeService.getIncomeCategories();
-            setCategories(data);
+            const [categoriesData, accountsData] = await Promise.all([
+                financeService.getIncomeCategories(),
+                financeService.getActiveFinancialAccounts()
+            ]);
+            setCategories(categoriesData);
+            setAccounts(accountsData);
         } catch (err) {
             console.error(err);
-            setError('Falha ao carregar categorias.');
+            setError('Falha ao carregar dados.');
         } finally {
             setLoadingCategories(false);
+            setLoadingAccounts(false);
         }
     }
-    loadCategories();
+    loadData();
   }, []);
 
   const form = useForm<FormValues>({
@@ -68,10 +77,12 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
       amount: initialData?.amount || 0,
       date: initialData?.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       incomeCategoryId: initialData?.incomeCategoryId || '',
+      financialAccountId: initialData?.financialAccountId || '',
       paymentMethod: initialData?.paymentMethod ?? PaymentMethod.Pix,
       isRecurring: initialData?.isRecurring || false,
     },
   });
+
 
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
@@ -81,12 +92,14 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
       if (isEditing && initialData) {
         await financeService.updateIncome(initialData.id, {
             ...data,
-            incomeCategoryId: data.incomeCategoryId
+            incomeCategoryId: data.incomeCategoryId,
+            financialAccountId: data.financialAccountId
         });
       } else {
         await financeService.createIncome({
             ...data,
-            incomeCategoryId: data.incomeCategoryId
+            incomeCategoryId: data.incomeCategoryId,
+            financialAccountId: data.financialAccountId
         });
       }
       router.push('/finance/incomes');
@@ -152,6 +165,29 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
                 <p className="text-red-500 text-xs">{form.formState.errors.incomeCategoryId.message}</p>
             )}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="financialAccountId">Conta Financeira</Label>
+        <Select
+            onValueChange={(value) => form.setValue('financialAccountId', value)}
+            value={form.watch('financialAccountId')}
+            disabled={loadingAccounts}
+        >
+            <SelectTrigger>
+                <SelectValue placeholder={loadingAccounts ? "Carregando..." : "Selecione a conta..."} />
+            </SelectTrigger>
+            <SelectContent>
+                {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+        {form.formState.errors.financialAccountId && (
+            <p className="text-red-500 text-xs">{form.formState.errors.financialAccountId.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">
