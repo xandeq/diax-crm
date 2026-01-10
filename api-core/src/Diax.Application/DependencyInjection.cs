@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<FinancialAccountService>();
         services.AddScoped<CreditCardInvoiceService>();
         services.AddScoped<FinancialSummaryService>();
+        services.AddScoped<AccountTransferService>();
 
         return services;
     }

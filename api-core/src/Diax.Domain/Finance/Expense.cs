@@ -52,6 +52,30 @@ public class Expense : AuditableEntity
         FinancialAccountId = financialAccountId;
         Status = status;
         PaidDate = paidDate;
+
+        ValidatePaymentMethodConstraints();
+    }
+
+    private void ValidatePaymentMethodConstraints()
+    {
+        if (PaymentMethod == PaymentMethod.CreditCard)
+        {
+            // Despesa no cartão: DEVE ter CreditCardId, NÃO PODE ter FinancialAccountId
+            if (CreditCardId == null || CreditCardId == Guid.Empty)
+                throw new ArgumentException("Credit card expenses must have a valid CreditCardId", nameof(CreditCardId));
+
+            if (FinancialAccountId != null)
+                throw new ArgumentException("Credit card expenses cannot be linked to a FinancialAccount (impact is on invoice payment)", nameof(FinancialAccountId));
+        }
+        else
+        {
+            // Despesa à vista: DEVE ter FinancialAccountId, NÃO PODE ter CreditCardId
+            if (FinancialAccountId == null || FinancialAccountId == Guid.Empty)
+                throw new ArgumentException($"Cash expenses ({PaymentMethod}) must have a valid FinancialAccountId", nameof(FinancialAccountId));
+
+            if (CreditCardId != null)
+                throw new ArgumentException($"Cash expenses ({PaymentMethod}) cannot be linked to a credit card", nameof(CreditCardId));
+        }
     }
 
     public void Update(
@@ -84,6 +108,8 @@ public class Expense : AuditableEntity
         FinancialAccountId = financialAccountId;
         Status = status;
         PaidDate = paidDate;
+
+        ValidatePaymentMethodConstraints();
     }
 
     public void MarkAsPaid(DateTime? paidDate = null)

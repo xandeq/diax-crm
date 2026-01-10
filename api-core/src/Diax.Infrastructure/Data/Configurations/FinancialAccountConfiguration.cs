@@ -36,7 +36,7 @@ public class FinancialAccountConfiguration : IEntityTypeConfiguration<FinancialA
         builder.HasMany(x => x.Incomes)
             .WithOne(x => x.FinancialAccount)
             .HasForeignKey(x => x.FinancialAccountId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(x => x.Expenses)
             .WithOne(x => x.FinancialAccount)

@@ -56,7 +56,8 @@ export interface Income {
     incomeCategoryId: string;
     incomeCategoryName?: string;
     isRecurring: boolean;
-    financialAccountId?: string;
+    financialAccountId: string;
+    financialAccountName?: string;
     createdAt: string;
     updatedAt?: string;
 }
@@ -68,7 +69,7 @@ export interface CreateIncomeRequest {
     paymentMethod: PaymentMethod;
     incomeCategoryId: string;
     isRecurring: boolean;
-    financialAccountId?: string;
+    financialAccountId: string;
 }
 
 export interface UpdateIncomeRequest {
@@ -78,7 +79,7 @@ export interface UpdateIncomeRequest {
     paymentMethod: PaymentMethod;
     incomeCategoryId: string;
     isRecurring: boolean;
-    financialAccountId?: string;
+    financialAccountId: string;
 }
 
 export interface Expense {
@@ -267,6 +268,35 @@ export interface FinancialSummary {
 export interface FinancialSummaryRequest {
     startDate?: string;
     endDate?: string;
+}
+
+export interface AccountTransfer {
+    id: string;
+    fromFinancialAccountId: string;
+    fromAccountName: string;
+    toFinancialAccountId: string;
+    toAccountName: string;
+    amount: number;
+    date: string;
+    description: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface CreateAccountTransferRequest {
+    fromFinancialAccountId: string;
+    toFinancialAccountId: string;
+    amount: number;
+    date: string;
+    description: string;
+}
+
+export interface UpdateAccountTransferRequest {
+    fromFinancialAccountId: string;
+    toFinancialAccountId: string;
+    amount: number;
+    date: string;
+    description: string;
 }
 
 export const financeService = {
@@ -469,5 +499,36 @@ export const financeService = {
         if (params?.endDate) queryParams.append('endDate', params.endDate);
         const queryString = queryParams.toString();
         return apiFetch<FinancialSummary>(`/finance/summary${queryString ? '?' + queryString : ''}`);
+    },
+
+    // Account Transfers
+    getAccountTransfers: async () => {
+        return apiFetch<AccountTransfer[]>('/accounttransfers');
+    },
+    getAccountTransferById: async (id: string) => {
+        return apiFetch<AccountTransfer>(`/accounttransfers/${id}`);
+    },
+    getAccountTransfersByAccountId: async (accountId: string) => {
+        return apiFetch<AccountTransfer[]>(`/accounttransfers/account/${accountId}`);
+    },
+    getAccountTransfersByDateRange: async (startDate: string, endDate: string) => {
+        return apiFetch<AccountTransfer[]>(`/accounttransfers/daterange?startDate=${startDate}&endDate=${endDate}`);
+    },
+    createAccountTransfer: async (data: CreateAccountTransferRequest) => {
+        return apiFetch<string>('/accounttransfers', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateAccountTransfer: async (id: string, data: UpdateAccountTransferRequest) => {
+        return apiFetch<void>(`/accounttransfers/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteAccountTransfer: async (id: string) => {
+        return apiFetch<void>(`/accounttransfers/${id}`, {
+            method: 'DELETE',
+        });
     },
 };

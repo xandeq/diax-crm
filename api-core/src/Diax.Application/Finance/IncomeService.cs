@@ -10,12 +10,18 @@ public class IncomeService : IApplicationService
 {
     private readonly IIncomeRepository _repository;
     private readonly IIncomeCategoryRepository _categoryRepository;
+    private readonly IFinancialAccountRepository _accountRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public IncomeService(IIncomeRepository repository, IIncomeCategoryRepository categoryRepository, IUnitOfWork unitOfWork)
+    public IncomeService(
+        IIncomeRepository repository, 
+        IIncomeCategoryRepository categoryRepository,
+        IFinancialAccountRepository accountRepository,
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
+        _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -51,6 +57,18 @@ public class IncomeService : IApplicationService
             return Result.Failure<Guid>(new Error("Income.InvalidCategory", "Invalid or inactive income category"));
         }
 
+        // Validate financial account exists
+        var account = await _accountRepository.GetByIdAsync(request.FinancialAccountId, cancellationToken);
+        if (account == null)
+        {
+            return Result.Failure<Guid>(new Error("Income.InvalidAccount", "Financial account not found"));
+        }
+
+        if (!account.IsActive)
+        {
+            return Result.Failure<Guid>(new Error("Income.InactiveAccount", "Financial account is inactive"));
+        }
+
         var income = new Income(
             request.Description,
             request.Amount,
@@ -61,7 +79,11 @@ public class IncomeService : IApplicationService
             request.FinancialAccountId
         );
 
+        // Credit account balance
+        account.Credit(request.Amount);
+
         await _repository.AddAsync(income, cancellationToken);
+        await _accountRepository.UpdateAsync(account, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(income.Id);
@@ -79,6 +101,34 @@ public class IncomeService : IApplicationService
         if (category == null || !category.IsActive)
         {
             return Result.Failure(new Error("Income.InvalidCategory", "Invalid or inactive income category"));
+        }
+
+        // Validate new financial account exists
+        var newAccount = await _accountRepository.GetByIdAsync(request.FinancialAccountId, cancellationToken);
+        if (newAccount == null)
+        {
+            return Result.Failure(new Error("Income.InvalidAccount", "Financial account not found"));
+        }
+
+        if (!newAccount.IsActive)
+        {
+            return Result.Failure(new Error("Income.InactiveAccount", "Financial account is inactive"));
+        }
+
+        // If account or amount changed, reverse old balance and apply new
+        if (income.FinancialAccountId != request.FinancialAccountId || income.Amount != request.Amount)
+        {
+            var oldAccount = await _accountRepository.GetByIdAsync(income.FinancialAccountId, cancellationToken);
+            if (oldAccount != null)
+            {
+                // Reverse old income from old account
+                oldAccount.Debit(income.Amount);
+                await _accountRepository.UpdateAsync(oldAccount, cancellationToken);
+            }
+
+            // Apply new income to new account
+            newAccount.Credit(request.Amount);
+            await _accountRepository.UpdateAsync(newAccount, cancellationToken);
         }
 
         income.Update(
@@ -105,6 +155,14 @@ public class IncomeService : IApplicationService
             return Result.Failure(new Error("Income.NotFound", "Income not found"));
         }
 
+        // Reverse income from account (debit the amount)
+        var account = await _accountRepository.GetByIdAsync(income.FinancialAccountId, cancellationToken);
+        if (account != null)
+        {
+            account.Debit(income.Amount);
+            await _accountRepository.UpdateAsync(account, cancellationToken);
+        }
+
         await _repository.DeleteAsync(income, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -123,6 +181,7 @@ public class IncomeService : IApplicationService
             income.IncomeCategory?.Name,
             income.IsRecurring,
             income.FinancialAccountId,
+            income.FinancialAccount?.Name,
             income.CreatedAt,
             income.UpdatedAt
         );

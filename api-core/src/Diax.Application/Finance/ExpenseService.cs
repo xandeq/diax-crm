@@ -9,11 +9,16 @@ namespace Diax.Application.Finance;
 public class ExpenseService : IApplicationService
 {
     private readonly IExpenseRepository _repository;
+    private readonly IFinancialAccountRepository _accountRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public ExpenseService(IExpenseRepository repository, IUnitOfWork unitOfWork)
+    public ExpenseService(
+        IExpenseRepository repository,
+        IFinancialAccountRepository accountRepository,
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
+        _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -43,6 +48,22 @@ public class ExpenseService : IApplicationService
 
     public async Task<Result<Guid>> CreateAsync(CreateExpenseRequest request, CancellationToken cancellationToken = default)
     {
+        // For cash payments, validate account exists and is active
+        if (request.PaymentMethod != PaymentMethod.CreditCard && request.FinancialAccountId.HasValue)
+        {
+            var account = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            if (account == null)
+            {
+                return Result.Failure<Guid>(new Error("Expense.InvalidAccount", "Financial account not found"));
+            }
+
+            if (!account.IsActive)
+            {
+                return Result.Failure<Guid>(new Error("Expense.InactiveAccount", "Financial account is inactive"));
+            }
+        }
+
+        // Domain entity will validate payment method constraints
         var expense = new Expense(
             request.Description,
             request.Amount,
@@ -57,6 +78,17 @@ public class ExpenseService : IApplicationService
             request.PaidDate
         );
 
+        // Debit account for cash expenses
+        if (request.PaymentMethod != PaymentMethod.CreditCard && request.FinancialAccountId.HasValue)
+        {
+            var account = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            if (account != null)
+            {
+                account.Debit(request.Amount);
+                await _accountRepository.UpdateAsync(account, cancellationToken);
+            }
+        }
+
         await _repository.AddAsync(expense, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -69,6 +101,49 @@ public class ExpenseService : IApplicationService
         if (expense == null)
         {
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
+        }
+
+        // For cash payments, validate new account exists and is active
+        if (request.PaymentMethod != PaymentMethod.CreditCard && request.FinancialAccountId.HasValue)
+        {
+            var newAccount = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            if (newAccount == null)
+            {
+                return Result.Failure(new Error("Expense.InvalidAccount", "Financial account not found"));
+            }
+
+            if (!newAccount.IsActive)
+            {
+                return Result.Failure(new Error("Expense.InactiveAccount", "Financial account is inactive"));
+            }
+        }
+
+        // Handle balance updates for cash expenses
+        var wasCredit = expense.PaymentMethod == PaymentMethod.CreditCard;
+        var isCreditNow = request.PaymentMethod == PaymentMethod.CreditCard;
+        var accountChanged = expense.FinancialAccountId != request.FinancialAccountId;
+        var amountChanged = expense.Amount != request.Amount;
+
+        if (!wasCredit && expense.FinancialAccountId.HasValue && (accountChanged || amountChanged || isCreditNow))
+        {
+            // Reverse old expense from old account (credit back)
+            var oldAccount = await _accountRepository.GetByIdAsync(expense.FinancialAccountId.Value, cancellationToken);
+            if (oldAccount != null)
+            {
+                oldAccount.Credit(expense.Amount);
+                await _accountRepository.UpdateAsync(oldAccount, cancellationToken);
+            }
+        }
+
+        if (!isCreditNow && request.FinancialAccountId.HasValue)
+        {
+            // Apply new expense to new account (debit)
+            var newAccount = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            if (newAccount != null)
+            {
+                newAccount.Debit(request.Amount);
+                await _accountRepository.UpdateAsync(newAccount, cancellationToken);
+            }
         }
 
         expense.Update(
@@ -97,6 +172,17 @@ public class ExpenseService : IApplicationService
         if (expense == null)
         {
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
+        }
+
+        // Reverse cash expense from account (credit back)
+        if (expense.PaymentMethod != PaymentMethod.CreditCard && expense.FinancialAccountId.HasValue)
+        {
+            var account = await _accountRepository.GetByIdAsync(expense.FinancialAccountId.Value, cancellationToken);
+            if (account != null)
+            {
+                account.Credit(expense.Amount);
+                await _accountRepository.UpdateAsync(account, cancellationToken);
+            }
         }
 
         await _repository.DeleteAsync(expense, cancellationToken);

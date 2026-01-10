@@ -145,6 +145,7 @@ public static class DependencyInjection
         services.AddScoped<ICreditCardGroupRepository, CreditCardGroupRepository>();
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
+        services.AddScoped<IAccountTransferRepository, AccountTransferRepository>();
 
         return services;
     }

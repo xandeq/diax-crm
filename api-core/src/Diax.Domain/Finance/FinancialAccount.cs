@@ -3,7 +3,8 @@ using Diax.Domain.Common;
 namespace Diax.Domain.Finance;
 
 /// <summary>
-/// Representa uma conta financeira onde receitas entram e despesas podem sair
+/// Representa uma conta financeira onde receitas entram e despesas podem sair.
+/// Cartão de crédito NÃO é uma conta financeira.
 /// </summary>
 public class FinancialAccount : AuditableEntity
 {
@@ -25,6 +26,12 @@ public class FinancialAccount : AuditableEntity
         decimal initialBalance,
         bool isActive = true)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Account name cannot be empty", nameof(name));
+
+        if (name.Length > 200)
+            throw new ArgumentException("Account name cannot exceed 200 characters", nameof(name));
+
         Name = name;
         AccountType = accountType;
         InitialBalance = initialBalance;
@@ -37,6 +44,12 @@ public class FinancialAccount : AuditableEntity
         AccountType accountType,
         bool isActive)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Account name cannot be empty", nameof(name));
+
+        if (name.Length > 200)
+            throw new ArgumentException("Account name cannot exceed 200 characters", nameof(name));
+
         Name = name;
         AccountType = accountType;
         IsActive = isActive;
@@ -47,11 +60,35 @@ public class FinancialAccount : AuditableEntity
         Balance = newBalance;
     }
 
+    /// <summary>
+    /// Credita valor na conta (aumenta saldo)
+    /// </summary>
+    public void Credit(decimal amount)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Credit amount must be greater than zero", nameof(amount));
+
+        Balance += amount;
+    }
+
+    /// <summary>
+    /// Debita valor da conta (diminui saldo)
+    /// </summary>
+    public void Debit(decimal amount)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Debit amount must be greater than zero", nameof(amount));
+
+        Balance -= amount;
+    }
+
+    [Obsolete("Use Credit() instead")]
     public void AddToBalance(decimal amount)
     {
         Balance += amount;
     }
 
+    [Obsolete("Use Debit() instead")]
     public void SubtractFromBalance(decimal amount)
     {
         Balance -= amount;

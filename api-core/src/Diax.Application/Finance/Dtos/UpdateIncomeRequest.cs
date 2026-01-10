@@ -9,5 +9,5 @@ public record UpdateIncomeRequest(
     PaymentMethod PaymentMethod,
     Guid IncomeCategoryId,
     bool IsRecurring,
-    Guid? FinancialAccountId = null
+    Guid FinancialAccountId
 );

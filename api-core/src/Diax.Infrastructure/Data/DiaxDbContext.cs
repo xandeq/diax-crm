@@ -47,6 +47,7 @@ public class DiaxDbContext : DbContext
     public DbSet<Diax.Domain.Finance.CreditCardGroup> CreditCardGroups => Set<Diax.Domain.Finance.CreditCardGroup>();
     public DbSet<Diax.Domain.Finance.FinancialAccount> FinancialAccounts => Set<Diax.Domain.Finance.FinancialAccount>();
     public DbSet<Diax.Domain.Finance.CreditCardInvoice> CreditCardInvoices => Set<Diax.Domain.Finance.CreditCardInvoice>();
+    public DbSet<Diax.Domain.Finance.AccountTransfer> AccountTransfers => Set<Diax.Domain.Finance.AccountTransfer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
