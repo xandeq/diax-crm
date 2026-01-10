@@ -14,7 +14,7 @@ public class IncomeService : IApplicationService
     private readonly IUnitOfWork _unitOfWork;
 
     public IncomeService(
-        IIncomeRepository repository, 
+        IIncomeRepository repository,
         IIncomeCategoryRepository categoryRepository,
         IFinancialAccountRepository accountRepository,
         IUnitOfWork unitOfWork)

@@ -85,6 +85,7 @@ namespace Diax.Infrastructure.Data.Migrations
                 });
 
             // Data migration: Map existing Category strings to ExpenseCategory FK
+            // Map matching categories, use "Não Categorizado" as default
             migrationBuilder.Sql(@"
                 -- Update expenses with matching category names
                 UPDATE e

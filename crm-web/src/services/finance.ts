@@ -46,6 +46,30 @@ export interface IncomeCategory {
     isActive: boolean;
 }
 
+export interface ExpenseCategory {
+    id: string;
+    name: string;
+    isActive: boolean;
+}
+
+export interface CreateIncomeCategoryRequest {
+    name: string;
+}
+
+export interface UpdateIncomeCategoryRequest {
+    name: string;
+    isActive: boolean;
+}
+
+export interface CreateExpenseCategoryRequest {
+    name: string;
+}
+
+export interface UpdateExpenseCategoryRequest {
+    name: string;
+    isActive: boolean;
+}
+
 export interface Income {
     id: string;
     description: string;
@@ -87,7 +111,8 @@ export interface Expense {
     amount: number;
     date: string;
     paymentMethod: PaymentMethod;
-    category?: string;
+    expenseCategoryId: string;
+    expenseCategoryName?: string;
     isRecurring: boolean;
     creditCardId?: string;
     creditCardInvoiceId?: string;
@@ -103,7 +128,7 @@ export interface CreateExpenseRequest {
     amount: number;
     date: string;
     paymentMethod: PaymentMethod;
-    category?: string;
+    expenseCategoryId: string;
     isRecurring: boolean;
     creditCardId?: string;
     creditCardInvoiceId?: string;
@@ -117,7 +142,7 @@ export interface UpdateExpenseRequest {
     amount: number;
     date: string;
     paymentMethod: PaymentMethod;
-    category?: string;
+    expenseCategoryId: string;
     isRecurring: boolean;
     creditCardId?: string;
     creditCardInvoiceId?: string;
@@ -299,9 +324,60 @@ export interface UpdateAccountTransferRequest {
 }
 
 export const financeService = {
-    // Categories
+    // Income Categories
     getIncomeCategories: async () => {
         return apiFetch<IncomeCategory[]>('/income-categories');
+    },
+    getAllIncomeCategories: async () => {
+        return apiFetch<IncomeCategory[]>('/income-categories/all');
+    },
+    getIncomeCategoryById: async (id: string) => {
+        return apiFetch<IncomeCategory>(`/income-categories/${id}`);
+    },
+    createIncomeCategory: async (data: CreateIncomeCategoryRequest) => {
+        return apiFetch<string>('/income-categories', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateIncomeCategory: async (id: string, data: UpdateIncomeCategoryRequest) => {
+        return apiFetch<void>(`/income-categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteIncomeCategory: async (id: string) => {
+        return apiFetch<void>(`/income-categories/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Expense Categories
+    getExpenseCategories: async () => {
+        return apiFetch<ExpenseCategory[]>('/expense-categories');
+    },
+    getAllExpenseCategories: async () => {
+        return apiFetch<ExpenseCategory[]>('/expense-categories/all');
+    },
+    getExpenseCategoryById: async (id: string) => {
+        return apiFetch<ExpenseCategory>(`/expense-categories/${id}`);
+    },
+    createExpenseCategory: async (data: CreateExpenseCategoryRequest) => {
+        return apiFetch<string>('/expense-categories', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateExpenseCategory: async (id: string, data: UpdateExpenseCategoryRequest) => {
+        return apiFetch<void>(`/expense-categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteExpenseCategory: async (id: string) => {
+        return apiFetch<void>(`/expense-categories/${id}`, {
+            method: 'DELETE',
+        });
     },
 
     // Incomes

@@ -94,12 +94,12 @@ jobs:
           server: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           username: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
           password: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
-          protocol: ftps
+          protocol: ftp
           port: 21
-          security: loose
-          timeout: 120000
+          timeout: 300000
           local-dir: crm-web/out/
           server-dir: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/node_modules/**

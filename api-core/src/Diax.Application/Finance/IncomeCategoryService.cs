@@ -24,6 +24,23 @@ public class IncomeCategoryService : IApplicationService
         return Result<IEnumerable<IncomeCategoryResponse>>.Success(response);
     }
 
+    public async Task<Result<IEnumerable<IncomeCategoryResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var categories = await _repository.GetAllAsync(cancellationToken);
+        var response = categories.Select(c => new IncomeCategoryResponse(c.Id, c.Name, c.IsActive));
+        return Result<IEnumerable<IncomeCategoryResponse>>.Success(response);
+    }
+
+    public async Task<Result<IncomeCategoryResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var category = await _repository.GetByIdAsync(id, cancellationToken);
+        if (category == null)
+        {
+            return Result.Failure<IncomeCategoryResponse>(new Error("Category.NotFound", "Category not found"));
+        }
+        return Result<IncomeCategoryResponse>.Success(new IncomeCategoryResponse(category.Id, category.Name, category.IsActive));
+    }
+
     public async Task<Result<Guid>> CreateAsync(CreateIncomeCategoryRequest request, CancellationToken cancellationToken = default)
     {
         var category = new IncomeCategory(request.Name);

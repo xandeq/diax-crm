@@ -4,18 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import {
-    financeService,
-    FinancialAccount,
-    Income,
-    IncomeCategory,
-    PaymentMethod
+  financeService,
+  FinancialAccount,
+  Income,
+  IncomeCategory,
+  PaymentMethod
 } from '@/services/finance';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
