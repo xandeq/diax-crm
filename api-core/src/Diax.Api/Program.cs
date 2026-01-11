@@ -155,6 +155,25 @@ catch (Exception ex)
 
 // ===== MIDDLEWARE PIPELINE =====
 
+// CORS - DEVE ser o primeiro middleware para garantir headers em todas as respostas (incluindo erros)
+app.UseCors("Frontend");
+
+// Global Exception Handler - garante que erros 500 também tenham headers CORS
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Unhandled exception occurred");
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { message = "An unexpected error occurred", code = "INTERNAL_ERROR" });
+    }
+});
+
 // Swagger (disponível em todos os ambientes por enquanto)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -165,9 +184,6 @@ app.UseSwaggerUI(c =>
 
 // Serilog request logging
 app.UseSerilogRequestLogging();
-
-// CORS
-app.UseCors("Frontend");
 
 // HTTPS Redirection
 app.UseHttpsRedirection();
