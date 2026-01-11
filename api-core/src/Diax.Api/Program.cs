@@ -167,7 +167,17 @@ app.Use(async (context, next) =>
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Unhandled exception occurred");
+        Log.Error(ex, "Unhandled exception occurred. Path: {Path}, Method: {Method}", 
+            context.Request.Path, context.Request.Method);
+        
+        // Log inner exceptions for EF Core issues
+        var innerEx = ex.InnerException;
+        while (innerEx != null)
+        {
+            Log.Error(innerEx, "Inner exception");
+            innerEx = innerEx.InnerException;
+        }
+        
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new { message = "An unexpected error occurred", code = "INTERNAL_ERROR" });
