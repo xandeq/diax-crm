@@ -170,6 +170,9 @@ app.UseCorrelationId();
 // Exception Logging - captura exceções e grava no banco de dados
 app.UseExceptionLogging();
 
+// Request/Response Logging - registra requisições com erro (4xx/5xx) na tabela app_logs
+app.UseRequestResponseLogging();
+
 // Swagger (disponível em todos os ambientes por enquanto)
 app.UseSwagger();
 app.UseSwaggerUI(c =>

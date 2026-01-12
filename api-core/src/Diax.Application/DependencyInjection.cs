@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<FinancialSummaryService>();
         services.AddScoped<AccountTransferService>();
         services.AddScoped<AppLogService>();
+        services.AddScoped<IAppLogService, AppLogService>();
         services.AddScoped<HtmlExtractionService>();
 
         return services;

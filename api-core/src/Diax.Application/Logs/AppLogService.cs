@@ -8,7 +8,7 @@ using DomainLogLevel = Diax.Domain.Logs.LogLevel;
 
 namespace Diax.Application.Logs;
 
-public class AppLogService : IApplicationService
+public class AppLogService : IAppLogService, IApplicationService
 {
     private readonly IAppLogRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
@@ -141,6 +141,60 @@ public class AppLogService : IApplicationService
             _logger.LogError(ex, "Failed to cleanup logs");
             return Result.Failure<int>(
                 new Error("Logs.CleanupFailed", "Failed to cleanup old logs"));
+        }
+    }
+
+    public async Task<Result<Guid>> LogAsync(
+        DomainLogLevel level,
+        LogCategory category,
+        string message,
+        string? correlationId = null,
+        string? userId = null,
+        string? requestPath = null,
+        string? queryString = null,
+        string? httpMethod = null,
+        int? statusCode = null,
+        string? headersJson = null,
+        string? clientIp = null,
+        string? userAgent = null,
+        string? exceptionType = null,
+        string? exceptionMessage = null,
+        string? stackTrace = null,
+        string? additionalData = null,
+        int? responseTimeMs = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var log = AppLog.Create(
+                level: level,
+                category: category,
+                message: message,
+                correlationId: correlationId,
+                userId: userId,
+                requestPath: requestPath,
+                queryString: queryString,
+                httpMethod: httpMethod,
+                statusCode: statusCode,
+                headersJson: headersJson,
+                clientIp: clientIp,
+                userAgent: userAgent,
+                exceptionType: exceptionType,
+                exceptionMessage: exceptionMessage,
+                stackTrace: stackTrace,
+                additionalData: additionalData,
+                responseTimeMs: responseTimeMs);
+
+            await _repository.AddAsync(log, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return Result<Guid>.Success(log.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create log entry via LogAsync");
+            return Result.Failure<Guid>(
+                new Error("Logs.CreateFailed", "Failed to create log entry"));
         }
     }
 

@@ -255,4 +255,48 @@ public class AppLog : Entity
             machineName: System.Environment.MachineName,
             environment: environment);
     }
+
+    /// <summary>
+    /// Cria um log de requisição HTTP (geralmente para erros 4xx/5xx).
+    /// </summary>
+    public static AppLog Create(
+        LogLevel level,
+        LogCategory category,
+        string message,
+        string? correlationId = null,
+        string? userId = null,
+        string? requestPath = null,
+        string? queryString = null,
+        string? httpMethod = null,
+        int? statusCode = null,
+        string? headersJson = null,
+        string? clientIp = null,
+        string? userAgent = null,
+        string? exceptionType = null,
+        string? exceptionMessage = null,
+        string? stackTrace = null,
+        string? additionalData = null,
+        int? responseTimeMs = null)
+    {
+        return new AppLog(
+            level: level,
+            category: category,
+            message: message,
+            correlationId: correlationId,
+            userId: userId,
+            requestPath: requestPath,
+            queryString: queryString,
+            httpMethod: httpMethod,
+            statusCode: statusCode,
+            headersJson: headersJson,
+            clientIp: clientIp,
+            userAgent: userAgent,
+            exceptionType: exceptionType,
+            exceptionMessage: exceptionMessage,
+            stackTrace: stackTrace,
+            additionalData: additionalData,
+            responseTimeMs: responseTimeMs,
+            machineName: System.Environment.MachineName,
+            environment: System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
+    }
 }
