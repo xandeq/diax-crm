@@ -33,5 +33,10 @@ public enum AccountType
     /// <summary>
     /// Carteira digital (PicPay, Mercado Pago, etc)
     /// </summary>
-    DigitalWallet = 5
+    DigitalWallet = 5,
+
+    /// <summary>
+    /// Outros tipos de conta
+    /// </summary>
+    Others = 99
 }
