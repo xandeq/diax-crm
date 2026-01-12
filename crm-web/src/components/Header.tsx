@@ -39,6 +39,7 @@ export function Header() {
             <Link href="/dashboard/">Dashboard</Link>
             <Link href="/leads/">Leads</Link>
             <Link href="/customers/">Clientes</Link>
+            <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
             <button
               onClick={logout}
               className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium"
