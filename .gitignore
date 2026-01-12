@@ -27,6 +27,3 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
-
-# Log files (NÃO pastas de código fonte)
-*.log

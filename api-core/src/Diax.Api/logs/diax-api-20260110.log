@@ -1,0 +1,234 @@
+2026-01-10 14:45:14.923 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-10 14:45:15.559 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-10 14:48:37.331 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-10 14:48:37.960 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-10 14:48:39.454 -03:00 [INF] Executed DbCommand (17ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-10 14:48:39.485 -03:00 [INF] Executed DbCommand (13ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-10 14:48:39.492 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-10 14:48:39.498 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-10 14:48:39.521 -03:00 [INF] Executed DbCommand (8ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-10 14:48:39.538 -03:00 [INF] Applying migration '20260110174516_AddExpenseCategoryAndUpdateExpense'.
+2026-01-10 14:48:39.648 -03:00 [INF] Executed DbCommand (5ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] DROP CONSTRAINT [FK_expenses_credit_cards_credit_card_id];
+2026-01-10 14:48:39.694 -03:00 [INF] Executed DbCommand (42ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+DECLARE @var0 sysname;
+SELECT @var0 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[expenses]') AND [c].[name] = N'description');
+IF @var0 IS NOT NULL EXEC(N'ALTER TABLE [expenses] DROP CONSTRAINT [' + @var0 + '];');
+ALTER TABLE [expenses] ALTER COLUMN [description] nvarchar(500) NOT NULL;
+2026-01-10 14:48:39.714 -03:00 [INF] Executed DbCommand (15ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+DECLARE @var1 sysname;
+SELECT @var1 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[expenses]') AND [c].[name] = N'category');
+IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [expenses] DROP CONSTRAINT [' + @var1 + '];');
+ALTER TABLE [expenses] ALTER COLUMN [category] nvarchar(200) NULL;
+2026-01-10 14:48:39.721 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] ADD [expense_category_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+2026-01-10 14:48:39.728 -03:00 [INF] Executed DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [expense_categories] (
+    [id] uniqueidentifier NOT NULL,
+    [name] nvarchar(200) NOT NULL,
+    [is_active] bit NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_expense_categories] PRIMARY KEY ([id])
+);
+2026-01-10 14:48:39.748 -03:00 [INF] Executed DbCommand (16ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'id', N'created_at', N'created_by', N'is_active', N'name', N'updated_at', N'updated_by') AND [object_id] = OBJECT_ID(N'[expense_categories]'))
+    SET IDENTITY_INSERT [expense_categories] ON;
+INSERT INTO [expense_categories] ([id], [created_at], [created_by], [is_active], [name], [updated_at], [updated_by])
+VALUES ('20000000-0000-0000-0000-000000000001', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Alimentação', NULL, NULL),
+('20000000-0000-0000-0000-000000000002', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Transporte', NULL, NULL),
+('20000000-0000-0000-0000-000000000003', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Moradia', NULL, NULL),
+('20000000-0000-0000-0000-000000000004', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Saúde', NULL, NULL),
+('20000000-0000-0000-0000-000000000005', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Educação', NULL, NULL),
+('20000000-0000-0000-0000-000000000006', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Lazer', NULL, NULL),
+('20000000-0000-0000-0000-000000000007', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Vestuário', NULL, NULL),
+('20000000-0000-0000-0000-000000000008', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Serviços', NULL, NULL),
+('20000000-0000-0000-0000-000000000009', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Impostos', NULL, NULL),
+('20000000-0000-0000-0000-000000000010', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Investimentos', NULL, NULL),
+('20000000-0000-0000-0000-000000000011', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Marketing', NULL, NULL),
+('20000000-0000-0000-0000-000000000012', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Equipamentos', NULL, NULL),
+('20000000-0000-0000-0000-000000000013', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Fornecedores', NULL, NULL),
+('20000000-0000-0000-0000-000000000014', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Não Categorizado', NULL, NULL),
+('20000000-0000-0000-0000-000000000015', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Outros', NULL, NULL);
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'id', N'created_at', N'created_by', N'is_active', N'name', N'updated_at', N'updated_by') AND [object_id] = OBJECT_ID(N'[expense_categories]'))
+    SET IDENTITY_INSERT [expense_categories] OFF;
+2026-01-10 14:48:39.763 -03:00 [ERR] Failed executing DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+
+                -- Update expenses with matching category names
+                UPDATE e
+                SET e.expense_category_id = ec.id
+                FROM expenses e
+                INNER JOIN expense_categories ec ON e.category = ec.name
+                WHERE e.category IS NOT NULL AND e.category != '';
+
+                -- Set default category for null/empty categories
+                UPDATE expenses
+                SET expense_category_id = '20000000-0000-0000-0000-000000000014'
+                WHERE category IS NULL OR category = '';
+
+                -- Create categories for any unique category strings not in seed data
+                INSERT INTO expense_categories (id, name, is_active, created_at)
+                SELECT 
+                    NEWID(),
+                    DISTINCT category,
+                    1,
+                    GETUTCDATE()
+                FROM expenses
+                WHERE category IS NOT NULL 
+                  AND category != ''
+                  AND NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = expenses.category);
+
+                -- Map newly created categories
+                UPDATE e
+                SET e.expense_category_id = ec.id
+                FROM expenses e
+                INNER JOIN expense_categories ec ON e.category = ec.name
+                WHERE e.expense_category_id = '00000000-0000-0000-0000-000000000000';
+2026-01-10 14:49:02.051 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-10 14:49:02.610 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-10 14:49:03.534 -03:00 [INF] Executed DbCommand (14ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-10 14:49:03.559 -03:00 [INF] Executed DbCommand (10ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-10 14:49:03.575 -03:00 [INF] Executed DbCommand (7ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-10 14:49:14.232 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-10 14:49:14.852 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-10 14:49:15.261 -03:00 [INF] Executed DbCommand (14ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-10 14:49:15.285 -03:00 [INF] Executed DbCommand (10ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-10 14:49:15.306 -03:00 [INF] Executed DbCommand (7ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-10 14:49:26.157 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-10 14:49:26.704 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-10 14:50:03.708 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-10 14:50:04.349 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-10 14:50:04.768 -03:00 [INF] Executed DbCommand (14ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-10 14:50:04.792 -03:00 [INF] Executed DbCommand (9ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-10 14:50:04.798 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-10 14:50:04.803 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-10 14:50:04.822 -03:00 [INF] Executed DbCommand (7ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-10 14:50:04.836 -03:00 [INF] Applying migration '20260110174927_AddExpenseCategoryAndUpdateExpense'.
+2026-01-10 14:50:04.930 -03:00 [INF] Executed DbCommand (4ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] DROP CONSTRAINT [FK_expenses_credit_cards_credit_card_id];
+2026-01-10 14:50:04.964 -03:00 [INF] Executed DbCommand (28ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+DECLARE @var0 sysname;
+SELECT @var0 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[expenses]') AND [c].[name] = N'description');
+IF @var0 IS NOT NULL EXEC(N'ALTER TABLE [expenses] DROP CONSTRAINT [' + @var0 + '];');
+ALTER TABLE [expenses] ALTER COLUMN [description] nvarchar(500) NOT NULL;
+2026-01-10 14:50:04.983 -03:00 [INF] Executed DbCommand (15ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+DECLARE @var1 sysname;
+SELECT @var1 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[expenses]') AND [c].[name] = N'category');
+IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [expenses] DROP CONSTRAINT [' + @var1 + '];');
+ALTER TABLE [expenses] ALTER COLUMN [category] nvarchar(200) NULL;
+2026-01-10 14:50:04.989 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] ADD [expense_category_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+2026-01-10 14:50:04.996 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [expense_categories] (
+    [id] uniqueidentifier NOT NULL,
+    [name] nvarchar(200) NOT NULL,
+    [is_active] bit NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_expense_categories] PRIMARY KEY ([id])
+);
+2026-01-10 14:50:05.016 -03:00 [INF] Executed DbCommand (16ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'id', N'created_at', N'created_by', N'is_active', N'name', N'updated_at', N'updated_by') AND [object_id] = OBJECT_ID(N'[expense_categories]'))
+    SET IDENTITY_INSERT [expense_categories] ON;
+INSERT INTO [expense_categories] ([id], [created_at], [created_by], [is_active], [name], [updated_at], [updated_by])
+VALUES ('20000000-0000-0000-0000-000000000001', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Alimentação', NULL, NULL),
+('20000000-0000-0000-0000-000000000002', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Transporte', NULL, NULL),
+('20000000-0000-0000-0000-000000000003', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Moradia', NULL, NULL),
+('20000000-0000-0000-0000-000000000004', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Saúde', NULL, NULL),
+('20000000-0000-0000-0000-000000000005', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Educação', NULL, NULL),
+('20000000-0000-0000-0000-000000000006', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Lazer', NULL, NULL),
+('20000000-0000-0000-0000-000000000007', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Vestuário', NULL, NULL),
+('20000000-0000-0000-0000-000000000008', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Serviços', NULL, NULL),
+('20000000-0000-0000-0000-000000000009', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Impostos', NULL, NULL),
+('20000000-0000-0000-0000-000000000010', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Investimentos', NULL, NULL),
+('20000000-0000-0000-0000-000000000011', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Marketing', NULL, NULL),
+('20000000-0000-0000-0000-000000000012', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Equipamentos', NULL, NULL),
+('20000000-0000-0000-0000-000000000013', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Fornecedores', NULL, NULL),
+('20000000-0000-0000-0000-000000000014', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Não Categorizado', NULL, NULL),
+('20000000-0000-0000-0000-000000000015', '2025-01-01T00:00:00.0000000Z', NULL, CAST(1 AS bit), N'Outros', NULL, NULL);
+IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'id', N'created_at', N'created_by', N'is_active', N'name', N'updated_at', N'updated_by') AND [object_id] = OBJECT_ID(N'[expense_categories]'))
+    SET IDENTITY_INSERT [expense_categories] OFF;
+2026-01-10 14:50:05.038 -03:00 [INF] Executed DbCommand (16ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+
+                -- Update expenses with matching category names
+                UPDATE e
+                SET e.expense_category_id = ec.id
+                FROM expenses e
+                INNER JOIN expense_categories ec ON e.category = ec.name
+                WHERE e.category IS NOT NULL AND e.category != '';
+
+                -- Set default category for null/empty categories
+                UPDATE expenses
+                SET expense_category_id = '20000000-0000-0000-0000-000000000014'
+                WHERE category IS NULL OR category = '';
+
+                -- Create categories for any unique category strings not in seed data
+                INSERT INTO expense_categories (id, name, is_active, created_at)
+                SELECT 
+                    NEWID(),
+                    category,
+                    1,
+                    GETUTCDATE()
+                FROM (
+                    SELECT DISTINCT category
+                    FROM expenses
+                    WHERE category IS NOT NULL 
+                      AND category != ''
+                      AND NOT EXISTS (SELECT 1 FROM expense_categories WHERE name = expenses.category)
+                ) AS unique_categories;
+
+                -- Map newly created categories
+                UPDATE e
+                SET e.expense_category_id = ec.id
+                FROM expenses e
+                INNER JOIN expense_categories ec ON e.category = ec.name
+                WHERE e.expense_category_id = '00000000-0000-0000-0000-000000000000';
+2026-01-10 14:50:05.045 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_expenses_expense_category_id] ON [expenses] ([expense_category_id]);
+2026-01-10 14:50:05.052 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] ADD CONSTRAINT [FK_expenses_credit_cards_credit_card_id] FOREIGN KEY ([credit_card_id]) REFERENCES [credit_cards] ([id]) ON DELETE SET NULL;
+2026-01-10 14:50:05.057 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] ADD CONSTRAINT [FK_expenses_expense_categories_expense_category_id] FOREIGN KEY ([expense_category_id]) REFERENCES [expense_categories] ([id]) ON DELETE NO ACTION;
+2026-01-10 14:50:05.063 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260110174927_AddExpenseCategoryAndUpdateExpense', N'8.0.11');

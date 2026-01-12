@@ -1,0 +1,145 @@
+2026-01-09 06:27:54.746 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-09 06:27:55.348 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-09 06:28:33.509 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-09 06:28:34.099 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-09 06:28:35.560 -03:00 [INF] Executed DbCommand (20ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-09 06:28:35.589 -03:00 [INF] Executed DbCommand (13ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-09 06:28:35.596 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-09 06:28:35.601 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-09 06:28:35.624 -03:00 [INF] Executed DbCommand (8ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-09 06:28:35.641 -03:00 [INF] Applying migration '20260109092756_AddCardOrganizationAndExpenseStatus'.
+2026-01-09 06:28:35.713 -03:00 [INF] Executed DbCommand (4ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [credit_card_invoices] DROP CONSTRAINT [FK_credit_card_invoices_credit_cards_credit_card_id];
+2026-01-09 06:28:35.992 -03:00 [INF] Executed DbCommand (274ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+EXEC sp_rename N'[credit_card_invoices].[credit_card_id]', N'credit_card_group_id', N'COLUMN';
+2026-01-09 06:28:35.999 -03:00 [INF] Executed DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+EXEC sp_rename N'[credit_card_invoices].[IX_CreditCardInvoices_Card_Period]', N'IX_CreditCardInvoices_Group_Period', N'INDEX';
+2026-01-09 06:28:36.006 -03:00 [INF] Executed DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] ADD [paid_date] datetime2 NULL;
+2026-01-09 06:28:36.012 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [expenses] ADD [status] int NOT NULL DEFAULT 0;
+2026-01-09 06:28:36.018 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [credit_cards] ADD [brand] int NOT NULL DEFAULT 0;
+2026-01-09 06:28:36.023 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [credit_cards] ADD [card_kind] int NOT NULL DEFAULT 0;
+2026-01-09 06:28:36.029 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [credit_cards] ADD [credit_card_group_id] uniqueidentifier NULL;
+2026-01-09 06:28:36.035 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [credit_cards] ADD [is_active] bit NOT NULL DEFAULT CAST(0 AS bit);
+2026-01-09 06:28:36.042 -03:00 [INF] Executed DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [credit_card_groups] (
+    [id] uniqueidentifier NOT NULL,
+    [name] nvarchar(200) NOT NULL,
+    [bank] nvarchar(200) NULL,
+    [closing_day] int NOT NULL,
+    [due_day] int NOT NULL,
+    [shared_limit] decimal(18,2) NOT NULL,
+    [is_active] bit NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_credit_card_groups] PRIMARY KEY ([id])
+);
+2026-01-09 06:28:36.048 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_credit_cards_credit_card_group_id] ON [credit_cards] ([credit_card_group_id]);
+2026-01-09 06:28:36.059 -03:00 [INF] Executed DbCommand (6ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_CreditCardGroups_IsActive] ON [credit_card_groups] ([is_active]);
+2026-01-09 06:28:36.066 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_CreditCardGroups_Name] ON [credit_card_groups] ([name]);
+2026-01-09 06:28:36.072 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [credit_card_invoices] ADD CONSTRAINT [FK_credit_card_invoices_credit_card_groups_credit_card_group_id] FOREIGN KEY ([credit_card_group_id]) REFERENCES [credit_card_groups] ([id]) ON DELETE NO ACTION;
+2026-01-09 06:28:36.078 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [credit_cards] ADD CONSTRAINT [FK_credit_cards_credit_card_groups_credit_card_group_id] FOREIGN KEY ([credit_card_group_id]) REFERENCES [credit_card_groups] ([id]) ON DELETE SET NULL;
+2026-01-09 06:28:36.092 -03:00 [INF] Executed DbCommand (9ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260109092756_AddCardOrganizationAndExpenseStatus', N'8.0.11');
+2026-01-09 21:52:05.433 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-09 21:52:06.065 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-09 21:52:51.551 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-09 21:52:52.162 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-09 21:52:53.763 -03:00 [INF] Executed DbCommand (20ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-09 21:52:53.795 -03:00 [INF] Executed DbCommand (14ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-09 21:52:53.803 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-09 21:52:55.691 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-09 21:52:55.719 -03:00 [INF] Executed DbCommand (12ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-09 21:52:55.737 -03:00 [INF] Applying migration '20260110005206_EnforceCashFlowTraceability'.
+2026-01-09 21:52:55.829 -03:00 [INF] Executed DbCommand (5ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+
+                INSERT INTO financial_accounts (id, name, account_type, initial_balance, balance, is_active, created_at)
+                VALUES (
+                    '1e5cf529-ae6c-4513-9050-40e5a30f24c5',
+                    'Contas Não Atribuídas (Migração)',
+                    'Others',
+                    0.00,
+                    0.00,
+                    0,
+                    GETDATE()
+                )
+2026-01-09 21:52:55.840 -03:00 [INF] Executed DbCommand (6ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+
+                UPDATE incomes
+                SET financial_account_id = '1e5cf529-ae6c-4513-9050-40e5a30f24c5'
+                WHERE financial_account_id IS NULL
+2026-01-09 21:52:55.849 -03:00 [INF] Executed DbCommand (5ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+
+                UPDATE financial_accounts
+                SET balance = (
+                    SELECT ISNULL(SUM(amount), 0)
+                    FROM incomes
+                    WHERE financial_account_id = '1e5cf529-ae6c-4513-9050-40e5a30f24c5'
+                )
+                WHERE id = '1e5cf529-ae6c-4513-9050-40e5a30f24c5'
+2026-01-09 21:52:55.857 -03:00 [INF] Executed DbCommand (4ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [incomes] DROP CONSTRAINT [FK_incomes_financial_accounts_financial_account_id];
+2026-01-09 21:52:55.912 -03:00 [INF] Executed DbCommand (50ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+DROP INDEX [IX_incomes_financial_account_id] ON [incomes];
+DECLARE @var0 sysname;
+SELECT @var0 = [d].[name]
+FROM [sys].[default_constraints] [d]
+INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+WHERE ([d].[parent_object_id] = OBJECT_ID(N'[incomes]') AND [c].[name] = N'financial_account_id');
+IF @var0 IS NOT NULL EXEC(N'ALTER TABLE [incomes] DROP CONSTRAINT [' + @var0 + '];');
+UPDATE [incomes] SET [financial_account_id] = '00000000-0000-0000-0000-000000000000' WHERE [financial_account_id] IS NULL;
+ALTER TABLE [incomes] ALTER COLUMN [financial_account_id] uniqueidentifier NOT NULL;
+ALTER TABLE [incomes] ADD DEFAULT '00000000-0000-0000-0000-000000000000' FOR [financial_account_id];
+CREATE INDEX [IX_incomes_financial_account_id] ON [incomes] ([financial_account_id]);
+2026-01-09 21:52:55.921 -03:00 [INF] Executed DbCommand (4ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [account_transfers] (
+    [id] uniqueidentifier NOT NULL,
+    [from_financial_account_id] uniqueidentifier NOT NULL,
+    [to_financial_account_id] uniqueidentifier NOT NULL,
+    [amount] decimal(18,2) NOT NULL,
+    [date] datetime2 NOT NULL,
+    [description] nvarchar(500) NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_account_transfers] PRIMARY KEY ([id]),
+    CONSTRAINT [FK_account_transfers_financial_accounts_from_financial_account_id] FOREIGN KEY ([from_financial_account_id]) REFERENCES [financial_accounts] ([id]) ON DELETE NO ACTION,
+    CONSTRAINT [FK_account_transfers_financial_accounts_to_financial_account_id] FOREIGN KEY ([to_financial_account_id]) REFERENCES [financial_accounts] ([id]) ON DELETE NO ACTION
+);
+2026-01-09 21:52:55.927 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_account_transfers_from_financial_account_id] ON [account_transfers] ([from_financial_account_id]);
+2026-01-09 21:52:55.932 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_account_transfers_to_financial_account_id] ON [account_transfers] ([to_financial_account_id]);
+2026-01-09 21:52:55.938 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [incomes] ADD CONSTRAINT [FK_incomes_financial_accounts_financial_account_id] FOREIGN KEY ([financial_account_id]) REFERENCES [financial_accounts] ([id]) ON DELETE NO ACTION;
+2026-01-09 21:52:55.944 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260110005206_EnforceCashFlowTraceability', N'8.0.11');
