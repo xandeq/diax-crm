@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 import { AccountType, FinancialAccount, financeService } from '@/services/finance';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -16,15 +17,27 @@ const accountTypeLabels: Record<AccountType, string> = {
   [AccountType.DigitalWallet]: 'Carteira Digital',
 };
 
+function getAccountTypeLabel(type: AccountType): string {
+  return accountTypeLabels[type] ?? 'Desconhecido';
+}
+
 export default function FinancialAccountsPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     loadAccounts();
-  }, []);
+  }, [isAuthenticated, authLoading, router]);
 
   async function loadAccounts() {
     try {
@@ -50,7 +63,7 @@ export default function FinancialAccountsPage() {
     }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="p-8 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
@@ -103,7 +116,7 @@ export default function FinancialAccountsPage() {
                   <div className="text-sm font-medium text-gray-900">{account.name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{accountTypeLabels[account.accountType]}</div>
+                  <div className="text-sm text-gray-500">{getAccountTypeLabel(account.accountType)}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className={`text-sm font-medium ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>

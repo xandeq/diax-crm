@@ -1,17 +1,28 @@
 'use client';
 
-import { me, MeResponse } from '@/services/auth';
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Users, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from '@/contexts/AuthContext';
+import { me, MeResponse } from '@/services/auth';
+import { Activity, AlertCircle, DollarSign, Loader2, TrendingUp, Users } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [data, setData] = useState<MeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     (async () => {
       try {
         const result = await me();
@@ -22,17 +33,12 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [isAuthenticated, authLoading, router]);
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
-      <div className="space-y-8 animate-pulse">
-        <div className="h-8 w-48 bg-muted rounded"></div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-muted rounded-xl"></div>
-          ))}
-        </div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
