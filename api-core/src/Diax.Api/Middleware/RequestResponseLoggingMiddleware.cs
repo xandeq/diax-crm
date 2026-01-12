@@ -89,8 +89,8 @@ public class RequestResponseLoggingMiddleware
             // Dados adicionais
             var additionalData = new Dictionary<string, object?>
             {
-                ["responseBody"] = responseContent?.Length > 2000 
-                    ? responseContent.Substring(0, 2000) + "..." 
+                ["responseBody"] = responseContent?.Length > 2000
+                    ? responseContent.Substring(0, 2000) + "..."
                     : responseContent,
                 ["responseTimeMs"] = responseTimeMs,
                 ["userAgent"] = context.Request.Headers.UserAgent.ToString(),
@@ -104,7 +104,7 @@ public class RequestResponseLoggingMiddleware
                 category: category,
                 message: errorMessage,
                 correlationId: correlationId,
-                userId: context.User?.FindFirst("sub")?.Value 
+                userId: context.User?.FindFirst("sub")?.Value
                     ?? context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
                 requestPath: context.Request.Path,
                 queryString: context.Request.QueryString.ToString(),
@@ -191,8 +191,8 @@ public class RequestResponseLoggingMiddleware
         catch
         {
             // Se não for JSON válido, usa o conteúdo truncado
-            return responseContent.Length > 200 
-                ? responseContent.Substring(0, 200) + "..." 
+            return responseContent.Length > 200
+                ? responseContent.Substring(0, 200) + "..."
                 : responseContent;
         }
 

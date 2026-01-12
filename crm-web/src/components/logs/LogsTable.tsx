@@ -39,7 +39,7 @@ function LogLevelBadge({ level }: { level: LogLevel }) {
 
 function StatusCodeBadge({ code }: { code?: number }) {
   if (!code) return <span className="text-gray-400">-</span>;
-  
+
   let color = 'bg-gray-100 text-gray-800';
   if (code >= 200 && code < 300) color = 'bg-green-100 text-green-800';
   else if (code >= 300 && code < 400) color = 'bg-blue-100 text-blue-800';
@@ -91,7 +91,7 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
 
   return (
     <>
-      <tr 
+      <tr
         className="hover:bg-gray-50 cursor-pointer border-b"
         onClick={handleExpand}
       >

@@ -5,7 +5,7 @@ import { LogsTable } from '@/components/logs/LogsTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AppLogFilterRequest, AppLogPagedResponse, AppLogStatsResponse, LogLevel, logLevelLabels, logsService } from '@/services/logs';
-import { AlertCircle, ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const levelColorClasses: Record<LogLevel, string> = {
@@ -90,42 +90,42 @@ export default function LogsPage() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <StatCard 
-            label="Total" 
-            value={stats.totalCount} 
-            color="bg-gray-100 text-gray-800" 
+          <StatCard
+            label="Total"
+            value={stats.totalCount}
+            color="bg-gray-100 text-gray-800"
           />
-          <StatCard 
-            label={logLevelLabels[LogLevel.Debug]} 
-            value={stats.debugCount} 
-            color={levelColorClasses[LogLevel.Debug]} 
+          <StatCard
+            label={logLevelLabels[LogLevel.Debug]}
+            value={stats.debugCount}
+            color={levelColorClasses[LogLevel.Debug]}
           />
-          <StatCard 
-            label={logLevelLabels[LogLevel.Information]} 
-            value={stats.informationCount} 
-            color={levelColorClasses[LogLevel.Information]} 
+          <StatCard
+            label={logLevelLabels[LogLevel.Information]}
+            value={stats.informationCount}
+            color={levelColorClasses[LogLevel.Information]}
           />
-          <StatCard 
-            label={logLevelLabels[LogLevel.Warning]} 
-            value={stats.warningCount} 
-            color={levelColorClasses[LogLevel.Warning]} 
+          <StatCard
+            label={logLevelLabels[LogLevel.Warning]}
+            value={stats.warningCount}
+            color={levelColorClasses[LogLevel.Warning]}
           />
-          <StatCard 
-            label={logLevelLabels[LogLevel.Error]} 
-            value={stats.errorCount} 
-            color={levelColorClasses[LogLevel.Error]} 
+          <StatCard
+            label={logLevelLabels[LogLevel.Error]}
+            value={stats.errorCount}
+            color={levelColorClasses[LogLevel.Error]}
           />
-          <StatCard 
-            label={logLevelLabels[LogLevel.Critical]} 
-            value={stats.criticalCount} 
-            color={levelColorClasses[LogLevel.Critical]} 
+          <StatCard
+            label={logLevelLabels[LogLevel.Critical]}
+            value={stats.criticalCount}
+            color={levelColorClasses[LogLevel.Critical]}
           />
         </div>
       )}
 
       {/* Filters */}
-      <LogFilters 
-        filters={filters} 
+      <LogFilters
+        filters={filters}
         onFilterChange={handleFilterChange}
         onApply={handleApplyFilters}
       />

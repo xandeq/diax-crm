@@ -116,7 +116,7 @@ export const logLevelColors: Record<LogLevel, { bg: string; text: string; border
 class LogsService {
   async getFilteredLogs(filter: AppLogFilterRequest = {}): Promise<AppLogPagedResponse> {
     const params = new URLSearchParams();
-    
+
     // Backend espera: fromDate, toDate, search, page, pageSize
     if (filter.startDate) params.append('fromDate', filter.startDate);
     if (filter.endDate) params.append('toDate', filter.endDate);
@@ -131,7 +131,7 @@ class LogsService {
 
     const queryString = params.toString();
     const path = queryString ? `/logs?${queryString}` : '/logs';
-    
+
     return apiFetch<AppLogPagedResponse>(path);
   }
 

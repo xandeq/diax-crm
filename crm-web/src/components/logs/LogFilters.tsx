@@ -96,9 +96,9 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
               id="level"
               className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
               value={filters.level ?? ''}
-              onChange={(e) => onFilterChange({ 
-                ...filters, 
-                level: e.target.value ? Number(e.target.value) as LogLevel : undefined 
+              onChange={(e) => onFilterChange({
+                ...filters,
+                level: e.target.value ? Number(e.target.value) as LogLevel : undefined
               })}
             >
               <option value="">Todos</option>
@@ -114,9 +114,9 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
               id="category"
               className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
               value={filters.category ?? ''}
-              onChange={(e) => onFilterChange({ 
-                ...filters, 
-                category: e.target.value ? Number(e.target.value) as LogCategory : undefined 
+              onChange={(e) => onFilterChange({
+                ...filters,
+                category: e.target.value ? Number(e.target.value) as LogCategory : undefined
               })}
             >
               <option value="">Todas</option>
