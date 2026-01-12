@@ -23,21 +23,39 @@ public class FinancialAccountsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("GET /api/v1/financialaccounts - Request received");
         var result = await _service.GetAllAsync(cancellationToken);
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("GET /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
+                result.Error?.Code, result.Error?.Message);
+        }
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
     [HttpGet("active")]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("GET /api/v1/financialaccounts/active - Request received");
         var result = await _service.GetActiveAccountsAsync(cancellationToken);
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("GET /api/v1/financialaccounts/active - Failed: {ErrorCode} - {ErrorMessage}",
+                result.Error?.Code, result.Error?.Message);
+        }
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("GET /api/v1/financialaccounts/{Id} - Request received", id);
         var result = await _service.GetByIdAsync(id, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("GET /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
+                id, result.Error?.Code, result.Error?.Message);
+        }
         return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
     }
 

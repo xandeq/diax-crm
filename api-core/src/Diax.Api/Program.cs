@@ -135,6 +135,7 @@ var app = builder.Build();
 // ===== DB MIGRATIONS + SEED (admin) =====
 try
 {
+    Log.Information("Starting database migrations and seeding...");
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
     var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("AdminUserSeeder");
@@ -146,12 +147,16 @@ try
     // Seed initial admin (idempotent) — usa app.Configuration (após Build)
     AdminUserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
     Log.Information("AdminUserSeeder completed.");
+    
+    Log.Information("Database initialization completed successfully.");
 }
 catch (Exception ex)
 {
     Log.Error(ex, "Failed to migrate/seed database on startup.");
     // Em produção, preferimos manter a API no ar e deixar o pipeline cuidar das migrations.
 }
+
+Log.Information("Configuring middleware pipeline...");
 
 // ===== MIDDLEWARE PIPELINE =====
 
@@ -167,9 +172,9 @@ app.Use(async (context, next) =>
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Unhandled exception occurred. Path: {Path}, Method: {Method}", 
+        Log.Error(ex, "Unhandled exception occurred. Path: {Path}, Method: {Method}",
             context.Request.Path, context.Request.Method);
-        
+
         // Log inner exceptions for EF Core issues
         var innerEx = ex.InnerException;
         while (innerEx != null)
@@ -177,7 +182,7 @@ app.Use(async (context, next) =>
             Log.Error(innerEx, "Inner exception");
             innerEx = innerEx.InnerException;
         }
-        
+
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new { message = "An unexpected error occurred", code = "INTERNAL_ERROR" });
