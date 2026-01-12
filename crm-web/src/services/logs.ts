@@ -83,11 +83,9 @@ export interface AppLogStatsResponse {
 export interface AppLogPagedResponse {
   items: AppLogListItemResponse[];
   totalCount: number;
-  pageNumber: number;
+  page: number;
   pageSize: number;
   totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
 }
 
 export const logLevelLabels: Record<LogLevel, string> = {
@@ -119,15 +117,16 @@ class LogsService {
   async getFilteredLogs(filter: AppLogFilterRequest = {}): Promise<AppLogPagedResponse> {
     const params = new URLSearchParams();
     
-    if (filter.startDate) params.append('startDate', filter.startDate);
-    if (filter.endDate) params.append('endDate', filter.endDate);
+    // Backend espera: fromDate, toDate, search, page, pageSize
+    if (filter.startDate) params.append('fromDate', filter.startDate);
+    if (filter.endDate) params.append('toDate', filter.endDate);
     if (filter.level !== undefined) params.append('level', filter.level.toString());
     if (filter.category !== undefined) params.append('category', filter.category.toString());
-    if (filter.searchTerm) params.append('searchTerm', filter.searchTerm);
+    if (filter.searchTerm) params.append('search', filter.searchTerm);
     if (filter.userId) params.append('userId', filter.userId);
     if (filter.correlationId) params.append('correlationId', filter.correlationId);
-    if (filter.requestPath) params.append('requestPath', filter.requestPath);
-    if (filter.pageNumber) params.append('pageNumber', filter.pageNumber.toString());
+    if (filter.requestPath) params.append('path', filter.requestPath);
+    if (filter.pageNumber) params.append('page', filter.pageNumber.toString());
     if (filter.pageSize) params.append('pageSize', filter.pageSize.toString());
 
     const queryString = params.toString();

@@ -152,26 +152,26 @@ export default function LogsPage() {
         {data && data.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <div className="text-sm text-gray-500">
-              Mostrando {((data.pageNumber - 1) * data.pageSize) + 1} a {Math.min(data.pageNumber * data.pageSize, data.totalCount)} de {data.totalCount} registros
+              Mostrando {((data.page - 1) * data.pageSize) + 1} a {Math.min(data.page * data.pageSize, data.totalCount)} de {data.totalCount} registros
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                disabled={!data.hasPreviousPage}
-                onClick={() => handlePageChange(data.pageNumber - 1)}
+                disabled={data.page <= 1}
+                onClick={() => handlePageChange(data.page - 1)}
               >
                 <ChevronLeft className="h-4 w-4" />
                 Anterior
               </Button>
               <span className="text-sm text-gray-600">
-                Página {data.pageNumber} de {data.totalPages}
+                Página {data.page} de {data.totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={!data.hasNextPage}
-                onClick={() => handlePageChange(data.pageNumber + 1)}
+                disabled={data.page >= data.totalPages}
+                onClick={() => handlePageChange(data.page + 1)}
               >
                 Próxima
                 <ChevronRight className="h-4 w-4" />
