@@ -64,5 +64,22 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     throw new ApiError(res.status, errorMessage, errorCode);
   }
 
-  return (await res.json()) as T;
+  // Handle empty responses gracefully
+  const contentLength = res.headers.get('content-length');
+  if (contentLength === '0' || res.status === 204) {
+    return {} as T;
+  }
+
+  // Read as text first to handle potential empty body
+  const text = await res.text();
+  if (!text || text.trim() === '') {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch (e) {
+    console.error('Failed to parse JSON response:', text);
+    throw new ApiError(res.status, `Invalid JSON response: ${text.substring(0, 100)}`);
+  }
 }
