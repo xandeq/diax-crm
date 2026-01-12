@@ -29,7 +29,7 @@ public class FinancialAccountsController : BaseApiController
         {
             _logger.LogError("GET /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
                 result.Error?.Code, result.Error?.Message);
-            
+
             if (result.Error?.Code?.EndsWith("Failed") == true)
             {
                 return StatusCode(500, result.Error);
@@ -48,7 +48,7 @@ public class FinancialAccountsController : BaseApiController
         {
             _logger.LogError("GET /api/v1/financialaccounts/active - Failed: {ErrorCode} - {ErrorMessage}",
                 result.Error?.Code, result.Error?.Message);
-            
+
             if (result.Error?.Code?.EndsWith("Failed") == true)
             {
                 return StatusCode(500, result.Error);
@@ -67,7 +67,7 @@ public class FinancialAccountsController : BaseApiController
         {
             _logger.LogError("GET /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
                 id, result.Error?.Code, result.Error?.Message);
-            
+
             if (result.Error?.Code?.EndsWith("Failed") == true)
             {
                 return StatusCode(500, result.Error);
@@ -86,7 +86,7 @@ public class FinancialAccountsController : BaseApiController
         {
             _logger.LogError("POST /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
                 result.Error?.Code, result.Error?.Message);
-            
+
             if (result.Error?.Code?.EndsWith("Failed") == true)
             {
                 return StatusCode(500, result.Error);
@@ -105,7 +105,7 @@ public class FinancialAccountsController : BaseApiController
         {
             _logger.LogError("PUT /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
                 id, result.Error?.Code, result.Error?.Message);
-            
+
             if (result.Error?.Code?.EndsWith("Failed") == true)
             {
                 return StatusCode(500, result.Error);
@@ -124,7 +124,7 @@ public class FinancialAccountsController : BaseApiController
         {
             _logger.LogError("DELETE /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
                 id, result.Error?.Code, result.Error?.Message);
-            
+
             if (result.Error?.Code?.EndsWith("Failed") == true)
             {
                 return StatusCode(500, result.Error);

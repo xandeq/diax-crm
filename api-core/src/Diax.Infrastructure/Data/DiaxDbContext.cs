@@ -1,6 +1,7 @@
 using Diax.Domain.Common;
 using Diax.Domain.Auth;
 using Diax.Domain.Customers;
+using Diax.Domain.Logs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -49,6 +50,7 @@ public class DiaxDbContext : DbContext
     public DbSet<Diax.Domain.Finance.FinancialAccount> FinancialAccounts => Set<Diax.Domain.Finance.FinancialAccount>();
     public DbSet<Diax.Domain.Finance.CreditCardInvoice> CreditCardInvoices => Set<Diax.Domain.Finance.CreditCardInvoice>();
     public DbSet<Diax.Domain.Finance.AccountTransfer> AccountTransfers => Set<Diax.Domain.Finance.AccountTransfer>();
+    public DbSet<AppLog> AppLogs => Set<AppLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

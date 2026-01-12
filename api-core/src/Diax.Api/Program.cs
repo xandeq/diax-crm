@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Diax.Api.Configuration;
+using Diax.Api.Middleware;
 using Diax.Application;
 using Diax.Infrastructure;
 using Diax.Infrastructure.Data;
@@ -163,31 +164,11 @@ Log.Information("Configuring middleware pipeline...");
 // CORS - DEVE ser o primeiro middleware para garantir headers em todas as respostas (incluindo erros)
 app.UseCors("Frontend");
 
-// Global Exception Handler - garante que erros 500 também tenham headers CORS
-app.Use(async (context, next) =>
-{
-    try
-    {
-        await next();
-    }
-    catch (Exception ex)
-    {
-        Log.Error(ex, "Unhandled exception occurred. Path: {Path}, Method: {Method}",
-            context.Request.Path, context.Request.Method);
+// Correlation ID - adiciona ID de correlação em todas as requisições
+app.UseCorrelationId();
 
-        // Log inner exceptions for EF Core issues
-        var innerEx = ex.InnerException;
-        while (innerEx != null)
-        {
-            Log.Error(innerEx, "Inner exception");
-            innerEx = innerEx.InnerException;
-        }
-
-        context.Response.StatusCode = 500;
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new { message = "An unexpected error occurred", code = "INTERNAL_ERROR" });
-    }
-});
+// Exception Logging - captura exceções e grava no banco de dados
+app.UseExceptionLogging();
 
 // Swagger (disponível em todos os ambientes por enquanto)
 app.UseSwagger();

@@ -1,5 +1,6 @@
 using Diax.Application.Customers;
 using Diax.Application.Finance;
+using Diax.Application.Logs;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<CreditCardInvoiceService>();
         services.AddScoped<FinancialSummaryService>();
         services.AddScoped<AccountTransferService>();
+        services.AddScoped<AppLogService>();
 
         return services;
     }

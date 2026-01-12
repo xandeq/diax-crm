@@ -1,6 +1,7 @@
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
+using Diax.Domain.Logs;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Finance;
@@ -129,7 +130,7 @@ public static class DependencyInjection
             #if DEBUG
             options.EnableDetailedErrors();
             options.EnableSensitiveDataLogging();
-            options.LogTo(Console.WriteLine, LogLevel.Information);
+            options.LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information);
             #endif
         });
 
@@ -147,6 +148,7 @@ public static class DependencyInjection
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
         services.AddScoped<IAccountTransferRepository, AccountTransferRepository>();
+        services.AddScoped<IAppLogRepository, AppLogRepository>();
 
         return services;
     }
