@@ -147,7 +147,7 @@ try
     // Seed initial admin (idempotent) — usa app.Configuration (após Build)
     AdminUserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
     Log.Information("AdminUserSeeder completed.");
-    
+
     Log.Information("Database initialization completed successfully.");
 }
 catch (Exception ex)

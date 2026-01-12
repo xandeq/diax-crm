@@ -27,10 +27,16 @@ public class FinancialAccountsController : BaseApiController
         var result = await _service.GetAllAsync(cancellationToken);
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("GET /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
+            _logger.LogError("GET /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
                 result.Error?.Code, result.Error?.Message);
+            
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return BadRequest(result.Error);
         }
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return Ok(result.Value);
     }
 
     [HttpGet("active")]
@@ -40,10 +46,16 @@ public class FinancialAccountsController : BaseApiController
         var result = await _service.GetActiveAccountsAsync(cancellationToken);
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("GET /api/v1/financialaccounts/active - Failed: {ErrorCode} - {ErrorMessage}",
+            _logger.LogError("GET /api/v1/financialaccounts/active - Failed: {ErrorCode} - {ErrorMessage}",
                 result.Error?.Code, result.Error?.Message);
+            
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return BadRequest(result.Error);
         }
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return Ok(result.Value);
     }
 
     [HttpGet("{id}")]
@@ -53,30 +65,72 @@ public class FinancialAccountsController : BaseApiController
         var result = await _service.GetByIdAsync(id, cancellationToken);
         if (!result.IsSuccess)
         {
-            _logger.LogWarning("GET /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
+            _logger.LogError("GET /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
                 id, result.Error?.Code, result.Error?.Message);
+            
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return NotFound(result.Error);
         }
-        return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
+        return Ok(result.Value);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFinancialAccountRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("POST /api/v1/financialaccounts - Request received");
         var result = await _service.CreateAsync(request, cancellationToken);
-        return result.IsSuccess ? CreatedAtAction(nameof(GetById), new { id = result.Value, version = "1" }, result.Value) : BadRequest(result.Error);
+        if (!result.IsSuccess)
+        {
+            _logger.LogError("POST /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
+                result.Error?.Code, result.Error?.Message);
+            
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return BadRequest(result.Error);
+        }
+        return CreatedAtAction(nameof(GetById), new { id = result.Value, version = "1" }, result.Value);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFinancialAccountRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("PUT /api/v1/financialaccounts/{Id} - Request received", id);
         var result = await _service.UpdateAsync(id, request, cancellationToken);
-        return result.IsSuccess ? NoContent() : BadRequest(result.Error);
+        if (!result.IsSuccess)
+        {
+            _logger.LogError("PUT /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
+                id, result.Error?.Code, result.Error?.Message);
+            
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return BadRequest(result.Error);
+        }
+        return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("DELETE /api/v1/financialaccounts/{Id} - Request received", id);
         var result = await _service.DeleteAsync(id, cancellationToken);
-        return result.IsSuccess ? NoContent() : BadRequest(result.Error);
+        if (!result.IsSuccess)
+        {
+            _logger.LogError("DELETE /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
+                id, result.Error?.Code, result.Error?.Message);
+            
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return BadRequest(result.Error);
+        }
+        return NoContent();
     }
 }
