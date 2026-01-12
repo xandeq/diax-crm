@@ -8,8 +8,12 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
-[Ll]og/
-[Ll]ogs/
+
+# Log files (NÃO ignorar pastas de código fonte como Domain/Logs ou Application/Logs)
+# Usar padrão específico para não afetar src/**/Logs/
+*.log
+/[Ll]og/
+/[Ll]ogs/
 
 # Visual Studio
 .vs/
