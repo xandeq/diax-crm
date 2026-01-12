@@ -33,6 +33,10 @@ jobs:
         working-directory: api-core
         run: dotnet restore
 
+      - name: Build
+        working-directory: api-core
+        run: dotnet build --configuration Release --no-restore
+
       - name: Install dotnet-ef
         shell: pwsh
         run: |
