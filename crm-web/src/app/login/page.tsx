@@ -1,6 +1,9 @@
 'use client';
 
 import { Logo } from '@/components/Logo';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useAuth } from '@/contexts/AuthContext';
 import { login } from '@/services/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,9 +12,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 // Schema de validação
 const loginSchema = z.object({
