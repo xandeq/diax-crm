@@ -116,7 +116,7 @@ jobs:
 
       - name: Publish (Release)
         working-directory: api-core
-        run: dotnet publish "src/Diax.Api/Diax.Api.csproj" -c Release --self-contained -r win-x64 -o "${{ github.workspace }}/_publish"
+        run: dotnet publish "src/Diax.Api/Diax.Api.csproj" -c Release -o "${{ github.workspace }}/_publish"
 
       - name: Debug web.config (from publish output)
         shell: pwsh
