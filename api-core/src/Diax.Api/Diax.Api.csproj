@@ -8,8 +8,11 @@
     <AssemblyName>Diax.Api</AssemblyName>
     <!-- Habilita User Secrets em Development -->
     <UserSecretsId>diax-crm-api-secrets</UserSecretsId>
-    <!-- SmarterASP/shared IIS: avoid 500.35 (multiple apps in same app pool) -->
-    <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
+    <!-- SmarterASP/shared IIS: InProcess para melhor performance -->
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+    <!-- Self-contained para garantir runtime disponível -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
