@@ -164,18 +164,20 @@ Log.Information("Configuring middleware pipeline...");
 // Middleware para garantir CORS correto e evitar headers duplicados
 app.Use(async (context, next) =>
 {
-    await next();
-    
-    // Remove o header Access-Control-Allow-Origin se estiver com wildcard (*)
-    // Isso evita conflitos com a política CORS configurada corretamente
-    if (context.Response.Headers.TryGetValue("Access-Control-Allow-Origin", out var origins))
+    context.Response.OnStarting(() =>
     {
-        if (origins.Count > 1 || (origins.Count == 1 && origins[0] == "*"))
+        // Tenta remover headers duplicados ou wildcard antes de enviar a resposta
+        if (context.Response.Headers.TryGetValue("Access-Control-Allow-Origin", out var origins))
         {
-            context.Response.Headers.Remove("Access-Control-Allow-Origin");
-            Log.Warning("Removed duplicate or wildcard CORS header. Origin: {Origin}", context.Request.Headers.Origin.ToString());
+             if (origins.Count > 1 || (origins.Count == 1 && origins[0] == "*"))
+            {
+                context.Response.Headers.Remove("Access-Control-Allow-Origin");
+            }
         }
-    }
+        return Task.CompletedTask;
+    });
+
+    await next();
 });
 
 // CORS - DEVE ser o primeiro middleware para garantir headers em todas as respostas (incluindo erros)
