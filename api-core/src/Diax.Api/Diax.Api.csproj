@@ -10,9 +10,7 @@
     <UserSecretsId>diax-crm-api-secrets</UserSecretsId>
     <!-- SmarterASP/shared IIS: InProcess para melhor performance -->
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
-    <!-- Self-contained para garantir runtime disponível -->
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
+    <!-- Framework-dependent deployment: usa runtime .NET 8 do servidor SmarterASP -->
   </PropertyGroup>
 
   <ItemGroup>
