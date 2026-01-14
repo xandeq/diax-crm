@@ -32,12 +32,4 @@
     <ProjectReference Include="..\Diax.Shared\Diax.Shared.csproj" />
   </ItemGroup>
 
-  <!-- Incluir web.config no publish para configurar IIS corretamente -->
-  <ItemGroup>
-    <Content Include="web.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
-
 </Project>
