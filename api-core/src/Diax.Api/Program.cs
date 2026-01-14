@@ -6,7 +6,6 @@ using Diax.Infrastructure;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -128,16 +127,6 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
-
-// Data Protection - Persistir chaves para evitar invalidação de tokens após restart
-var keysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys");
-Directory.CreateDirectory(keysPath); // Garante que o diretório existe
-
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
-    .SetApplicationName("DiaxCRM");
-
-Log.Information("Data Protection configurado para persistir chaves em: {KeysPath}", keysPath);
 
 // Health Checks
 builder.Services.AddHealthChecks();

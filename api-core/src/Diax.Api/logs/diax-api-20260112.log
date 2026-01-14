@@ -83,3 +83,4 @@ ALTER TABLE [incomes] ADD CONSTRAINT [FK_incomes_income_categories_income_catego
 2026-01-12 11:18:32.706 -03:00 [INF] Executed DbCommand (4ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20260112091659_AddAppLogsTable', N'8.0.11');
+2026-01-12 15:53:30.516 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
