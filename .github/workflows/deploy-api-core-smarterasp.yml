@@ -1,7 +1,5 @@
 name: Deploy API-Core to SmarterASP (FTP)
 
-# Trigger note: commits com "[reset-db]" no message permitem reset do schema remoto.
-
 on:
   push:
     branches: ["main"]
@@ -12,360 +10,185 @@ on:
 
 concurrency:
   group: deploy-api-core-smarterasp
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_NOLOGO: true
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
-    env:
-      RESET_DB: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[reset-db]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET SDK 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('api-core/**/*.csproj', 'api-core/**/*.sln') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
       - name: Restore
         working-directory: api-core
         run: dotnet restore
 
-      - name: Build
+      - name: Build (Release)
         working-directory: api-core
         run: dotnet build --configuration Release --no-restore
 
-      - name: Install dotnet-ef
-        shell: pwsh
-        run: |
-          dotnet tool install --global dotnet-ef --version 8.*
-          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Ensure DB Schema (baseline/reconcile)
-        shell: pwsh
-        run: |
-          $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
-          if ([string]::IsNullOrWhiteSpace($conn)) {
-            throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
-          }
-
-          $resetDb = ($env:RESET_DB -match '^(?i:true|1)$')
-
-          $sqlConn = New-Object System.Data.SqlClient.SqlConnection($conn)
-          $sqlConn.Open()
-          try {
-            $cmd = $sqlConn.CreateCommand()
-            $cmd.CommandTimeout = 120
-
-            # Se o schema do banco estiver incompatível (ex.: tabela customers antiga),
-            # a opção segura é recriar (apaga dados) via flag [reset-db] na mensagem do commit.
-            $cmd.CommandText = "SELECT CASE WHEN OBJECT_ID(N'[customers]') IS NULL THEN 0 ELSE 1 END"
-            $customersExists = [int]$cmd.ExecuteScalar()
-
-            if ($customersExists -eq 1) {
-              $cmd.CommandText = "SELECT " +
-                "CASE WHEN COL_LENGTH('customers','id') IS NULL THEN 1 ELSE 0 END AS MissingId, " +
-                "CASE WHEN COL_LENGTH('customers','name') IS NULL THEN 1 ELSE 0 END AS MissingName, " +
-                "CASE WHEN COL_LENGTH('customers','person_type') IS NULL THEN 1 ELSE 0 END AS MissingPersonType, " +
-                "CASE WHEN COL_LENGTH('customers','email') IS NULL THEN 1 ELSE 0 END AS MissingEmail, " +
-                "CASE WHEN COL_LENGTH('customers','source') IS NULL THEN 1 ELSE 0 END AS MissingSource, " +
-                "CASE WHEN COL_LENGTH('customers','status') IS NULL THEN 1 ELSE 0 END AS MissingStatus, " +
-                "CASE WHEN COL_LENGTH('customers','created_at') IS NULL THEN 1 ELSE 0 END AS MissingCreatedAt;"
-              $reader = $cmd.ExecuteReader()
-              $missing = @()
-              if ($reader.Read()) {
-                if ($reader.GetInt32(0) -eq 1) { $missing += 'id' }
-                if ($reader.GetInt32(1) -eq 1) { $missing += 'name' }
-                if ($reader.GetInt32(2) -eq 1) { $missing += 'person_type' }
-                if ($reader.GetInt32(3) -eq 1) { $missing += 'email' }
-                if ($reader.GetInt32(4) -eq 1) { $missing += 'source' }
-                if ($reader.GetInt32(5) -eq 1) { $missing += 'status' }
-                if ($reader.GetInt32(6) -eq 1) { $missing += 'created_at' }
-              }
-              $reader.Close()
-
-              if ($missing.Count -gt 0) {
-                if (-not $resetDb) {
-                  throw "Tabela customers incompatível (faltando: $($missing -join ', ')). Faça um commit no branch main contendo '[reset-db]' (isso apaga dados) ou aponte a connection string para um banco novo/limpo."
-                }
-
-                Write-Host "RESET_DB=true: dropando customers e __EFMigrationsHistory para recriar via migrations."
-                $cmd.CommandText = "IF OBJECT_ID(N'[customers]') IS NOT NULL DROP TABLE [customers]; IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NOT NULL DROP TABLE [__EFMigrationsHistory];"
-                [void]$cmd.ExecuteNonQuery()
-              }
-            }
-          }
-          finally {
-            $sqlConn.Close()
-          }
-
-      - name: Apply EF Core Migrations (remote DB)
-        shell: pwsh
-        run: |
-          $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
-          if ([string]::IsNullOrWhiteSpace($conn)) {
-            throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
-          }
-
-          dotnet ef database update `
-            --project "api-core/src/Diax.Infrastructure/Diax.Infrastructure.csproj" `
-            --startup-project "api-core/src/Diax.Api/Diax.Api.csproj" `
-            --connection "$conn"
-
       - name: Publish (Release)
         working-directory: api-core
-        run: dotnet publish src/Diax.Api/Diax.Api.csproj -c Release --self-contained false -o "${{ github.workspace }}/_publish"
+        run: dotnet publish src/Diax.Api/Diax.Api.csproj --configuration Release --no-build --output ./publish
 
-      - name: Debug web.config (from publish output)
-        shell: pwsh
+      - name: Create appsettings.Production.json
+        shell: bash
         run: |
-          $path = "${{ github.workspace }}/_publish/web.config"
-          if (-not (Test-Path $path)) {
-            throw "web.config não encontrado em $path"
+          cat > ./api-core/publish/appsettings.Production.json << 'EOF'
+          {
+            "ConnectionStrings": {
+              "DefaultConnection": "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
+            },
+            "Jwt": {
+              "Key": "${{ secrets.DIAX_JWT_KEY }}"
+            },
+            "Auth": {
+              "AdminEmail": "${{ secrets.DIAX_AUTH_ADMIN_EMAIL }}",
+              "AdminPassword": "${{ secrets.DIAX_AUTH_ADMIN_PASSWORD }}"
+            },
+            "Cors": {
+              "AllowedOrigins": [
+                "https://crm.alexandrequeiroz.com.br",
+                "http://localhost:3000"
+              ]
+            },
+            "Logging": {
+              "LogLevel": {
+                "Default": "Information",
+                "Microsoft.AspNetCore": "Warning"
+              }
+            },
+            "AllowedHosts": "*"
           }
-          Write-Host "--- web.config (publish output) ---"
-          Get-Content -Path $path | ForEach-Object { Write-Host $_ }
-          Write-Host "--- end web.config ---"
+          EOF
 
-      - name: Enable stdout logs (temporary)
-        shell: pwsh
+      - name: Ensure web.config in publish
+        shell: bash
         run: |
-          $publishDir = "${{ github.workspace }}/_publish"
-          $dataLogsDir = Join-Path $publishDir "App_Data/logs"
-          New-Item -ItemType Directory -Path $dataLogsDir -Force | Out-Null
-          # Placeholder para forçar o FTP deploy a criar a pasta App_Data/logs no servidor.
-          Set-Content -Path (Join-Path $dataLogsDir "keep.txt") -Value "keep" -Encoding ascii
+          set -euo pipefail
+          PUBLISH_DIR="./api-core/publish"
+          if [ ! -d "$PUBLISH_DIR" ]; then
+            echo "Pasta publish não existe" >&2
+            exit 1
+          fi
+          SRC_WEB=$(find api-core -maxdepth 8 -type f -name "web.config" | head -n 1 || true)
+          if [ -n "$SRC_WEB" ]; then
+            cp "$SRC_WEB" "$PUBLISH_DIR/web.config"
+            echo "web.config copiado de: $SRC_WEB"
+            exit 0
+          fi
+          cat > "$PUBLISH_DIR/web.config" << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <location path="." inheritInChildApplications="false">
+              <system.webServer>
+                <handlers>
+                  <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified"/>
+                </handlers>
+                <aspNetCore processPath="dotnet" arguments=".\Diax.Api.dll" stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" hostingModel="InProcess">
+                  <environmentVariables>
+                    <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+                  </environmentVariables>
+                </aspNetCore>
+              </system.webServer>
+            </location>
+          </configuration>
+          EOF
+          echo "web.config gerado"
 
-          $path = Join-Path $publishDir "web.config"
-          if (-not (Test-Path $path)) {
-            throw "web.config não encontrado em $path"
-          }
-
-          [xml]$doc = Get-Content -Path $path
-          $node = $doc.SelectSingleNode("//aspNetCore")
-          if ($null -eq $node) {
-            throw "Não encontrei o nó <aspNetCore> no web.config; não posso habilitar logs."
-          }
-
-          $node.SetAttribute("stdoutLogEnabled", "true")
-          $node.SetAttribute("stdoutLogFile", ".\\App_Data\\logs\\stdout")
-          $doc.Save($path)
-
-          Write-Host "stdout logging habilitado (stdoutLogEnabled=true) em App_Data/logs."
-
-      - name: Inject DB ConnectionString (appsettings.Production.json)
-        shell: pwsh
+      - name: Create app_offline.htm
+        shell: bash
         run: |
-          $publishDir = "${{ github.workspace }}/_publish"
-          $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
+          mkdir -p ./offline
+          TS="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          RUN="${GITHUB_RUN_ID:-no-run-id}"
+          cat > ./offline/app_offline.htm << EOF
+          <!DOCTYPE html>
+          <html lang="pt-BR"><head><meta charset="utf-8">
+          <title>Atualizando...</title></head>
+          <body style="font-family:Arial;display:grid;place-items:center;height:100vh">
+            <div>
+              <h2>Estamos publicando uma atualização</h2>
+              <p>Tente novamente em instantes.</p>
+              <small>deploy: ${TS} | run: ${RUN}</small>
+            </div>
+          </body></html>
+          EOF
 
-          $jwtKey = "${{ secrets.DIAX_JWT_KEY }}"
-          $adminEmail = "${{ secrets.DIAX_AUTH_ADMIN_EMAIL }}"
-          $adminPassword = "${{ secrets.DIAX_AUTH_ADMIN_PASSWORD }}"
-
-          if ([string]::IsNullOrWhiteSpace($conn)) {
-            throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
-          }
-
-          if ([string]::IsNullOrWhiteSpace($jwtKey)) {
-            throw "DIAX_JWT_KEY não está definido (necessário para /api/v1/auth/*)."
-          }
-          if ([string]::IsNullOrWhiteSpace($adminEmail) -or [string]::IsNullOrWhiteSpace($adminPassword)) {
-            throw "DIAX_AUTH_ADMIN_EMAIL/DIAX_AUTH_ADMIN_PASSWORD não estão definidos (necessário para /api/v1/auth/login)."
-          }
-
-          $payload = @{
-            ConnectionStrings = @{ DefaultConnection = $conn }
-            Jwt = @{ Key = $jwtKey }
-            Auth = @{ AdminEmail = $adminEmail; AdminPassword = $adminPassword }
-            Cors = @{ AllowedOrigins = @(
-              "https://crm.alexandrequeiroz.com.br",
-              "http://localhost:3000"
-            )}
-          }
-          $json = $payload | ConvertTo-Json -Depth 5
-          $path = Join-Path $publishDir "appsettings.Production.json"
-          Set-Content -Path $path -Value $json -Encoding utf8
-
-      - name: Take App Offline (app_offline.htm)
-        shell: pwsh
+      - name: Delete old app_offline.htm (best-effort)
+        shell: bash
         run: |
-          $server = "${{ secrets.SMARTERASP_FTP_SERVER }}"
-          $username = "${{ secrets.SMARTERASP_FTP_USERNAME }}"
-          $password = "${{ secrets.SMARTERASP_FTP_PASSWORD }}"
-          $remoteDir = "${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}"
+          curl --silent --show-error --fail \
+            --user "${{ secrets.SMARTERASP_FTP_USERNAME }}:${{ secrets.SMARTERASP_FTP_PASSWORD }}" \
+            --quote "DELE ${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}app_offline.htm" \
+            "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/" || true
 
-          if ([string]::IsNullOrWhiteSpace($server) -or [string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) {
-            throw "Secrets de FTP não estão definidos."
-          }
-
-          $remoteDir = $remoteDir.Trim()
-          if (-not $remoteDir.StartsWith("/")) { $remoteDir = "/" + $remoteDir }
-          if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
-
-          $uri = "ftp://$server$remoteDir" + "app_offline.htm"
-          $body = "<html><head><title>Offline</title></head><body><h1>Atualizando...</h1></body></html>"
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-
-          $req = [System.Net.FtpWebRequest]::Create($uri)
-          $req.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
-          $req.Credentials = New-Object System.Net.NetworkCredential($username, $password)
-          $req.UseBinary = $true
-          $req.KeepAlive = $false
-
-          $stream = $req.GetRequestStream()
-          $stream.Write($bytes, 0, $bytes.Length)
-          $stream.Close()
-
-          $resp = $req.GetResponse()
-          $resp.Close()
-
-          Start-Sleep -Seconds 8
-
-      - name: Deploy via FTP (SmarterASP)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Put app_offline.htm on server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.SMARTERASP_FTP_SERVER }}
           username: ${{ secrets.SMARTERASP_FTP_USERNAME }}
           password: ${{ secrets.SMARTERASP_FTP_PASSWORD }}
           protocol: ftp
-          local-dir: "${{ github.workspace }}/_publish/"
+          port: 21
+          local-dir: ./offline/
           server-dir: ${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}
+          state-name: .ftp-deploy-sync-state.offline.json
+          timeout: 120000
+          dangerous-clean-slate: false
+          log-level: standard
+
+      - name: Wait IIS to unload app
+        run: sleep 15
+
+      - name: Deploy via FTP (SmarterASP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.SMARTERASP_FTP_SERVER }}
+          username: ${{ secrets.SMARTERASP_FTP_USERNAME }}
+          password: ${{ secrets.SMARTERASP_FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./api-core/publish/
+          server-dir: ${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}
+          state-name: .ftp-deploy-sync-state.json
+          timeout: 180000
+          dangerous-clean-slate: false
+          log-level: standard
           exclude: |
             **/.git*
             **/.github/**
             **/appsettings.Development.json
+            **/*.pdb
+            **/*.xml
+            **/*.md
 
-      - name: Bring App Online (remove app_offline.htm)
-        shell: pwsh
+      - name: Remove app_offline.htm
+        shell: bash
         run: |
-          $server = "${{ secrets.SMARTERASP_FTP_SERVER }}"
-          $username = "${{ secrets.SMARTERASP_FTP_USERNAME }}"
-          $password = "${{ secrets.SMARTERASP_FTP_PASSWORD }}"
-          $remoteDir = "${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}"
-
-          $remoteDir = $remoteDir.Trim()
-          if (-not $remoteDir.StartsWith("/")) { $remoteDir = "/" + $remoteDir }
-          if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
-
-          $uri = "ftp://$server$remoteDir" + "app_offline.htm"
-
-          try {
-            $req = [System.Net.FtpWebRequest]::Create($uri)
-            $req.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
-            $req.Credentials = New-Object System.Net.NetworkCredential($username, $password)
-            $req.KeepAlive = $false
-            $resp = $req.GetResponse()
-            $resp.Close()
-          }
-          catch {
-            Write-Host "Aviso: não foi possível remover app_offline.htm (ok se já não existir)."
-          }
-
-      - name: Fetch stdout logs (best-effort)
-        if: always()
-        shell: pwsh
-        run: |
-          Start-Sleep -Seconds 10
-
-          $server = "${{ secrets.SMARTERASP_FTP_SERVER }}"
-          $username = "${{ secrets.SMARTERASP_FTP_USERNAME }}"
-          $password = "${{ secrets.SMARTERASP_FTP_PASSWORD }}"
-          $remoteDir = "${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}"
-
-          if ([string]::IsNullOrWhiteSpace($server) -or [string]::IsNullOrWhiteSpace($username) -or [string]::IsNullOrWhiteSpace($password)) {
-            Write-Host "FTP secrets ausentes; não dá para coletar stdout logs."
-            exit 0
-          }
-
-          $remoteDir = $remoteDir.Trim()
-          if (-not $remoteDir.StartsWith("/")) { $remoteDir = "/" + $remoteDir }
-          if (-not $remoteDir.EndsWith("/")) { $remoteDir = $remoteDir + "/" }
-
-          $logsUri = "ftp://$server$remoteDir" + "App_Data/logs/"
-
-          # Também baixa o web.config remoto para confirmar que o deploy aplicou o stdoutLogEnabled.
-          try {
-            $webConfigUri = "ftp://$server$remoteDir" + "web.config"
-            $outDir = "${{ github.workspace }}/_stdoutlogs"
-            New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-            $webConfigPath = Join-Path $outDir "web.config.remote"
-
-            $wcReq = [System.Net.FtpWebRequest]::Create($webConfigUri)
-            $wcReq.Method = [System.Net.WebRequestMethods+Ftp]::DownloadFile
-            $wcReq.Credentials = New-Object System.Net.NetworkCredential($username, $password)
-            $wcReq.UseBinary = $true
-            $wcReq.UsePassive = $true
-            $wcReq.KeepAlive = $false
-            $wcResp = $wcReq.GetResponse()
-            $wcStream = $wcResp.GetResponseStream()
-            $wcFile = [System.IO.File]::Open($webConfigPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-            $wcStream.CopyTo($wcFile)
-            $wcFile.Close(); $wcStream.Close(); $wcResp.Close()
-
-            $remoteCfg = Get-Content -Path $webConfigPath -Raw
-            if ($remoteCfg -match 'stdoutLogEnabled="true"') {
-              Write-Host "web.config remoto: stdoutLogEnabled=true"
-            } else {
-              Write-Host "web.config remoto: stdoutLogEnabled NÃO está true (ver arquivo no artifact)."
-            }
-          } catch {
-            Write-Host "Aviso: não consegui baixar web.config remoto para validação."
-          }
-
-          function New-FtpRequest([string]$uri, [string]$method) {
-            $req = [System.Net.FtpWebRequest]::Create($uri)
-            $req.Method = $method
-            $req.Credentials = New-Object System.Net.NetworkCredential($username, $password)
-            $req.UseBinary = $true
-            $req.UsePassive = $true
-            $req.KeepAlive = $false
-            return $req
-          }
-
-          try {
-            $listReq = New-FtpRequest $logsUri ([System.Net.WebRequestMethods+Ftp]::ListDirectory)
-            $listResp = $listReq.GetResponse()
-            $reader = New-Object System.IO.StreamReader($listResp.GetResponseStream())
-            $files = @()
-            while (-not $reader.EndOfStream) { $files += $reader.ReadLine() }
-            $reader.Close(); $listResp.Close()
-          } catch {
-            Write-Host "Não foi possível listar $logsUri (talvez não exista)."
-            exit 0
-          }
-
-          $stdoutFiles = $files | Where-Object { $_ -match '^stdout' }
-          if (-not $stdoutFiles -or $stdoutFiles.Count -eq 0) {
-            Write-Host "Nenhum stdout log encontrado em logs/."
-            exit 0
-          }
-
-          $latest = ($stdoutFiles | Sort-Object)[-1]
-          $downloadUri = "ftp://$server$remoteDir" + "App_Data/logs/$latest"
-
-          $outDir = "${{ github.workspace }}/_stdoutlogs"
-          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
-          $outPath = Join-Path $outDir $latest
-
-          try {
-            $dlReq = New-FtpRequest $downloadUri ([System.Net.WebRequestMethods+Ftp]::DownloadFile)
-            $dlResp = $dlReq.GetResponse()
-            $respStream = $dlResp.GetResponseStream()
-            $fileStream = [System.IO.File]::Open($outPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-            $respStream.CopyTo($fileStream)
-            $fileStream.Close(); $respStream.Close(); $dlResp.Close()
-            Write-Host "Baixado stdout log: $latest"
-          } catch {
-            Write-Host "Falha ao baixar $downloadUri"
-            exit 0
-          }
-
-      - name: Upload stdout logs artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: smarterasp-stdout-logs
-          path: _stdoutlogs/**
+          curl --silent --show-error --fail \
+            --user "${{ secrets.SMARTERASP_FTP_USERNAME }}:${{ secrets.SMARTERASP_FTP_PASSWORD }}" \
+            --quote "DELE ${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}app_offline.htm" \
+            "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/" || true
