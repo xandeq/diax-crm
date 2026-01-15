@@ -93,12 +93,19 @@ jobs:
             echo "Pasta publish não existe" >&2
             exit 1
           fi
-          SRC_WEB=$(find api-core -maxdepth 8 -type f -name "web.config" | head -n 1 || true)
+          # Busca web.config excluindo o diretório publish
+          SRC_WEB=$(find api-core -maxdepth 8 -type f -name "web.config" -not -path "*/publish/*" | head -n 1 || true)
           if [ -n "$SRC_WEB" ]; then
             cp "$SRC_WEB" "$PUBLISH_DIR/web.config"
             echo "web.config copiado de: $SRC_WEB"
             exit 0
           fi
+          # Se não encontrou, verifica se já existe no publish
+          if [ -f "$PUBLISH_DIR/web.config" ]; then
+            echo "web.config já existe no publish"
+            exit 0
+          fi
+          # Gera web.config padrão
           cat > "$PUBLISH_DIR/web.config" << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
