@@ -8,8 +8,8 @@
     <AssemblyName>Diax.Api</AssemblyName>
     <!-- Habilita User Secrets em Development -->
     <UserSecretsId>diax-crm-api-secrets</UserSecretsId>
-    <!-- SmarterASP/shared IIS: InProcess para melhor performance -->
-    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+    <!-- SmarterASP/shared IIS: OutOfProcess obrigatório em hospedagem compartilhada -->
+    <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
     <!-- Framework-dependent deployment: usa runtime .NET 8 do servidor SmarterASP -->
   </PropertyGroup>
 
