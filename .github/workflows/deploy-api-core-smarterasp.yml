@@ -45,13 +45,20 @@ jobs:
         working-directory: api-core
         run: dotnet restore
 
-      - name: Build (Release)
-        working-directory: api-core
-        run: dotnet build --configuration Release --no-restore
-
       - name: Publish (Release)
         working-directory: api-core
-        run: dotnet publish src/Diax.Api/Diax.Api.csproj --configuration Release --no-build --output ./publish
+        run: |
+          dotnet publish src/Diax.Api/Diax.Api.csproj --configuration Release --output ./publish
+          
+          # Verify critical DLLs are present
+          echo "=== Verifying published files ==="
+          if [ ! -f "./publish/Serilog.dll" ]; then
+            echo "ERROR: Serilog.dll not found in publish folder!" >&2
+            ls -la ./publish/*.dll | head -30
+            exit 1
+          fi
+          echo "Serilog.dll found: $(ls -la ./publish/Serilog.dll)"
+          echo "Total DLLs published: $(ls -1 ./publish/*.dll | wc -l)"
 
       - name: Create appsettings.Production.json
         shell: bash
