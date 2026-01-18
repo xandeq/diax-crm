@@ -42,34 +42,14 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore
-        working-directory: api-core
-        run: dotnet restore
+        run: dotnet restore "${{ steps.proj.outputs.file }}"
+
+      - name: Build (Release)
+        run: dotnet build "${{ steps.proj.outputs.file }}" --configuration Release --no-restore
 
       - name: Publish (Release)
         working-directory: api-core
-        run: |
-          dotnet publish src/Diax.Api/Diax.Api.csproj --configuration Release --output ./publish
-          
-          # Verify critical DLLs are present
-          echo "=== Verifying published files ==="
-          MISSING_DLLS=0
-          
-          for dll in "Serilog.dll" "Swashbuckle.AspNetCore.Swagger.dll" "Swashbuckle.AspNetCore.SwaggerGen.dll" "Swashbuckle.AspNetCore.SwaggerUI.dll"; do
-            if [ ! -f "./publish/$dll" ]; then
-              echo "ERROR: $dll not found!" >&2
-              MISSING_DLLS=1
-            else
-              echo "✓ $dll found"
-            fi
-          done
-          
-          if [ $MISSING_DLLS -eq 1 ]; then
-            echo "=== All DLLs in publish folder ===" >&2
-            ls -la ./publish/*.dll
-            exit 1
-          fi
-          
-          echo "Total DLLs published: $(ls -1 ./publish/*.dll | wc -l)"
+        run: dotnet publish src/Diax.Api/Diax.Api.csproj --configuration Release --output ./publish
 
       - name: Create appsettings.Production.json
         shell: bash
