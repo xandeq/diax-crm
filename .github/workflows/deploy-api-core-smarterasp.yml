@@ -45,6 +45,13 @@ jobs:
         working-directory: api-core
         run: dotnet restore
 
+      - name: Clean publish folder
+        shell: bash
+        working-directory: api-core
+        run: |
+          rm -rf ./publish
+          mkdir -p ./publish
+
       - name: Publish (Release)
         working-directory: api-core
         run: |
@@ -225,7 +232,7 @@ jobs:
           port: 21
           local-dir: ./api-core/publish/
           server-dir: ${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}
-          state-name: .ftp-deploy-sync-state.json
+          state-name: .ftp-deploy-sync-state.v2.json
           timeout: 180000
           dangerous-clean-slate: false
           log-level: standard
