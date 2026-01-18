@@ -52,12 +52,23 @@ jobs:
           
           # Verify critical DLLs are present
           echo "=== Verifying published files ==="
-          if [ ! -f "./publish/Serilog.dll" ]; then
-            echo "ERROR: Serilog.dll not found in publish folder!" >&2
-            ls -la ./publish/*.dll | head -30
+          MISSING_DLLS=0
+          
+          for dll in "Serilog.dll" "Swashbuckle.AspNetCore.Swagger.dll" "Swashbuckle.AspNetCore.SwaggerGen.dll" "Swashbuckle.AspNetCore.SwaggerUI.dll"; do
+            if [ ! -f "./publish/$dll" ]; then
+              echo "ERROR: $dll not found!" >&2
+              MISSING_DLLS=1
+            else
+              echo "✓ $dll found"
+            fi
+          done
+          
+          if [ $MISSING_DLLS -eq 1 ]; then
+            echo "=== All DLLs in publish folder ===" >&2
+            ls -la ./publish/*.dll
             exit 1
           fi
-          echo "Serilog.dll found: $(ls -la ./publish/Serilog.dll)"
+          
           echo "Total DLLs published: $(ls -1 ./publish/*.dll | wc -l)"
 
       - name: Create appsettings.Production.json
