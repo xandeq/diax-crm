@@ -141,20 +141,54 @@ try
     var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
     var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("AdminUserSeeder");
 
-    // Keep schema updated (no-op if already up to date)
-    db.Database.Migrate();
-    Log.Information("Database migrations applied successfully.");
+    // Wrap migration in timeout to prevent ANCM startup timeout (120s default)
+    var migrationTask = Task.Run(() =>
+    {
+        try
+        {
+            // Keep schema updated (no-op if already up to date)
+            db.Database.Migrate();
+            Log.Information("Database migrations applied successfully.");
 
-    // Seed initial admin (idempotent) — usa app.Configuration (após Build)
-    AdminUserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
-    Log.Information("AdminUserSeeder completed.");
+            // Seed initial admin (idempotent) — usa app.Configuration (após Build)
+            AdminUserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
+            Log.Information("AdminUserSeeder completed.");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Migration/seed failed inside task.");
+            throw;
+        }
+    });
 
+    // Wait max 45 seconds for migration (leaves 75s buffer for ANCM timeout)
+    await migrationTask.WaitAsync(TimeSpan.FromSeconds(45));
     Log.Information("Database initialization completed successfully.");
+}
+catch (TimeoutException)
+{
+    Log.Warning("Database migration timed out after 45 seconds. App will start but DB may not be ready.");
+    // Allow app to start - health checks will report DB status
 }
 catch (Exception ex)
 {
-    Log.Error(ex, "Failed to migrate/seed database on startup.");
+    Log.Error(ex, "Failed to migrate/seed database on startup. App will start but DB may not be ready.");
     // Em produção, preferimos manter a API no ar e deixar o pipeline cuidar das migrations.
+    
+    // Write detailed error to file for FTP diagnostics
+    try
+    {
+        var errorPath = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "startup-error.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(errorPath)!);
+        await File.WriteAllTextAsync(errorPath, 
+            $"Startup Error at {DateTime.UtcNow:O}\n\n" +
+            $"Message: {ex.Message}\n\n" +
+            $"Type: {ex.GetType().FullName}\n\n" +
+            $"Stack:\n{ex.StackTrace}\n\n" +
+            $"Inner: {ex.InnerException?.Message}");
+        Log.Information("Wrote startup error details to {ErrorPath}", errorPath);
+    }
+    catch { /* Best effort - don't fail startup for logging */ }
 }
 
 Log.Information("Configuring middleware pipeline...");

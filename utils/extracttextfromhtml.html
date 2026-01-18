@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>HTML para Texto Formatado</title>
+  <style>
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-bottom: 10px;
+    }
+    pre {
+      white-space: pre-wrap;
+      background: #f4f4f4;
+      padding: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <textarea id="inputHtml" placeholder="Cole o HTML aqui"></textarea>
+  <button onclick="convert()">Converter</button>
+
+  <pre id="outputText"></pre>
+
+  <script type="text/javascript">
+    function convert() {
+      const html = document.getElementById('inputHtml').value;
+      const text = htmlToFormattedText(html);
+      document.getElementById('outputText').textContent = text;
+    }
+
+    function htmlToFormattedText(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      function walk(node) {
+        let result = '';
+
+        node.childNodes.forEach(child => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const text = child.textContent.trim();
+            if (text) {
+              result += text + ' ';
+            }
+          }
+
+          if (child.nodeType === Node.ELEMENT_NODE) {
+            const tag = child.tagName.toLowerCase();
+
+            if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) {
+              result += '\n\n' + child.textContent.trim().toUpperCase() + '\n';
+            }
+            else if (tag === 'p') {
+              result += '\n\n' + child.textContent.trim() + '\n';
+            }
+            else if (tag === 'br') {
+              result += '\n';
+            }
+            else if (tag === 'li') {
+              result += '\n• ' + child.textContent.trim();
+            }
+            else {
+              result += walk(child);
+            }
+          }
+        });
+
+        return result;
+      }
+
+      return walk(doc.body)
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
+    }
+  </script>
+
+</body>
+</html>

@@ -56,33 +56,43 @@ jobs:
       - name: Create appsettings.Production.json
         shell: bash
         run: |
-          cat > ./api-core/publish/appsettings.Production.json << 'EOF'
-          {
-            "ConnectionStrings": {
-              "DefaultConnection": "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
-            },
-            "Jwt": {
-              "Key": "${{ secrets.DIAX_JWT_KEY }}"
-            },
-            "Auth": {
-              "AdminEmail": "${{ secrets.DIAX_AUTH_ADMIN_EMAIL }}",
-              "AdminPassword": "${{ secrets.DIAX_AUTH_ADMIN_PASSWORD }}"
-            },
-            "Cors": {
-              "AllowedOrigins": [
-                "https://crm.alexandrequeiroz.com.br",
-                "http://localhost:3000"
-              ]
-            },
-            "Logging": {
-              "LogLevel": {
-                "Default": "Information",
-                "Microsoft.AspNetCore": "Warning"
-              }
-            },
-            "AllowedHosts": "*"
-          }
-          EOF
+          # Use jq for proper JSON escaping (handles quotes, backslashes, special chars)
+          jq -n \
+            --arg connStr "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}" \
+            --arg jwtKey "${{ secrets.DIAX_JWT_KEY }}" \
+            --arg adminEmail "${{ secrets.DIAX_AUTH_ADMIN_EMAIL }}" \
+            --arg adminPass "${{ secrets.DIAX_AUTH_ADMIN_PASSWORD }}" \
+            '{
+              "ConnectionStrings": {
+                "DefaultConnection": $connStr
+              },
+              "Jwt": {
+                "Key": $jwtKey
+              },
+              "Auth": {
+                "AdminEmail": $adminEmail,
+                "AdminPassword": $adminPass
+              },
+              "Cors": {
+                "AllowedOrigins": [
+                  "https://crm.alexandrequeiroz.com.br",
+                  "http://localhost:3000"
+                ]
+              },
+              "Logging": {
+                "LogLevel": {
+                  "Default": "Information",
+                  "Microsoft.AspNetCore": "Warning"
+                }
+              },
+              "AllowedHosts": "*"
+            }' > ./api-core/publish/appsettings.Production.json
+
+          # Verify the file was created and is valid JSON
+          if ! jq empty ./api-core/publish/appsettings.Production.json 2>/dev/null; then
+            echo "ERROR: Generated appsettings.Production.json is not valid JSON" >&2
+            exit 1
+          fi
 
       - name: Ensure web.config in publish
         shell: bash
@@ -151,6 +161,23 @@ jobs:
             --user "${{ secrets.SMARTERASP_FTP_USERNAME }}:${{ secrets.SMARTERASP_FTP_PASSWORD }}" \
             --quote "DELE ${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}app_offline.htm" \
             "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/" || true
+
+      - name: Create required directories on server (best-effort)
+        shell: bash
+        run: |
+          # Create App_Data/logs for ANCM stdout logging
+          curl --silent --show-error \
+            --user "${{ secrets.SMARTERASP_FTP_USERNAME }}:${{ secrets.SMARTERASP_FTP_PASSWORD }}" \
+            --ftp-create-dirs \
+            --upload-file /dev/null \
+            "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}App_Data/logs/.keep" || true
+
+          # Create logs for Serilog file sink
+          curl --silent --show-error \
+            --user "${{ secrets.SMARTERASP_FTP_USERNAME }}:${{ secrets.SMARTERASP_FTP_PASSWORD }}" \
+            --ftp-create-dirs \
+            --upload-file /dev/null \
+            "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}logs/.keep" || true
 
       - name: Put app_offline.htm on server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6

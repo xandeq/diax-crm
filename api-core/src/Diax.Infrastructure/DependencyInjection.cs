@@ -57,10 +57,14 @@ public static class DependencyInjection
     {
         // ===== CONNECTION STRING =====
         // Prioridade: 1) Variável de ambiente, 2) User Secrets, 3) appsettings.json
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException(
-                "Connection string 'DefaultConnection' não encontrada. " +
-                "Configure via User Secrets (local) ou variável de ambiente (produção).");
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        
+        // Use fallback for graceful degradation - will fail during DB access with better error message
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            connectionString = "Server=localhost;Database=DiaxCRM;Integrated Security=false;";
+            Console.WriteLine("WARNING: Connection string 'DefaultConnection' not found. Using fallback (DB operations will fail).");
+        }
 
         // Normaliza a connection string para ambiente remoto:
         // - Força TCP (evita Named Pipes em cenários remotos)
