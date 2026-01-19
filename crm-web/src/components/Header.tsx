@@ -30,6 +30,29 @@ export function Header() {
         <Link href="/" className="hover:text-slate-900">Início</Link>
         <Link href="/finance" className="hover:text-slate-900">Financeiro</Link>
 
+        <div className="relative group">
+          <button
+            type="button"
+            className="hover:text-slate-900"
+            aria-haspopup="menu"
+            aria-expanded="false"
+          >
+            Utilitários
+          </button>
+          <div
+            role="menu"
+            className="absolute left-0 top-full mt-2 min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
+          >
+            <Link
+              href="/tools/html-extractor"
+              className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              role="menuitem"
+            >
+              Html Text Extractor
+            </Link>
+          </div>
+        </div>
+
         {!isAuthenticated && (
           <Link href="/login/" className="hover:text-slate-900">Login</Link>
         )}
