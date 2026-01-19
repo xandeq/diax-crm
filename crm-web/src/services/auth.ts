@@ -11,12 +11,18 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password })
   });
 
-  if (!data?.accessToken) {
+  const token =
+    data?.accessToken ||
+    (data as any)?.AccessToken ||
+    (data as any)?.token ||
+    (data as any)?.access_token;
+
+  if (!token) {
     throw new Error('Token não retornado pelo login.');
   }
 
-  setAccessToken(data.accessToken);
-  return data;
+  setAccessToken(token);
+  return { ...data, accessToken: token };
 }
 
 export type MeResponse = {
