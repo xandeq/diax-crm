@@ -18,7 +18,7 @@ public class ExceptionLoggingMiddleware
     };
 
     public ExceptionLoggingMiddleware(
-        RequestDelegate next, 
+        RequestDelegate next,
         IServiceScopeFactory scopeFactory,
         IWebHostEnvironment environment)
     {

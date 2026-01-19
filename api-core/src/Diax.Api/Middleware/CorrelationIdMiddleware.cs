@@ -27,7 +27,7 @@ public class CorrelationIdMiddleware
 
     private static string GetOrCreateCorrelationId(HttpContext context)
     {
-        if (context.Request.Headers.TryGetValue(CorrelationIdHeader, out var correlationId) 
+        if (context.Request.Headers.TryGetValue(CorrelationIdHeader, out var correlationId)
             && !string.IsNullOrWhiteSpace(correlationId))
         {
             return correlationId.ToString();

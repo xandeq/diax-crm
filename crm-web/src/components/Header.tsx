@@ -50,6 +50,15 @@ export function Header() {
             >
               Html Text Extractor
             </Link>
+            {isAuthenticated && (
+              <Link
+                href="/utilities/prompt-generator"
+                className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                role="menuitem"
+              >
+                Gerador de Prompts
+              </Link>
+            )}
           </div>
         </div>
 

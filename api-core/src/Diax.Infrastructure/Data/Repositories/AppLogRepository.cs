@@ -38,7 +38,7 @@ public class AppLogRepository : Repository<AppLog>, IAppLogRepository
             query = query.Where(x => x.Category == category.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(x => x.Message.Contains(search) || 
+            query = query.Where(x => x.Message.Contains(search) ||
                                      (x.ExceptionMessage != null && x.ExceptionMessage.Contains(search)));
 
         if (!string.IsNullOrWhiteSpace(userId))

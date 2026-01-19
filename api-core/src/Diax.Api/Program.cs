@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Diax.Api.Configuration;
 using Diax.Api.Middleware;
 using Diax.Application;
+using Diax.Application.PromptGenerator;
 using Diax.Infrastructure;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Seed;
@@ -37,6 +38,22 @@ builder.Host.UseSerilog();
 // Adiciona camadas da aplicação
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// HttpClient factory (used for external AI providers)
+builder.Services.AddHttpClient();
+
+// Prompt Generator settings (API keys from env vars or config)
+var promptGeneratorSettings = new PromptGeneratorSettings();
+builder.Configuration.GetSection("PromptGenerator").Bind(promptGeneratorSettings);
+
+promptGeneratorSettings.OpenAI.ApiKey ??= builder.Configuration["OPENAI_API_KEY"]
+    ?? builder.Configuration["OpenAI:ApiKey"];
+promptGeneratorSettings.Perplexity.ApiKey ??= builder.Configuration["PERPLEXITY_API_KEY"]
+    ?? builder.Configuration["Perplexity:ApiKey"];
+promptGeneratorSettings.DeepSeek.ApiKey ??= builder.Configuration["DEEPSEEK_API_KEY"]
+    ?? builder.Configuration["DeepSeek:ApiKey"];
+
+builder.Services.AddSingleton(promptGeneratorSettings);
 
 // Controllers
 builder.Services.AddControllers()
@@ -191,13 +208,13 @@ catch (Exception ex)
 {
     Log.Error(ex, "Failed to migrate/seed database on startup. App will start but DB may not be ready.");
     // Em produção, preferimos manter a API no ar e deixar o pipeline cuidar das migrations.
-    
+
     // Write detailed error to file for FTP diagnostics
     try
     {
         var errorPath = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "startup-error.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(errorPath)!);
-        await File.WriteAllTextAsync(errorPath, 
+        await File.WriteAllTextAsync(errorPath,
             $"Startup Error at {DateTime.UtcNow:O}\n\n" +
             $"Message: {ex.Message}\n\n" +
             $"Type: {ex.GetType().FullName}\n\n" +

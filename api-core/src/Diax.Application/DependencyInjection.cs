@@ -1,6 +1,7 @@
 using Diax.Application.Customers;
 using Diax.Application.Finance;
 using Diax.Application.HtmlExtraction;
+using Diax.Application.PromptGenerator;
 using Diax.Application.Logs;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<AppLogService>();
         services.AddScoped<IAppLogService, AppLogService>();
         services.AddScoped<HtmlExtractionService>();
+        services.AddScoped<IPromptGeneratorService, PromptGeneratorService>();
 
         return services;
     }
