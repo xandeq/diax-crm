@@ -50,6 +50,11 @@ public class RequestResponseLoggingMiddleware
                 responseContent = await new StreamReader(responseBody).ReadToEndAsync();
                 responseBody.Seek(0, SeekOrigin.Begin);
             }
+            else
+            {
+                // Garante que respostas 2xx/3xx sejam copiadas corretamente
+                responseBody.Seek(0, SeekOrigin.Begin);
+            }
 
             // Copia a resposta de volta para o stream original
             await responseBody.CopyToAsync(originalBodyStream);
