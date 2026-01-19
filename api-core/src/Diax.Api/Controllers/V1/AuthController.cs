@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Diax.Infrastructure.Data;
 using Diax.Shared.Security;
@@ -119,6 +120,15 @@ public class AuthController : ControllerBase
     }
 
     public record LoginRequest(string Email, string Password);
-    public record LoginResponse(string AccessToken, DateTime ExpiresAtUtc);
+
+    public record LoginResponse(
+        [property: JsonPropertyName("accessToken")] string AccessToken,
+        [property: JsonPropertyName("expiresAtUtc")] DateTime ExpiresAtUtc)
+    {
+        // Backward-compat alias for clients expecting "token"
+        [JsonPropertyName("token")]
+        public string Token => AccessToken;
+    }
+
     public record MeResponse(string Email, string[] Roles);
 }
