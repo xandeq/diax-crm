@@ -230,7 +230,8 @@ app.UseRequestResponseLogging();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "DIAX CRM API v1");
+    // Use relative path so it works under IIS virtual directories/sub-apps
+    c.SwaggerEndpoint("v1/swagger.json", "DIAX CRM API v1");
     c.RoutePrefix = "swagger";
 });
 
@@ -251,7 +252,7 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 // Root redirect para Swagger
-app.MapGet("/", () => Results.Redirect("/swagger"));
+app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
 
 // ===== RUN =====
 try
