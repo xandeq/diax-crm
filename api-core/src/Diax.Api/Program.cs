@@ -276,6 +276,11 @@ app.MapControllers();
 // Health Check endpoint
 app.MapHealthChecks("/health");
 
+// Redirects for clients hitting /v1/swagger/* (avoid 404)
+app.MapGet("/v1/swagger", () => Results.Redirect("/swagger/index.html"));
+app.MapGet("/v1/swagger/index.html", () => Results.Redirect("/swagger/index.html"));
+app.MapGet("/v1/swagger/v1/swagger.json", () => Results.Redirect("/swagger/v1/swagger.json"));
+
 // Root redirect para Swagger
 app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
 
