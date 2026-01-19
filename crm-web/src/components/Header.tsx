@@ -41,7 +41,7 @@ export function Header() {
           </button>
           <div
             role="menu"
-            className="absolute left-0 top-full mt-2 min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
+            className="absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
           >
             <Link
               href="/tools/html-extractor"
