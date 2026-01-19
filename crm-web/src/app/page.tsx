@@ -1,9 +1,14 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
+  const { isAuthenticated, isLoading } = useAuth();
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
       <Badge variant="section">CRM Platform</Badge>
@@ -20,11 +25,13 @@ export default function HomePage() {
       </p>
 
       <div className="flex flex-wrap gap-4 justify-center">
-        <Button asChild size="lg">
-          <Link href="/login/">
-            Entrar <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        {!isLoading && !isAuthenticated && (
+          <Button asChild size="lg">
+            <Link href="/login/">
+              Entrar <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        )}
         <Button asChild variant="outline" size="lg">
           <Link href="/dashboard/">
             <LayoutDashboard className="mr-2 h-4 w-4" />

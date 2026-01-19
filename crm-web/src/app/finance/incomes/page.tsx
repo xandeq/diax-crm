@@ -35,6 +35,8 @@ export default function IncomesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
+
   useEffect(() => {
     loadIncomes();
   }, []);
@@ -130,6 +132,13 @@ export default function IncomesPage() {
                 </td>
               </tr>
             ))}
+            <tr className="bg-emerald-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-900">Total</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-700">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncome)}
+              </td>
+              <td className="px-6 py-4" colSpan={4}></td>
+            </tr>
           </tbody>
         </table>
       </div>

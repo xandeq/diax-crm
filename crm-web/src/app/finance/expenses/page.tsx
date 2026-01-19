@@ -10,6 +10,8 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
   useEffect(() => {
     loadExpenses();
   }, []);
@@ -85,6 +87,13 @@ export default function ExpensesPage() {
                 </td>
               </tr>
             ))}
+            <tr className="bg-rose-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-rose-900">Total</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-rose-700">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalExpenses)}
+              </td>
+              <td className="px-6 py-4" colSpan={4}></td>
+            </tr>
           </tbody>
         </table>
       </div>
