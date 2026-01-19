@@ -45,6 +45,9 @@ export default function LoginPage() {
 
     try {
       const response = await login(data.email, data.password);
+      if (!response?.accessToken) {
+        throw new Error('Token não retornado pelo login.');
+      }
       authLogin(response.accessToken);
       router.push('/dashboard/');
     } catch (err) {

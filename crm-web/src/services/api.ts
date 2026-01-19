@@ -11,11 +11,14 @@ export function getApiBaseUrl(): string {
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return sessionStorage.getItem('accessToken');
+  const token = sessionStorage.getItem('accessToken');
+  if (!token || token === 'undefined' || token === 'null') return null;
+  return token;
 }
 
 export function setAccessToken(token: string) {
   if (typeof window === 'undefined') return;
+  if (!token || token === 'undefined' || token === 'null') return;
   sessionStorage.setItem('accessToken', token);
 }
 

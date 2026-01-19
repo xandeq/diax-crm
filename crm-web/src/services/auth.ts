@@ -11,6 +11,10 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password })
   });
 
+  if (!data?.accessToken) {
+    throw new Error('Token não retornado pelo login.');
+  }
+
   setAccessToken(data.accessToken);
   return data;
 }

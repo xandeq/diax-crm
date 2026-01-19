@@ -27,6 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (token: string) => {
+    if (!token || token === 'undefined' || token === 'null') {
+      return;
+    }
     setApiToken(token);
     setIsAuthenticated(true);
   };
