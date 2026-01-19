@@ -133,6 +133,18 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+// ===== PATH BASE (IIS virtual directory support) =====
+var pathBase = builder.Configuration["PathBase"];
+if (!string.IsNullOrWhiteSpace(pathBase))
+{
+    if (!pathBase.StartsWith("/"))
+    {
+        pathBase = "/" + pathBase;
+    }
+
+    app.UsePathBase(pathBase);
+}
+
 // ===== DB MIGRATIONS + SEED (admin) =====
 try
 {
@@ -227,11 +239,24 @@ app.UseExceptionLogging();
 app.UseRequestResponseLogging();
 
 // Swagger (disponível em todos os ambientes por enquanto)
-app.UseSwagger();
+app.UseSwagger(c =>
+{
+    c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+    {
+        var serverUrl = $"{httpReq.Scheme}://{httpReq.Host}{httpReq.PathBase}";
+        swaggerDoc.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
+        {
+            new() { Url = serverUrl }
+        };
+    });
+});
 app.UseSwaggerUI(c =>
 {
-    // Use relative path so it works under IIS virtual directories/sub-apps
-    c.SwaggerEndpoint("v1/swagger.json", "DIAX CRM API v1");
+    var swaggerJson = string.IsNullOrWhiteSpace(pathBase)
+        ? "v1/swagger.json"
+        : $"{pathBase}/swagger/v1/swagger.json";
+
+    c.SwaggerEndpoint(swaggerJson, "DIAX CRM API v1");
     c.RoutePrefix = "swagger";
 });
 
