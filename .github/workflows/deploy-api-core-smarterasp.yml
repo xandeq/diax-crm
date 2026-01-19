@@ -87,6 +87,9 @@ jobs:
             --arg jwtKey "${{ secrets.DIAX_JWT_KEY }}" \
             --arg adminEmail "${{ secrets.DIAX_AUTH_ADMIN_EMAIL }}" \
             --arg adminPass "${{ secrets.DIAX_AUTH_ADMIN_PASSWORD }}" \
+            --arg openaiKey "${{ secrets.OPENAI_API_KEY }}" \
+            --arg perplexityKey "${{ secrets.PERPLEXITY_API_KEY }}" \
+            --arg deepseekKey "${{ secrets.DEEPSEEK_API_KEY }}" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
@@ -97,6 +100,24 @@ jobs:
               "Auth": {
                 "AdminEmail": $adminEmail,
                 "AdminPassword": $adminPass
+              },
+              "PromptGenerator": {
+                "TimeoutSeconds": 30,
+                "OpenAI": {
+                  "ApiKey": $openaiKey,
+                  "BaseUrl": "https://api.openai.com/v1",
+                  "Model": "gpt-4o-mini"
+                },
+                "Perplexity": {
+                  "ApiKey": $perplexityKey,
+                  "BaseUrl": "https://api.perplexity.ai",
+                  "Model": "sonar-pro"
+                },
+                "DeepSeek": {
+                  "ApiKey": $deepseekKey,
+                  "BaseUrl": "https://api.deepseek.com",
+                  "Model": "deepseek-chat"
+                }
               },
               "Cors": {
                 "AllowedOrigins": [
