@@ -28,6 +28,8 @@ export default function PromptGeneratorPage() {
   const [copied, setCopied] = useState(false);
   const [pageReady, setPageReady] = useState(false);
 
+  const selectedPromptType = promptTypeOptions.find((option) => option.value === promptType);
+
   useEffect(() => {
     if (authLoading) return;
 
@@ -135,9 +137,28 @@ export default function PromptGeneratorPage() {
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground">
-                  {promptTypeOptions.find((option) => option.value === promptType)?.description}
+                  {selectedPromptType?.description}
                 </p>
               </div>
+
+              {selectedPromptType && (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm space-y-3">
+                  <div>
+                    <p className="font-semibold text-foreground">O que é</p>
+                    <p className="text-muted-foreground">{selectedPromptType.whatIs}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Quando usar</p>
+                    <p className="text-muted-foreground">{selectedPromptType.whenToUse}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Exemplo</p>
+                    <div className="mt-2 rounded-md border border-border bg-background p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap">
+                      {selectedPromptType.example}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-3 md:grid-cols-[1fr_auto] items-end">
                 <div className="space-y-2">
