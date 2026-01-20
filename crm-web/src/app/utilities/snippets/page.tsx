@@ -268,7 +268,7 @@ export default function SnippetsPage() {
                       {copiedId === snippet.id ? 'Copiado' : 'Copiar'}
                     </Button>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/snippet/${snippet.id}`}>
+                      <Link href={`/snippet?id=${snippet.id}`}>
                         <ExternalLink className="h-4 w-4 mr-2" />
                         Abrir
                       </Link>

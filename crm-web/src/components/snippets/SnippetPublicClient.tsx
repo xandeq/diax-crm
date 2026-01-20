@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { snippetService, type SnippetResponse } from '@/services/snippetService';
 import { AlertCircle, Copy, Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function SnippetPublicPage() {
-  const params = useParams();
+export default function SnippetPublicClient() {
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [snippet, setSnippet] = useState<SnippetResponse | null>(null);
@@ -17,7 +17,7 @@ export default function SnippetPublicPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const snippetId = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+  const snippetId = searchParams?.get('id');
 
   useEffect(() => {
     if (!snippetId) return;
