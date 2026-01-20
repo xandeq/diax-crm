@@ -10,6 +10,7 @@ namespace Diax.Application.PromptGenerator;
 public class PromptGeneratorService : IApplicationService, IPromptGeneratorService
 {
     private const string DefaultProvider = "chatgpt";
+    private const string DefaultPromptType = "professional";
     private const int DefaultTimeoutSeconds = 30;
 
     private readonly ILogger<PromptGeneratorService> _logger;
@@ -23,7 +24,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         _settings = settings;
     }
 
-    public async Task<string> GenerateAsync(string rawPrompt, string provider)
+    public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType)
     {
         if (string.IsNullOrWhiteSpace(rawPrompt))
         {
@@ -31,15 +32,17 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         }
 
         var normalizedProvider = NormalizeProvider(provider);
+        var normalizedPromptType = NormalizePromptType(promptType);
         var settings = GetProviderSettings(normalizedProvider);
 
-        _logger.LogInformation("Prompt generation started. Provider: {Provider}. RawPromptLength: {Length}",
-            normalizedProvider, rawPrompt.Length);
+        _logger.LogInformation("Prompt generation started. Provider: {Provider}. PromptType: {PromptType}. RawPromptLength: {Length}",
+            normalizedProvider, normalizedPromptType, rawPrompt.Length);
 
-        var metaPrompt = BuildMetaPrompt();
+        var metaPrompt = BuildMetaPrompt(normalizedPromptType);
         var finalPrompt = await SendPromptAsync(settings, metaPrompt, rawPrompt);
 
-        _logger.LogInformation("Prompt generation completed. Provider: {Provider}.", normalizedProvider);
+        _logger.LogInformation("Prompt generation completed. Provider: {Provider}. PromptType: {PromptType}.",
+            normalizedProvider, normalizedPromptType);
 
         return finalPrompt;
     }
@@ -102,6 +105,16 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         }
 
         return provider.Trim().ToLowerInvariant();
+    }
+
+    private string NormalizePromptType(string promptType)
+    {
+        if (string.IsNullOrWhiteSpace(promptType))
+        {
+            return DefaultPromptType;
+        }
+
+        return promptType.Trim().ToLowerInvariant();
     }
 
     private ProviderSettings GetProviderSettings(string provider)
@@ -178,7 +191,21 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         return string.Empty;
     }
 
-    private string BuildMetaPrompt()
+    private string BuildMetaPrompt(string promptType)
+    {
+        return promptType switch
+        {
+            "pas" => BuildPasMetaPrompt(),
+            "aida" => BuildAidaMetaPrompt(),
+            "fab" => BuildFabMetaPrompt(),
+            "pear" => BuildPearMetaPrompt(),
+            "goat" => BuildGoatMetaPrompt(),
+            "care" => BuildCareMetaPrompt(),
+            _ => BuildProfessionalMetaPrompt()
+        };
+    }
+
+    private string BuildProfessionalMetaPrompt()
     {
         return """
 Você é um especialista em Prompt Engineering.
@@ -200,6 +227,161 @@ Instruções principais
 Regras e restrições
 Formato da resposta esperada
 Sugestão de próximos prompts (se fizer sentido)
+""";
+    }
+
+    private string BuildPasMetaPrompt()
+    {
+        return """
+Você é um especialista em copywriting e Prompt Engineering usando a técnica P.A.S. (Problema, Agitar, Solução).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado seguindo a técnica P.A.S.:
+
+PROBLEMA: Identifique claramente o problema ou dor que o público enfrenta.
+AGITAR: Aprofunde-se no problema, mostrando as consequências negativas e o impacto emocional.
+SOLUÇÃO: Apresente a solução de forma clara e convincente.
+
+Regras obrigatórias:
+- Seja persuasivo e emocional
+- Use linguagem que ressoe com o público-alvo
+- Crie urgência e desejo de ação
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+PROBLEMA: [Descrição clara do problema]
+AGITAR: [Aprofundamento nas consequências e dor]
+SOLUÇÃO: [Apresentação da solução]
+CHAMADA PARA AÇÃO: [Próximo passo sugerido]
+""";
+    }
+
+    private string BuildAidaMetaPrompt()
+    {
+        return """
+Você é um especialista em marketing e Prompt Engineering usando a técnica A.I.D.A. (Atenção, Interesse, Desejo, Ação).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado seguindo a técnica A.I.D.A.:
+
+ATENÇÃO: Capture a atenção com algo impactante ou surpreendente.
+INTERESSE: Construa interesse explicando benefícios e relevância.
+DESEJO: Crie desejo pintando um quadro vívido do resultado desejado.
+AÇÃO: Force uma ação clara e imediata.
+
+Regras obrigatórias:
+- Use gatilhos de atenção poderosos
+- Construa uma progressão lógica
+- Crie conexão emocional
+- Termine com CTA claro
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+ATENÇÃO: [Gancho inicial impactante]
+INTERESSE: [Desenvolvimento do interesse]
+DESEJO: [Criação do desejo]
+AÇÃO: [Chamada para ação clara]
+""";
+    }
+
+    private string BuildFabMetaPrompt()
+    {
+        return """
+Você é um especialista em descrição de produtos e Prompt Engineering usando a técnica F.A.B. (Características, Vantagens, Benefícios).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado seguindo a técnica F.A.B.:
+
+CARACTERÍSTICAS (Features): O que o produto/serviço É - especificações técnicas.
+VANTAGENS (Advantages): O que ele FAZ - funcionalidades práticas.
+BENEFÍCIOS (Benefits): O que isso SIGNIFICA para o usuário - valor real.
+
+Regras obrigatórias:
+- Conecte características técnicas a benefícios emocionais
+- Traduza especificações em valor do mundo real
+- Use linguagem clara e acessível
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+CARACTERÍSTICAS: [Especificações e features]
+VANTAGENS: [O que cada característica faz na prática]
+BENEFÍCIOS: [Impacto real na vida do usuário]
+PROPOSTA DE VALOR: [Resumo do valor único]
+""";
+    }
+
+    private string BuildPearMetaPrompt()
+    {
+        return """
+Você é um especialista em pesquisa e análise usando a técnica P.E.A.R. (Pesquisa, Extrair, Aplicar, Entregar).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado seguindo a técnica P.E.A.R.:
+
+PESQUISA (Research): Reúna informações relevantes sobre o tema.
+EXTRAIR (Extract): Identifique insights-chave e padrões.
+APLICAR (Apply): Aplique os insights ao contexto específico.
+ENTREGAR (Deliver): Apresente resultados acionáveis.
+
+Regras obrigatórias:
+- Seja sistemático e analítico
+- Foque em insights acionáveis
+- Sintetize informações de forma clara
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+PESQUISA: [O que precisa ser investigado]
+EXTRAIR: [Insights e padrões a identificar]
+APLICAR: [Como aplicar ao contexto específico]
+ENTREGAR: [Formato do resultado final esperado]
+""";
+    }
+
+    private string BuildGoatMetaPrompt()
+    {
+        return """
+Você é um especialista em storytelling e Prompt Engineering usando a técnica G.O.A.T. (Objetivo, Obstáculo, Ação, Transformação).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado seguindo a técnica G.O.A.T.:
+
+OBJETIVO (Goal): Onde você quer chegar - a meta desejada.
+OBSTÁCULO (Obstacle): O que está bloqueando - desafios e barreiras.
+AÇÃO (Action): As etapas para superar - estratégias e táticas.
+TRANSFORMAÇÃO (Transformation): O resultado final - a mudança alcançada.
+
+Regras obrigatórias:
+- Crie uma narrativa envolvente
+- Mostre a jornada completa
+- Use elementos emocionais
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+OBJETIVO: [Meta clara e específica]
+OBSTÁCULO: [Desafios e barreiras]
+AÇÃO: [Passos e estratégias]
+TRANSFORMAÇÃO: [Resultado e impacto final]
+""";
+    }
+
+    private string BuildCareMetaPrompt()
+    {
+        return """
+Você é um especialista em depoimentos e histórias de sucesso usando a técnica C.A.R.E. (Conteúdo, Ação, Resultado, Emoção).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado seguindo a técnica C.A.R.E.:
+
+CONTEÚDO (Content): A situação ou contexto inicial.
+AÇÃO (Action): As ações específicas tomadas.
+RESULTADO (Result): Os resultados mensuráveis alcançados.
+EMOÇÃO (Emotion): O impacto emocional e humano.
+
+Regras obrigatórias:
+- Equilibre dados com conexão humana
+- Use números e métricas quando possível
+- Termine com impacto emocional forte
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+CONTEÚDO: [Situação inicial e contexto]
+AÇÃO: [Ações específicas realizadas]
+RESULTADO: [Métricas e resultados concretos]
+EMOÇÃO: [Impacto emocional e transformação pessoal]
 """;
     }
 

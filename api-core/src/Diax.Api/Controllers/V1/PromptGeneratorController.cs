@@ -39,10 +39,11 @@ public class PromptGeneratorController : BaseApiController
         }
 
         var provider = string.IsNullOrWhiteSpace(request.Provider) ? "chatgpt" : request.Provider;
+        var promptType = string.IsNullOrWhiteSpace(request.PromptType) ? "professional" : request.PromptType;
 
         try
         {
-            var finalPrompt = await _service.GenerateAsync(request.RawPrompt, provider);
+            var finalPrompt = await _service.GenerateAsync(request.RawPrompt, provider, promptType);
             return Ok(new GeneratePromptResponseDto(finalPrompt));
         }
         catch (InvalidOperationException ex)

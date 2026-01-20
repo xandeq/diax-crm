@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { generatePrompt, type PromptProvider } from '@/services/promptGenerator';
+import { generatePrompt, promptTypeOptions, type PromptProvider, type PromptType } from '@/services/promptGenerator';
 import { AlertCircle, Check, Copy, Loader2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -22,6 +22,7 @@ export default function PromptGeneratorPage() {
   const [rawPrompt, setRawPrompt] = useState('');
   const [finalPrompt, setFinalPrompt] = useState('');
   const [provider, setProvider] = useState<PromptProvider>('chatgpt');
+  const [promptType, setPromptType] = useState<PromptType>('professional');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -49,7 +50,7 @@ export default function PromptGeneratorPage() {
     setFinalPrompt('');
 
     try {
-      const result = await generatePrompt(rawPrompt, provider);
+      const result = await generatePrompt(rawPrompt, provider, promptType);
       setFinalPrompt(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao gerar prompt');
@@ -118,48 +119,69 @@ export default function PromptGeneratorPage() {
               disabled={isLoading}
             />
 
-            <div className="grid gap-3 md:grid-cols-[1fr_auto] items-center">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Provider</label>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipo de Prompt</label>
                 <select
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value as PromptProvider)}
+                  value={promptType}
+                  onChange={(e) => setPromptType(e.target.value as PromptType)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   disabled={isLoading}
                 >
-                  {providerOptions.map((option) => (
+                  {promptTypeOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-muted-foreground">
+                  {promptTypeOptions.find((option) => option.value === promptType)?.description}
+                </p>
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isLoading || !rawPrompt.trim()}
-                  className="min-w-[160px]"
-                >
-                  {isLoading ? (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                      Gerando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Gerar Prompt
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={handleClear}
-                  variant="outline"
-                  disabled={isLoading}
-                >
-                  Limpar
-                </Button>
+              <div className="grid gap-3 md:grid-cols-[1fr_auto] items-end">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Provider</label>
+                  <select
+                    value={provider}
+                    onChange={(e) => setProvider(e.target.value as PromptProvider)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    disabled={isLoading}
+                  >
+                    {providerOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleGenerate}
+                    disabled={isLoading || !rawPrompt.trim()}
+                    className="min-w-[160px]"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Gerar Prompt
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleClear}
+                    variant="outline"
+                    disabled={isLoading}
+                  >
+                    Limpar
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
