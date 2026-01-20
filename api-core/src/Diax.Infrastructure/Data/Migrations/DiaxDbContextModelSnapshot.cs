@@ -1075,6 +1075,57 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.ToTable("app_logs", (string)null);
                 });
 
+            modelBuilder.Entity("Diax.Domain.Snippets.Snippet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_public");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("language");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId")
+                        .HasDatabaseName("IX_snippets_created_by_user_id");
+
+                    b.HasIndex("IsPublic")
+                        .HasDatabaseName("IX_snippets_is_public");
+
+                    b.ToTable("snippets", (string)null);
+                });
+
             modelBuilder.Entity("Diax.Domain.Finance.AccountTransfer", b =>
                 {
                     b.HasOne("Diax.Domain.Finance.FinancialAccount", "FromFinancialAccount")

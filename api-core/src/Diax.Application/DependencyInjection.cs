@@ -3,6 +3,7 @@ using Diax.Application.Finance;
 using Diax.Application.HtmlExtraction;
 using Diax.Application.PromptGenerator;
 using Diax.Application.Logs;
+using Diax.Application.Snippets;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -33,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<IAppLogService, AppLogService>();
         services.AddScoped<HtmlExtractionService>();
         services.AddScoped<IPromptGeneratorService, PromptGeneratorService>();
+        services.AddScoped<SnippetService>();
+        services.AddScoped<ISnippetService, SnippetService>();
 
         return services;
     }

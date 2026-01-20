@@ -59,6 +59,15 @@ export function Header() {
                 Gerador de Prompts
               </Link>
             )}
+            {isAuthenticated && (
+              <Link
+                href="/utilities/snippets"
+                className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                role="menuitem"
+              >
+                Snippets
+              </Link>
+            )}
           </div>
         </div>
 

@@ -2,6 +2,7 @@ using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
 using Diax.Domain.Logs;
+using Diax.Domain.Snippets;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Finance;
@@ -58,7 +59,7 @@ public static class DependencyInjection
         // ===== CONNECTION STRING =====
         // Prioridade: 1) Variável de ambiente, 2) User Secrets, 3) appsettings.json
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        
+
         // Use fallback for graceful degradation - will fail during DB access with better error message
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -153,6 +154,7 @@ public static class DependencyInjection
         services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
         services.AddScoped<IAccountTransferRepository, AccountTransferRepository>();
         services.AddScoped<IAppLogRepository, AppLogRepository>();
+        services.AddScoped<ISnippetRepository, SnippetRepository>();
 
         return services;
     }
