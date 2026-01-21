@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 const publicRoutes = ['/login', '/register', '/forgot-password'];
 
@@ -10,7 +10,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     if (!isLoading) {
@@ -18,14 +17,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       
       if (!isAuthenticated && !isPublicRoute) {
         router.replace('/login');
-      } else {
-        setIsChecking(false);
       }
     }
   }, [isAuthenticated, isLoading, pathname, router]);
 
-  // Show loading state while checking authentication
-  if (isLoading || isChecking) {
+  // Show loading state only while AuthContext is initializing
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
