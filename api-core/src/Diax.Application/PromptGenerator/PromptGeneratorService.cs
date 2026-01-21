@@ -201,6 +201,11 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             "pear" => BuildPearMetaPrompt(),
             "goat" => BuildGoatMetaPrompt(),
             "care" => BuildCareMetaPrompt(),
+            "rtf" => BuildRtfMetaPrompt(),
+            "risen" => BuildRisenMetaPrompt(),
+            "costar" => BuildCostarMetaPrompt(),
+            "cot" => BuildCotMetaPrompt(),
+            "tot" => BuildTotMetaPrompt(),
             _ => BuildProfessionalMetaPrompt()
         };
     }
@@ -382,6 +387,156 @@ CONTEÚDO: [Situação inicial e contexto]
 AÇÃO: [Ações específicas realizadas]
 RESULTADO: [Métricas e resultados concretos]
 EMOÇÃO: [Impacto emocional e transformação pessoal]
+""";
+    }
+
+    private string BuildRtfMetaPrompt()
+    {
+        return """
+Você é um especialista em Prompt Engineering usando a técnica R.T.F. (Role, Task, Format).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado, claro e direto seguindo a técnica R.T.F.:
+
+ROLE (Papel): Defina claramente quem a IA deve ser - o papel ou persona.
+TASK (Tarefa): Especifique exatamente o que precisa ser feito.
+FORMAT (Formato): Indique o formato exato da resposta esperada.
+
+Regras obrigatórias:
+- Seja extremamente direto e objetivo
+- Elimine ambiguidades
+- Use verbos de ação claros
+- Especifique formato de saída (lista, tabela, checklist, etc.)
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+PAPEL: Você é [definição clara do papel].
+TAREFA: [Ação específica e objetiva].
+FORMATO: [Formato exato da resposta - lista numerada, tabela, checklist, etc.].
+""";
+    }
+
+    private string BuildRisenMetaPrompt()
+    {
+        return """
+Você é um especialista em Prompt Engineering usando a técnica R.I.S.E.N. (Role, Instructions, Steps, End Goal, Narrowing).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado e complexo seguindo a técnica R.I.S.E.N.:
+
+ROLE (Papel): Defina o papel especializado que a IA deve assumir.
+INSTRUCTIONS (Instruções): Forneça instruções claras e detalhadas.
+STEPS (Etapas): Quebre a tarefa em etapas ou fases lógicas.
+END GOAL (Objetivo Final): Especifique o resultado final desejado.
+NARROWING (Restrições): Defina limites claros (tamanho, tom, linguagem, escopo).
+
+Regras obrigatórias:
+- Crie planos estruturados e detalhados
+- Pense em múltiplas etapas ou fases
+- Estabeleça restrições claras para controlar a saída
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+PAPEL: Atue como [papel especializado].
+INSTRUÇÕES: [Orientações detalhadas].
+ETAPAS: [Quebra em passos lógicos - pensar passo a passo].
+OBJETIVO FINAL: [Meta específica e mensurável].
+RESTRIÇÕES: [Limites claros - tamanho, tom, linguagem, formato].
+""";
+    }
+
+    private string BuildCostarMetaPrompt()
+    {
+        return """
+Você é um especialista em comunicação profissional e Prompt Engineering usando a técnica C.O.S.T.A.R. (Context, Objective, Style, Tone, Audience, Response).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado de alta qualidade seguindo a técnica C.O.S.T.A.R.:
+
+CONTEXT (Contexto): A situação ou cenário completo.
+OBJECTIVE (Objetivo): O que precisa ser alcançado.
+STYLE (Estilo): O estilo de comunicação (consultivo, executivo, técnico, etc.).
+TONE (Tom): O tom emocional (empático, formal, casual, urgente, etc.).
+AUDIENCE (Público): Quem vai receber a mensagem.
+RESPONSE (Resposta): O formato final esperado.
+
+Regras obrigatórias:
+- Personalize para o público específico
+- Ajuste estilo e tom adequadamente
+- Crie conteúdo profissional e bem escrito
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+CONTEXTO: [Situação completa e relevante].
+OBJETIVO: [O que precisa ser alcançado].
+ESTILO: [Estilo de comunicação apropriado].
+TOM: [Tom emocional adequado].
+PÚBLICO: [Perfil detalhado do destinatário].
+FORMATO: [Tipo de resposta esperada - email, proposta, relatório, etc.].
+""";
+    }
+
+    private string BuildCotMetaPrompt()
+    {
+        return """
+Você é um especialista em raciocínio analítico usando a técnica Chain of Thought (Cadeia de Pensamento).
+
+Sua tarefa é transformar o prompt do usuário em um prompt que force a IA a EXPLICAR SEU RACIOCÍNIO PASSO A PASSO antes de chegar à conclusão final.
+
+Princípios da Chain of Thought:
+- A IA deve "pensar em voz alta"
+- Cada etapa do raciocínio deve ser explícita
+- Justificar cada decisão ou conclusão parcial
+- Só apresentar a resposta final após todo o raciocínio
+
+Regras obrigatórias:
+- Exija que a IA mostre o processo de pensamento
+- Use frases como "Explique seu raciocínio passo a passo", "Pense em voz alta", "Justifique cada etapa"
+- Apropriado para análises, diagnósticos, scoring, avaliações
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+[Descrição da tarefa ou problema]
+
+ANTES DE RESPONDER:
+1. Analise passo a passo
+2. Explique seu raciocínio para cada etapa
+3. Justifique suas conclusões parciais
+4. Só então apresente a resposta final
+
+Mostre todo o seu processo de pensamento.
+""";
+    }
+
+    private string BuildTotMetaPrompt()
+    {
+        return """
+Você é um especialista em pensamento estratégico usando a técnica Tree of Thoughts (Árvore de Pensamentos).
+
+Sua tarefa é transformar o prompt do usuário em um prompt que force a IA a GERAR MÚTIPLAS SOLUÇÕES, AVALIAR CADA UMA e RECOMENDAR A MELHOR.
+
+Princípios do Tree of Thoughts:
+- Gerar pelo menos 3 caminhos/soluções diferentes
+- Avaliar prós e contras de cada opção
+- Comparar as alternativas
+- Recomendar a melhor com justificativa
+
+Regras obrigatórias:
+- Exija múltiplas opções (geralmente 3)
+- Peça avaliação de vantagens e desvantagens
+- Solicite comparação entre as alternativas
+- Exija recomendação final justificada
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+[Descrição do problema ou decisão]
+
+Gere 3 estratégias/soluções diferentes para [problema].
+
+Para cada opção:
+1. Descreva a abordagem
+2. Liste os prós
+3. Liste os contras
+4. Avalie a viabilidade
+
+Então, compare as 3 opções e recomende a melhor, justificando sua escolha.
 """;
     }
 

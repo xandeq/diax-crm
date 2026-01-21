@@ -2,7 +2,7 @@ import { apiFetch } from './api';
 
 export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek';
 
-export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care';
+export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot';
 
 export interface PromptTypeOption {
   value: PromptType;
@@ -79,6 +79,46 @@ export const promptTypeOptions: PromptTypeOption[] = [
     whatIs: 'Apresente o conteúdo/situação, especifique a ação tomada, mostre o resultado mensurável e conecte-o ao impacto emocional.',
     whenToUse: 'Depoimentos, histórias de sucesso, cenários de antes e depois, relatórios de impacto ou qualquer conteúdo em que você queira equilibrar dados com conexão humana.',
     example: 'Crie um depoimento de cliente para um programa de coaching de fitness. Conteúdo: Sandra, uma mulher de 45 anos que não se exercitava há 10 anos e se sentia invisível. Ação: Ela entrou em nosso programa de 90 dias, se exercitou 4 vezes por semana e seguiu nossos planos de refeições. Resultado: Perdeu 15 quilos, correu sua primeira corrida de 5 km, reduziu a medicação para pressão alta. Emoção: Termine com como ela se sente confiante em seu corpo novamente, tem energia para brincar com seus netos e finalmente se sente ela mesma.'
+  },
+  {
+    value: 'rtf',
+    label: 'Modo Tarefa Rápida - R.T.F.',
+    description: 'Role, Task, Format - Para execução direta sem ambiguidade.',
+    whatIs: 'Define claramente quem a IA deve ser (papel), o que ela deve fazer (tarefa) e como deve entregar a resposta (formato).',
+    whenToUse: 'Tarefas operacionais do dia a dia que precisam de execução rápida: resumir reuniões, extrair próximos passos, gerar listas ou checklists.',
+    example: 'Você é um gerente de vendas. Liste os próximos passos desta reunião em formato de checklist numerada.'
+  },
+  {
+    value: 'risen',
+    label: 'Modo Planejamento - R.I.S.E.N.',
+    description: 'Role, Instructions, Steps, End Goal, Narrowing - Para projetos complexos.',
+    whatIs: 'Estrutura avançada para tarefas complexas que exige planejamento, raciocínio em etapas e restrições claras para controlar a saída da IA.',
+    whenToUse: 'Planos estruturados, estratégias detalhadas ou conteúdo sensível: onboarding de clientes, estratégias de implementação, emails críticos.',
+    example: 'Atue como consultor de implantação. Crie um plano de onboarding para cliente novo. Pense em etapas claras. Objetivo: ativar em 30 dias. Não use termos técnicos, máximo 10 tópicos.'
+  },
+  {
+    value: 'costar',
+    label: 'Modo Comunicação Avançada - C.O.S.T.A.R.',
+    description: 'Context, Objective, Style, Tone, Audience, Response - Para conteúdo profissional.',
+    whatIs: 'Uma das estruturas mais completas para geração de conteúdo de alta qualidade, considerando contexto, público, estilo, tom e formato final.',
+    whenToUse: 'Quando o resultado precisa ser bem escrito e personalizado: propostas comerciais, emails estratégicos, comunicação com decisores.',
+    example: 'Contexto: Cliente insatisfeito após atraso. Objetivo: Recuperar confiança. Estilo: Consultivo. Tom: Empático. Público: Diretor financeiro. Resposta: Email profissional.'
+  },
+  {
+    value: 'cot',
+    label: 'Modo Análise - Chain of Thought',
+    description: 'Raciocínio passo a passo para diagnósticos e análises.',
+    whatIs: 'Força a IA a explicar seu raciocínio passo a passo antes de chegar à resposta final, aumentando precisão e reduzindo respostas superficiais.',
+    whenToUse: 'Quando a IA precisa analisar dados, justificar decisões ou fazer diagnósticos: lead scoring, análise de risco de fechamento, diagnóstico de oportunidades.',
+    example: 'Analise este negócio e explique seu raciocínio passo a passo antes de concluir se ele tem alta ou baixa chance de fechamento.'
+  },
+  {
+    value: 'tot',
+    label: 'Modo Estratégia - Tree of Thoughts',
+    description: 'Múltiplas soluções avaliadas para decisões estratégicas.',
+    whatIs: 'Gera múltiplas soluções possíveis, avalia cada uma e recomenda a melhor, simulando pensamento estratégico com comparação de cenários.',
+    whenToUse: 'Quando há mais de um caminho possível: estratégia para reduzir churn, negociação complexa, planejamento de upsell ou cross-sell.',
+    example: 'Gere 3 estratégias diferentes para reduzir o churn deste cliente. Avalie os prós e contras de cada uma e recomende a melhor opção.'
   },
 ];
 
