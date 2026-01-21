@@ -206,6 +206,12 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             "costar" => BuildCostarMetaPrompt(),
             "cot" => BuildCotMetaPrompt(),
             "tot" => BuildTotMetaPrompt(),
+            "cod" => BuildCodMetaPrompt(),
+            "tag" => BuildTagMetaPrompt(),
+            "bab" => BuildBabMetaPrompt(),
+            "create" => BuildCreateMetaPrompt(),
+            "fsp" => BuildFspMetaPrompt(),
+            "sref" => BuildSrefMetaPrompt(),
             _ => BuildProfessionalMetaPrompt()
         };
     }
@@ -537,6 +543,203 @@ Para cada opção:
 4. Avalie a viabilidade
 
 Então, compare as 3 opções e recomende a melhor, justificando sua escolha.
+""";
+    }
+
+    private string BuildCodMetaPrompt()
+    {
+        return """
+Você é um especialista em sumarização usando a técnica Chain of Density (Cadeia de Densidade).
+
+Sua tarefa é transformar o prompt do usuário em um prompt que gere resumos progressivamente mais DENSOS, mantendo o mesmo tamanho, mas incorporando cada vez mais informações relevantes.
+
+Princípios da Chain of Density:
+- Resumo inicial captura os pontos principais
+- Iterações subsequentes identificam informações importantes faltantes
+- Cada iteração torna o resumo mais denso SEM aumentar o tamanho
+- Nunca perde entidades críticas ou detalhes importantes
+- Mantém legibilidade e coerência
+
+Regras obrigatórias:
+- Exija que a IA mantenha o tamanho do resumo constante
+- Peça identificação de informações faltantes importantes
+- Solicite compressão progressiva sem perda de contexto
+- Ideal para históricos longos: tickets, emails, timelines
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+Resuma o seguinte conteúdo em [N] parágrafos/palavras.
+
+A cada iteração:
+1. Identifique informações importantes que estão faltando
+2. Incorpore essas informações sem aumentar o tamanho
+3. Mantenha todas as entidades críticas (nomes, datas, números, decisões)
+4. Garanta legibilidade
+
+Entregue o resumo final mais denso possível.
+""";
+    }
+
+    private string BuildTagMetaPrompt()
+    {
+        return """
+Você é um especialista em Prompt Engineering usando a técnica T.A.G. (Task, Action, Goal).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado focado em RESULTADO e OBJETIVO DE NEGÓCIO, seguindo a técnica T.A.G.:
+
+TASK (Tarefa): O que precisa ser feito - a tarefa específica.
+ACTION (Ação): Como fazer - o método ou abordagem.
+GOAL (Objetivo): Por que fazer - o resultado de negócio esperado.
+
+Regras obrigatórias:
+- Conecte sempre a tarefa ao objetivo final
+- Seja estratégico, não apenas operacional
+- Foque em decisão, avaliação e direcionamento
+- Mais orientado a resultado que o RTF
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+TAREFA: [O que precisa ser feito]
+AÇÃO: [Método ou abordagem específica]
+OBJETIVO: [Resultado de negócio esperado - métricas, melhorias, decisões]
+""";
+    }
+
+    private string BuildBabMetaPrompt()
+    {
+        return """
+Você é um especialista em comunicação de valor e vendas consultivas usando a técnica B.A.B. (Before, After, Bridge).
+
+Sua tarefa é transformar o prompt do usuário em um prompt estruturado focado em TRANSFORMAÇÃO POSITIVA, seguindo a técnica B.A.B.:
+
+BEFORE (Antes): O estado atual - a situação problemática ou limitante.
+AFTER (Depois): O estado desejado - o resultado positivo alcançado.
+BRIDGE (Ponte): O caminho - como chegar do Before ao After.
+
+Diferença do P.A.S.:
+- P.A.S. enfatiza DOR e problema (negativo)
+- B.A.B. enfatiza RESULTADO e progresso (positivo)
+- B.A.B. é mais consultivo, menos agressivo
+
+Regras obrigatórias:
+- Foque em transformação e melhoria
+- Mostre o contraste Before/After de forma positiva
+- Apresente a ponte como solução natural
+- Ideal para vendas consultivas e reativação
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+BEFORE (Situação Atual): [Estado limitante ou problemático]
+AFTER (Resultado Desejado): [Transformação positiva alcançada]
+BRIDGE (Caminho): [Como nossa solução conecta os dois estados]
+""";
+    }
+
+    private string BuildCreateMetaPrompt()
+    {
+        return """
+Você é um especialista em Prompt Engineering usando a técnica C.R.E.A.T.E. (Character, Request, Example, Adjustment, Type, Extras).
+
+Sua tarefa é transformar o prompt do usuário em um prompt altamente PERSONALIZADO e REFINADO, seguindo a técnica C.R.E.A.T.E.:
+
+CHARACTER (Personagem): O papel detalhado que a IA deve assumir.
+REQUEST (Solicitação): O que precisa ser criado.
+EXAMPLE (Exemplo): Referências ou modelos a seguir.
+ADJUSTMENT (Ajustes): Restrições, evitações, instruções negativas.
+TYPE (Tipo): Formato exato da saída.
+EXTRAS (Extras): Detalhes adicionais, nuances, ênfases.
+
+Regras obrigatórias:
+- Combine exemplos com ajustes finos
+- Use instruções negativas ("evite", "não use")
+- Permita controle total da saída
+- Ideal para conteúdo altamente específico
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+PAPEL: Atue como [personagem detalhado].
+SOLICITAÇÃO: [O que criar]
+EXEMPLO/REFERÊNCIA: [Modelo ou padrão a seguir]
+AJUSTES/EVITAR: [Restrições e instruções negativas]
+FORMATO: [Tipo exato de saída]
+EXTRAS: [Detalhes adicionais, ênfases, nuances]
+""";
+    }
+
+    private string BuildFspMetaPrompt()
+    {
+        return """
+Você é um especialista em Prompt Engineering usando a técnica Few-Shot Prompting (Aprendizado por Exemplos).
+
+Sua tarefa é transformar o prompt do usuário em um prompt que use EXEMPLOS DE ENTRADA E SAÍDA para ensinar à IA o padrão esperado.
+
+Princípios do Few-Shot Prompting:
+- Fornecer 2-5 exemplos de entrada → saída
+- A IA aprende o padrão a partir dos exemplos
+- Essencial para padronização e consistência
+- Ideal para extração, classificação, transformação de dados
+
+Regras obrigatórias:
+- Instrua a IA a procurar por exemplos no formato: "Texto: [entrada] → Saída: [resultado]"
+- Exija que a IA replique o padrão aprendido
+- Peça consistência absoluta com os exemplos
+- Use para: extração de dados, padronização, classificação
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+Aprenda o padrão a partir destes exemplos:
+
+Exemplo 1: [Entrada] → [Saída esperada]
+Exemplo 2: [Entrada] → [Saída esperada]
+Exemplo 3: [Entrada] → [Saída esperada]
+
+Agora, aplique o mesmo padrão a:
+[Entrada real a ser processada]
+
+Mantenha consistência absoluta com os exemplos fornecidos.
+""";
+    }
+
+    private string BuildSrefMetaPrompt()
+    {
+        return """
+Você é um especialista em controle de qualidade usando a técnica Self-Refine (Auto-Refinamento).
+
+Sua tarefa é transformar o prompt do usuário em um prompt que force a IA a GERAR, CRITICAR e REFINAR sua própria resposta antes de entregá-la.
+
+Princípios do Self-Refine:
+1. IA gera uma resposta inicial
+2. IA critica sua própria resposta (busca erros, tom inadequado, falta de empatia, alucinações)
+3. IA produz versão refinada corrigida
+4. Reduz drasticamente erros e problemas de tom
+
+Regras obrigatórias:
+- Exija que a IA faça autocrítica rigorosa
+- Peça identificação de: tom defensivo, falta de empatia, erros factuais, alucinações
+- Solicite versão final corrigida
+- Ideal para: reclamações sensíveis, clientes VIP, situações de crise
+- A IA pode mostrar ou não o processo (decida no prompt)
+- Não responda à tarefa, apenas gere o prompt final estruturado
+
+Estrutura obrigatória do prompt gerado:
+[Descrição da tarefa]
+
+Processo obrigatório:
+
+1. GERAR: Crie uma primeira versão da resposta.
+
+2. CRITICAR: Analise sua própria resposta buscando:
+   - Tom defensivo ou agressivo
+   - Falta de empatia
+   - Erros factuais ou alucinações
+   - Linguagem inadequada para o público
+   - Falta de clareza
+
+3. REFINAR: Reescreva a versão final corrigida.
+
+[Opcional: Mostre ou não o processo de crítica - decida baseado no contexto]
+
+Entregue apenas a versão final refinada, com máxima qualidade e empatia.
 """;
     }
 

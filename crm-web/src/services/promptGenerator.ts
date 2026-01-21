@@ -2,7 +2,7 @@ import { apiFetch } from './api';
 
 export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek';
 
-export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot';
+export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot' | 'cod' | 'tag' | 'bab' | 'create' | 'fsp' | 'sref';
 
 export interface PromptTypeOption {
   value: PromptType;
@@ -119,6 +119,54 @@ export const promptTypeOptions: PromptTypeOption[] = [
     whatIs: 'Gera múltiplas soluções possíveis, avalia cada uma e recomenda a melhor, simulando pensamento estratégico com comparação de cenários.',
     whenToUse: 'Quando há mais de um caminho possível: estratégia para reduzir churn, negociação complexa, planejamento de upsell ou cross-sell.',
     example: 'Gere 3 estratégias diferentes para reduzir o churn deste cliente. Avalie os prós e contras de cada uma e recomende a melhor opção.'
+  },
+  {
+    value: 'cod',
+    label: 'Modo Sumarização Densa - Chain of Density',
+    description: 'Resumos progressivamente mais densos mantendo o mesmo tamanho.',
+    whatIs: 'Técnica avançada que gera resumos iterativos cada vez mais densos, incorporando progressivamente mais informações relevantes sem perder entidades críticas.',
+    whenToUse: 'Resumir históricos longos sem perder detalhes: tickets de suporte, threads de email, anos de notas de reuniões, timeline completa de clientes.',
+    example: 'Resuma este histórico de atendimento em um único parágrafo. A cada iteração, identifique informações importantes faltantes e torne o resumo mais denso, sem aumentar o tamanho final.'
+  },
+  {
+    value: 'tag',
+    label: 'Modo Objetivo Estratégico - T.A.G.',
+    description: 'Task, Action, Goal - Conecta o que fazer com o porquê fazer.',
+    whatIs: 'Estrutura simples e estratégica que conecta o que fazer, como fazer e por que fazer, mantendo foco no objetivo final de negócio.',
+    whenToUse: 'Avaliação de desempenho, análise comparativa de resultados, direcionamento de ações de equipe, quando o foco é decisão e resultado.',
+    example: 'Tarefa: Avaliar desempenho do vendedor. Ação: Comparar vendas do último trimestre com o anterior. Objetivo: Verificar se o novo treinamento aumentou a conversão.'
+  },
+  {
+    value: 'bab',
+    label: 'Modo Transformação - B.A.B.',
+    description: 'Before, After, Bridge - Foco em transformação positiva.',
+    whatIs: 'Estrutura de comunicação focada em transformação, mostrando o estado atual, o estado desejado e o caminho entre eles. Diferente do PAS, enfatiza resultado e progresso.',
+    whenToUse: 'Vendas consultivas, emails de reativação de leads, propostas de upsell, comunicação de valor percebido.',
+    example: 'Before: Cliente perde tempo com processos manuais. After: Cliente automatiza tarefas e ganha produtividade. Bridge: Nosso sistema conecta dados e automatiza esse fluxo.'
+  },
+  {
+    value: 'create',
+    label: 'Modo Customização Avançada - C.R.E.A.T.E.',
+    description: 'Character, Request, Example, Adjustment, Type, Extras - Controle total.',
+    whatIs: 'Estrutura avançada que combina papel, exemplos, ajustes finos e instruções negativas, permitindo controle total da saída da IA para conteúdo altamente específico.',
+    whenToUse: 'Conteúdo de marketing avançado, materiais de treinamento, scripts personalizados por perfil, quando precisa refinar ao máximo.',
+    example: 'Atue como especialista em marketing B2B. Crie email de prospecção. Use este exemplo como referência. Evite linguagem agressiva e termos técnicos. Formato: email curto. Extra: destaque benefício financeiro.'
+  },
+  {
+    value: 'fsp',
+    label: 'Modo Padronização - Few-Shot Prompting',
+    description: 'Aprendizado por exemplos para consistência e padronização.',
+    whatIs: 'Técnica onde a IA recebe exemplos de entrada e saída antes da tarefa real, aprendendo o padrão esperado. Essencial para padronização e consistência.',
+    whenToUse: 'Extração de dados, padronização de nomes, classificação de informações, limpeza de dados, quando precisa seguir um formato exato.',
+    example: 'Exemplo: Texto: "João, CEO" → Cargo: CEO. Texto: "Maria, Gerente Comercial" → Cargo: Gerente Comercial. Agora extraia o cargo deste texto: "Carlos, Diretor Financeiro".'
+  },
+  {
+    value: 'sref',
+    label: 'Modo Refinamento Automático - Self-Refine',
+    description: 'IA gera, critica e refina a própria resposta automaticamente.',
+    whatIs: 'Técnica de controle de qualidade onde a IA gera uma resposta inicial, critica a própria resposta e produz versão refinada. Reduz erros, alucinações e problemas de tom.',
+    whenToUse: 'Respostas a reclamações sensíveis, comunicação com clientes VIP, mensagens de crise ou conflito, quando precisa máxima segurança e empatia.',
+    example: 'Escreva resposta para esta reclamação. Critique sua resposta buscando tom defensivo ou falta de empatia. Reescreva a versão final corrigida.'
   },
 ];
 
