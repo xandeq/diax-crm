@@ -1,0 +1,61 @@
+2026-01-20 20:37:50.192 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-20 20:37:50.765 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-20 20:37:52.142 -03:00 [INF] Executed DbCommand (14ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-20 20:37:52.163 -03:00 [INF] Executed DbCommand (9ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-20 20:37:52.168 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-20 20:37:52.173 -03:00 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-20 20:37:52.191 -03:00 [INF] Executed DbCommand (6ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-20 20:37:52.205 -03:00 [INF] Applying migration '20260120120000_AddSnippetsTable'.
+2026-01-20 20:37:52.233 -03:00 [ERR] Failed executing DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [snippets] (
+    [id] uniqueidentifier NOT NULL,
+    [title] nvarchar(200) NOT NULL,
+    [content] nvarchar(10000) NOT NULL,
+    [language] nvarchar(50) NOT NULL,
+    [is_public] bit NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    [expires_at] datetime2 NULL,
+    [created_by_user_id] uniqueidentifier NOT NULL,
+    CONSTRAINT [PK_snippets] PRIMARY KEY ([id])
+);
+2026-01-20 20:38:22.136 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-01-20 20:38:22.612 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-01-20 20:38:22.966 -03:00 [INF] Executed DbCommand (11ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-20 20:38:22.988 -03:00 [INF] Executed DbCommand (9ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-20 20:38:22.993 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-01-20 20:38:22.997 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-01-20 20:38:23.014 -03:00 [INF] Executed DbCommand (6ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-01-20 20:38:23.028 -03:00 [INF] Applying migration '20260120120000_AddSnippetsTable'.
+2026-01-20 20:38:23.060 -03:00 [INF] Executed DbCommand (4ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [snippets] (
+    [id] uniqueidentifier NOT NULL,
+    [title] nvarchar(200) NOT NULL,
+    [content] nvarchar(max) NOT NULL,
+    [language] nvarchar(50) NOT NULL,
+    [is_public] bit NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    [expires_at] datetime2 NULL,
+    [created_by_user_id] uniqueidentifier NOT NULL,
+    CONSTRAINT [PK_snippets] PRIMARY KEY ([id])
+);
+2026-01-20 20:38:23.065 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_snippets_created_by_user_id] ON [snippets] ([created_by_user_id]);
+2026-01-20 20:38:23.069 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_snippets_is_public] ON [snippets] ([is_public]);
+2026-01-20 20:38:23.075 -03:00 [INF] Executed DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260120120000_AddSnippetsTable', N'8.0.11');

@@ -1,0 +1,17 @@
+Arquitetura geral
+
+### Backend
+
+* ASP.NET Core 8
+* Pasta: `crm-web/api-core`
+* Padrões existentes do projeto
+* Uso de DTOs, Services e Controllers
+* Integração com APIs externas de IA
+
+### Frontend
+
+* Next.js
+* Pasta: `crm-web`
+* Padrões atuais de páginas, hooks e services
+* Proteção por autenticação já existente
+* UI simples e funcional

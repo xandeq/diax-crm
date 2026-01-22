@@ -1,0 +1,11 @@
+Você está trabalhando em um sistema CRM full stack desenvolvido integralmente por mim.
+
+O frontend é uma aplicação Next.js 14, localizada na pasta crm-web, responsável por autenticação, dashboards, formulários, listagens e experiência do usuário.
+
+O backend é uma API em .NET Core, localizada na pasta api-core, utilizando Entity Framework Core com Migrations, arquitetura limpa e boas práticas de segurança, performance e escalabilidade.
+
+Eu sou o responsável por frontend, backend, banco de dados e DevOps da aplicação, incluindo pipelines, deploy e configuração de ambientes.
+
+Considere sempre que o projeto segue boas práticas de arquitetura, código limpo, organização por camadas e integração eficiente entre frontend e backend.
+
+A partir desse contexto, execute a seguinte tarefa:

@@ -42,4 +42,27 @@ public class HtmlExtractionController : BaseApiController
         _logger.LogInformation("POST /api/v1/htmlextraction/extract-text - Success");
         return Ok(result.Value);
     }
+
+    [HttpPost("extract-urls")]
+    public async Task<IActionResult> ExtractUrls([FromBody] ExtractUrlsRequest request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("POST /api/v1/htmlextraction/extract-urls - Request received");
+
+        var result = await _service.ExtractUrlsAsync(request, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            _logger.LogError("POST /api/v1/htmlextraction/extract-urls - Failed: {ErrorCode} - {ErrorMessage}",
+                result.Error?.Code, result.Error?.Message);
+
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return BadRequest(result.Error);
+        }
+
+        _logger.LogInformation("POST /api/v1/htmlextraction/extract-urls - Success");
+        return Ok(result.Value);
+    }
 }

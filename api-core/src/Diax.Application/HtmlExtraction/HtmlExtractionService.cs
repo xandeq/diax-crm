@@ -51,6 +51,41 @@ public class HtmlExtractionService : IApplicationService
         }
     }
 
+    public async Task<Result<ExtractUrlsResponse>> ExtractUrlsAsync(ExtractUrlsRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Starting HTML URL extraction");
+
+            if (string.IsNullOrWhiteSpace(request.Html))
+            {
+                _logger.LogWarning("HTML URL extraction failed: Empty or null HTML provided");
+                return Result.Failure<ExtractUrlsResponse>(
+                    new Error("HtmlExtraction.InvalidInput", "HTML content cannot be empty"));
+            }
+
+            // Limit HTML size to 5MB
+            if (request.Html.Length > 5 * 1024 * 1024)
+            {
+                _logger.LogWarning("HTML URL extraction failed: HTML size exceeds 5MB limit");
+                return Result.Failure<ExtractUrlsResponse>(
+                    new Error("HtmlExtraction.TooLarge", "HTML content exceeds maximum size of 5MB"));
+            }
+
+            var urls = await Task.Run(() => ExtractUrls(request.Html), cancellationToken);
+
+            _logger.LogInformation("Successfully extracted {Count} URLs from HTML", urls.Count);
+
+            return Result<ExtractUrlsResponse>.Success(new ExtractUrlsResponse(urls));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to extract URLs from HTML");
+            return Result.Failure<ExtractUrlsResponse>(
+                new Error("HtmlExtraction.ProcessingFailed", "Failed to extract URLs from HTML. Please check server logs for details."));
+        }
+    }
+
     private string ExtractVisibleText(string html)
     {
         var doc = new HtmlDocument();
@@ -123,5 +158,43 @@ public class HtmlExtractionService : IApplicationService
         }
 
         return string.Join("\n", cleanedLines);
+    }
+
+    private IReadOnlyList<string> ExtractUrls(string html)
+    {
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        var attributes = doc.DocumentNode.SelectNodes("//@href | //@src");
+        if (attributes == null || attributes.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var urls = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var attribute in attributes)
+        {
+            var value = HtmlEntity.DeEntitize(attribute.Value).Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (value.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                || value.StartsWith("vbscript:", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (seen.Add(value))
+            {
+                urls.Add(value);
+            }
+        }
+
+        return urls;
     }
 }
