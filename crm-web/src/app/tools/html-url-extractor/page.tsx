@@ -87,7 +87,7 @@ export default function HtmlUrlExtractorPage() {
             <textarea
               value={htmlInput}
               onChange={(e) => setHtmlInput(e.target.value)}
-              placeholder="Cole seu HTML aqui...&#10;&#10;Exemplo:&#10;<a href=\"https://example.com\">link</a>&#10;<img src=\"/assets/img.png\" />"
+              placeholder="Cole seu HTML aqui...&#10;&#10;Exemplo:&#10;&lt;a href=\"https://example.com\"&gt;link&lt;/a&gt;&#10;&lt;img src=\"/assets/img.png\" /&gt;"
               className="w-full min-h-[400px] p-4 font-mono text-sm rounded-lg border border-input bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               disabled={isLoading}
             />
