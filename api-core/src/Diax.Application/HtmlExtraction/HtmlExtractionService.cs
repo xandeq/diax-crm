@@ -165,34 +165,59 @@ public class HtmlExtractionService : IApplicationService
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
 
-        var nodes = doc.DocumentNode.SelectNodes("//*[@href or @src or @xlink:href or @data-href or @data-src or @poster or @srcset or @style]");
-        if (nodes == null || nodes.Count == 0)
-        {
-            return Array.Empty<string>();
-        }
-
         var urls = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var node in nodes)
+        // Get all nodes with href or src attributes (most common)
+        var nodes = doc.DocumentNode.SelectNodes("//*[@href or @src]");
+        if (nodes != null)
         {
-            var href = node.GetAttributeValue("href", null);
-            var src = node.GetAttributeValue("src", null);
-            var xlinkHref = node.GetAttributeValue("xlink:href", null);
-            var dataHref = node.GetAttributeValue("data-href", null);
-            var dataSrc = node.GetAttributeValue("data-src", null);
-            var poster = node.GetAttributeValue("poster", null);
-            var srcset = node.GetAttributeValue("srcset", null);
-            var style = node.GetAttributeValue("style", null);
+            foreach (var node in nodes)
+            {
+                var href = node.GetAttributeValue("href", null);
+                var src = node.GetAttributeValue("src", null);
 
-            AddIfValidUrl(href, urls, seen);
-            AddIfValidUrl(src, urls, seen);
-            AddIfValidUrl(xlinkHref, urls, seen);
-            AddIfValidUrl(dataHref, urls, seen);
-            AddIfValidUrl(dataSrc, urls, seen);
-            AddIfValidUrl(poster, urls, seen);
-            AddSrcSetUrls(srcset, urls, seen);
-            AddStyleUrls(style, urls, seen);
+                AddIfValidUrl(href, urls, seen);
+                AddIfValidUrl(src, urls, seen);
+            }
+        }
+
+        // Also scan all elements for additional URL-containing attributes
+        var allNodes = doc.DocumentNode.SelectNodes("//*");
+        if (allNodes != null)
+        {
+            foreach (var node in allNodes)
+            {
+                foreach (var attr in node.Attributes)
+                {
+                    var name = attr.Name.ToLowerInvariant();
+
+                    // Skip already processed href/src
+                    if (name == "href" || name == "src")
+                    {
+                        continue;
+                    }
+
+                    // Check for URL-containing attributes
+                    if (name == "data-href" || name == "data-src" || name == "poster" || name.Contains("xlink"))
+                    {
+                        AddIfValidUrl(attr.Value, urls, seen);
+                    }
+                    else if (name == "srcset")
+                    {
+                        AddSrcSetUrls(attr.Value, urls, seen);
+                    }
+                    else if (name == "style")
+                    {
+                        AddStyleUrls(attr.Value, urls, seen);
+                    }
+                    else if (name == "alt" && attr.Value.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Some sites put URLs in alt attributes
+                        AddIfValidUrl(attr.Value, urls, seen);
+                    }
+                }
+            }
         }
 
         return urls;
