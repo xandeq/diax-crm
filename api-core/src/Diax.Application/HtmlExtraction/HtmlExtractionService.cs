@@ -199,9 +199,24 @@ public class HtmlExtractionService : IApplicationService
             return;
         }
 
+        if (value.Contains('#'))
+        {
+            return;
+        }
+
         if (value.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
             || value.StartsWith("vbscript:", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!IsValidUrlFormat(value))
+        {
+            return;
+        }
+
+        if (IsBlockedHost(value))
         {
             return;
         }
@@ -210,5 +225,34 @@ public class HtmlExtractionService : IApplicationService
         {
             urls.Add(value);
         }
+    }
+
+    private static bool IsValidUrlFormat(string value)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out var absoluteUri))
+        {
+            return absoluteUri.Scheme is "http" or "https";
+        }
+
+        if (Uri.TryCreate(value, UriKind.Relative, out _))
+        {
+            return value.StartsWith("/", StringComparison.Ordinal)
+                || value.StartsWith("./", StringComparison.Ordinal)
+                || value.StartsWith("../", StringComparison.Ordinal);
+        }
+
+        return false;
+    }
+
+    private static bool IsBlockedHost(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var absoluteUri))
+        {
+            return false;
+        }
+
+        var host = absoluteUri.Host;
+        return host.Equals("google.com", StringComparison.OrdinalIgnoreCase)
+            || host.Equals("www.google.com", StringComparison.OrdinalIgnoreCase);
     }
 }
