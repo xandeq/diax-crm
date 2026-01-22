@@ -199,7 +199,13 @@ public class HtmlExtractionService : IApplicationService
             return;
         }
 
-        if (value.Contains('#'))
+        var hashIndex = value.IndexOf('#');
+        if (hashIndex >= 0)
+        {
+            value = value[..hashIndex].Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
         {
             return;
         }
