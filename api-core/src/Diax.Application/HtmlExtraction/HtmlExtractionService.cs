@@ -165,7 +165,7 @@ public class HtmlExtractionService : IApplicationService
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
 
-        var nodes = doc.DocumentNode.SelectNodes("//*[@href or @src]");
+        var nodes = doc.DocumentNode.SelectNodes("//*[@href or @src or @xlink:href or @data-href or @data-src or @poster or @srcset or @style]");
         if (nodes == null || nodes.Count == 0)
         {
             return Array.Empty<string>();
@@ -178,9 +178,21 @@ public class HtmlExtractionService : IApplicationService
         {
             var href = node.GetAttributeValue("href", null);
             var src = node.GetAttributeValue("src", null);
+            var xlinkHref = node.GetAttributeValue("xlink:href", null);
+            var dataHref = node.GetAttributeValue("data-href", null);
+            var dataSrc = node.GetAttributeValue("data-src", null);
+            var poster = node.GetAttributeValue("poster", null);
+            var srcset = node.GetAttributeValue("srcset", null);
+            var style = node.GetAttributeValue("style", null);
 
             AddIfValidUrl(href, urls, seen);
             AddIfValidUrl(src, urls, seen);
+            AddIfValidUrl(xlinkHref, urls, seen);
+            AddIfValidUrl(dataHref, urls, seen);
+            AddIfValidUrl(dataSrc, urls, seen);
+            AddIfValidUrl(poster, urls, seen);
+            AddSrcSetUrls(srcset, urls, seen);
+            AddStyleUrls(style, urls, seen);
         }
 
         return urls;
@@ -199,11 +211,7 @@ public class HtmlExtractionService : IApplicationService
             return;
         }
 
-        var hashIndex = value.IndexOf('#');
-        if (hashIndex >= 0)
-        {
-            value = value[..hashIndex].Trim();
-        }
+        value = NormalizeUrlValue(value);
 
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -235,6 +243,11 @@ public class HtmlExtractionService : IApplicationService
 
     private static bool IsValidUrlFormat(string value)
     {
+        if (value.StartsWith("//", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
         if (Uri.TryCreate(value, UriKind.Absolute, out var absoluteUri))
         {
             return absoluteUri.Scheme is "http" or "https";
@@ -252,6 +265,11 @@ public class HtmlExtractionService : IApplicationService
 
     private static bool IsBlockedHost(string value)
     {
+        if (value.StartsWith("//", StringComparison.Ordinal))
+        {
+            value = "https:" + value;
+        }
+
         if (!Uri.TryCreate(value, UriKind.Absolute, out var absoluteUri))
         {
             return false;
@@ -260,5 +278,58 @@ public class HtmlExtractionService : IApplicationService
         var host = absoluteUri.Host;
         return host.Equals("google.com", StringComparison.OrdinalIgnoreCase)
             || host.Equals("www.google.com", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeUrlValue(string value)
+    {
+        var hashIndex = value.IndexOf('#');
+        if (hashIndex >= 0)
+        {
+            value = value[..hashIndex];
+        }
+
+        return value.Trim();
+    }
+
+    private static void AddSrcSetUrls(string? srcset, ICollection<string> urls, ISet<string> seen)
+    {
+        if (string.IsNullOrWhiteSpace(srcset))
+        {
+            return;
+        }
+
+        var parts = srcset.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+        {
+            var candidate = part.Trim();
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                continue;
+            }
+
+            var spaceIndex = candidate.IndexOf(' ');
+            var url = spaceIndex > 0 ? candidate[..spaceIndex] : candidate;
+            AddIfValidUrl(url, urls, seen);
+        }
+    }
+
+    private static void AddStyleUrls(string? style, ICollection<string> urls, ISet<string> seen)
+    {
+        if (string.IsNullOrWhiteSpace(style))
+        {
+            return;
+        }
+
+        var matches = System.Text.RegularExpressions.Regex.Matches(style, "url\\(([^)]+)\\)");
+        foreach (System.Text.RegularExpressions.Match match in matches)
+        {
+            if (match.Groups.Count < 2)
+            {
+                continue;
+            }
+
+            var raw = match.Groups[1].Value.Trim().Trim('"', '\'');
+            AddIfValidUrl(raw, urls, seen);
+        }
     }
 }
