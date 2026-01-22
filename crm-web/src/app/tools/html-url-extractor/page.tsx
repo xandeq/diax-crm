@@ -15,6 +15,11 @@ export default function HtmlUrlExtractorPage() {
   const [copied, setCopied] = useState(false);
 
   const urlsText = useMemo(() => extractedUrls.join('\n'), [extractedUrls]);
+  const placeholder = `Cole seu HTML aqui...
+
+Exemplo:
+<a href="https://example.com">link</a>
+<img src="/assets/img.png" />`;
 
   const handleExtract = async () => {
     if (!htmlInput.trim()) {
@@ -87,7 +92,7 @@ export default function HtmlUrlExtractorPage() {
             <textarea
               value={htmlInput}
               onChange={(e) => setHtmlInput(e.target.value)}
-              placeholder="Cole seu HTML aqui...&#10;&#10;Exemplo:&#10;&lt;a href=\"https://example.com\"&gt;link&lt;/a&gt;&#10;&lt;img src=\"/assets/img.png\" /&gt;"
+              placeholder={placeholder}
               className="w-full min-h-[400px] p-4 font-mono text-sm rounded-lg border border-input bg-background resize-y focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               disabled={isLoading}
             />
