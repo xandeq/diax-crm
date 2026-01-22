@@ -48,14 +48,14 @@ export function Header() {
               className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
               role="menuitem"
             >
-              Html Text Extractor
+              Extrator de Texto (HTML → Texto)
             </Link>
             <Link
               href="/tools/html-url-extractor"
               className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
               role="menuitem"
             >
-              Html URL Extractor
+              Extrator de URLs (HTML → Links)
             </Link>
             {isAuthenticated && (
               <Link
