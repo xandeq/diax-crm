@@ -165,8 +165,8 @@ public class HtmlExtractionService : IApplicationService
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
 
-        var attributes = doc.DocumentNode.SelectNodes("//@href | //@src");
-        if (attributes == null || attributes.Count == 0)
+        var nodes = doc.DocumentNode.SelectNodes("//*[@href or @src]");
+        if (nodes == null || nodes.Count == 0)
         {
             return Array.Empty<string>();
         }
@@ -174,27 +174,41 @@ public class HtmlExtractionService : IApplicationService
         var urls = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var attribute in attributes)
+        foreach (var node in nodes)
         {
-            var value = HtmlEntity.DeEntitize(attribute.Value).Trim();
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                continue;
-            }
+            var href = node.GetAttributeValue("href", null);
+            var src = node.GetAttributeValue("src", null);
 
-            if (value.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase)
-                || value.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
-                || value.StartsWith("vbscript:", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (seen.Add(value))
-            {
-                urls.Add(value);
-            }
+            AddIfValidUrl(href, urls, seen);
+            AddIfValidUrl(src, urls, seen);
         }
 
         return urls;
+    }
+
+    private static void AddIfValidUrl(string? rawValue, ICollection<string> urls, ISet<string> seen)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return;
+        }
+
+        var value = HtmlEntity.DeEntitize(rawValue).Trim();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        if (value.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("vbscript:", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (seen.Add(value))
+        {
+            urls.Add(value);
+        }
     }
 }
