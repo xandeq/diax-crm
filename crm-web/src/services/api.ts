@@ -44,7 +44,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   let res: Response;
-  
+
   try {
     res = await fetch(url, {
       ...init,
@@ -55,7 +55,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     // Network-level failure (CORS, connection refused, DNS failure, etc.)
     const message = error instanceof Error ? error.message : 'Network error';
     console.error('Network request failed:', error);
-    
+
     // Provide user-friendly error message
     if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
       throw new ApiError(0, 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente.');
@@ -64,6 +64,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   }
 
   if (!res.ok) {
+    // Intercept 401 Unauthorized globally
+    if (res.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+    }
+
     let text = '';
     try {
       text = await res.text();

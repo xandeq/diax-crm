@@ -2,7 +2,7 @@ import { apiFetch } from './api';
 
 export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek';
 
-export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot' | 'cod' | 'tag' | 'bab' | 'create' | 'fsp' | 'sref';
+export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot' | 'cod' | 'tag' | 'bab' | 'create' | 'fsp' | 'sref' | 'deep_research';
 
 export interface PromptTypeOption {
   value: PromptType;
@@ -167,6 +167,14 @@ export const promptTypeOptions: PromptTypeOption[] = [
     whatIs: 'Técnica de controle de qualidade onde a IA gera uma resposta inicial, critica a própria resposta e produz versão refinada. Reduz erros, alucinações e problemas de tom.',
     whenToUse: 'Respostas a reclamações sensíveis, comunicação com clientes VIP, mensagens de crise ou conflito, quando precisa máxima segurança e empatia.',
     example: 'Escreva resposta para esta reclamação. Critique sua resposta buscando tom defensivo ou falta de empatia. Reescreva a versão final corrigida.'
+  },
+  {
+    value: 'deep_research',
+    label: 'Deep Research - Pesquisa Profunda',
+    description: 'Transforma ideias em prompts complexos para investigação multi-etapas e síntese de fontes.',
+    whatIs: 'Meta-prompt que cria um plano de investigação estruturado, orientando a IA a planejar a pesquisa, buscar em múltiplas fontes, comparar perspectivas e sintetizar resultados com citações.',
+    whenToUse: 'Análises de mercado complexas, investigação de tecnologias emergentes, comparação de frameworks, estudos setoriais ou quando precisa de profundidade e validação de fontes.',
+    example: 'Quero pesquisar os impactos reais da IA generativa na produtividade do setor jurídico nos últimos 2 anos.'
   },
 ];
 

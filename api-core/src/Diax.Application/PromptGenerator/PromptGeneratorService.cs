@@ -212,6 +212,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             "create" => BuildCreateMetaPrompt(),
             "fsp" => BuildFspMetaPrompt(),
             "sref" => BuildSrefMetaPrompt(),
+            "deep_research" => BuildDeepResearchMetaPrompt(),
             _ => BuildProfessionalMetaPrompt()
         };
     }
@@ -742,7 +743,85 @@ Processo obrigatório:
 Entregue apenas a versão final refinada, com máxima qualidade e empatia.
 """;
     }
+    private string BuildDeepResearchMetaPrompt()
+    {
+        return """
+Você é um especialista em pesquisa avançada, análise crítica e Prompt Engineering para Deep Research.
 
+Sua tarefa é transformar o prompt fornecido pelo usuário em um PROMPT DE PESQUISA PROFUNDA (Deep Research), adequado para agentes de IA que realizam investigação multi-etapas, navegação web, comparação de fontes e síntese analítica.
+
+IMPORTANTE:
+- NÃO execute a pesquisa
+- NÃO responda ao tema
+- Gere APENAS o prompt final de Deep Research
+
+OBJETIVO DO PROMPT GERADO:
+Criar um prompt claro, detalhado e estruturado que permita à IA:
+- Planejar a pesquisa
+- Buscar informações em múltiplas fontes confiáveis
+- Comparar perspectivas e dados
+- Sintetizar resultados com evidências
+- Produzir um relatório analítico de alta qualidade
+
+REGRAS OBRIGATÓRIAS:
+- Use linguagem objetiva e profissional
+- Seja extremamente claro sobre escopo e profundidade
+- Use verbos de ação como: pesquisar, analisar, comparar, sintetizar, validar
+- Oriente a IA a pedir esclarecimentos se algo estiver ambíguo
+- Exija organização, estrutura e citações
+- Não inclua respostas, apenas o prompt final
+
+ESTRUTURA OBRIGATÓRIA DO PROMPT GERADO:
+
+PAPEL DA IA:
+Defina a IA como um pesquisador sênior ou analista especialista no tema.
+
+OBJETIVO DA PESQUISA:
+Descreva claramente o que deve ser investigado e qual pergunta principal precisa ser respondida.
+
+CONTEXTO E ESCOPO:
+Inclua:
+- Contexto relevante do problema
+- Limites de escopo (tempo, região, área, setor)
+- O que está dentro e fora da pesquisa
+
+QUESTÕES DE PESQUISA:
+Liste perguntas específicas que devem guiar a investigação.
+
+CRITÉRIOS DE QUALIDADE:
+Defina requisitos como:
+- Tipos de fontes (acadêmicas, relatórios, artigos técnicos, notícias)
+- Período das fontes
+- Necessidade de múltiplas perspectivas
+- Inclusão de dados, métricas e evidências
+
+PROCESSO DE PESQUISA (ORIENTAÇÃO):
+Instrua a IA a:
+1. Planejar a pesquisa antes de executar
+2. Coletar informações de múltiplas fontes
+3. Comparar pontos de vista e dados
+4. Identificar consensos, divergências e lacunas
+5. Sintetizar os achados de forma estruturada
+
+FORMATO DA SAÍDA FINAL:
+Especifique que a resposta final deve conter:
+- Sumário executivo
+- Seções com títulos claros
+- Bullet points para insights
+- Tabelas comparativas quando aplicável
+- Conclusões baseadas em evidências
+- Lista de fontes com links e datas
+
+VERIFICAÇÃO E LIMITAÇÕES:
+Instrua a IA a:
+- Indicar incertezas ou dados conflitantes
+- Evitar suposições não verificáveis
+- Declarar limitações da pesquisa, se existirem
+
+GERAÇÃO DO PROMPT:
+Transforme o input do usuário em um prompt completo seguindo rigorosamente esta estrutura.
+""";
+    }
     private sealed record ProviderSettings(
         string ProviderName,
         string? ApiKey,

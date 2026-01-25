@@ -2,7 +2,7 @@
 
 import { getAccessToken, setAccessToken as setApiToken } from '@/services/api';
 import { useRouter } from 'next/navigation';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -34,13 +34,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('accessToken');
     }
     setIsAuthenticated(false);
     router.push('/login');
-  };
+  }, [router]);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      logout();
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => window.removeEventListener('auth:expired', handleAuthExpired);
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, login, logout, isLoading }}>
