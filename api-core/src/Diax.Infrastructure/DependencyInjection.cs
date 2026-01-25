@@ -153,8 +153,13 @@ public static class DependencyInjection
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
         services.AddScoped<IAccountTransferRepository, AccountTransferRepository>();
+        services.AddScoped<IStatementImportRepository, StatementImportRepository>();
+        services.AddScoped<IImportedTransactionRepository, ImportedTransactionRepository>();
         services.AddScoped<IAppLogRepository, AppLogRepository>();
         services.AddScoped<ISnippetRepository, SnippetRepository>();
+
+        // ===== PARSERS =====
+        services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();
 
         return services;
     }

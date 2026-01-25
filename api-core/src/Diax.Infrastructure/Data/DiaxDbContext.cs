@@ -1,6 +1,7 @@
 using Diax.Domain.Common;
 using Diax.Domain.Auth;
 using Diax.Domain.Customers;
+using Diax.Domain.Finance;
 using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
 using Microsoft.EntityFrameworkCore;
@@ -42,15 +43,17 @@ public class DiaxDbContext : DbContext
     // ===== DbSets =====
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
-    public DbSet<Diax.Domain.Finance.Income> Incomes => Set<Diax.Domain.Finance.Income>();
-    public DbSet<Diax.Domain.Finance.IncomeCategory> IncomeCategories => Set<Diax.Domain.Finance.IncomeCategory>();
-    public DbSet<Diax.Domain.Finance.Expense> Expenses => Set<Diax.Domain.Finance.Expense>();
-    public DbSet<Diax.Domain.Finance.ExpenseCategory> ExpenseCategories => Set<Diax.Domain.Finance.ExpenseCategory>();
-    public DbSet<Diax.Domain.Finance.CreditCard> CreditCards => Set<Diax.Domain.Finance.CreditCard>();
-    public DbSet<Diax.Domain.Finance.CreditCardGroup> CreditCardGroups => Set<Diax.Domain.Finance.CreditCardGroup>();
-    public DbSet<Diax.Domain.Finance.FinancialAccount> FinancialAccounts => Set<Diax.Domain.Finance.FinancialAccount>();
-    public DbSet<Diax.Domain.Finance.CreditCardInvoice> CreditCardInvoices => Set<Diax.Domain.Finance.CreditCardInvoice>();
-    public DbSet<Diax.Domain.Finance.AccountTransfer> AccountTransfers => Set<Diax.Domain.Finance.AccountTransfer>();
+    public DbSet<Income> Incomes => Set<Income>();
+    public DbSet<IncomeCategory> IncomeCategories => Set<IncomeCategory>();
+    public DbSet<Expense> Expenses => Set<Expense>();
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+    public DbSet<CreditCard> CreditCards => Set<CreditCard>();
+    public DbSet<CreditCardGroup> CreditCardGroups => Set<CreditCardGroup>();
+    public DbSet<FinancialAccount> FinancialAccounts => Set<FinancialAccount>();
+    public DbSet<CreditCardInvoice> CreditCardInvoices => Set<CreditCardInvoice>();
+    public DbSet<AccountTransfer> AccountTransfers => Set<AccountTransfer>();
+    public DbSet<StatementImport> StatementImports => Set<StatementImport>();
+    public DbSet<ImportedTransaction> ImportedTransactions => Set<ImportedTransaction>();
     public DbSet<AppLog> AppLogs => Set<AppLog>();
     public DbSet<Snippet> Snippets => Set<Snippet>();
 
