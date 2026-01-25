@@ -9,11 +9,6 @@ import { useEffect, useState } from "react";
 import { ImportedTransactionsTable } from "../components/ImportedTransactionsTable";
 import { ImportStatusBadge } from "../components/ImportStatusBadge";
 
-// Required for static export with dynamic routes
-export function generateStaticParams() {
-  return [];
-}
-
 interface PageProps {
   params: { id: string };
 }
