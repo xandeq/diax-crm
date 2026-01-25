@@ -79,7 +79,7 @@ export function StatementImportTable({ imports, isLoading }: StatementImportTabl
               </TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/finance/imports/${item.id}`}>
+                  <Link href={`/finance/imports/detail?id=${item.id}`}>
                     <ExternalLink className="h-4 w-4" />
                   </Link>
                 </Button>

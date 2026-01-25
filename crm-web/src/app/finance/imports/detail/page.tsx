@@ -5,13 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { financeService, StatementImportDetail } from "@/services/finance";
 import { ArrowLeft, Calendar, CreditCard, FileText, Landmark } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
 import { ImportedTransactionsTable } from "../components/ImportedTransactionsTable";
 import { ImportStatusBadge } from "../components/ImportStatusBadge";
-
-interface PageProps {
-  params: { id: string };
-}
 
 const formatDate = (dateString: string) => {
   return new Intl.DateTimeFormat('pt-BR', {
@@ -28,12 +25,19 @@ const formatTime = (dateString: string) => {
   }).format(new Date(dateString));
 };
 
-export default function ImportDetailPage({ params }: PageProps) {
-  const { id } = params;
+function ImportDetailContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  
   const [detail, setDetail] = useState<StatementImportDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!id) {
+        setIsLoading(false);
+        return;
+    }
+
     const loadDetail = async () => {
       try {
         const data = await financeService.getStatementImportById(id);
@@ -55,7 +59,7 @@ export default function ImportDetailPage({ params }: PageProps) {
     );
   }
 
-  if (!detail) {
+  if (!id || !detail) {
     return (
       <div className="container mx-auto py-10 text-center">
         <h2 className="text-2xl font-bold">Importação não encontrada</h2>
@@ -149,4 +153,12 @@ export default function ImportDetailPage({ params }: PageProps) {
       </Card>
     </div>
   );
+}
+
+export default function ImportDetailPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <ImportDetailContent />
+        </Suspense>
+    )
 }
