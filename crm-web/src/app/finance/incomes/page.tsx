@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { financeService, Income, PaymentMethod } from '@/services/finance';
+import { formatDisplayDate } from '@/lib/date-utils';
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -108,7 +109,7 @@ export default function IncomesPage() {
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(income.amount)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(income.date).toLocaleDateString('pt-BR')}
+                  {formatDisplayDate(income.date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{income.incomeCategoryName || 'Geral'}</span>

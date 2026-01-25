@@ -17,6 +17,7 @@ import {
   IncomeCategory,
   PaymentMethod
 } from '@/services/finance';
+import { dateToInputString, getTodayInputString } from '@/lib/date-utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -75,7 +76,7 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
     defaultValues: {
       description: initialData?.description || '',
       amount: initialData?.amount || 0,
-      date: initialData?.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: initialData?.date ? dateToInputString(initialData.date) : getTodayInputString(),
       incomeCategoryId: initialData?.incomeCategoryId || '',
       financialAccountId: initialData?.financialAccountId || '',
       paymentMethod: initialData?.paymentMethod ?? PaymentMethod.Pix,
@@ -92,12 +93,14 @@ export function IncomeForm({ initialData, isEditing = false }: IncomeFormProps) 
       if (isEditing && initialData) {
         await financeService.updateIncome(initialData.id, {
             ...data,
+            date: `${data.date}T12:00:00Z`,
             incomeCategoryId: data.incomeCategoryId,
             financialAccountId: data.financialAccountId
         });
       } else {
         await financeService.createIncome({
             ...data,
+            date: `${data.date}T12:00:00Z`,
             incomeCategoryId: data.incomeCategoryId,
             financialAccountId: data.financialAccountId
         });

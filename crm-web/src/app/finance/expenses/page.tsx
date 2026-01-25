@@ -1,6 +1,7 @@
 'use client';
 
 import { Expense, financeService, PaymentMethod } from '@/services/finance';
+import { formatDisplayDate } from '@/lib/date-utils';
 import { Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -71,7 +72,7 @@ export default function ExpensesPage() {
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(expense.amount)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {new Date(expense.date).toLocaleDateString('pt-BR')}
+                  {formatDisplayDate(expense.date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{expense.expenseCategoryName || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{PaymentMethod[expense.paymentMethod]}</td>
