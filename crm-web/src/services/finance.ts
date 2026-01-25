@@ -40,6 +40,27 @@ export enum ExpenseStatus {
     Paid = 2
 }
 
+export enum StatementImportType {
+    Account = 1,
+    CreditCard = 2
+}
+
+export enum ImportStatus {
+    Pending = 1,
+    Validating = 2,
+    Processing = 3,
+    Completed = 4,
+    Failed = 5
+}
+
+export enum ImportedTransactionStatus {
+    Pending = 1,
+    Matched = 2,
+    Created = 3,
+    Ignored = 4,
+    Failed = 5
+}
+
 export interface IncomeCategory {
     id: string;
     name: string;
@@ -323,6 +344,47 @@ export interface UpdateAccountTransferRequest {
     description: string;
 }
 
+export interface StatementImport {
+    id: string;
+    importType: StatementImportType;
+    fileName: string;
+    status: ImportStatus;
+    totalRecords: number;
+    processedRecords: number;
+    failedRecords: number;
+    rowCount?: number; // Legacy/Migration support if needed
+    processedCount?: number;
+    errorMessage?: string;
+    createdAt: string;
+    processedAt?: string;
+    financialAccountName?: string;
+    creditCardGroupName?: string;
+}
+
+export interface ImportedTransaction {
+    id: string;
+    rawDescription: string;
+    amount: number;
+    transactionDate: string;
+    date?: string; // Support for the component I wrote
+    description?: string; // Support for the component I wrote
+    status: ImportedTransactionStatus;
+    matchedExpenseId?: string;
+    createdExpenseId?: string;
+    errorMessage?: string;
+}
+
+export interface StatementImportDetail {
+    summary: StatementImport;
+    transactions: ImportedTransaction[];
+}
+
+export interface UploadStatementRequest {
+    importType: StatementImportType;
+    financialAccountId?: string;
+    creditCardGroupId?: string;
+}
+
 export const financeService = {
     // Income Categories
     getIncomeCategories: async () => {
@@ -604,6 +666,26 @@ export const financeService = {
     deleteAccountTransfer: async (id: string) => {
         return apiFetch<void>(`/accounttransfers/${id}`, {
             method: 'DELETE',
+        });
+    },
+
+    // Statement Imports
+    getStatementImports: async () => {
+        return apiFetch<StatementImport[]>('/StatementImports');
+    },
+    getStatementImportById: async (id: string) => {
+        return apiFetch<StatementImportDetail>(`/StatementImports/${id}`);
+    },
+    uploadStatement: async (data: UploadStatementRequest, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('ImportType', data.importType.toString());
+        if (data.financialAccountId) formData.append('FinancialAccountId', data.financialAccountId);
+        if (data.creditCardGroupId) formData.append('CreditCardGroupId', data.creditCardGroupId);
+
+        return apiFetch<void>('/StatementImports/upload', {
+            method: 'POST',
+            body: formData,
         });
     },
 };

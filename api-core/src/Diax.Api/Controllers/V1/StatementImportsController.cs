@@ -9,6 +9,13 @@ namespace Diax.Api.Controllers.V1;
 [Route("api/v{version:apiVersion}/[controller]")]
 public class StatementImportsController(StatementImportService service) : BaseApiController
 {
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        var result = await service.GetAllAsync(ct);
+        return HandleResult(result);
+    }
+
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload(

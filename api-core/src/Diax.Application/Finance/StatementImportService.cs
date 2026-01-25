@@ -89,6 +89,28 @@ public class StatementImportService
         }
     }
 
+    public async Task<Result<List<StatementImportResponse>>> GetAllAsync(CancellationToken ct = default)
+    {
+        var imports = await _importRepository.GetAllAsync(ct);
+        var response = imports.OrderByDescending(i => i.CreatedAt)
+            .Select(i => new StatementImportResponse(
+                i.Id,
+                i.ImportType,
+                i.FileName,
+                i.Status,
+                i.RowCount,
+                i.ProcessedCount,
+                i.FailedCount,
+                i.ErrorMessage,
+                i.CreatedAt,
+                i.ProcessedAt,
+                i.FinancialAccount?.Name,
+                i.CreditCardGroup?.Name
+            )).ToList();
+
+        return Result<List<StatementImportResponse>>.Success(response);
+    }
+
     public async Task<Result<StatementImportDetailResponse>> GetDetailAsync(Guid id, CancellationToken ct = default)
     {
         var import = await _importRepository.GetByIdAsync(id, ct);

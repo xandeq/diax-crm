@@ -31,6 +31,13 @@ export default function FinancePage() {
           </div>
           <p className="text-gray-600">Gerenciar cartões e faturas</p>
         </Link>
+        <Link href="/finance/imports" className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow border-l-4 border-amber-500">
+          <div className="flex items-center gap-3 mb-2">
+            <FolderOpen className="h-6 w-6 text-amber-600" />
+            <h2 className="text-xl font-semibold text-amber-600">Importação</h2>
+          </div>
+          <p className="text-gray-600">Importar extratos bancários (CSV)</p>
+        </Link>
       </div>
 
       {/* Management Section */}
