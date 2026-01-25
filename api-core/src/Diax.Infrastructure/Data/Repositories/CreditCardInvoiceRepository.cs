@@ -9,7 +9,7 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     {
     }
 
-    public async Task<CreditCardInvoice?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public new async Task<CreditCardInvoice?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbSet
             .Include(i => i.CreditCardGroup)
@@ -19,7 +19,7 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }
 
-    public async Task<List<CreditCardInvoice>> GetAllAsync(CancellationToken cancellationToken = default)
+    public new async Task<List<CreditCardInvoice>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await DbSet
             .Include(i => i.CreditCardGroup)
@@ -90,18 +90,18 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
             .ToListAsync(cancellationToken);
     }
 
-    public async Task AddAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default)
+    public new async Task AddAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default)
     {
         await DbSet.AddAsync(invoice, cancellationToken);
     }
 
-    public Task UpdateAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default)
+    public new Task UpdateAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default)
     {
         DbSet.Update(invoice);
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default)
+    public new Task DeleteAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default)
     {
         DbSet.Remove(invoice);
         return Task.CompletedTask;

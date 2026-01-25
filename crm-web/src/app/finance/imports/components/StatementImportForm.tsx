@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { financeService, StatementImportType, FinancialAccount, CreditCardGroup } from "@/services/finance";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CreditCardGroup, financeService, FinancialAccount, StatementImportType } from "@/services/finance";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 const formSchema = z.object({
   importType: z.string().min(1, "Selecione o tipo de importação"),
@@ -84,13 +84,13 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
         financialAccountId: values.financialAccountId,
         creditCardGroupId: values.creditCardGroupId,
       }, file);
-      
+
       form.reset();
       setFile(null);
       // Reset input file manually
       const fileInput = document.getElementById('statement-file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-      
+
       onSuccess();
     } catch (err: any) {
       setError(err.message || "Erro ao realizar upload do extrato.");
@@ -110,8 +110,8 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="importType">Tipo de Importação</Label>
-              <Select 
-                onValueChange={(value) => form.setValue("importType", value)} 
+              <Select
+                onValueChange={(value) => form.setValue("importType", value)}
                 value={form.watch("importType")}
               >
                 <SelectTrigger>
@@ -127,8 +127,8 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
             {importType === StatementImportType.Account.toString() ? (
               <div className="space-y-2">
                 <Label htmlFor="financialAccountId">Conta Financeira</Label>
-                <Select 
-                  onValueChange={(value) => form.setValue("financialAccountId", value)} 
+                <Select
+                  onValueChange={(value) => form.setValue("financialAccountId", value)}
                   value={form.watch("financialAccountId")}
                 >
                   <SelectTrigger>
@@ -144,8 +144,8 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
             ) : (
               <div className="space-y-2">
                 <Label htmlFor="creditCardGroupId">Grupo de Cartão</Label>
-                <Select 
-                  onValueChange={(value) => form.setValue("creditCardGroupId", value)} 
+                <Select
+                  onValueChange={(value) => form.setValue("creditCardGroupId", value)}
                   value={form.watch("creditCardGroupId")}
                 >
                   <SelectTrigger>
@@ -163,10 +163,10 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="statement-file">Arquivo CSV</Label>
-            <Input 
-              id="statement-file" 
-              type="file" 
-              accept=".csv" 
+            <Input
+              id="statement-file"
+              type="file"
+              accept=".csv"
               onChange={onFileChange}
               className="cursor-pointer"
             />

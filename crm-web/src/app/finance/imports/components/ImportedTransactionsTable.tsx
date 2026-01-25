@@ -2,7 +2,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ImportedTransaction, ImportedTransactionStatus } from "@/services/finance";
-import { CheckCircle2, AlertCircle, HelpCircle, Ban, ArrowRightLeft, PlusCircle } from "lucide-react";
+import { AlertCircle, ArrowRightLeft, Ban, HelpCircle, PlusCircle } from "lucide-react";
 
 interface ImportedTransactionsTableProps {
   transactions: ImportedTransaction[];

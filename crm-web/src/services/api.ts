@@ -38,8 +38,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
 
   const headers = new Headers(init.headers);
-  
-  // Only set Content-Type to application/json if it's not already set 
+
+  // Only set Content-Type to application/json if it's not already set
   // and we are not sending FormData (browser handles FormData boundary automatically)
   if (!headers.has('Content-Type') && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');

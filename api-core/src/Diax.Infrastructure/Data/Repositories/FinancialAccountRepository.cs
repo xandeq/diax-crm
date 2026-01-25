@@ -9,7 +9,7 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
     {
     }
 
-    public async Task<FinancialAccount?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public new async Task<FinancialAccount?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbSet
             .Include(a => a.Incomes)
@@ -17,7 +17,7 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
     }
 
-    public async Task<List<FinancialAccount>> GetAllAsync(CancellationToken cancellationToken = default)
+    public new async Task<List<FinancialAccount>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await DbSet
             .OrderBy(a => a.Name)
@@ -32,18 +32,18 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
             .ToListAsync(cancellationToken);
     }
 
-    public async Task AddAsync(FinancialAccount account, CancellationToken cancellationToken = default)
+    public new async Task AddAsync(FinancialAccount account, CancellationToken cancellationToken = default)
     {
         await DbSet.AddAsync(account, cancellationToken);
     }
 
-    public Task UpdateAsync(FinancialAccount account, CancellationToken cancellationToken = default)
+    public new Task UpdateAsync(FinancialAccount account, CancellationToken cancellationToken = default)
     {
         DbSet.Update(account);
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(FinancialAccount account, CancellationToken cancellationToken = default)
+    public new Task DeleteAsync(FinancialAccount account, CancellationToken cancellationToken = default)
     {
         DbSet.Remove(account);
         return Task.CompletedTask;

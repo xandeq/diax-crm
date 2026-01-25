@@ -26,9 +26,6 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.Property(x => x.PaymentMethod)
             .IsRequired();
 
-        builder.Property(x => x.Category)
-            .HasMaxLength(200);
-
         builder.Property(x => x.ExpenseCategoryId)
             .IsRequired();
 

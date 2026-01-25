@@ -1,11 +1,11 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatementImport, StatementImportType } from "@/services/finance";
-import { ImportStatusBadge } from "./ImportStatusBadge";
-import { Button } from "@/components/ui/button";
 import { ExternalLink, FileText } from "lucide-react";
 import Link from "next/link";
+import { ImportStatusBadge } from "./ImportStatusBadge";
 
 interface StatementImportTableProps {
   imports: StatementImport[];

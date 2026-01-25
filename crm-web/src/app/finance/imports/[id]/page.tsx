@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { financeService, StatementImportDetail } from "@/services/finance";
+import { ArrowLeft, Calendar, CreditCard, FileText, Landmark } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ImportedTransactionsTable } from "../components/ImportedTransactionsTable";
 import { ImportStatusBadge } from "../components/ImportStatusBadge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Calendar, CreditCard, Landmark } from "lucide-react";
-import Link from "next/link";
 
 interface PageProps {
   params: { id: string };
