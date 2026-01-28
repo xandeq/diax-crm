@@ -79,7 +79,7 @@ jobs:
             Write-Host "DNS lookup failed: $($_.Exception.Message)"
           }
 
-          foreach ($port in @(21, 990, 22)) {
+          foreach ($port in @(21, 990, 22, 2222)) {
             $res = Test-NetConnection -ComputerName $env:HOST -Port $port -WarningAction SilentlyContinue
             if ($res.TcpTestSucceeded) {
               Write-Host "OK: TCP $($env:HOST):$port reachable"
@@ -88,14 +88,14 @@ jobs:
             }
           }
 
-      - name: Deploy via FTP
+      - name: Deploy via SFTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           username: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
           password: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
-          protocol: ftp
-          port: 21
+          protocol: sftp
+          port: 22
           timeout: 300000
           local-dir: crm-web/out/
           server-dir: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
