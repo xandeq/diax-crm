@@ -60,4 +60,11 @@ public class StatementImportsController(StatementImportService service) : BaseAp
         var result = await service.PostAsync(id, request, ct);
         return HandleResult(result);
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var result = await service.DeleteAsync(id, ct);
+        return HandleResult(result);
+    }
 }

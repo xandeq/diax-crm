@@ -2,14 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatementImport, StatementImportType } from "@/services/finance";
-import { ExternalLink, FileText } from "lucide-react";
+import { financeService, ImportStatus, StatementImport, StatementImportType } from "@/services/finance";
+import { ExternalLink, FileText, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { ImportStatusBadge } from "./ImportStatusBadge";
 
 interface StatementImportTableProps {
   imports: StatementImport[];
   isLoading: boolean;
+  onDeleteSuccess?: () => void;
 }
 
 const formatDate = (dateString: string) => {
@@ -22,7 +23,18 @@ const formatDate = (dateString: string) => {
   }).format(new Date(dateString));
 };
 
-export function StatementImportTable({ imports, isLoading }: StatementImportTableProps) {
+export function StatementImportTable({ imports, isLoading, onDeleteSuccess }: StatementImportTableProps) {
+  const handleDelete = async (id: string, fileName: string) => {
+    if (!confirm(`Deseja realmente excluir a importação "${fileName}"?`)) return;
+
+    try {
+      await financeService.deleteStatementImport(id);
+      if (onDeleteSuccess) onDeleteSuccess();
+    } catch (error: any) {
+      alert(error.message || "Erro ao excluir importação.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -78,11 +90,22 @@ export function StatementImportTable({ imports, isLoading }: StatementImportTabl
                 <ImportStatusBadge status={item.status} />
               </TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/finance/imports/detail?id=${item.id}`}>
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </Button>
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/finance/imports/detail?id=${item.id}`}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDelete(item.id, item.fileName)}
+                    disabled={item.processedRecords > 0 && item.status === ImportStatus.Completed}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}

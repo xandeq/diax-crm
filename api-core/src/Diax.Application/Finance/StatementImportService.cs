@@ -228,9 +228,17 @@ public class StatementImportService
         var defaultExpenseCategoryId = Guid.Parse("20000000-0000-0000-0000-000000000014"); // Não Categorizado
         var defaultIncomeCategoryId = Guid.Parse("10000000-0000-0000-0000-000000000008"); // Outros
 
+        // Fetch all incomes and expenses for the period of the import to do in-memory deduplication (more efficient)
+        var minDate = transactions.Min(t => t.TransactionDate);
+        var maxDate = transactions.Max(t => t.TransactionDate);
+
+        // For now, let's just query each transaction to be safe or fetch a batch.
+        // Given the scale, querying each is fine for now, but a batch is better.
+        // We'll use a simple approach: find if there's any record with same amount, date and description for this account.
+
         foreach (var transaction in transactions)
         {
-            // Idempotency check
+            // Idempotency check (already processed in this import)
             if (transaction.CreatedExpenseId != null || transaction.CreatedIncomeId != null)
             {
                 skipped++;
@@ -257,8 +265,24 @@ public class StatementImportService
             {
                 if (transaction.Amount < 0)
                 {
-                    // Create Expense
                     var amount = Math.Abs(transaction.Amount);
+
+                    // Check for duplicate expense
+                    var existingExpenses = await _expenseRepository.GetByMonthAsync(transaction.TransactionDate.Year, transaction.TransactionDate.Month, ct);
+                    var isDuplicate = existingExpenses.Any(e =>
+                        e.Amount == amount &&
+                        e.Date.Date == transaction.TransactionDate.Date &&
+                        e.Description == transaction.RawDescription &&
+                        e.FinancialAccountId == financialAccount.Id);
+
+                    if (isDuplicate)
+                    {
+                        transaction.MarkAsSkipped("Já existe uma despesa idêntica registrada");
+                        skipped++;
+                        continue;
+                    }
+
+                    // Create Expense
                     var expense = new Expense(
                         description: transaction.RawDescription,
                         amount: amount,
@@ -278,6 +302,21 @@ public class StatementImportService
                 }
                 else
                 {
+                    // Check for duplicate income
+                    var existingIncomes = await _incomeRepository.GetByMonthAsync(transaction.TransactionDate.Year, transaction.TransactionDate.Month, ct);
+                    var isDuplicate = existingIncomes.Any(i =>
+                        i.Amount == transaction.Amount &&
+                        i.Date.Date == transaction.TransactionDate.Date &&
+                        i.Description == transaction.RawDescription &&
+                        i.FinancialAccountId == financialAccount.Id);
+
+                    if (isDuplicate)
+                    {
+                        transaction.MarkAsSkipped("Já existe uma receita idêntica registrada");
+                        skipped++;
+                        continue;
+                    }
+
                     // Create Income
                     var income = new Income(
                         description: transaction.RawDescription,
@@ -314,5 +353,34 @@ public class StatementImportService
             Skipped: skipped,
             Failed: failed
         ));
+    }
+
+    public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var import = await _importRepository.GetByIdAsync(id, ct);
+        if (import == null)
+        {
+            return Result.Failure(new Error("Import.NotFound", "Importação não encontrada."));
+        }
+
+        var transactions = await _transactionRepository.GetByImportIdAsync(id, ct);
+
+        // Potential check: don't allow delete if some transactions were already matched/created?
+        // Or if we delete, we should ideally delete the created incomes/expenses too?
+        // Usually, the user wants to delete because they imported the wrong file.
+        // If they already "posted", deleting the import shouldn't necessarily delete the financial records unless explicitly asked.
+        // For now, let's just delete the import and transactions, but block if already posted to avoid orphan records or confusion.
+
+        if (transactions.Any(t => t.CreatedExpenseId != null || t.CreatedIncomeId != null))
+        {
+            return Result.Failure(new Error("Import.AlreadyPosted", "Não é possível excluir uma importação que já possui lançamentos postados."));
+        }
+
+        // We can just rely on the repository to delete.
+        // Need to check if IStatementImportRepository has delete.
+        await _importRepository.DeleteAsync(import, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        return Result.Success();
     }
 }

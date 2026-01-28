@@ -716,4 +716,9 @@ export const financeService = {
             body: JSON.stringify(data),
         });
     },
+    deleteStatementImport: async (id: string) => {
+        return apiFetch<void>(`/StatementImports/${id}`, {
+            method: 'DELETE',
+        });
+    },
 };
