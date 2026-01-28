@@ -54,7 +54,7 @@ export default function FinanceImportsPage() {
               <CardDescription>Ultimas importações realizadas no sistema.</CardDescription>
             </CardHeader>
             <CardContent>
-              <StatementImportTable imports={imports} isLoading={isLoading} />
+              <StatementImportTable imports={imports} isLoading={isLoading} onDeleteSuccess={loadImports} />
             </CardContent>
           </Card>
         </div>
