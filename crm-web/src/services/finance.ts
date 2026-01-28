@@ -371,7 +371,24 @@ export interface ImportedTransaction {
     status: ImportedTransactionStatus;
     matchedExpenseId?: string;
     createdExpenseId?: string;
+    createdIncomeId?: string;
     errorMessage?: string;
+}
+
+export interface StatementImportPostPreview {
+    total: number;
+    expensesToCreate: number;
+    incomesToCreate: number;
+    alreadyCreated: number;
+    toIgnore: number;
+    failed: number;
+}
+
+export interface StatementImportPostResponse {
+    createdExpenses: number;
+    createdIncomes: number;
+    skipped: number;
+    failed: number;
 }
 
 export interface StatementImportDetail {
@@ -686,6 +703,15 @@ export const financeService = {
         return apiFetch<void>('/StatementImports/upload', {
             method: 'POST',
             body: formData,
+        });
+    },
+    previewStatementImportPost: async (id: string) => {
+        return apiFetch<StatementImportPostPreview>(`/StatementImports/${id}/preview-post`);
+    },
+    postStatementImport: async (id: string, data: { force: boolean }) => {
+        return apiFetch<StatementImportPostResponse>(`/StatementImports/${id}/post`, {
+            method: 'POST',
+            body: JSON.stringify(data),
         });
     },
 };

@@ -31,5 +31,10 @@ public class ImportedTransactionConfiguration : IEntityTypeConfiguration<Importe
             .WithMany()
             .HasForeignKey(x => x.CreatedExpenseId)
             .OnDelete(DeleteBehavior.NoAction); // Changed from SetNull to avoid cascade path cycles
+
+        builder.HasOne(x => x.CreatedIncome)
+            .WithMany()
+            .HasForeignKey(x => x.CreatedIncomeId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

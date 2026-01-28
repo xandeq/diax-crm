@@ -11,12 +11,14 @@ public class ImportedTransaction : AuditableEntity
     public ImportTransactionStatus Status { get; private set; }
     public Guid? MatchedExpenseId { get; private set; }
     public Guid? CreatedExpenseId { get; private set; }
+    public Guid? CreatedIncomeId { get; private set; }
     public string? ErrorMessage { get; private set; }
 
     // Navigation properties
     public virtual StatementImport StatementImport { get; private set; } = null!;
     public virtual Expense? MatchedExpense { get; private set; }
     public virtual Expense? CreatedExpense { get; private set; }
+    public virtual Income? CreatedIncome { get; private set; }
 
     private ImportedTransaction() { } // EF Core
 
@@ -42,15 +44,20 @@ public class ImportedTransaction : AuditableEntity
         Status = ImportTransactionStatus.Matched;
     }
 
-    public void MarkAsCreated(Guid expenseId)
+    public void MarkAsCreated(Guid? expenseId = null, Guid? incomeId = null)
     {
         CreatedExpenseId = expenseId;
+        CreatedIncomeId = incomeId;
         Status = ImportTransactionStatus.Created;
     }
 
-    public void MarkAsSkipped()
+    public void MarkAsSkipped(string? reason = null)
     {
         Status = ImportTransactionStatus.Skipped;
+        if (!string.IsNullOrEmpty(reason))
+        {
+            ErrorMessage = reason;
+        }
     }
 
     public void MarkAsError(string errorMessage)

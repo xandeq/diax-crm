@@ -31,10 +31,31 @@ public record ImportedTransactionResponse(
     ImportTransactionStatus Status,
     Guid? MatchedExpenseId,
     Guid? CreatedExpenseId,
+    Guid? CreatedIncomeId,
     string? ErrorMessage
 );
 
 public record StatementImportDetailResponse(
     StatementImportResponse Summary,
     IEnumerable<ImportedTransactionResponse> Transactions
+);
+
+public record StatementImportPostPreviewResponse(
+    int Total,
+    int ExpensesToCreate,
+    int IncomesToCreate,
+    int AlreadyCreated,
+    int ToIgnore,
+    int Failed
+);
+
+public record StatementImportPostRequest(
+    bool Force = false
+);
+
+public record StatementImportPostResponse(
+    int CreatedExpenses,
+    int CreatedIncomes,
+    int Skipped,
+    int Failed
 );

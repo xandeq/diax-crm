@@ -2,7 +2,8 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ImportedTransaction, ImportedTransactionStatus } from "@/services/finance";
-import { AlertCircle, ArrowRightLeft, Ban, HelpCircle, PlusCircle } from "lucide-react";
+import { AlertCircle, ArrowRightLeft, Ban, ExternalLink, HelpCircle, PlusCircle } from "lucide-react";
+import Link from "next/link";
 
 interface ImportedTransactionsTableProps {
   transactions: ImportedTransaction[];
@@ -70,6 +71,16 @@ export function ImportedTransactionsTable({ transactions }: ImportedTransactions
                 <div className="flex items-center gap-2">
                   {getStatusIcon(t.status)}
                   <span className="text-xs font-medium">{getStatusLabel(t.status)}</span>
+                  {t.createdExpenseId && (
+                    <Link href={`/finance/expenses/edit/${t.createdExpenseId}`} className="ml-1" title="Ver Despesa">
+                      <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                    </Link>
+                  )}
+                  {t.createdIncomeId && (
+                    <Link href={`/finance/incomes/edit/${t.createdIncomeId}`} className="ml-1" title="Ver Receita">
+                      <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                    </Link>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="text-xs text-rose-500 max-w-[200px] truncate">

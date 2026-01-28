@@ -46,4 +46,18 @@ public class StatementImportsController(StatementImportService service) : BaseAp
         var result = await service.GetDetailAsync(id, ct);
         return HandleResult(result);
     }
+
+    [HttpGet("{id:guid}/preview-post")]
+    public async Task<IActionResult> PreviewPost(Guid id, CancellationToken ct)
+    {
+        var result = await service.PreviewPostAsync(id, ct);
+        return HandleResult(result);
+    }
+
+    [HttpPost("{id:guid}/post")]
+    public async Task<IActionResult> Post(Guid id, [FromBody] StatementImportPostRequest request, CancellationToken ct)
+    {
+        var result = await service.PostAsync(id, request, ct);
+        return HandleResult(result);
+    }
 }
