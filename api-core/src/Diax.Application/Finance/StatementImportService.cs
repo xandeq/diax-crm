@@ -113,7 +113,9 @@ public class StatementImportService
                 i.ErrorMessage,
                 i.CreatedAt,
                 i.ProcessedAt,
+                i.FinancialAccountId,
                 i.FinancialAccount?.Name,
+                i.CreditCardGroupId,
                 i.CreditCardGroup?.Name
             )).ToList();
 
@@ -142,7 +144,9 @@ public class StatementImportService
                 import.ErrorMessage,
                 import.CreatedAt,
                 import.ProcessedAt,
+                import.FinancialAccountId,
                 import.FinancialAccount?.Name,
+                import.CreditCardGroupId,
                 import.CreditCardGroup?.Name
             ),
             transactions.Select(t => new ImportedTransactionResponse(

@@ -3,7 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { financeService, ImportStatus, StatementImportDetail, StatementImportPostPreview } from "@/services/finance";
+import { financeService, ImportStatus, StatementImportDetail, StatementImportPostPreview, StatementImportType } from "@/services/finance";
 import { ArrowLeft, Calendar, CheckCircle2, CreditCard, FileText, Info, Landmark, Loader2, Play } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -176,7 +176,7 @@ function ImportDetailContent() {
         </Card>
       </div>
 
-      {detail.summary.status === ImportStatus.Completed && detail.summary.financialAccountId && (
+      {detail.summary.status === ImportStatus.Completed && detail.summary.financialAccountName && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">

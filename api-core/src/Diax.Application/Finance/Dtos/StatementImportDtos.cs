@@ -19,7 +19,9 @@ public record StatementImportResponse(
     string? ErrorMessage,
     DateTime CreatedAt,
     DateTime? ProcessedAt,
+    Guid? FinancialAccountId,
     string? FinancialAccountName,
+    Guid? CreditCardGroupId,
     string? CreditCardGroupName
 );
 

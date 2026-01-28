@@ -357,7 +357,9 @@ export interface StatementImport {
     errorMessage?: string;
     createdAt: string;
     processedAt?: string;
+    financialAccountId?: string;
     financialAccountName?: string;
+    creditCardGroupId?: string;
     creditCardGroupName?: string;
 }
 
