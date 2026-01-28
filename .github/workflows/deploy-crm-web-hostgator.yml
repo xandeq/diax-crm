@@ -94,8 +94,8 @@ jobs:
           server: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           username: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
           password: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
-          protocol: sftp
-          port: 22
+          protocol: ftp
+          port: 21
           timeout: 300000
           local-dir: crm-web/out/
           server-dir: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
