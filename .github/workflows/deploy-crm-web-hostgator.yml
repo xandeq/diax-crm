@@ -91,8 +91,8 @@ jobs:
       - name: Deploy via SFTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
-          server: ${{ secrets.HOSTGATOR_FTP_SERVER }}
-          username: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
+          server: "ftp.alexandrequeiroz.com.br"
+          username: "crm@alexandrequeiroz.com.br"
           password: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
           protocol: ftp
           port: 21
