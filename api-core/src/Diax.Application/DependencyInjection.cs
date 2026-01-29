@@ -2,6 +2,7 @@ using Diax.Application.Customers;
 using Diax.Application.Finance;
 using Diax.Application.HtmlExtraction;
 using Diax.Application.PromptGenerator;
+using Diax.Application.Ai.HumanizeText;
 using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using FluentValidation;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IAppLogService, AppLogService>();
         services.AddScoped<HtmlExtractionService>();
         services.AddScoped<IPromptGeneratorService, PromptGeneratorService>();
+        services.AddScoped<IHumanizeTextService, HumanizeTextService>();
         services.AddScoped<SnippetService>();
         services.AddScoped<ISnippetService, SnippetService>();
 

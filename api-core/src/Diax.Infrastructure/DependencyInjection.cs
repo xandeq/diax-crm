@@ -6,6 +6,7 @@ using Diax.Domain.Snippets;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Finance;
+using Diax.Infrastructure.Ai;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -160,6 +161,11 @@ public static class DependencyInjection
 
         // ===== PARSERS =====
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();
+
+        // ===== AI CLIENTS =====
+        services.AddScoped<IAiTextTransformClient, ChatGptClient>();
+        services.AddScoped<IAiTextTransformClient, PerplexityClient>();
+        services.AddScoped<IAiTextTransformClient, DeepSeekClient>();
 
         return services;
     }

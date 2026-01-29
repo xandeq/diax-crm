@@ -68,6 +68,13 @@ export function Header() {
                   Gerador de Prompts
                 </Link>
                 <Link
+                  href="/utilities/humanize-text"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Humanizar Texto
+                </Link>
+                <Link
                   href="/utilities/snippets"
                   className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                   role="menuitem"
