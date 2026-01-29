@@ -1,6 +1,6 @@
 using Diax.Application.Common;
 using Diax.Application.PromptGenerator;
-using Diax.Infrastructure.Ai;
+using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.Ai.HumanizeText;

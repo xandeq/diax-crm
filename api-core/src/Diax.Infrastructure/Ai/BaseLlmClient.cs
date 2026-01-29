@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
 
 namespace Diax.Infrastructure.Ai;

@@ -1,4 +1,4 @@
-namespace Diax.Infrastructure.Ai;
+namespace Diax.Shared.Ai;
 
 public record AiClientOptions(
     string ApiKey,
