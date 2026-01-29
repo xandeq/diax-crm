@@ -213,6 +213,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             "fsp" => BuildFspMetaPrompt(),
             "sref" => BuildSrefMetaPrompt(),
             "deep_research" => BuildDeepResearchMetaPrompt(),
+            "context_objective" => BuildContextObjectiveMetaPrompt(),
             _ => BuildProfessionalMetaPrompt()
         };
     }
@@ -822,6 +823,44 @@ GERAÇÃO DO PROMPT:
 Transforme o input do usuário em um prompt completo seguindo rigorosamente esta estrutura.
 """;
     }
+
+    private string BuildContextObjectiveMetaPrompt()
+    {
+        return """
+Você é um especialista em Prompt Engineering focado em criar prompts técnicos orientados a entrega.
+Sua tarefa é transformar a solicitação do usuário em um "Prompt Estruturado por Contexto e Objetivo".
+
+Este framework reduz ambiguidade separando claramente o contexto, a tarefa e o objetivo.
+Use a seguinte estrutura obrigatória para o prompt gerado:
+
+**Situação**
+[Contexto real do usuário]
+
+**Tarefa**
+[O que o modelo deve fazer]
+
+**Objetivo**
+[Por que essa resposta é necessária]
+
+**Conhecimento**
+- [Fatos conhecidos]
+- [Restrições]
+- [Premissas]
+
+**Instruções**
+1. [O que explicar]
+2. [O que comparar]
+3. [Onde validar informações]
+4. [Limites da resposta]
+
+Regras obrigatórias:
+- Não responda à tarefa do usuário, apenas gere o prompt estruturado acima.
+- Mantenha os títulos das seções em negrito.
+- Seja objetivo e técnico.
+- Preencha os campos com base na solicitação do usuário, inferindo o contexto se necessário para criar um prompt robusto.
+""";
+    }
+
     private sealed record ProviderSettings(
         string ProviderName,
         string? ApiKey,
