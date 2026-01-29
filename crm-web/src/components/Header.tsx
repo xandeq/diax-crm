@@ -28,55 +28,56 @@ export function Header() {
       </Link>
       <nav className="flex gap-4 items-center text-sm font-medium text-slate-600">
         <Link href="/" className="hover:text-slate-900">Início</Link>
-        <Link href="/finance" className="hover:text-slate-900">Financeiro</Link>
 
-        <div className="relative group">
-          <button
-            type="button"
-            className="hover:text-slate-900"
-            aria-haspopup="menu"
-            aria-expanded="false"
-          >
-            Utilitários
-          </button>
-          <div
-            role="menu"
-            className="absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
-          >
-            <Link
-              href="/tools/html-extractor"
-              className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-              role="menuitem"
-            >
-              Extrator de Texto (HTML → Texto)
-            </Link>
-            <Link
-              href="/tools/html-url-extractor"
-              className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-              role="menuitem"
-            >
-              Extrator de URLs (HTML → Links)
-            </Link>
-            {isAuthenticated && (
-              <Link
-                href="/utilities/prompt-generator"
-                className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                role="menuitem"
+        {isAuthenticated && (
+          <>
+            <Link href="/finance" className="hover:text-slate-900">Financeiro</Link>
+
+            <div className="relative group">
+              <button
+                type="button"
+                className="hover:text-slate-900"
+                aria-haspopup="menu"
+                aria-expanded="false"
               >
-                Gerador de Prompts
-              </Link>
-            )}
-            {isAuthenticated && (
-              <Link
-                href="/utilities/snippets"
-                className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                role="menuitem"
+                Utilitários
+              </button>
+              <div
+                role="menu"
+                className="absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
               >
-                Snippets
-              </Link>
-            )}
-          </div>
-        </div>
+                <Link
+                  href="/tools/html-extractor"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Extrator de Texto (HTML → Texto)
+                </Link>
+                <Link
+                  href="/tools/html-url-extractor"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Extrator de URLs (HTML → Links)
+                </Link>
+                <Link
+                  href="/utilities/prompt-generator"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Gerador de Prompts
+                </Link>
+                <Link
+                  href="/utilities/snippets"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Snippets
+                </Link>
+              </div>
+            </div>
+          </>
+        )}
 
         {!isAuthenticated && (
           <Link href="/login/" className="hover:text-slate-900">Login</Link>
