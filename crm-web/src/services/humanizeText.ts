@@ -48,7 +48,7 @@ export const humanizeToneOptions: HumanizeToneOption[] = [
 ];
 
 export async function humanizeText(data: HumanizeTextRequest): Promise<HumanizeTextResponse> {
-  return apiFetch<HumanizeTextResponse>('/api/v1/ai/humanize-text', {
+  return apiFetch<HumanizeTextResponse>('/ai/humanize-text', {
     method: 'POST',
     body: JSON.stringify(data),
   });
