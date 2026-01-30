@@ -176,7 +176,7 @@ function ImportDetailContent() {
         </Card>
       </div>
 
-      {detail.summary.status === ImportStatus.Completed && detail.summary.financialAccountName && (
+      {detail.summary.status === ImportStatus.Completed && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
