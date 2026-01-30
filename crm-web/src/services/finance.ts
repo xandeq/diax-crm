@@ -398,6 +398,31 @@ export interface StatementImportDetail {
     transactions: ImportedTransaction[];
 }
 
+export interface PagedResponse<T> {
+    items: T[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+}
+
+export interface FinancialFilters {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    sortBy?: string;
+    sortDescending?: boolean;
+    startDate?: string;
+    endDate?: string;
+    categoryId?: string;
+    financialAccountId?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    status?: number;
+}
+
 export interface UploadStatementRequest {
     importType: StatementImportType;
     financialAccountId?: string;
@@ -462,8 +487,17 @@ export const financeService = {
     },
 
     // Incomes
-    getIncomes: async () => {
-        return apiFetch<Income[]>('/incomes');
+    getIncomes: async (filters?: FinancialFilters) => {
+        const params = new URLSearchParams();
+        if (filters) {
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    params.append(key, value.toString());
+                }
+            });
+        }
+        const query = params.toString();
+        return apiFetch<PagedResponse<Income>>(`/incomes${query ? `?${query}` : ''}`);
     },
     getIncomeById: async (id: string) => {
         return apiFetch<Income>(`/incomes/${id}`);
@@ -490,8 +524,17 @@ export const financeService = {
     },
 
     // Expenses
-    getExpenses: async () => {
-        return apiFetch<Expense[]>('/expenses');
+    getExpenses: async (filters?: FinancialFilters) => {
+        const params = new URLSearchParams();
+        if (filters) {
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    params.append(key, value.toString());
+                }
+            });
+        }
+        const query = params.toString();
+        return apiFetch<PagedResponse<Expense>>(`/expenses${query ? `?${query}` : ''}`);
     },
     getExpenseById: async (id: string) => {
         return apiFetch<Expense>(`/expenses/${id}`);

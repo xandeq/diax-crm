@@ -1,28 +1,34 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { financeService, Income, PaymentMethod } from '@/services/finance';
-import { formatDisplayDate } from '@/lib/date-utils';
-import { Edit, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { financeService, Income, FinancialFilters, IncomeCategory, FinancialAccount, PagedResponse } from '@/services/finance';
+import { formatDisplayDate } from '@/lib/date-utils';
+import { formatCurrency } from '@/lib/utils';
+import { Edit, Plus, Trash2, ArrowUpDown, Receipt } from 'lucide-react';
+import { FinancialGrid } from '@/components/finance/FinancialGrid';
+import { FinancialToolbar } from '@/components/finance/FinancialToolbar';
+import { ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge';
 
 function DeleteModal({ isOpen, onClose, onConfirm, loading }: any) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-        <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar Exclusão</h3>
-        <p className="text-gray-600 mb-6">Tem certeza que deseja excluir esta receita? Esta ação não pode ser desfeita.</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-100">
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmar Exclusão</h3>
+        <p className="text-gray-600 mb-8">Tem certeza que deseja excluir esta receita? Esta ação impactará seu saldo bancário e não pode ser desfeita.</p>
         <div className="flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md">Cancelar</button>
-          <button
+          <Button variant="ghost" onClick={onClose} disabled={loading} className="px-6 rounded-xl">Cancelar</Button>
+          <Button
             onClick={onConfirm}
             disabled={loading}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+            variant="destructive"
+            className="px-6 rounded-xl"
           >
-            {loading ? 'Excluindo...' : 'Excluir'}
-          </button>
+            {loading ? 'Excluindo...' : 'Sim, Excluir'}
+          </Button>
         </div>
       </div>
     </div>
@@ -30,25 +36,40 @@ function DeleteModal({ isOpen, onClose, onConfirm, loading }: any) {
 }
 
 export default function IncomesPage() {
-  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [data, setData] = useState<PagedResponse<Income> | null>(null);
+  const [filters, setFilters] = useState<FinancialFilters>({
+    page: 1,
+    pageSize: 10,
+    sortBy: 'date',
+    sortDescending: true
+  });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<IncomeCategory[]>([]);
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
+  useEffect(() => {
+    Promise.all([
+      financeService.getIncomeCategories(),
+      financeService.getFinancialAccounts()
+    ]).then(([cats, accs]) => {
+      setCategories(cats);
+      setAccounts(accs);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     loadIncomes();
-  }, []);
+  }, [filters]);
 
   const loadIncomes = async () => {
+    setLoading(true);
     try {
-      const data = await financeService.getIncomes();
-      setIncomes(data);
+      const response = await financeService.getIncomes(filters);
+      setData(response);
     } catch (err) {
-      setError('Erro ao carregar receitas');
-      console.error(err);
+      console.error('Erro ao carregar receitas:', err);
     } finally {
       setLoading(false);
     }
@@ -59,8 +80,8 @@ export default function IncomesPage() {
     setIsDeleting(true);
     try {
       await financeService.deleteIncome(deleteId);
-      setIncomes(incomes.filter(i => i.id !== deleteId));
       setDeleteId(null);
+      loadIncomes();
     } catch (err) {
       alert('Erro ao excluir receita.');
     } finally {
@@ -68,11 +89,79 @@ export default function IncomesPage() {
     }
   };
 
-  if (loading) return <div className="p-8">Carregando...</div>;
-  if (error) return <div className="p-8 text-red-600">{error}</div>;
+  const columns = useMemo<ColumnDef<Income>[]>(() => [
+    {
+      accessorKey: 'date',
+      header: () => (
+        <Button
+          variant="ghost"
+          onClick={() => setFilters(f => ({ ...f, sortBy: 'date', sortDescending: f.sortBy === 'date' ? !f.sortDescending : true }))}
+          className="hover:bg-transparent p-0 flex items-center gap-2"
+        >
+          Data
+          <ArrowUpDown className="h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <span className="font-medium text-gray-600">{formatDisplayDate(row.original.date)}</span>,
+    },
+    {
+      accessorKey: 'description',
+      header: 'Descrição',
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900">{row.original.description}</span>
+          <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">{row.original.incomeCategoryName}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'financialAccountName',
+      header: 'Conta',
+      cell: ({ row }) => (
+        <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-700 font-medium rounded-lg">
+          {row.original.financialAccountName}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'amount',
+      header: () => (
+        <Button
+          variant="ghost"
+          onClick={() => setFilters(f => ({ ...f, sortBy: 'amount', sortDescending: f.sortBy === 'amount' ? !f.sortDescending : true }))}
+          className="hover:bg-transparent p-0 flex items-center gap-2"
+        >
+          Valor
+          <ArrowUpDown className="h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <span className="font-bold text-green-600 text-lg">{formatCurrency(row.original.amount)}</span>,
+    },
+    {
+      id: 'actions',
+      header: 'Ações',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2 text-right">
+          <Link href={`/finance/incomes/edit?id=${row.original.id}`}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-lg">
+              <Edit className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+            onClick={() => setDeleteId(row.original.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [filters]);
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-[1600px] mx-auto space-y-8">
       <DeleteModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
@@ -80,69 +169,42 @@ export default function IncomesPage() {
         loading={isDeleting}
       />
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Receitas</h1>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+            <div className="bg-green-100 p-2 rounded-xl">
+              <Receipt className="h-8 w-8 text-green-600" />
+            </div>
+            Receitas
+          </h1>
+          <p className="text-gray-500 mt-1">Gerencie suas entradas e acompanhe seu fluxo de caixa.</p>
+        </div>
+        
         <Link href="/finance/incomes/new">
-            <Button className="bg-green-600 hover:bg-green-700 text-white gap-2">
-                <Plus size={16} /> Nova Receita
-            </Button>
+          <Button className="bg-accent hover:bg-accent-secondary text-white gap-2 px-6 h-12 shadow-md hover:shadow-lg transition-all rounded-xl">
+            <Plus size={20} strokeWidth={3} /> 
+            <span className="font-bold">Nova Receita</span>
+          </Button>
         </Link>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-100">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Descrição</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Valor</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Data</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Categoria</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Método</th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {incomes.map((income) => (
-              <tr key={income.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{income.description}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(income.amount)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDisplayDate(income.date)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{income.incomeCategoryName || 'Geral'}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{PaymentMethod[income.paymentMethod]}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end gap-2">
-                    <Link href={`/finance/incomes/edit?id=${income.id}`}>
-                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="Editar">
-                        <Edit size={18} />
-                      </button>
-                    </Link>
-                    <button
-                      onClick={() => setDeleteId(income.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            <tr className="bg-emerald-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-900">Total</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-700">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalIncome)}
-              </td>
-              <td className="px-6 py-4" colSpan={4}></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <FinancialToolbar 
+        filters={filters}
+        onFilterChange={setFilters}
+        categories={categories}
+        accounts={accounts}
+      />
+
+      <FinancialGrid
+        columns={columns}
+        data={data?.items || []}
+        pageCount={data?.totalPages || 0}
+        page={filters.page || 1}
+        pageSize={filters.pageSize || 10}
+        onPageChange={(page) => setFilters(f => ({ ...f, page }))}
+        onPageSizeChange={(pageSize) => setFilters(f => ({ ...f, pageSize, page: 1 }))}
+        loading={loading}
+      />
     </div>
   );
 }
