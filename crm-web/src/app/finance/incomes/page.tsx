@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { financeService, Income, FinancialFilters, IncomeCategory, FinancialAccount, PagedResponse } from '@/services/finance';
-import { formatDisplayDate } from '@/lib/date-utils';
-import { formatCurrency } from '@/lib/utils';
-import { Edit, Plus, Trash2, ArrowUpDown, Receipt } from 'lucide-react';
 import { FinancialGrid } from '@/components/finance/FinancialGrid';
 import { FinancialToolbar } from '@/components/finance/FinancialToolbar';
-import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatDisplayDate } from '@/lib/date-utils';
+import { formatCurrency } from '@/lib/utils';
+import { financeService, FinancialAccount, FinancialFilters, Income, IncomeCategory, PagedResponse } from '@/services/finance';
+import { ColumnDef } from '@tanstack/react-table';
+import { ArrowUpDown, Edit, Plus, Receipt, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 function DeleteModal({ isOpen, onClose, onConfirm, loading }: any) {
   if (!isOpen) return null;
@@ -147,9 +147,9 @@ export default function IncomesPage() {
               <Edit className="h-4 w-4" />
             </Button>
           </Link>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
             onClick={() => setDeleteId(row.original.id)}
           >
@@ -179,16 +179,16 @@ export default function IncomesPage() {
           </h1>
           <p className="text-gray-500 mt-1">Gerencie suas entradas e acompanhe seu fluxo de caixa.</p>
         </div>
-        
+
         <Link href="/finance/incomes/new">
           <Button className="bg-accent hover:bg-accent-secondary text-white gap-2 px-6 h-12 shadow-md hover:shadow-lg transition-all rounded-xl">
-            <Plus size={20} strokeWidth={3} /> 
+            <Plus size={20} strokeWidth={3} />
             <span className="font-bold">Nova Receita</span>
           </Button>
         </Link>
       </div>
 
-      <FinancialToolbar 
+      <FinancialToolbar
         filters={filters}
         onFilterChange={setFilters}
         categories={categories}

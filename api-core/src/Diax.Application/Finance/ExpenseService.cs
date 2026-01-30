@@ -3,6 +3,7 @@ using Diax.Application.Finance.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.Finance;
 using Diax.Shared.Results;
+using System.Linq.Expressions;
 
 namespace Diax.Application.Finance;
 
