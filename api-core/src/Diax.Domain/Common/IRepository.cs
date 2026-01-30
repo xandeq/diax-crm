@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Diax.Shared.Results;
 
 namespace Diax.Domain.Common;
 
@@ -10,6 +11,12 @@ public interface IRepository<T> where T : Entity
     Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+    Task<PagedResult<T>> GetPagedAsync(
+        int page,
+        int pageSize,
+        Expression<Func<T, bool>>? predicate = null,
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+        CancellationToken cancellationToken = default);
     Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
     Task UpdateAsync(T entity, CancellationToken cancellationToken = default);
     Task DeleteAsync(T entity, CancellationToken cancellationToken = default);

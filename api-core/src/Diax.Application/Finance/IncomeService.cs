@@ -49,6 +49,42 @@ public class IncomeService : IApplicationService
         return Result<IEnumerable<IncomeResponse>>.Success(response);
     }
 
+    public async Task<Result<PagedResult<IncomeResponse>>> GetPagedAsync(IncomePagedRequest request, CancellationToken cancellationToken = default)
+    {
+        Expression<Func<Income, bool>> predicate = i =>
+            (!request.StartDate.HasValue || i.Date >= request.StartDate.Value) &&
+            (!request.EndDate.HasValue || i.Date <= request.EndDate.Value) &&
+            (!request.CategoryId.HasValue || i.IncomeCategoryId == request.CategoryId.Value) &&
+            (!request.FinancialAccountId.HasValue || i.FinancialAccountId == request.FinancialAccountId.Value) &&
+            (!request.MinAmount.HasValue || i.Amount >= request.MinAmount.Value) &&
+            (!request.MaxAmount.HasValue || i.Amount <= request.MaxAmount.Value) &&
+            (string.IsNullOrWhiteSpace(request.Search) || i.Description.Contains(request.Search));
+
+        Func<IQueryable<Income>, IOrderedQueryable<Income>> orderBy = request.SortBy?.ToLower() switch
+        {
+            "date" => q => request.SortDescending ? q.OrderByDescending(i => i.Date) : q.OrderBy(i => i.Date),
+            "amount" => q => request.SortDescending ? q.OrderByDescending(i => i.Amount) : q.OrderBy(i => i.Amount),
+            "description" => q => request.SortDescending ? q.OrderByDescending(i => i.Description) : q.OrderBy(i => i.Description),
+            _ => q => q.OrderByDescending(i => i.Date)
+        };
+
+        var pagedIncomes = await _repository.GetPagedAsync(
+            request.Page,
+            request.PageSize,
+            predicate,
+            orderBy,
+            cancellationToken);
+
+        var responseItems = pagedIncomes.Items.Select(MapToResponse);
+        var response = new PagedResult<IncomeResponse>(
+            responseItems,
+            pagedIncomes.TotalCount,
+            pagedIncomes.Page,
+            pagedIncomes.PageSize);
+
+        return Result<PagedResult<IncomeResponse>>.Success(response);
+    }
+
     public async Task<Result<Guid>> CreateAsync(CreateIncomeRequest request, CancellationToken cancellationToken = default)
     {
         var category = await _categoryRepository.GetByIdAsync(request.IncomeCategoryId, cancellationToken);

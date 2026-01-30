@@ -46,6 +46,43 @@ public class ExpenseService : IApplicationService
         return Result<IEnumerable<ExpenseResponse>>.Success(response);
     }
 
+    public async Task<Result<PagedResult<ExpenseResponse>>> GetPagedAsync(ExpensePagedRequest request, CancellationToken cancellationToken = default)
+    {
+        Expression<Func<Expense, bool>> predicate = e =>
+            (!request.StartDate.HasValue || e.Date >= request.StartDate.Value) &&
+            (!request.EndDate.HasValue || e.Date <= request.EndDate.Value) &&
+            (!request.CategoryId.HasValue || e.ExpenseCategoryId == request.CategoryId.Value) &&
+            (!request.FinancialAccountId.HasValue || e.FinancialAccountId == request.FinancialAccountId.Value) &&
+            (!request.MinAmount.HasValue || e.Amount >= request.MinAmount.Value) &&
+            (!request.MaxAmount.HasValue || e.Amount <= request.MaxAmount.Value) &&
+            (!request.Status.HasValue || e.Status == request.Status.Value) &&
+            (string.IsNullOrWhiteSpace(request.Search) || e.Description.Contains(request.Search));
+
+        Func<IQueryable<Expense>, IOrderedQueryable<Expense>> orderBy = request.SortBy?.ToLower() switch
+        {
+            "date" => q => request.SortDescending ? q.OrderByDescending(e => e.Date) : q.OrderBy(e => e.Date),
+            "amount" => q => request.SortDescending ? q.OrderByDescending(e => e.Amount) : q.OrderBy(e => e.Amount),
+            "description" => q => request.SortDescending ? q.OrderByDescending(e => e.Description) : q.OrderBy(e => e.Description),
+            _ => q => q.OrderByDescending(e => e.Date)
+        };
+
+        var pagedExpenses = await _repository.GetPagedAsync(
+            request.Page,
+            request.PageSize,
+            predicate,
+            orderBy,
+            cancellationToken);
+
+        var responseItems = pagedExpenses.Items.Select(MapToResponse);
+        var response = new PagedResult<ExpenseResponse>(
+            responseItems,
+            pagedExpenses.TotalCount,
+            pagedExpenses.Page,
+            pagedExpenses.PageSize);
+
+        return Result<PagedResult<ExpenseResponse>>.Success(response);
+    }
+
     public async Task<Result<Guid>> CreateAsync(CreateExpenseRequest request, CancellationToken cancellationToken = default)
     {
         // For cash payments, validate account exists and is active

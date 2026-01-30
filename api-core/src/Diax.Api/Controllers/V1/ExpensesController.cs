@@ -21,9 +21,9 @@ public class ExpensesController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll([FromQuery] ExpensePagedRequest request, CancellationToken cancellationToken)
     {
-        var result = await _service.GetAllAsync(cancellationToken);
+        var result = await _service.GetPagedAsync(request, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 
