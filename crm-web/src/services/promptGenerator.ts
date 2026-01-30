@@ -2,7 +2,7 @@ import { apiFetch } from './api';
 
 export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek';
 
-export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot' | 'cod' | 'tag' | 'bab' | 'create' | 'fsp' | 'sref' | 'deep_research';
+export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot' | 'cod' | 'tag' | 'bab' | 'create' | 'fsp' | 'sref' | 'deep_research' | 'context_objective';
 
 export interface PromptTypeOption {
   value: PromptType;
@@ -175,6 +175,14 @@ export const promptTypeOptions: PromptTypeOption[] = [
     whatIs: 'Meta-prompt que cria um plano de investigação estruturado, orientando a IA a planejar a pesquisa, buscar em múltiplas fontes, comparar perspectivas e sintetizar resultados com citações.',
     whenToUse: 'Análises de mercado complexas, investigação de tecnologias emergentes, comparação de frameworks, estudos setoriais ou quando precisa de profundidade e validação de fontes.',
     example: 'Quero pesquisar os impactos reais da IA generativa na produtividade do setor jurídico nos últimos 2 anos.'
+  },
+  {
+    value: 'context_objective',
+    label: 'Contexto e Objetivo (Prompt Estruturado)',
+    description: 'Prompt técnico orientado a entrega que separa claramente situação, tarefa e critérios de sucesso.',
+    whatIs: 'Estrutura baseada em Contextual Prompting e RTG (Role/Task/Goal) para reduzir ambiguidade e orientar a resposta com foco em execução.',
+    whenToUse: 'Ideal para documentação, processos de QA/UX, políticas internas, fluxos operacionais e quando é preciso reduzir o “achismo” do modelo.',
+    example: 'Preciso definir o fluxo de onboarding de novos desenvolvedores, considerando Gitflow e sprints quinzenais.'
   },
 ];
 
