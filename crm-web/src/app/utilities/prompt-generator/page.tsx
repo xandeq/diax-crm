@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { generatePrompt, getPromptModels, PromptGeneratorError, promptTypeOptions, type PromptProvider, type PromptType, type ProviderModels } from '@/services/promptGenerator';
-import { AlertCircle, AlertTriangle, Check, Copy, Loader2, Sparkles } from 'lucide-react';
+import { AlertCircle, Check, Copy, Loader2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -183,13 +183,6 @@ export default function PromptGeneratorPage() {
           </p>
         </div>
       </div>
-
-      {error && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
-        </div>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
