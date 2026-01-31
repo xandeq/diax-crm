@@ -94,9 +94,9 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Gemini prompt generation failed. Provider: {Provider}. Status: {StatusCode}.",
-                settings.ProviderName, (int)response.StatusCode);
-            throw new InvalidOperationException("Falha ao gerar prompt no Gemini. Tente novamente.");
+            _logger.LogWarning("Gemini prompt generation failed. Provider: {Provider}. Status: {StatusCode}. Body: {Body}",
+                settings.ProviderName, (int)response.StatusCode, responseBody);
+            throw new InvalidOperationException($"Erro no Gemini ({(int)response.StatusCode}): {SanitizeError(responseBody)}");
         }
 
         try
@@ -164,9 +164,9 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Prompt generation failed. Provider: {Provider}. Status: {StatusCode}.",
-                settings.ProviderName, (int)response.StatusCode);
-            throw new InvalidOperationException("Falha ao gerar prompt. Tente novamente.");
+            _logger.LogWarning("Prompt generation failed. Provider: {Provider}. Status: {StatusCode}. Body: {Body}",
+                settings.ProviderName, (int)response.StatusCode, responseBody);
+            throw new InvalidOperationException($"Erro no provider {settings.ProviderName} ({(int)response.StatusCode}): {SanitizeError(responseBody)}");
         }
 
         var content = ExtractContent(responseBody);
@@ -186,6 +186,22 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         }
 
         return provider.Trim().ToLowerInvariant();
+    }
+
+    private string SanitizeError(string body)
+    {
+        try 
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var error))
+            {
+                if (error.ValueKind == JsonValueKind.String) return error.GetString() ?? body;
+                if (error.ValueKind == JsonValueKind.Object && error.TryGetProperty("message", out var msg)) return msg.GetString() ?? body;
+            }
+        }
+        catch { /* ignore parse error */ }
+        
+        return body.Length > 200 ? body.Substring(0, 200) + "..." : body;
     }
 
     private string NormalizePromptType(string promptType)

@@ -22,6 +22,23 @@ var builder = WebApplication.CreateBuilder(args);
 // Adiciona variáveis de ambiente com prefixo DIAX_ (opcional, para produção)
 builder.Configuration.AddEnvironmentVariables(prefix: "DIAX_");
 
+var geminiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+if (!string.IsNullOrWhiteSpace(geminiKey))
+{
+    builder.Configuration["PromptGenerator:Gemini:ApiKey"] = geminiKey;
+}
+
+if (!string.IsNullOrWhiteSpace(geminiKey))
+{
+    builder.Configuration["PromptGenerator:Gemini:ApiKey"] = geminiKey;
+}
+
+var openRouterKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+if (!string.IsNullOrWhiteSpace(openRouterKey))
+{
+    builder.Configuration["PromptGenerator:OpenRouter:ApiKey"] = openRouterKey;
+}
+
 // ===== SERILOG =====
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
