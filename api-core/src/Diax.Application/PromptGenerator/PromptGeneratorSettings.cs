@@ -7,6 +7,7 @@ public class PromptGeneratorSettings
     public ProviderConfig Perplexity { get; set; } = new();
     public ProviderConfig DeepSeek { get; set; } = new();
     public ProviderConfig Gemini { get; set; } = new();
+    public ProviderConfig OpenRouter { get; set; } = new();
 }
 
 public class ProviderConfig

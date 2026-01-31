@@ -30,6 +30,16 @@ public static class AiModelCatalog
             new("gemini-1.5-pro", "Gemini 1.5 Pro", "Standard"),
             new("gemini-2.0-flash", "Gemini 2.0 Flash", "Standard"),
             new("gemini-2.0-flash-thinking-preview", "Gemini 2.0 Thinking", "Reasoning")
+        }),
+        new("openrouter", "OpenRouter", new List<AiModelDto>
+        {
+            new("openai/gpt-4o-mini", "GPT-4o Mini", "Standard", true),
+            new("openai/gpt-4o", "GPT-4o", "Standard"),
+            new("mistralai/mistral-large", "Mistral Large", "Standard"),
+            new("google/gemini-flash-1.5", "Gemini 1.5 Flash", "Standard"),
+            new("openai/o1", "o1", "Reasoning"),
+            new("anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet", "Reasoning"),
+            new("deepseek/deepseek-r1", "DeepSeek R1", "Reasoning")
         })
     };
 

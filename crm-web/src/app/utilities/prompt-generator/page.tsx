@@ -14,6 +14,7 @@ const providerOptions: { value: PromptProvider; label: string }[] = [
   { value: 'perplexity', label: 'Perplexity' },
   { value: 'deepseek', label: 'DeepSeek' },
   { value: 'gemini', label: 'Google Gemini' },
+  { value: 'openrouter', label: 'OpenRouter' },
 ];
 
 export default function PromptGeneratorPage() {
@@ -45,7 +46,7 @@ export default function PromptGeneratorPage() {
       const savedProvider = localStorage.getItem('diax_prompt_provider');
       const savedModel = localStorage.getItem('diax_prompt_model');
 
-      if (savedProvider && (savedProvider === 'chatgpt' || savedProvider === 'perplexity' || savedProvider === 'deepseek' || savedProvider === 'gemini')) {
+      if (savedProvider && (savedProvider === 'chatgpt' || savedProvider === 'perplexity' || savedProvider === 'deepseek' || savedProvider === 'gemini' || savedProvider === 'openrouter')) {
         setProvider(savedProvider as PromptProvider);
 
         // Only set model if it exists for this provider

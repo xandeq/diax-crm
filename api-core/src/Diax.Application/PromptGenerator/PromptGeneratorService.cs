@@ -151,6 +151,12 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
 
+        if (settings.ProviderName == "openrouter")
+        {
+            request.Headers.Add("HTTP-Referer", "https://diax.com.br");
+            request.Headers.Add("X-Title", "DIAX CRM");
+        }
+
         using var response = await client.SendAsync(request);
         var responseBody = await response.Content.ReadAsStringAsync();
 
@@ -194,6 +200,11 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     {
         return provider switch
         {
+            "openrouter" => BuildSettings(
+                "openrouter",
+                _settings.OpenRouter,
+                "https://openrouter.ai/api/v1",
+                model),
             "gemini" => BuildSettings(
                 "gemini",
                 _settings.Gemini,
