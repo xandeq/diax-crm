@@ -71,26 +71,26 @@ const AI_PROVIDERS = [
 ];
 
 const PROMPT_TYPES = [
-  { id: 'professional', name: 'Profissional', icon: '👔' },
-  { id: 'pas', name: 'P.A.S. (Problema-Agitação-Solução)', icon: '📢' },
-  { id: 'aida', name: 'A.I.D.A. (Atenção-Interesse-Desejo-Ação)', icon: '📣' },
-  { id: 'fab', name: 'F.A.B. (Features-Advantages-Benefits)', icon: '💎' },
-  { id: 'pear', name: 'P.E.A.R. (Problema-Exemplo-Ação-Resultado)', icon: '🍐' },
-  { id: 'goat', name: 'G.O.A.T. (Greatest of All Time)', icon: '🐐' },
-  { id: 'care', name: 'C.A.R.E. (Contexto-Ação-Resultado-Exemplo)', icon: '❤️' },
-  { id: 'rtf', name: 'R.T.F. (Role-Task-Format)', icon: '📝' },
-  { id: 'risen', name: 'R.I.S.E.N.', icon: '🌄' },
-  { id: 'costar', name: 'C.O.S.T.A.R.', icon: '⭐' },
-  { id: 'cot', name: 'Chain of Thought', icon: '🧠' },
-  { id: 'tot', name: 'Tree of Thoughts', icon: '🌳' },
-  { id: 'cod', name: 'Chain of Density', icon: '⛓️' },
-  { id: 'tag', name: 'T.A.G.', icon: '🏷️' },
-  { id: 'bab', name: 'Before-After-Bridge', icon: '🌉' },
-  { id: 'create', name: 'C.R.E.A.T.E.', icon: '🎨' },
-  { id: 'fsp', name: 'Few-Shot Prompting', icon: '🎯' },
-  { id: 'sref', name: 'Self-Refine', icon: '🔄' },
-  { id: 'deep_research', name: 'Deep Research', icon: '🔍' },
-  { id: 'context_objective', name: 'Contexto e Objetivo', icon: '🎯' }
+  { id: 'professional', name: 'Profissional', description: 'Prompt estruturado para uso corporativo', icon: '👔' },
+  { id: 'pas', name: 'P.A.S.', description: 'Problema → Agitação → Solução', icon: '📢' },
+  { id: 'aida', name: 'A.I.D.A.', description: 'Atenção → Interesse → Desejo → Ação', icon: '📣' },
+  { id: 'fab', name: 'F.A.B.', description: 'Features → Advantages → Benefits', icon: '💎' },
+  { id: 'pear', name: 'P.E.A.R.', description: 'Problema → Exemplo → Ação → Resultado', icon: '🍐' },
+  { id: 'goat', name: 'G.O.A.T.', description: 'Goal → Obstacles → Actions → Timeline', icon: '🐐' },
+  { id: 'care', name: 'C.A.R.E.', description: 'Contexto → Ação → Resultado → Exemplo', icon: '❤️' },
+  { id: 'rtf', name: 'R.T.F.', description: 'Role → Task → Format', icon: '📝' },
+  { id: 'risen', name: 'R.I.S.E.N.', description: 'Role → Instructions → Steps → End goal → Narrowing', icon: '🌄' },
+  { id: 'costar', name: 'C.O.S.T.A.R.', description: 'Context → Objective → Style → Tone → Audience → Response', icon: '⭐' },
+  { id: 'cot', name: 'Chain of Thought', description: 'Raciocínio passo a passo', icon: '🧠' },
+  { id: 'tot', name: 'Tree of Thoughts', description: 'Exploração de múltiplos caminhos de raciocínio', icon: '🌳' },
+  { id: 'cod', name: 'Chain of Density', description: 'Sumarização progressiva e densa', icon: '⛓️' },
+  { id: 'tag', name: 'T.A.G.', description: 'Task → Action → Goal', icon: '🏷️' },
+  { id: 'bab', name: 'Before-After-Bridge', description: 'Situação atual → Situação desejada → Ponte', icon: '🌉' },
+  { id: 'create', name: 'C.R.E.A.T.E.', description: 'Character → Request → Examples → Adjustments → Type → Extras', icon: '🎨' },
+  { id: 'fsp', name: 'Few-Shot Prompting', description: 'Aprendizado por exemplos', icon: '🎯' },
+  { id: 'sref', name: 'Self-Refine', description: 'Auto-refinamento iterativo', icon: '🔄' },
+  { id: 'deep_research', name: 'Deep Research', description: 'Pesquisa profunda e abrangente', icon: '🔍' },
+  { id: 'context_objective', name: 'Contexto e Objetivo', description: 'Contexto claro + objetivo específico', icon: '🎯' }
 ];
 
 export default function PromptGeneratorPage() {
@@ -117,7 +117,7 @@ export default function PromptGeneratorPage() {
         setSelectedModel(provider.models[0].id);
       }
     }
-  }, [selectedProvider, selectedModel]); // Added selectedModel to dependency array to satisfy exhaustive-deps, though logic handles update
+  }, [selectedProvider, selectedModel]);
 
   const handleGenerate = async () => {
     if (!rawPrompt.trim()) {
@@ -230,11 +230,16 @@ export default function PromptGeneratorPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[400px]">
                       {PROMPT_TYPES.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          <span className="mr-2">{type.icon}</span>
-                          {type.name}
+                        <SelectItem key={type.id} value={type.id} className="py-3">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                                <span>{type.icon}</span>
+                                <span className="font-medium">{type.name}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground ml-6">{type.description}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
