@@ -10,66 +10,125 @@ namespace Diax.Api.Controllers.V1;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/prompt-generator")]
-[Produces("application/json")]
 [Authorize]
-public class PromptGeneratorController : BaseApiController
+public class PromptGeneratorController : ControllerBase
 {
-    private readonly IPromptGeneratorService _service;
+    private readonly IPromptGeneratorService _promptGeneratorService;
     private readonly ILogger<PromptGeneratorController> _logger;
 
     public PromptGeneratorController(
-        IPromptGeneratorService service,
+        IPromptGeneratorService promptGeneratorService,
         ILogger<PromptGeneratorController> logger)
     {
-        _service = service;
+        _promptGeneratorService = promptGeneratorService;
         _logger = logger;
     }
 
-    [HttpGet("models")]
-    public IActionResult GetModels()
-    {
-        return Ok(AiModelCatalog.Providers);
-    }
-
     [HttpPost("generate")]
+    [ProducesResponseType(typeof(GeneratePromptResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PromptErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(PromptErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(PromptErrorResponseDto), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> Generate([FromBody] GeneratePromptRequestDto request)
     {
-        _logger.LogInformation("POST /api/v1/prompt-generator/generate - Request received");
+        var correlationId = HttpContext.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
 
-        if (request is null || string.IsNullOrWhiteSpace(request.RawPrompt))
+        if (string.IsNullOrWhiteSpace(request.RawPrompt))
         {
-            return BadRequest(new
+            return BadRequest(new PromptErrorResponseDto
             {
-                Code = "PromptGenerator.Validation",
-                Message = "O prompt não pode ser vazio."
+                Success = false,
+                ErrorCode = "VALIDATION_ERROR",
+                Message = "O prompt não pode estar vazio.",
+                CorrelationId = correlationId
             });
         }
 
-        var provider = string.IsNullOrWhiteSpace(request.Provider) ? "chatgpt" : request.Provider;
-        var promptType = string.IsNullOrWhiteSpace(request.PromptType) ? "professional" : request.PromptType;
-
         try
         {
-            var finalPrompt = await _service.GenerateAsync(request.RawPrompt, provider, promptType, request.Model);
-            return Ok(new GeneratePromptResponseDto(finalPrompt));
+            _logger.LogInformation(
+                "Generate request started. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. CorrelationId: {CorrelationId}",
+                request.Provider ?? "default",
+                request.Model ?? "default",
+                request.PromptType ?? "default",
+                correlationId);
+
+            var result = await _promptGeneratorService.GenerateAsync(
+                request.RawPrompt,
+                request.Provider ?? "chatgpt",
+                request.PromptType ?? "professional",
+                request.Model);
+
+            return Ok(new GeneratePromptResponseDto(result));
         }
-        catch (InvalidOperationException ex)
+        catch (PromptGeneratorException ex)
         {
-            _logger.LogError(ex, "Prompt generation failed for provider {Provider}", provider);
-            return StatusCode(500, new
+            _logger.LogWarning(ex,
+                "Provider error. Provider: {Provider}. StatusCode: {StatusCode}. Message: {Message}. CorrelationId: {CorrelationId}",
+                ex.Provider, ex.StatusCode, ex.ErrorMessage, correlationId);
+
+            var httpStatus = ex.StatusCode switch
             {
-                Code = "PromptGenerator.Failed",
-                Message = "Falha ao gerar prompt. Tente novamente."
+                401 or 403 => StatusCodes.Status502BadGateway,
+                429 => StatusCodes.Status429TooManyRequests,
+                >= 500 => StatusCodes.Status502BadGateway,
+                _ => StatusCodes.Status500InternalServerError
+            };
+
+            return StatusCode(httpStatus, new PromptErrorResponseDto
+            {
+                Success = false,
+                ErrorCode = $"PROVIDER_ERROR_{ex.StatusCode}",
+                Message = ex.GetSafeMessage(),
+                Provider = ex.Provider,
+                CorrelationId = correlationId
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error. CorrelationId: {CorrelationId}", correlationId);
+
+            return BadRequest(new PromptErrorResponseDto
+            {
+                Success = false,
+                ErrorCode = "VALIDATION_ERROR",
+                Message = ex.Message,
+                CorrelationId = correlationId
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("API key"))
+        {
+            _logger.LogError(ex, "Configuration error. CorrelationId: {CorrelationId}", correlationId);
+
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new PromptErrorResponseDto
+            {
+                Success = false,
+                ErrorCode = "CONFIGURATION_ERROR",
+                Message = "Service temporarily unavailable. Please contact support.",
+                CorrelationId = correlationId
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error while generating prompt for provider {Provider}", provider);
-            return StatusCode(500, new
+            _logger.LogError(ex,
+                "Unexpected error generating prompt. CorrelationId: {CorrelationId}",
+                correlationId);
+
+            return StatusCode(StatusCodes.Status500InternalServerError, new PromptErrorResponseDto
             {
-                Code = "PromptGenerator.Unexpected",
-                Message = "Erro inesperado ao gerar prompt."
+                Success = false,
+                ErrorCode = "INTERNAL_ERROR",
+                Message = "Falha ao gerar prompt. Tente novamente.",
+                CorrelationId = correlationId
             });
         }
+    }
+
+    [HttpGet("providers")]
+    [ProducesResponseType(typeof(List<ProviderModelsDto>), StatusCodes.Status200OK)]
+    [AllowAnonymous]
+    public IActionResult GetProviders()
+    {
+        return Ok(AiModelCatalog.Providers);
     }
 }

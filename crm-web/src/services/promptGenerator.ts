@@ -1,4 +1,5 @@
-import { apiFetch } from './api';
+import { isPromptError, PromptErrorResponse } from '@/types/api';
+import { apiFetch, getAccessToken, getApiBaseUrl } from './api';
 
 export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek' | 'gemini' | 'openrouter';
 
@@ -33,8 +34,28 @@ export interface ProviderModels {
   models: AiModel[];
 }
 
-export interface GeneratePromptResponse {
-  finalPrompt: string;
+export class PromptGeneratorError extends Error {
+  constructor(
+    message: string,
+    public readonly errorCode: string,
+    public readonly provider?: string,
+    public readonly correlationId?: string
+  ) {
+    super(message);
+    this.name = 'PromptGeneratorError';
+  }
+
+  isRateLimit(): boolean {
+    return this.errorCode === 'PROVIDER_ERROR_429';
+  }
+
+  isConfiguration(): boolean {
+    return this.errorCode === 'CONFIGURATION_ERROR';
+  }
+
+  isProviderError(): boolean {
+    return this.errorCode.startsWith('PROVIDER_ERROR_');
+  }
 }
 
 export const promptTypeOptions: PromptTypeOption[] = [
@@ -211,17 +232,61 @@ export async function generatePrompt(
   model?: string
 ): Promise<string> {
   const request: GeneratePromptRequest = { rawPrompt, provider, promptType, model };
+  const apiBaseUrl = getApiBaseUrl();
 
-  const response = await apiFetch<GeneratePromptResponse>(
-    '/prompt-generator/generate',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    }
-  );
+  // Log request (sem secrets)
+  console.debug('[PromptGenerator] Request:', {
+    provider: request.provider,
+    model: request.model,
+    promptType: request.promptType,
+    promptLength: request.rawPrompt.length
+  });
 
-  return response.finalPrompt;
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+  });
+
+  const token = getAccessToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const response = await fetch(`${apiBaseUrl}/prompt-generator/generate`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request)
+  });
+
+  const data = await response.json();
+
+  // Log response
+  console.debug('[PromptGenerator] Response:', {
+    status: response.status,
+    ok: response.ok,
+    hasError: isPromptError(data)
+  });
+
+  if (!response.ok || isPromptError(data)) {
+    const error = data as PromptErrorResponse;
+    const errorCode = error.errorCode || 'UNKNOWN_ERROR';
+    const errorMessage = error.message || 'Falha ao gerar prompt. Tente novamente.';
+
+    console.error('[PromptGenerator] Error:', {
+      errorCode: errorCode,
+      message: errorMessage,
+      provider: error.provider,
+      correlationId: error.correlationId,
+      httpStatus: response.status
+    });
+
+    // Lançar erro com mensagem amigável
+    throw new PromptGeneratorError(
+      errorMessage,
+      errorCode,
+      error.provider,
+      error.correlationId
+    );
+  }
+
+  // Se sucesso, mas data pode não ser exatamente PromptSuccessResponse se a API mudar
+  // Aqui assumimos que se não é erro, tem finalPrompt (DTO de sucesso)
+  return (data as any).finalPrompt;
 }

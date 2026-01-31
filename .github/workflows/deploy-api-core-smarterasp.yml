@@ -90,6 +90,8 @@ jobs:
             --arg openaiKey "${{ secrets.OPENAI_API_KEY }}" \
             --arg perplexityKey "${{ secrets.PERPLEXITY_API_KEY }}" \
             --arg deepseekKey "${{ secrets.DEEPSEEK_API_KEY }}" \
+            --arg geminiKey "${{ secrets.GEMINI_API_KEY }}" \
+            --arg openrouterKey "${{ secrets.OPENROUTER_API_KEY }}" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
@@ -117,6 +119,16 @@ jobs:
                   "ApiKey": $deepseekKey,
                   "BaseUrl": "https://api.deepseek.com",
                   "Model": "deepseek-chat"
+                },
+                "Gemini": {
+                  "ApiKey": $geminiKey,
+                  "BaseUrl": "https://generativelanguage.googleapis.com/v1beta",
+                  "Model": "gemini-1.5-flash"
+                },
+                "OpenRouter": {
+                  "ApiKey": $openrouterKey,
+                  "BaseUrl": "https://openrouter.ai/api/v1",
+                  "Model": "openai/gpt-4o-mini"
                 }
               },
               "Cors": {

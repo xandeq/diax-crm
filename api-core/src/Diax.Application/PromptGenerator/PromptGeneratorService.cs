@@ -125,11 +125,24 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     {
         if (string.IsNullOrWhiteSpace(settings.ApiKey))
         {
-            _logger.LogError("API Key missing for provider {Provider}. Check promptGenerator configuration.", settings.ProviderName);
-            throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'.");
+            _logger.LogError(
+                "API Key missing for provider {Provider}. Configured providers: OpenAI={HasOpenAI}, Perplexity={HasPerplexity}, DeepSeek={HasDeepSeek}, Gemini={HasGemini}, OpenRouter={HasOpenRouter}",
+                settings.ProviderName,
+                !string.IsNullOrWhiteSpace(_settings.OpenAI.ApiKey),
+                !string.IsNullOrWhiteSpace(_settings.Perplexity.ApiKey),
+                !string.IsNullOrWhiteSpace(_settings.DeepSeek.ApiKey),
+                !string.IsNullOrWhiteSpace(_settings.Gemini.ApiKey),
+                !string.IsNullOrWhiteSpace(_settings.OpenRouter.ApiKey));
+
+            throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'. Please check environment variables or appsettings.");
         }
 
         var endpoint = BuildEndpoint(settings.BaseUrl);
+
+        _logger.LogDebug(
+            "Preparing request to {Provider}. Endpoint: {Endpoint}. Model: {Model}",
+            settings.ProviderName, endpoint, settings.Model);
+
         var payload = new
         {
             model = settings.Model,
@@ -142,40 +155,152 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         };
 
         var timeoutSeconds = GetTimeoutSeconds();
-        using var client = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(timeoutSeconds)
-        };
-        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
-        };
 
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
-
-        if (settings.ProviderName == "openrouter")
+        try
         {
-            request.Headers.Add("HTTP-Referer", "https://diax.com.br");
-            request.Headers.Add("X-Title", "DIAX CRM");
+            using var client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+            };
+
+            var jsonPayload = JsonSerializer.Serialize(payload);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            {
+                Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
+            };
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
+
+            if (settings.ProviderName == "openrouter")
+            {
+                request.Headers.Add("HTTP-Referer", "https://crm.alexandrequeiroz.com.br");
+                request.Headers.Add("X-Title", "DIAX CRM");
+            }
+
+            _logger.LogDebug(
+                "Sending request to {Provider}. Endpoint: {Endpoint}. PayloadSize: {Size} bytes",
+                settings.ProviderName, endpoint, jsonPayload.Length);
+
+            using var response = await client.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Provider {Provider} returned error. Endpoint: {Endpoint}. Status: {StatusCode}. ResponseBody: {Body}",
+                    settings.ProviderName,
+                    endpoint,
+                    (int)response.StatusCode,
+                    TruncateForLog(responseBody, 1000));
+
+                var errorMessage = ExtractErrorMessage(responseBody, settings.ProviderName);
+                throw new PromptGeneratorException(
+                    settings.ProviderName,
+                    (int)response.StatusCode,
+                    errorMessage,
+                    responseBody);
+            }
+
+            var content = ExtractContent(responseBody);
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                _logger.LogWarning(
+                    "Provider {Provider} returned empty content. ResponseBody: {Body}",
+                    settings.ProviderName,
+                    TruncateForLog(responseBody, 500));
+
+                throw new InvalidOperationException($"Provider '{settings.ProviderName}' returned empty response.");
+            }
+
+            _logger.LogInformation(
+                "Provider {Provider} succeeded. Model: {Model}. ResponseLength: {Length}",
+                settings.ProviderName, settings.Model, content.Length);
+
+            return content.Trim();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex,
+                "HTTP error calling {Provider}. Endpoint: {Endpoint}. Message: {Message}",
+                settings.ProviderName, endpoint, ex.Message);
+
+            throw new PromptGeneratorException(
+                settings.ProviderName,
+                (int?)ex.StatusCode ?? 0,
+                $"Connection error: {ex.Message}",
+                null,
+                ex);
+        }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            _logger.LogError(ex,
+                "Timeout calling {Provider} after {Timeout}s. Endpoint: {Endpoint}",
+                settings.ProviderName, timeoutSeconds, endpoint);
+
+            throw new PromptGeneratorException(
+                settings.ProviderName,
+                408,
+                $"Request timeout after {timeoutSeconds} seconds.",
+                null,
+                ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex,
+                "Request cancelled for {Provider}. Endpoint: {Endpoint}",
+                settings.ProviderName, endpoint);
+
+            throw new PromptGeneratorException(
+                settings.ProviderName,
+                0,
+                "Request was cancelled.",
+                null,
+                ex);
+        }
+    }
+
+    private static string TruncateForLog(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text)) return "[empty]";
+        return text.Length <= maxLength ? text : text.Substring(0, maxLength) + "...[truncated]";
+    }
+
+    private string ExtractErrorMessage(string responseBody, string provider)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            // OpenRouter format
+            if (root.TryGetProperty("error", out var error))
+            {
+                if (error.ValueKind == JsonValueKind.Object)
+                {
+                    if (error.TryGetProperty("message", out var msg))
+                        return msg.GetString() ?? "Unknown error";
+                    if (error.TryGetProperty("code", out var code))
+                        return code.GetString() ?? "Unknown error";
+                }
+                if (error.ValueKind == JsonValueKind.String)
+                    return error.GetString() ?? "Unknown error";
+            }
+
+            // Perplexity/DeepSeek format
+            if (root.TryGetProperty("message", out var message))
+                return message.GetString() ?? "Unknown error";
+
+            // Fallback
+            if (root.TryGetProperty("detail", out var detail))
+                return detail.GetString() ?? "Unknown error";
+        }
+        catch (JsonException)
+        {
+            // Not JSON
         }
 
-        using var response = await client.SendAsync(request);
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("Prompt generation failed. Provider: {Provider}. Status: {StatusCode}. Body: {Body}",
-                settings.ProviderName, (int)response.StatusCode, responseBody);
-            throw new InvalidOperationException($"Erro no provider {settings.ProviderName} ({(int)response.StatusCode}): {SanitizeError(responseBody)}");
-        }
-
-        var content = ExtractContent(responseBody);
-        if (string.IsNullOrWhiteSpace(content))
-        {
-            throw new InvalidOperationException("Resposta inválida do provedor de IA.");
-        }
-
-        return content.Trim();
+        return responseBody.Length > 200 ? responseBody.Substring(0, 200) + "..." : responseBody;
     }
 
     private string NormalizeProvider(string provider)

@@ -4,8 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { generatePrompt, getPromptModels, promptTypeOptions, type PromptProvider, type PromptType, type ProviderModels } from '@/services/promptGenerator';
-import { AlertCircle, Check, Copy, Loader2, Sparkles } from 'lucide-react';
+import { generatePrompt, getPromptModels, PromptGeneratorError, promptTypeOptions, type PromptProvider, type PromptType, type ProviderModels } from '@/services/promptGenerator';
+import { AlertCircle, AlertTriangle, Check, Copy, Loader2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -29,7 +29,11 @@ export default function PromptGeneratorPage() {
   const [promptType, setPromptType] = useState<PromptType>('professional');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{
+    message: string;
+    isRetryable: boolean;
+    correlationId?: string;
+  } | null>(null);
   const [copied, setCopied] = useState(false);
   const [pageReady, setPageReady] = useState(false);
 
@@ -106,7 +110,10 @@ export default function PromptGeneratorPage() {
 
   const handleGenerate = async () => {
     if (!rawPrompt.trim()) {
-      setError('Por favor, descreva o que você precisa no prompt');
+      setError({
+        message: 'Por favor, descreva o que você precisa no prompt',
+        isRetryable: false
+      });
       return;
     }
 
@@ -118,7 +125,18 @@ export default function PromptGeneratorPage() {
       const result = await generatePrompt(rawPrompt, provider, promptType, selectedModel);
       setFinalPrompt(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar prompt');
+      if (err instanceof PromptGeneratorError) {
+        setError({
+          message: err.message,
+          isRetryable: !err.isConfiguration(),
+          correlationId: err.correlationId
+        });
+      } else {
+        setError({
+          message: err instanceof Error ? err.message : 'Erro ao gerar prompt',
+          isRetryable: true
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +150,10 @@ export default function PromptGeneratorPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      setError('Erro ao copiar prompt');
+      setError({
+        message: 'Erro ao copiar prompt',
+        isRetryable: false
+      });
     }
   };
 
@@ -267,6 +288,35 @@ export default function PromptGeneratorPage() {
                   </select>
                 </div>
               </div>
+
+              {error && (
+                <div className="rounded-md bg-red-50 p-4 border border-red-200">
+                  <div className="flex gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-red-800">
+                        {error.message}
+                      </h3>
+                      {error.correlationId && (
+                        <p className="mt-1 text-xs text-red-600 font-mono">
+                          Ref: {error.correlationId}
+                        </p>
+                      )}
+                      {error.isRetryable && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={handleGenerate}
+                            className="text-sm font-medium text-red-800 underline hover:text-red-900"
+                          >
+                            Tentar novamente
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2 justify-end">
                 <Button
