@@ -52,6 +52,10 @@ promptGeneratorSettings.Perplexity.ApiKey ??= builder.Configuration["PERPLEXITY_
     ?? builder.Configuration["Perplexity:ApiKey"];
 promptGeneratorSettings.DeepSeek.ApiKey ??= builder.Configuration["DEEPSEEK_API_KEY"]
     ?? builder.Configuration["DeepSeek:ApiKey"];
+promptGeneratorSettings.Gemini.ApiKey ??= builder.Configuration["GEMINI_API_KEY"]
+    ?? builder.Configuration["Gemini:ApiKey"];
+promptGeneratorSettings.OpenRouter.ApiKey ??= builder.Configuration["OPENROUTER_API_KEY"]
+    ?? builder.Configuration["OpenRouter:ApiKey"];
 
 builder.Services.AddSingleton(promptGeneratorSettings);
 

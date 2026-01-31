@@ -66,7 +66,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         {
             system_instruction = new
             {
-                parts = new { text = metaPrompt }
+                parts = new[] { new { text = metaPrompt } }
             },
             contents = new[]
             {
