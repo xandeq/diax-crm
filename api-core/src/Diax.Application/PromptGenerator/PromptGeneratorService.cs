@@ -1,4 +1,5 @@
 using Diax.Application.Common;
+using Diax.Application.PromptGenerator.Common;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -24,7 +25,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         _settings = settings;
     }
 
-    public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType)
+    public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType, string? model = null)
     {
         if (string.IsNullOrWhiteSpace(rawPrompt))
         {
@@ -33,16 +34,16 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
         var normalizedProvider = NormalizeProvider(provider);
         var normalizedPromptType = NormalizePromptType(promptType);
-        var settings = GetProviderSettings(normalizedProvider);
+        var settings = GetProviderSettings(normalizedProvider, model);
 
-        _logger.LogInformation("Prompt generation started. Provider: {Provider}. PromptType: {PromptType}. RawPromptLength: {Length}",
-            normalizedProvider, normalizedPromptType, rawPrompt.Length);
+        _logger.LogInformation("Prompt generation started. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. RawPromptLength: {Length}",
+            normalizedProvider, settings.Model, normalizedPromptType, rawPrompt.Length);
 
         var metaPrompt = BuildMetaPrompt(normalizedPromptType);
         var finalPrompt = await SendPromptAsync(settings, metaPrompt, rawPrompt);
 
-        _logger.LogInformation("Prompt generation completed. Provider: {Provider}. PromptType: {PromptType}.",
-            normalizedProvider, normalizedPromptType);
+        _logger.LogInformation("Prompt generation completed. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}.",
+            normalizedProvider, settings.Model, normalizedPromptType);
 
         return finalPrompt;
     }
@@ -117,7 +118,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         return promptType.Trim().ToLowerInvariant();
     }
 
-    private ProviderSettings GetProviderSettings(string provider)
+    private ProviderSettings GetProviderSettings(string provider, string? model)
     {
         return provider switch
         {
@@ -125,17 +126,17 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
                 "perplexity",
                 _settings.Perplexity,
                 "https://api.perplexity.ai",
-                "sonar-pro"),
+                model),
             "deepseek" => BuildSettings(
                 "deepseek",
                 _settings.DeepSeek,
                 "https://api.deepseek.com",
-                "deepseek-chat"),
+                model),
             _ => BuildSettings(
                 "chatgpt",
                 _settings.OpenAI,
                 "https://api.openai.com/v1",
-                "gpt-4o-mini")
+                model)
         };
     }
 
@@ -146,10 +147,35 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             : DefaultTimeoutSeconds;
     }
 
-    private ProviderSettings BuildSettings(string providerName, ProviderConfig config, string defaultBaseUrl, string defaultModel)
+    private ProviderSettings BuildSettings(string providerName, ProviderConfig config, string defaultBaseUrl, string? requestedModel)
     {
         var baseUrl = string.IsNullOrWhiteSpace(config.BaseUrl) ? defaultBaseUrl : config.BaseUrl;
-        var model = string.IsNullOrWhiteSpace(config.Model) ? defaultModel : config.Model;
+
+        // Priority:
+        // 1. Requested model from frontend (if valid)
+        // 2. Configured model in appsettings
+        // 3. Catalog default model
+
+        string model;
+        var catalogDefault = AiModelCatalog.GetDefaultModel(providerName);
+
+        if (!string.IsNullOrWhiteSpace(requestedModel))
+        {
+            if (AiModelCatalog.IsModelValid(providerName, requestedModel))
+            {
+                model = requestedModel;
+            }
+            else
+            {
+                _logger.LogWarning("Invalid model '{RequestedModel}' for provider '{Provider}'. Falling back to default.", requestedModel, providerName);
+                model = !string.IsNullOrWhiteSpace(config.Model) ? config.Model : catalogDefault;
+            }
+        }
+        else
+        {
+            model = !string.IsNullOrWhiteSpace(config.Model) ? config.Model : catalogDefault;
+        }
+
         return new ProviderSettings(providerName, config.ApiKey, baseUrl, model);
     }
 

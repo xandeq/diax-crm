@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.PromptGenerator;
+using Diax.Application.PromptGenerator.Common;
 using Diax.Application.PromptGenerator.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,12 @@ public class PromptGeneratorController : BaseApiController
         _logger = logger;
     }
 
+    [HttpGet("models")]
+    public IActionResult GetModels()
+    {
+        return Ok(AiModelCatalog.Providers);
+    }
+
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GeneratePromptRequestDto request)
     {
@@ -43,7 +50,7 @@ public class PromptGeneratorController : BaseApiController
 
         try
         {
-            var finalPrompt = await _service.GenerateAsync(request.RawPrompt, provider, promptType);
+            var finalPrompt = await _service.GenerateAsync(request.RawPrompt, provider, promptType, request.Model);
             return Ok(new GeneratePromptResponseDto(finalPrompt));
         }
         catch (InvalidOperationException ex)

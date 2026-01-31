@@ -16,7 +16,21 @@ export interface PromptTypeOption {
 export interface GeneratePromptRequest {
   rawPrompt: string;
   provider: PromptProvider;
+  model?: string;
   promptType: PromptType;
+}
+
+export interface AiModel {
+  id: string;
+  name: string;
+  category: string;
+  isDefault: boolean;
+}
+
+export interface ProviderModels {
+  providerId: string;
+  providerName: string;
+  models: AiModel[];
 }
 
 export interface GeneratePromptResponse {
@@ -186,8 +200,17 @@ export const promptTypeOptions: PromptTypeOption[] = [
   },
 ];
 
-export async function generatePrompt(rawPrompt: string, provider: PromptProvider, promptType: PromptType): Promise<string> {
-  const request: GeneratePromptRequest = { rawPrompt, provider, promptType };
+export async function getPromptModels(): Promise<ProviderModels[]> {
+  return await apiFetch<ProviderModels[]>('/prompt-generator/models');
+}
+
+export async function generatePrompt(
+  rawPrompt: string,
+  provider: PromptProvider,
+  promptType: PromptType,
+  model?: string
+): Promise<string> {
+  const request: GeneratePromptRequest = { rawPrompt, provider, promptType, model };
 
   const response = await apiFetch<GeneratePromptResponse>(
     '/prompt-generator/generate',
