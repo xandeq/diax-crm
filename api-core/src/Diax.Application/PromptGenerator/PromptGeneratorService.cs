@@ -55,6 +55,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     {
         if (string.IsNullOrWhiteSpace(settings.ApiKey))
         {
+            _logger.LogError("API Key missing (Gemini detected as potentially unconfigured). Check environment variables.");
             throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'.");
         }
 
@@ -124,6 +125,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     {
         if (string.IsNullOrWhiteSpace(settings.ApiKey))
         {
+            _logger.LogError("API Key missing for provider {Provider}. Check promptGenerator configuration.", settings.ProviderName);
             throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'.");
         }
 
