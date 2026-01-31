@@ -190,7 +190,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
     private string SanitizeError(string body)
     {
-        try 
+        try
         {
             using var doc = JsonDocument.Parse(body);
             if (doc.RootElement.TryGetProperty("error", out var error))
@@ -200,7 +200,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             }
         }
         catch { /* ignore parse error */ }
-        
+
         return body.Length > 200 ? body.Substring(0, 200) + "..." : body;
     }
 
