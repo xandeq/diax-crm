@@ -185,7 +185,17 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             return DefaultProvider;
         }
 
-        return provider.Trim().ToLowerInvariant();
+        var normalized = provider.Trim().ToLowerInvariant();
+
+        // Mapear aliases conhecidos para nomes internos
+        return normalized switch
+        {
+            "google_gemini" => "gemini",
+            "google" => "gemini",
+            "openai" => "chatgpt",
+            "gpt" => "chatgpt",
+            _ => normalized
+        };
     }
 
     private string SanitizeError(string body)
