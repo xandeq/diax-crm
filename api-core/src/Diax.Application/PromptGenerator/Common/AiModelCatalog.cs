@@ -23,6 +23,13 @@ public static class AiModelCatalog
             new("sonar-pro", "Sonar Pro", "Standard", true),
             new("sonar-reasoning", "Sonar Reasoning", "Reasoning"),
             new("sonar-reasoning-pro", "Sonar Reasoning Pro", "Reasoning")
+        }),
+        new("gemini", "Google Gemini", new List<AiModelDto>
+        {
+            new("gemini-1.5-flash", "Gemini 1.5 Flash", "Standard", true),
+            new("gemini-1.5-pro", "Gemini 1.5 Pro", "Standard"),
+            new("gemini-2.0-flash", "Gemini 2.0 Flash", "Standard"),
+            new("gemini-2.0-flash-thinking-preview", "Gemini 2.0 Thinking", "Reasoning")
         })
     };
 

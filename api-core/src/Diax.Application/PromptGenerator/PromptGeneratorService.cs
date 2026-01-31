@@ -40,12 +40,84 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             normalizedProvider, settings.Model, normalizedPromptType, rawPrompt.Length);
 
         var metaPrompt = BuildMetaPrompt(normalizedPromptType);
-        var finalPrompt = await SendPromptAsync(settings, metaPrompt, rawPrompt);
+
+        var finalPrompt = normalizedProvider == "gemini"
+            ? await SendGeminiPromptAsync(settings, metaPrompt, rawPrompt)
+            : await SendPromptAsync(settings, metaPrompt, rawPrompt);
 
         _logger.LogInformation("Prompt generation completed. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}.",
             normalizedProvider, settings.Model, normalizedPromptType);
 
         return finalPrompt;
+    }
+
+    private async Task<string> SendGeminiPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
+    {
+        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        {
+            throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'.");
+        }
+
+        // Gemini URL: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={API_KEY}
+        var baseUrl = settings.BaseUrl.TrimEnd('/');
+        var endpoint = $"{baseUrl}/models/{settings.Model}:generateContent?key={settings.ApiKey}";
+
+        var payload = new
+        {
+            system_instruction = new
+            {
+                parts = new { text = metaPrompt }
+            },
+            contents = new[]
+            {
+                new { role = "user", parts = new[] { new { text = rawPrompt } } }
+            },
+            generationConfig = new
+            {
+                temperature = 0.2
+            }
+        };
+
+        var timeoutSeconds = GetTimeoutSeconds();
+        using var client = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(timeoutSeconds)
+        };
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+        };
+
+        using var response = await client.SendAsync(request);
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Gemini prompt generation failed. Provider: {Provider}. Status: {StatusCode}.",
+                settings.ProviderName, (int)response.StatusCode);
+            throw new InvalidOperationException("Falha ao gerar prompt no Gemini. Tente novamente.");
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(responseBody);
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("candidates", out var candidates) && candidates.ValueKind == JsonValueKind.Array && candidates.GetArrayLength() > 0)
+            {
+                var candidate = candidates[0];
+                if (candidate.TryGetProperty("content", out var content) && content.TryGetProperty("parts", out var parts) && parts.ValueKind == JsonValueKind.Array && parts.GetArrayLength() > 0)
+                {
+                    return parts[0].GetProperty("text").GetString() ?? string.Empty;
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Error parsing Gemini response");
+        }
+
+        throw new InvalidOperationException("Resposta inválida do Google Gemini.");
     }
 
     private async Task<string> SendPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
@@ -122,6 +194,11 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     {
         return provider switch
         {
+            "gemini" => BuildSettings(
+                "gemini",
+                _settings.Gemini,
+                "https://generativelanguage.googleapis.com/v1beta",
+                model),
             "perplexity" => BuildSettings(
                 "perplexity",
                 _settings.Perplexity,

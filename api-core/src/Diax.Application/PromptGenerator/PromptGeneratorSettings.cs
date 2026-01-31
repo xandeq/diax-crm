@@ -6,6 +6,7 @@ public class PromptGeneratorSettings
     public ProviderConfig OpenAI { get; set; } = new();
     public ProviderConfig Perplexity { get; set; } = new();
     public ProviderConfig DeepSeek { get; set; } = new();
+    public ProviderConfig Gemini { get; set; } = new();
 }
 
 public class ProviderConfig

@@ -1,6 +1,6 @@
 import { apiFetch } from './api';
 
-export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek';
+export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek' | 'gemini';
 
 export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot' | 'cod' | 'tag' | 'bab' | 'create' | 'fsp' | 'sref' | 'deep_research' | 'context_objective';
 
