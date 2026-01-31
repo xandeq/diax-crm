@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -12,11 +12,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { generatePrompt, PromptGeneratorError, PromptProvider, PromptType } from '@/services/promptGenerator';
+import { generatePrompt, PromptGeneratorError, PromptProvider, PromptType, promptTypeOptions } from '@/services/promptGenerator';
 import {
   AlertCircle,
   Check,
   Copy,
+  LayoutTemplate,
+  Lightbulb,
   RefreshCw,
   Sparkles,
   Wand2
@@ -28,7 +30,9 @@ import { toast } from 'sonner';
 const AI_PROVIDERS = [
   {
     id: 'chatgpt',
-    name: 'ChatGPT (OpenAI)',
+    name: 'ChatGPT',
+    fullName: 'OpenAI ChatGPT',
+    color: 'bg-green-500/10 border-green-500/20 text-green-700',
     models: [
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
       { id: 'gpt-4o', name: 'GPT-4o' },
@@ -37,7 +41,9 @@ const AI_PROVIDERS = [
   },
   {
     id: 'gemini',
-    name: 'Google Gemini',
+    name: 'Gemini',
+    fullName: 'Google Gemini',
+    color: 'bg-blue-500/10 border-blue-500/20 text-blue-700',
     models: [
       { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
       { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' }
@@ -45,7 +51,9 @@ const AI_PROVIDERS = [
   },
   {
     id: 'perplexity',
-    name: 'Perplexity AI',
+    name: 'Perplexity',
+    fullName: 'Perplexity AI',
+    color: 'bg-teal-500/10 border-teal-500/20 text-teal-700',
     models: [
       { id: 'sonar-pro', name: 'Sonar Pro' },
       { id: 'sonar', name: 'Sonar' }
@@ -54,6 +62,8 @@ const AI_PROVIDERS = [
   {
     id: 'deepseek',
     name: 'DeepSeek',
+    fullName: 'DeepSeek',
+    color: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700',
     models: [
       { id: 'deepseek-chat', name: 'DeepSeek Chat (V3)' },
       { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (R1)' }
@@ -62,35 +72,14 @@ const AI_PROVIDERS = [
   {
     id: 'openrouter',
     name: 'OpenRouter',
+    fullName: 'OpenRouter API',
+    color: 'bg-orange-500/10 border-orange-500/20 text-orange-700',
     models: [
       { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini (via OpenRouter)' },
       { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
       { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B' }
     ]
   }
-];
-
-const PROMPT_TYPES = [
-  { id: 'professional', name: 'Profissional', description: 'Prompt estruturado para uso corporativo', icon: '👔' },
-  { id: 'pas', name: 'P.A.S.', description: 'Problema → Agitação → Solução', icon: '📢' },
-  { id: 'aida', name: 'A.I.D.A.', description: 'Atenção → Interesse → Desejo → Ação', icon: '📣' },
-  { id: 'fab', name: 'F.A.B.', description: 'Features → Advantages → Benefits', icon: '💎' },
-  { id: 'pear', name: 'P.E.A.R.', description: 'Problema → Exemplo → Ação → Resultado', icon: '🍐' },
-  { id: 'goat', name: 'G.O.A.T.', description: 'Goal → Obstacles → Actions → Timeline', icon: '🐐' },
-  { id: 'care', name: 'C.A.R.E.', description: 'Contexto → Ação → Resultado → Exemplo', icon: '❤️' },
-  { id: 'rtf', name: 'R.T.F.', description: 'Role → Task → Format', icon: '📝' },
-  { id: 'risen', name: 'R.I.S.E.N.', description: 'Role → Instructions → Steps → End goal → Narrowing', icon: '🌄' },
-  { id: 'costar', name: 'C.O.S.T.A.R.', description: 'Context → Objective → Style → Tone → Audience → Response', icon: '⭐' },
-  { id: 'cot', name: 'Chain of Thought', description: 'Raciocínio passo a passo', icon: '🧠' },
-  { id: 'tot', name: 'Tree of Thoughts', description: 'Exploração de múltiplos caminhos de raciocínio', icon: '🌳' },
-  { id: 'cod', name: 'Chain of Density', description: 'Sumarização progressiva e densa', icon: '⛓️' },
-  { id: 'tag', name: 'T.A.G.', description: 'Task → Action → Goal', icon: '🏷️' },
-  { id: 'bab', name: 'Before-After-Bridge', description: 'Situação atual → Situação desejada → Ponte', icon: '🌉' },
-  { id: 'create', name: 'C.R.E.A.T.E.', description: 'Character → Request → Examples → Adjustments → Type → Extras', icon: '🎨' },
-  { id: 'fsp', name: 'Few-Shot Prompting', description: 'Aprendizado por exemplos', icon: '🎯' },
-  { id: 'sref', name: 'Self-Refine', description: 'Auto-refinamento iterativo', icon: '🔄' },
-  { id: 'deep_research', name: 'Deep Research', description: 'Pesquisa profunda e abrangente', icon: '🔍' },
-  { id: 'context_objective', name: 'Contexto e Objetivo', description: 'Contexto claro + objetivo específico', icon: '🎯' }
 ];
 
 export default function PromptGeneratorPage() {
@@ -106,6 +95,9 @@ export default function PromptGeneratorPage() {
     isRetryable: boolean;
     correlationId?: string;
   } | null>(null);
+
+  // Detalhes da técnica selecionada (Importado do promptGenerator.ts)
+  const selectedTypeDetails = promptTypeOptions.find(t => t.value === selectedPromptType);
 
   // Efeito para atualizar o modelo padrão quando o provider muda
   useEffect(() => {
@@ -147,7 +139,6 @@ export default function PromptGeneratorPage() {
           correlationId: err.correlationId
         });
 
-        // Mantemos toast para feedback visual rápido, mas não bloqueante
         if (!err.isConfiguration()) {
              toast.error(err.message);
         }
@@ -172,44 +163,65 @@ export default function PromptGeneratorPage() {
   };
 
   // Helper para pegar os modelos do provider atual
-  const currentModels = AI_PROVIDERS.find(p => p.id === selectedProvider)?.models || [];
+  const currentProvider = AI_PROVIDERS.find(p => p.id === selectedProvider);
+  const currentModels = currentProvider?.models || [];
 
   return (
-    <div className="container mx-auto py-8 max-w-5xl space-y-8">
+    <div className="container mx-auto py-8 max-w-6xl space-y-8">
+
+      {/* Header */}
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <Wand2 className="h-8 w-8 text-primary" />
           Gerador de Prompts IA
         </h1>
-        <p className="text-muted-foreground">
-          Crie prompts de alta qualidade otimizados para diferentes modelos de IA
+        <p className="text-muted-foreground text-lg">
+          Transforme ideias simples em prompts profissionais usando frameworks comprovados.
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[350px_1fr]">
-        {/* Sidebar de Configuração */}
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Provedor de IA</Label>
-                  <Select value={selectedProvider} onValueChange={(val) => setSelectedProvider(val as PromptProvider)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AI_PROVIDERS.map((provider) => (
-                        <SelectItem key={provider.id} value={provider.id}>
-                          {provider.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* Seleção de Provider (Estilo Tabs/Cards) */}
+      <section className="space-y-3">
+        <Label className="text-base font-semibold">1. Escolha a Inteligência Artificial</Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {AI_PROVIDERS.map((provider) => (
+            <div
+              key={provider.id}
+              onClick={() => setSelectedProvider(provider.id as PromptProvider)}
+              className={`
+                cursor-pointer rounded-xl border p-4 transition-all hover:bg-muted/50 relative overflow-hidden
+                ${selectedProvider === provider.id
+                  ? `ring-2 ring-primary border-transparent bg-primary/5`
+                  : 'border-muted hover:border-primary/50'}
+              `}
+            >
+              <div className="flex flex-col items-center justify-center text-center gap-2 h-full z-10 relative">
+                <span className={`font-semibold ${selectedProvider === provider.id ? 'text-primary' : 'text-foreground'}`}>
+                  {provider.name}
+                </span>
+                {selectedProvider === provider.id && (
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 absolute top-0 right-0 m-2">
+                    Ativo
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        {/* Coluna Esquerda: Configuração e Input (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
+
+          <Card className="border-muted shadow-sm">
+            <CardContent className="p-6 space-y-6">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Seleção de Modelo */}
                 <div className="space-y-2">
-                  <Label>Modelo</Label>
+                  <Label>Modelo ({currentProvider?.name})</Label>
                   <Select value={selectedModel} onValueChange={setSelectedModel}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o modelo" />
@@ -224,22 +236,20 @@ export default function PromptGeneratorPage() {
                   </Select>
                 </div>
 
+                {/* Seleção de Técnica */}
                 <div className="space-y-2">
-                  <Label>Tipo de Prompt</Label>
+                  <Label className="flex items-center gap-2">
+                    <LayoutTemplate className="w-4 h-4" />
+                    Técnica / Framework
+                  </Label>
                   <Select value={selectedPromptType} onValueChange={(val) => setSelectedPromptType(val as PromptType)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="max-h-[400px]">
-                      {PROMPT_TYPES.map((type) => (
-                        <SelectItem key={type.id} value={type.id} className="py-3">
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
-                                <span>{type.icon}</span>
-                                <span className="font-medium">{type.name}</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground ml-6">{type.description}</span>
-                          </div>
+                    <SelectContent className="max-h-[300px]">
+                      {promptTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -247,116 +257,181 @@ export default function PromptGeneratorPage() {
                 </div>
               </div>
 
-              <div className="bg-muted/50 p-4 rounded-lg text-sm space-y-2">
-                <p className="font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-yellow-500" />
-                  Dica Pro
-                </p>
-                <p className="text-muted-foreground">
-                  Modelos diferentes respondem melhor a estruturas diferentes. O sistema adapta automaticamente seu pedido para a "linguagem" do modelo escolhido.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Área Principal */}
-        <div className="space-y-6">
-          <Card className="h-full flex flex-col">
-            <CardContent className="p-6 flex-1 flex flex-col space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="input-prompt">Descreva o que você precisa</Label>
+              {/* Input com Label Dinâmico */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="input-prompt" className="text-base font-medium">
+                      O que você deseja criar?
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                       Use palavras-chave simples
+                    </span>
+                </div>
                 <Textarea
                   id="input-prompt"
                   placeholder="Ex: Preciso de um email de vendas frio para oferecer serviços de marketing digital para dentistas..."
-                  className="min-h-[120px] resize-none text-base"
+                  className="min-h-[160px] resize-none text-base p-4 border-muted focus:border-primary transition-colors"
                   value={rawPrompt}
                   onChange={(e) => setRawPrompt(e.target.value)}
                 />
               </div>
 
-              <div className="flex justify-end">
+              {/* Botão de Ação */}
+              <Button
+                onClick={handleGenerate}
+                disabled={loading || !rawPrompt.trim()}
+                className="w-full h-12 text-lg shadow-md transition-all hover:scale-[1.01]"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-5 w-5 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Gerar Prompt Otimizado
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Área de Erros */}
+          {errorObj && (
+            <div className="flex flex-col gap-2 p-4 rounded-lg bg-red-50 border border-red-200 text-red-900 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="flex-1 text-sm font-medium">
+                  {errorObj.message}
+                </div>
+              </div>
+              {errorObj.isRetryable && (
                 <Button
+                  variant="link"
+                  className="text-red-900 underline h-auto p-0 ml-7 justify-start font-semibold"
                   onClick={handleGenerate}
-                  disabled={loading || !rawPrompt.trim()}
-                  className="w-full md:w-auto"
                 >
-                  {loading ? (
+                  Tentar novamente
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Área de Resultados */}
+          {generatedPrompt && (
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                   <Label className="text-lg font-bold text-primary">Resultado</Label>
+                   <Badge variant="outline" className="text-xs font-normal">
+                      Otimizado para {currentProvider?.name}
+                   </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyToClipboard}
+                  className="h-9 px-3 hover:bg-muted"
+                >
+                  {copied ? (
                     <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Otimizando...
+                      <Check className="mr-2 h-4 w-4 text-green-600" /> <span className="text-green-600">Copiado</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Gerar Prompt Otimizado
+                      <Copy className="mr-2 h-4 w-4" /> Copiar Texto
                     </>
                   )}
                 </Button>
               </div>
+              <div className="relative rounded-lg border bg-muted/30 p-1">
+                <Textarea
+                  readOnly
+                  value={generatedPrompt}
+                  className="min-h-[400px] w-full border-0 bg-transparent p-4 font-mono text-sm leading-relaxed focus-visible:ring-0"
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
-              {errorObj && (
-                <div className="flex flex-col gap-2 p-4 rounded-lg bg-red-50 border border-red-200 text-red-900">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                    <div className="flex-1 text-sm font-medium">
-                      {errorObj.message}
-                    </div>
-                  </div>
-                  {errorObj.correlationId && (
-                    <div className="text-xs text-red-700/80 ml-7">
-                      ID de Suporte: {errorObj.correlationId}
-                    </div>
-                  )}
-                  {errorObj.isRetryable && (
-                    <Button
-                      variant="link"
-                      className="text-red-900 underline h-auto p-0 ml-7 justify-start font-semibold"
-                      onClick={handleGenerate}
-                    >
-                      Tentar novamente
-                    </Button>
-                  )}
-                </div>
-              )}
+        {/* Coluna Direita: Guia Educacional (5 cols) */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="sticky top-6 space-y-6">
 
-              {generatedPrompt && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold text-primary">Resultado Gerado</Label>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className="text-xs font-normal">
-                        {AI_PROVIDERS.find(p => p.id === selectedProvider)?.name}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={copyToClipboard}
-                        className="h-8 px-2"
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="mr-2 h-3 w-3" /> Copiado
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="mr-2 h-3 w-3" /> Copiar
-                          </>
-                        )}
-                      </Button>
+            {/* Card Educacional */}
+            <Card className="border-l-4 border-l-primary shadow-md overflow-hidden bg-gradient-to-br from-card to-secondary/10">
+              <CardHeader className="pb-3 border-b bg-muted/20">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Lightbulb className="h-5 w-5 text-yellow-500" />
+                  Entenda: {selectedTypeDetails?.label || 'Selecione uma técnica'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+
+                {selectedTypeDetails ? (
+                  <>
+                    <div className="space-y-2">
+                      <h4 className="flex items-center gap-2 font-semibold text-primary text-sm uppercase tracking-wide">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        O que é
+                      </h4>
+                      <p className="text-sm text-foreground/80 leading-relaxed">
+                        {selectedTypeDetails.whatIs}
+                      </p>
                     </div>
+
+                    <div className="space-y-2">
+                       <h4 className="flex items-center gap-2 font-semibold text-primary text-sm uppercase tracking-wide">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        Quando usar
+                      </h4>
+                      <p className="text-sm text-foreground/80 leading-relaxed">
+                        {selectedTypeDetails.whenToUse}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-dashed">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-xs uppercase text-muted-foreground">Exemplo Prático</h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs hover:text-primary hover:bg-primary/10"
+                          onClick={() => setRawPrompt(selectedTypeDetails.example)}
+                        >
+                          <Copy className="w-3 h-3 mr-1" />
+                          Usar Exemplo
+                        </Button>
+                      </div>
+                      <div className="bg-muted p-3 rounded-md border text-xs italic text-muted-foreground">
+                        "{selectedTypeDetails.example}"
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Selecione uma técnica para ver os detalhes e exemplos.
                   </div>
-                  <div className="relative">
-                    <Textarea
-                      readOnly
-                      value={generatedPrompt}
-                      className="min-h-[300px] font-mono text-sm bg-muted/30 resize-y"
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Dica Geral */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-100 dark:border-blue-900 text-sm flex gap-3 items-start">
+              <div className="mt-0.5 min-w-fit">
+                 <Sparkles className="h-4 w-4 text-blue-500" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-blue-900 dark:text-blue-100">Como funciona?</p>
+                <p className="text-blue-800/80 dark:text-blue-200/80 leading-relaxed text-xs">
+                  O Gerador pega sua ideia bruta e aplica a estrutura <strong>{selectedTypeDetails?.label.split(' - ')[0]}</strong> para criar um prompt perfeito para o <strong>{currentProvider?.name}</strong>.
+                </p>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
