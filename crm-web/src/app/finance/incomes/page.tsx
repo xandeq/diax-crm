@@ -12,13 +12,16 @@ import { ArrowUpDown, Edit, Plus, Receipt, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-function DeleteModal({ isOpen, onClose, onConfirm, loading }: any) {
+function DeleteModal({ isOpen, onClose, onConfirm, loading, count }: any) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-100">
         <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmar Exclusão</h3>
-        <p className="text-gray-600 mb-8">Tem certeza que deseja excluir esta receita? Esta ação impactará seu saldo bancário e não pode ser desfeita.</p>
+        <p className="text-gray-600 mb-8">
+          Tem certeza que deseja excluir {count > 1 ? `estes ${count} itens` : 'esta receita'}? 
+          Esta ação impactará seu saldo bancário e não pode ser desfeita.
+        </p>
         <div className="flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose} disabled={loading} className="px-6 rounded-xl">Cancelar</Button>
           <Button
@@ -48,6 +51,12 @@ export default function IncomesPage() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const selectedIds = useMemo(() => {
+    return Object.keys(rowSelection).filter(key => rowSelection[key]);
+  }, [rowSelection]);
 
   useEffect(() => {
     Promise.all([
@@ -61,6 +70,7 @@ export default function IncomesPage() {
 
   useEffect(() => {
     loadIncomes();
+    setRowSelection({});
   }, [filters]);
 
   const loadIncomes = async () => {
@@ -76,6 +86,21 @@ export default function IncomesPage() {
   };
 
   const handleDelete = async () => {
+    if (selectedIds.length > 0) {
+      setIsDeleting(true);
+      try {
+        await financeService.deleteIncomesBulk(selectedIds);
+        setRowSelection({});
+        loadIncomes();
+        setIsBulkDeleting(false);
+      } catch (err) {
+        alert('Erro ao excluir receitas em massa.');
+      } finally {
+        setIsDeleting(false);
+      }
+      return;
+    }
+
     if (!deleteId) return;
     setIsDeleting(true);
     try {
@@ -90,6 +115,25 @@ export default function IncomesPage() {
   };
 
   const columns = useMemo<ColumnDef<Income>[]>(() => [
+    {
+      id: 'selection',
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+          checked={table.getIsAllPageRowsSelected()}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+        />
+      ),
+    },
     {
       accessorKey: 'date',
       header: () => (
@@ -163,10 +207,14 @@ export default function IncomesPage() {
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-8">
       <DeleteModal
-        isOpen={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        isOpen={!!deleteId || isBulkDeleting}
+        onClose={() => {
+          setDeleteId(null);
+          setIsBulkDeleting(false);
+        }}
         onConfirm={handleDelete}
         loading={isDeleting}
+        count={selectedIds.length > 0 ? selectedIds.length : 1}
       />
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -180,12 +228,25 @@ export default function IncomesPage() {
           <p className="text-gray-500 mt-1">Gerencie suas entradas e acompanhe seu fluxo de caixa.</p>
         </div>
 
-        <Link href="/finance/incomes/new">
-          <Button className="bg-accent hover:bg-accent-secondary text-white gap-2 px-6 h-12 shadow-md hover:shadow-lg transition-all rounded-xl">
-            <Plus size={20} strokeWidth={3} />
-            <span className="font-bold">Nova Receita</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => setIsBulkDeleting(true)}
+              className="gap-2 px-6 h-12 shadow-md hover:shadow-lg transition-all rounded-xl font-bold"
+            >
+              <Trash2 size={20} />
+              Excluir {selectedIds.length} selecionados
+            </Button>
+          )}
+
+          <Link href="/finance/incomes/new">
+            <Button className="bg-accent hover:bg-accent-secondary text-white gap-2 px-6 h-12 shadow-md hover:shadow-lg transition-all rounded-xl">
+              <Plus size={20} strokeWidth={3} />
+              <span className="font-bold">Nova Receita</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <FinancialToolbar
@@ -204,6 +265,9 @@ export default function IncomesPage() {
         onPageChange={(page) => setFilters(f => ({ ...f, page }))}
         onPageSizeChange={(pageSize) => setFilters(f => ({ ...f, pageSize, page: 1 }))}
         loading={loading}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        getRowId={(row: Income) => row.id}
       />
     </div>
   );

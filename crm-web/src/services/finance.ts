@@ -429,6 +429,13 @@ export interface UploadStatementRequest {
     creditCardGroupId?: string;
 }
 
+export interface BulkDeleteResponse {
+    success: boolean;
+    deletedCount: number;
+    failedCount: number;
+    errors: string[];
+}
+
 export const financeService = {
     // Income Categories
     getIncomeCategories: async () => {
@@ -522,6 +529,12 @@ export const financeService = {
             method: 'DELETE',
         });
     },
+    deleteIncomesBulk: async (ids: string[]) => {
+        return apiFetch<BulkDeleteResponse>('/incomes/bulk-delete', {
+            method: 'POST',
+            body: JSON.stringify({ ids }),
+        });
+    },
 
     // Expenses
     getExpenses: async (filters?: FinancialFilters) => {
@@ -557,6 +570,12 @@ export const financeService = {
     deleteExpense: async (id: string) => {
         return apiFetch<void>(`/expenses/${id}`, {
             method: 'DELETE',
+        });
+    },
+    deleteExpensesBulk: async (ids: string[]) => {
+        return apiFetch<BulkDeleteResponse>('/expenses/bulk-delete', {
+            method: 'POST',
+            body: JSON.stringify({ ids }),
         });
     },
     markExpenseAsPaid: async (id: string, paidDate?: string) => {

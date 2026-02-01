@@ -61,4 +61,11 @@ public class IncomesController : BaseApiController
         var result = await _service.DeleteAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : BadRequest(result.Error);
     }
+
+    [HttpPost("bulk-delete")]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkDeleteRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _service.DeleteRangeAsync(request, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+    }
 }

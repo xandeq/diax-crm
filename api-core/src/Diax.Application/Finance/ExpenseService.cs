@@ -240,6 +240,44 @@ public class ExpenseService : IApplicationService
         return Result.Success();
     }
 
+    public async Task<Result<BulkDeleteResponse>> DeleteRangeAsync(BulkDeleteRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.Ids == null || !request.Ids.Any())
+        {
+            return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, 0, 0, new List<string>()));
+        }
+
+        if (request.Ids.Count > 100)
+        {
+            return Result.Failure<BulkDeleteResponse>(new Error("General.BatchLimitExceeded", "O limite máximo é de 100 itens por exclusão."));
+        }
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            int deletedCount = 0;
+            foreach (var id in request.Ids)
+            {
+                var result = await DeleteAsync(id, cancellationToken);
+                if (!result.IsSuccess)
+                {
+                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                    return Result.Failure<BulkDeleteResponse>(result.Error);
+                }
+                deletedCount++;
+            }
+
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+            return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, 0, new List<string>()));
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+            return Result.Failure<BulkDeleteResponse>(new Error("General.BulkDeleteError", "Ocorreu um erro ao excluir os itens em massa: " + ex.Message));
+        }
+    }
+
     public async Task<Result> MarkAsPaidAsync(Guid id, DateTime? paidDate = null, CancellationToken cancellationToken = default)
     {
         var expense = await _repository.GetByIdAsync(id, cancellationToken);

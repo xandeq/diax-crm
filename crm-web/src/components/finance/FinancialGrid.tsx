@@ -27,6 +27,9 @@ interface FinancialGridProps<TData, TValue> {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   loading?: boolean;
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: (selection: any) => void;
+  getRowId?: (row: TData) => string;
 }
 
 export function FinancialGrid<TData, TValue>({
@@ -38,6 +41,9 @@ export function FinancialGrid<TData, TValue>({
   onPageChange,
   onPageSizeChange,
   loading,
+  rowSelection,
+  onRowSelectionChange,
+  getRowId,
 }: FinancialGridProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -45,6 +51,11 @@ export function FinancialGrid<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     pageCount: pageCount,
+    onRowSelectionChange: onRowSelectionChange,
+    getRowId: getRowId,
+    state: {
+      rowSelection: rowSelection || {},
+    },
   });
 
   return (
