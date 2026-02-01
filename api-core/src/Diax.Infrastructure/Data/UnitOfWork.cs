@@ -1,4 +1,5 @@
 using Diax.Domain.Common;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Diax.Infrastructure.Data;
@@ -29,7 +30,7 @@ public class UnitOfWork : IUnitOfWork
     public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
     {
         if (_transaction is null)
-            throw new InvalidOperationException("Nenhuma transação foi iniciada.");
+            return;
 
         await _transaction.CommitAsync(cancellationToken);
         await _transaction.DisposeAsync();
@@ -39,11 +40,17 @@ public class UnitOfWork : IUnitOfWork
     public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
     {
         if (_transaction is null)
-            throw new InvalidOperationException("Nenhuma transação foi iniciada.");
+            return;
 
         await _transaction.RollbackAsync(cancellationToken);
         await _transaction.DisposeAsync();
         _transaction = null;
+    }
+
+    public async Task<T> ExecuteStrategyAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () => await action(cancellationToken));
     }
 
     public void Dispose()

@@ -19,7 +19,7 @@ function DeleteModal({ isOpen, onClose, onConfirm, loading, count }: any) {
       <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-100">
         <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmar Exclusão</h3>
         <p className="text-gray-600 mb-8">
-          Tem certeza que deseja excluir {count > 1 ? `estas ${count} despesas` : 'esta despesa'}? 
+          Tem certeza que deseja excluir {count > 1 ? `estas ${count} despesas` : 'esta despesa'}?
           Esta ação não pode ser desfeita e afetará seu saldo.
         </p>
         <div className="flex justify-end gap-3">

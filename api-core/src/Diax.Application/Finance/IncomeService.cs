@@ -229,30 +229,33 @@ public class IncomeService : IApplicationService
             return Result.Failure<BulkDeleteResponse>(new Error("General.BatchLimitExceeded", "O limite máximo é de 100 itens por exclusão."));
         }
 
-        await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
-        try
+        return await _unitOfWork.ExecuteStrategyAsync(async (ct) =>
         {
-            int deletedCount = 0;
-            foreach (var id in request.Ids)
+            await _unitOfWork.BeginTransactionAsync(ct);
+
+            try
             {
-                var result = await DeleteAsync(id, cancellationToken);
-                if (!result.IsSuccess)
+                int deletedCount = 0;
+                foreach (var id in request.Ids)
                 {
-                    await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-                    return Result.Failure<BulkDeleteResponse>(result.Error);
+                    var result = await DeleteAsync(id, ct);
+                    if (!result.IsSuccess)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync(ct);
+                        return Result.Failure<BulkDeleteResponse>(result.Error);
+                    }
+                    deletedCount++;
                 }
-                deletedCount++;
-            }
 
-            await _unitOfWork.CommitTransactionAsync(cancellationToken);
-            return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, 0, new List<string>()));
-        }
-        catch (Exception ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-            return Result.Failure<BulkDeleteResponse>(new Error("General.BulkDeleteError", "Ocorreu um erro ao excluir os itens em massa: " + ex.Message));
-        }
+                await _unitOfWork.CommitTransactionAsync(ct);
+                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, 0, new List<string>()));
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync(ct);
+                return Result.Failure<BulkDeleteResponse>(new Error("General.BulkDeleteError", "Ocorreu um erro ao excluir os itens em massa: " + ex.Message));
+            }
+        }, cancellationToken);
     }
 
     private static IncomeResponse MapToResponse(Income income)

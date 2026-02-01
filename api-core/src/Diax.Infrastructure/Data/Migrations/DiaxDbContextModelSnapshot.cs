@@ -326,7 +326,7 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.HasIndex("CreditCardGroupId");
 
-                    b.ToTable("credit_cards");
+                    b.ToTable("credit_cards", (string)null);
                 });
 
             modelBuilder.Entity("Diax.Domain.Finance.CreditCardGroup", b =>
