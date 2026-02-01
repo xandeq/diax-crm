@@ -25,12 +25,12 @@ public class ImportedTransactionConfiguration : IEntityTypeConfiguration<Importe
         builder.HasOne(x => x.MatchedExpense)
             .WithMany()
             .HasForeignKey(x => x.MatchedExpenseId)
-            .OnDelete(DeleteBehavior.NoAction); // Changed from SetNull to avoid cascade path cycles
+            .OnDelete(DeleteBehavior.NoAction); // Restricted by SQL Server to avoid multiple cascade paths
 
         builder.HasOne(x => x.CreatedExpense)
             .WithMany()
             .HasForeignKey(x => x.CreatedExpenseId)
-            .OnDelete(DeleteBehavior.NoAction); // Changed from SetNull to avoid cascade path cycles
+            .OnDelete(DeleteBehavior.NoAction); // Restricted by SQL Server to avoid multiple cascade paths
 
         builder.HasOne(x => x.CreatedIncome)
             .WithMany()

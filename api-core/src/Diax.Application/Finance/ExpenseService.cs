@@ -11,15 +11,18 @@ public class ExpenseService : IApplicationService
 {
     private readonly IExpenseRepository _repository;
     private readonly IFinancialAccountRepository _accountRepository;
+    private readonly IImportedTransactionRepository _importedTransactionRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public ExpenseService(
         IExpenseRepository repository,
         IFinancialAccountRepository accountRepository,
+        IImportedTransactionRepository importedTransactionRepository,
         IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _accountRepository = accountRepository;
+        _importedTransactionRepository = importedTransactionRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -210,6 +213,14 @@ public class ExpenseService : IApplicationService
         if (expense == null)
         {
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
+        }
+
+        // Search for linked imported transactions and reset them
+        var linkedTransactions = await _importedTransactionRepository.GetByExpenseIdAsync(id, cancellationToken);
+        foreach (var transaction in linkedTransactions)
+        {
+            transaction.Reset();
+            await _importedTransactionRepository.UpdateAsync(transaction, cancellationToken);
         }
 
         // Reverse cash expense from account (credit back)

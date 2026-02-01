@@ -65,4 +65,13 @@ public class ImportedTransaction : AuditableEntity
         ErrorMessage = errorMessage;
         Status = ImportTransactionStatus.Error;
     }
+
+    public void Reset()
+    {
+        MatchedExpenseId = null;
+        CreatedExpenseId = null;
+        CreatedIncomeId = null;
+        Status = ImportTransactionStatus.Pending;
+        ErrorMessage = null;
+    }
 }

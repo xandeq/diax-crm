@@ -12,17 +12,20 @@ public class IncomeService : IApplicationService
     private readonly IIncomeRepository _repository;
     private readonly IIncomeCategoryRepository _categoryRepository;
     private readonly IFinancialAccountRepository _accountRepository;
+    private readonly IImportedTransactionRepository _importedTransactionRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public IncomeService(
         IIncomeRepository repository,
         IIncomeCategoryRepository categoryRepository,
         IFinancialAccountRepository accountRepository,
+        IImportedTransactionRepository importedTransactionRepository,
         IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
         _accountRepository = accountRepository;
+        _importedTransactionRepository = importedTransactionRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -190,6 +193,14 @@ public class IncomeService : IApplicationService
         if (income == null)
         {
             return Result.Failure(new Error("Income.NotFound", "Income not found"));
+        }
+
+        // Search for linked imported transactions and reset them
+        var linkedTransactions = await _importedTransactionRepository.GetByIncomeIdAsync(id, cancellationToken);
+        foreach (var transaction in linkedTransactions)
+        {
+            transaction.Reset();
+            await _importedTransactionRepository.UpdateAsync(transaction, cancellationToken);
         }
 
         // Reverse income from account (debit the amount)
