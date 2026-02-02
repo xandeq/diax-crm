@@ -129,6 +129,13 @@ public class ChecklistsController : BaseApiController
         var result = await _itemService.ExecuteBulkActionAsync(request);
         return result.IsSuccess ? Ok(new { affectedCount = result.Value }) : BadRequest(result.Error);
     }
+
+    [HttpPost("import")]
+    public async Task<IActionResult> Import(ImportChecklistRequest request)
+    {
+        var result = await _itemService.ImportAsync(request);
+        return result.IsSuccess ? Ok(new { importedCount = result.Value }) : BadRequest(result.Error);
+    }
 }
 
 public record MarkBoughtRequest(decimal? ActualPrice);

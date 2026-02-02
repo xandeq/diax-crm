@@ -110,5 +110,12 @@ export const checklistService = {
       method: 'POST',
       body: JSON.stringify(request)
     });
+  },
+
+  importItems: async (items: any[]) => {
+    return apiFetch<{ importedCount: number }>('/Checklists/import', {
+      method: 'POST',
+      body: JSON.stringify({ items })
+    });
   }
 };

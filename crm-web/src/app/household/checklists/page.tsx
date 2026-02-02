@@ -4,16 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { checklistService } from '@/services/checklistService';
 import { ChecklistCategory } from '@/types/household';
-import { Plus, Settings2 } from 'lucide-react';
+import { FileJson, Plus, Settings2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CategoryManager } from './components/CategoryManager';
 import { ChecklistDialog } from './components/ChecklistDialog';
 import { ChecklistTable } from './components/ChecklistTable';
+import { ImportJsonDialog } from './components/ImportJsonDialog';
 
 export default function ChecklistsPage() {
   const [categories, setCategories] = useState<ChecklistCategory[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -44,6 +46,9 @@ export default function ChecklistsPage() {
           <p className="text-slate-500">Gerencie suas listas de supermercado, farmácia e rotinas.</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+            <FileJson className="mr-2 h-4 w-4" /> Importar JSON
+          </Button>
           <Button variant="outline" onClick={() => setIsCatManagerOpen(true)}>
             <Settings2 className="mr-2 h-4 w-4" /> Categorias
           </Button>
@@ -102,6 +107,12 @@ export default function ChecklistsPage() {
         }}
         categories={categories}
         defaultCategoryId={activeCategoryId}
+      />
+
+      <ImportJsonDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImportSuccess={handleRefresh}
       />
 
       <CategoryManager

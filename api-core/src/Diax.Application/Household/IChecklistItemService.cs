@@ -22,4 +22,5 @@ public interface IChecklistItemService : IApplicationService
 
     // Bulk actions
     Task<Result<int>> ExecuteBulkActionAsync(ChecklistItemBulkRequest request);
+    Task<Result<int>> ImportAsync(ImportChecklistRequest request);
 }

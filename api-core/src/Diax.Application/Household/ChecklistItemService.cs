@@ -250,6 +250,78 @@ public class ChecklistItemService : IChecklistItemService
         return Result.Success(count);
     }
 
+    public async Task<Result<int>> ImportAsync(ImportChecklistRequest request)
+    {
+        if (request.Items == null || !request.Items.Any())
+            return Result.Success(0);
+
+        var importCategories = request.Items
+            .Select(x => x.Category?.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (!importCategories.Any())
+             return Result.Success(0);
+
+        // Fetch existing categories (SQL IN clause uses DB collation, usually Case Insensitive)
+        var existingCategories = await _categoryRepository.FindAsync(c => importCategories.Contains(c.Name));
+        var categoryMap = existingCategories.ToDictionary(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase);
+
+        var missingCategoriesList = importCategories
+            .Where(name => !categoryMap.ContainsKey(name!))
+            .Select(name => new ChecklistCategory { Name = name!, SortOrder = 99 })
+            .ToList();
+
+        if (missingCategoriesList.Any())
+        {
+            foreach (var cat in missingCategoriesList)
+            {
+                await _categoryRepository.AddAsync(cat);
+            }
+            await _unitOfWork.SaveChangesAsync();
+
+            foreach (var cat in missingCategoriesList)
+            {
+                categoryMap[cat.Name] = cat.Id;
+            }
+        }
+
+        var itemsToAdd = new List<ChecklistItem>();
+        foreach (var itemDto in request.Items)
+        {
+            if (string.IsNullOrWhiteSpace(itemDto.Category) || !categoryMap.TryGetValue(itemDto.Category.Trim(), out var categoryId))
+                continue;
+
+            if (!Enum.TryParse<ChecklistItemPriority>(itemDto.Priority, true, out var priority))
+            {
+                priority = ChecklistItemPriority.Medium;
+            }
+
+            var item = new ChecklistItem
+            {
+                CategoryId = categoryId,
+                Title = itemDto.Title,
+                Description = itemDto.Description,
+                Priority = priority,
+                EstimatedPrice = itemDto.EstimatedPrice,
+                Quantity = itemDto.Quantity,
+                Status = ChecklistItemStatus.ToBuy,
+                IsArchived = false
+            };
+            itemsToAdd.Add(item);
+        }
+
+        foreach (var item in itemsToAdd)
+        {
+            await _repository.AddAsync(item);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+
+        return Result.Success(itemsToAdd.Count);
+    }
+
     private static ChecklistItemDto MapToDto(ChecklistItem item)
     {
         return new ChecklistItemDto
