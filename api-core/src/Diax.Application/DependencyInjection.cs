@@ -3,6 +3,7 @@ using Diax.Application.Finance;
 using Diax.Application.HtmlExtraction;
 using Diax.Application.PromptGenerator;
 using Diax.Application.Ai.HumanizeText;
+using Diax.Application.Household;
 using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using FluentValidation;
@@ -39,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<IHumanizeTextService, HumanizeTextService>();
         services.AddScoped<SnippetService>();
         services.AddScoped<ISnippetService, SnippetService>();
+        services.AddScoped<IChecklistCategoryService, ChecklistCategoryService>();
+        services.AddScoped<IChecklistItemService, ChecklistItemService>();
 
         return services;
     }

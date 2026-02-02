@@ -1,6 +1,7 @@
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
+using Diax.Domain.Household;
 using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
 using Diax.Infrastructure.Data;
@@ -159,6 +160,8 @@ public static class DependencyInjection
         services.AddScoped<IImportedTransactionRepository, ImportedTransactionRepository>();
         services.AddScoped<IAppLogRepository, AppLogRepository>();
         services.AddScoped<ISnippetRepository, SnippetRepository>();
+        services.AddScoped<IChecklistCategoryRepository, ChecklistCategoryRepository>();
+        services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
 
         // ===== PARSERS =====
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();

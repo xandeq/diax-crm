@@ -2,6 +2,7 @@ using Diax.Domain.Common;
 using Diax.Domain.Auth;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
+using Diax.Domain.Household;
 using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,8 @@ public class DiaxDbContext : DbContext
     public DbSet<ImportedTransaction> ImportedTransactions => Set<ImportedTransaction>();
     public DbSet<AppLog> AppLogs => Set<AppLog>();
     public DbSet<Snippet> Snippets => Set<Snippet>();
+    public DbSet<ChecklistCategory> ChecklistCategories => Set<ChecklistCategory>();
+    public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
