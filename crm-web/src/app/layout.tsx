@@ -25,7 +25,12 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata = {
   title: 'CRM',
-  description: 'Painel administrativo DIAX CRM'
+  description: 'Painel administrativo DIAX CRM',
+  icons: {
+    icon: "/images/logo_logo.png",
+    shortcut: "/images/logo_logo.png",
+    apple: "/images/logo_logo.png",
+  },
 };
 
 export default function RootLayout({
