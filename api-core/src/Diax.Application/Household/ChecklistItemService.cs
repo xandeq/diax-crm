@@ -110,6 +110,25 @@ public class ChecklistItemService : IChecklistItemService
         item.Quantity = request.Quantity;
         item.StoreOrLink = request.StoreOrLink;
 
+        if (request.Status.HasValue && item.Status != request.Status.Value)
+        {
+            item.Status = request.Status.Value;
+            if (item.Status == ChecklistItemStatus.Bought && item.BoughtAt == null)
+                item.BoughtAt = DateTime.UtcNow;
+            else if (item.Status != ChecklistItemStatus.Bought)
+                item.BoughtAt = null;
+
+            if (item.Status == ChecklistItemStatus.Canceled && item.CanceledAt == null)
+                item.CanceledAt = DateTime.UtcNow;
+            else if (item.Status != ChecklistItemStatus.Canceled)
+                item.CanceledAt = null;
+                
+            if (item.Status == ChecklistItemStatus.Archived)
+                item.IsArchived = true;
+            else if (item.Status == ChecklistItemStatus.ToBuy)
+                item.IsArchived = false;
+        }
+
         await _repository.UpdateAsync(item);
         await _unitOfWork.SaveChangesAsync();
 
@@ -238,6 +257,13 @@ public class ChecklistItemService : IChecklistItemService
                     item.CanceledAt = null;
                     item.IsArchived = false;
                     await _repository.UpdateAsync(item);
+                    break;
+                case "changecategory":
+                    if (request.TargetCategoryId.HasValue)
+                    {
+                        item.CategoryId = request.TargetCategoryId.Value;
+                        await _repository.UpdateAsync(item);
+                    }
                     break;
                 case "delete":
                     await _repository.DeleteAsync(item);

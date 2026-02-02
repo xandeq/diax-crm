@@ -35,10 +35,17 @@ import {
   TrendingDown,
   AlertTriangle,
   Flame,
-  ArrowUpDown
+  ArrowUpDown,
+  FolderInput
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { ChecklistDialog } from './ChecklistDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ChecklistTableProps {
   categoryId: string | null;
@@ -122,12 +129,13 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     }
   };
 
-  const handleBulkAction = async (action: any) => {
+  const handleBulkAction = async (action: any, extraData?: any) => {
     if (selectedIds.length === 0) return;
     try {
       await checklistService.bulkAction({
         ids: selectedIds,
-        action: action
+        action: action,
+        ...extraData
       });
       setSelectedIds([]);
       onRefresh();
@@ -187,6 +195,26 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
               <span className="text-xs font-medium text-slate-500">{selectedIds.length} selecionados</span>
               <Button size="sm" variant="outline" className="h-8" onClick={() => handleBulkAction('markbought')}>Comprados</Button>
               <Button size="sm" variant="outline" className="h-8" onClick={() => handleBulkAction('archive')}>Arquivar</Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-8 gap-1">
+                    <FolderInput className="h-3.5 w-3.5" /> Mover
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 max-h-64 overflow-y-auto">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">Mover para...</div>
+                  {categories.map(cat => (
+                    <DropdownMenuItem 
+                      key={cat.id} 
+                      onClick={() => handleBulkAction('changecategory', { targetCategoryId: cat.id })}
+                    >
+                      {cat.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button size="sm" variant="destructive" className="h-8" onClick={() => handleBulkAction('delete')}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
           )}

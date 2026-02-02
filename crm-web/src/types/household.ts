@@ -70,6 +70,7 @@ export interface UpdateChecklistItemRequest {
   title: string;
   description?: string;
   priority: ChecklistPriority;
+  status: ChecklistItemStatus;
   targetDate?: string;
   estimatedPrice?: number;
   actualPrice?: number;
@@ -95,8 +96,9 @@ export interface UpdateChecklistCategoryRequest {
 
 export interface ChecklistItemBulkRequest {
   ids: string[];
-  action: 'markbought' | 'markcanceled' | 'archive' | 'unarchive' | 'reactivate' | 'delete';
+  action: 'markbought' | 'markcanceled' | 'archive' | 'unarchive' | 'reactivate' | 'delete' | 'changecategory';
   actualPrice?: number;
+  targetCategoryId?: string;
 }
 
 export interface PagedResponse<T> {

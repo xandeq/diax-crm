@@ -22,6 +22,7 @@ import { checklistService } from '@/services/checklistService';
 import {
     ChecklistCategory,
     ChecklistItem,
+    ChecklistItemStatus,
     ChecklistPriority,
     CreateChecklistItemRequest,
     UpdateChecklistItemRequest
@@ -140,13 +141,31 @@ export function ChecklistDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0 text-slate-400">Baixa</SelectItem>
-                  <SelectItem value="1 text-blue-500">Média</SelectItem>
-                  <SelectItem value="2 text-orange-500">Alta</SelectItem>
-                  <SelectItem value="3 text-red-600">Urgente</SelectItem>
+                  <SelectItem value="0">Baixa</SelectItem>
+                  <SelectItem value="1">Média</SelectItem>
+                  <SelectItem value="2">Alta</SelectItem>
+                  <SelectItem value="3">Urgente</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Status</Label>
+            <Select
+              value={formData.status?.toString()}
+              onValueChange={(v) => handleChange('status', parseInt(v))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">A Comprar</SelectItem>
+                <SelectItem value="1">Comprado</SelectItem>
+                <SelectItem value="2">Cancelado</SelectItem>
+                <SelectItem value="3">Arquivado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-3 gap-4">

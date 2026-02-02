@@ -38,6 +38,7 @@ public record UpdateChecklistItemRequest(
     string Title,
     string? Description = null,
     ChecklistItemPriority? Priority = null,
+    ChecklistItemStatus? Status = null,
     DateTime? TargetDate = null,
     decimal? EstimatedPrice = null,
     decimal? ActualPrice = null,
@@ -59,4 +60,5 @@ public record ChecklistItemsQuery(
 public record ChecklistItemBulkRequest(
     Guid[] Ids,
     string Action,
-    decimal? ActualPrice = null);
+    decimal? ActualPrice = null,
+    Guid? TargetCategoryId = null);
