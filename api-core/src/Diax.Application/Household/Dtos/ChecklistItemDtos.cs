@@ -61,4 +61,5 @@ public record ChecklistItemBulkRequest(
     Guid[] Ids,
     string Action,
     decimal? ActualPrice = null,
-    Guid? TargetCategoryId = null);
+    Guid? TargetCategoryId = null,
+    ChecklistItemStatus? TargetStatus = null);

@@ -265,6 +265,16 @@ public class ChecklistItemService : IChecklistItemService
                         await _repository.UpdateAsync(item);
                     }
                     break;
+                case "changestatus":
+                    if (request.TargetStatus.HasValue)
+                    {
+                        item.Status = request.TargetStatus.Value;
+                        item.BoughtAt = item.Status == ChecklistItemStatus.Bought ? DateTime.UtcNow : null;
+                        item.CanceledAt = item.Status == ChecklistItemStatus.Canceled ? DateTime.UtcNow : null;
+                        item.IsArchived = item.Status == ChecklistItemStatus.Archived;
+                        await _repository.UpdateAsync(item);
+                    }
+                    break;
                 case "delete":
                     await _repository.DeleteAsync(item);
                     break;

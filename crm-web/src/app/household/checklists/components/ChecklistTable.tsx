@@ -36,8 +36,16 @@ import {
   AlertTriangle,
   Flame,
   ArrowUpDown,
-  FolderInput
+  FolderInput,
+  Tags
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { formatCurrency } from '@/lib/utils';
 import { ChecklistDialog } from './ChecklistDialog';
 import {
@@ -199,6 +207,23 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" className="h-8 gap-1">
+                    <Tags className="h-3.5 w-3.5" /> Status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">Alterar status para...</div>
+                  <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 0 })}>
+                    A Comprar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 1 })}>
+                    Comprado
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-8 gap-1">
                     <FolderInput className="h-3.5 w-3.5" /> Mover
                   </Button>
                 </DropdownMenuTrigger>
@@ -342,29 +367,88 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
         </Table>
       </div>
 
-      {data && data.totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/30">
-          <span className="text-xs text-slate-500">
-            Página {data.page} de {data.totalPages} ({data.totalCount} itens)
-          </span>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={data.page === 1}
-              onClick={() => setQuery(prev => ({ ...prev, page: prev.page! - 1 }))}
-            >
-              <ChevronLeft className="h-4 w-4" /> Anterior
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              disabled={data.page === data.totalPages}
-              onClick={() => setQuery(prev => ({ ...prev, page: prev.page! + 1 }))}
-            >
-              Próxima <ChevronRight className="h-4 w-4" />
-            </Button>
+      {data && (
+        <div className="p-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/30">
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-500">
+              {data.totalCount} itens
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Exibir:</span>
+              <Select
+                value={query.pageSize?.toString() || '20'}
+                onValueChange={(v) => setQuery(prev => ({ ...prev, pageSize: parseInt(v), page: 1 }))}
+              >
+                <SelectTrigger className="h-8 w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {data.totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="h-8 w-8"
+                disabled={data.page === 1}
+                onClick={() => setQuery(prev => ({ ...prev, page: prev.page! - 1 }))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {(() => {
+                const pages: (number | string)[] = [];
+                const current = data.page;
+                const total = data.totalPages;
+                const delta = 2;
+                const range: number[] = [];
+                for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) {
+                  range.push(i);
+                }
+                if (current - delta > 2) {
+                  pages.push(1, '...');
+                } else {
+                  pages.push(1);
+                }
+                pages.push(...range);
+                if (current + delta < total - 1) {
+                  pages.push('...', total);
+                } else if (total > 1) {
+                  pages.push(total);
+                }
+                return pages.map((p, idx) => 
+                  typeof p === 'string' ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">...</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant={p === current ? 'default' : 'outline'}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setQuery(prev => ({ ...prev, page: p }))}
+                    >
+                      {p}
+                    </Button>
+                  )
+                );
+              })()}
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="h-8 w-8"
+                disabled={data.page === data.totalPages}
+                onClick={() => setQuery(prev => ({ ...prev, page: prev.page! + 1 }))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

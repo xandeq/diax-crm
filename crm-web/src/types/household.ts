@@ -96,9 +96,10 @@ export interface UpdateChecklistCategoryRequest {
 
 export interface ChecklistItemBulkRequest {
   ids: string[];
-  action: 'markbought' | 'markcanceled' | 'archive' | 'unarchive' | 'reactivate' | 'delete' | 'changecategory';
+  action: 'markbought' | 'markcanceled' | 'archive' | 'unarchive' | 'reactivate' | 'delete' | 'changecategory' | 'changestatus';
   actualPrice?: number;
   targetCategoryId?: string;
+  targetStatus?: ChecklistItemStatus;
 }
 
 export interface PagedResponse<T> {

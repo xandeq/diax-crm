@@ -19,18 +19,28 @@ export default function ChecklistsPage() {
   const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
+
   useEffect(() => {
-    loadCategories();
-  }, [refreshTrigger]);
+    if (!categoriesLoaded) {
+      loadCategories();
+    }
+  }, [categoriesLoaded]);
 
   const loadCategories = async () => {
     try {
       const data = await checklistService.getCategories();
       setCategories(data);
-      if (data.length > 0 && !activeCategoryId) {
-        // Find default or first
-        setActiveCategoryId(data[0].id);
-      }
+      setCategoriesLoaded(true);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+    }
+  };
+
+  const reloadCategories = async () => {
+    try {
+      const data = await checklistService.getCategories();
+      setCategories(data);
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
     }
@@ -119,6 +129,7 @@ export default function ChecklistsPage() {
         isOpen={isCatManagerOpen}
         onClose={() => setIsCatManagerOpen(false)}
         onRefresh={() => {
+          reloadCategories();
           handleRefresh();
         }}
       />
