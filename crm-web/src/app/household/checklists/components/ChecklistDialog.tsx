@@ -22,7 +22,6 @@ import { checklistService } from '@/services/checklistService';
 import {
     ChecklistCategory,
     ChecklistItem,
-    ChecklistItemStatus,
     ChecklistPriority,
     CreateChecklistItemRequest,
     UpdateChecklistItemRequest

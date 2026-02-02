@@ -1,59 +1,59 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { 
-  ChecklistItem, 
-  ChecklistItemStatus, 
-  ChecklistPriority, 
-  ChecklistCategory,
-  ChecklistItemsQuery,
-  PagedResponse
-} from '@/types/household';
-import { checklistService } from '@/services/checklistService';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  MoreVertical, 
-  CheckCircle2, 
-  Circle, 
-  Archive, 
-  Trash2, 
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  TrendingDown,
-  AlertTriangle,
-  Flame,
-  ArrowUpDown,
-  FolderInput,
-  Tags
-} from 'lucide-react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { formatCurrency } from '@/lib/utils';
-import { ChecklistDialog } from './ChecklistDialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/components/ui/table';
+import { formatCurrency } from '@/lib/utils';
+import { checklistService } from '@/services/checklistService';
+import {
+    ChecklistCategory,
+    ChecklistItem,
+    ChecklistItemsQuery,
+    ChecklistItemStatus,
+    ChecklistPriority,
+    PagedResponse
+} from '@/types/household';
+import {
+    AlertTriangle,
+    Archive,
+    ArrowUpDown,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    Circle,
+    ExternalLink,
+    Flame,
+    FolderInput,
+    MoreVertical,
+    Search,
+    Tags,
+    Trash2,
+    TrendingDown
+} from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { ChecklistDialog } from './ChecklistDialog';
 
 interface ChecklistTableProps {
   categoryId: string | null;
@@ -69,7 +69,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
 
   const [data, setData] = useState<PagedResponse<ChecklistItem> | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [query, setQuery] = useState<ChecklistItemsQuery>(() => ({
     page: Number(searchParams.get('page')) || 1,
     pageSize: Number(searchParams.get('pageSize')) || 20,
@@ -78,7 +78,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     includeArchived: searchParams.get('includeArchived') === 'true',
     q: searchParams.get('q') || ''
   }));
-  
+
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null);
 
@@ -89,7 +89,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     if (query.sortDir && query.sortDir !== 'desc') params.set('sortDir', query.sortDir); else params.delete('sortDir');
     if (query.includeArchived) params.set('includeArchived', 'true'); else params.delete('includeArchived');
     if (query.q) params.set('q', query.q); else params.delete('q');
-    
+
     const newPath = `${pathname}?${params.toString()}`;
     if (newPath !== `${pathname}?${searchParams.toString()}`) {
       router.replace(newPath);
@@ -161,7 +161,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
   };
 
   const handleSelectOne = (id: string) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -189,21 +189,21 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
       <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input 
-            placeholder="Buscar itens..." 
-            className="pl-10 bg-white" 
+          <Input
+            placeholder="Buscar itens..."
+            className="pl-10 bg-white"
             value={query.q || ''}
             onChange={(e) => setQuery(prev => ({ ...prev, q: e.target.value, page: 1 }))}
           />
         </div>
-        
+
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-2 pr-4 border-r border-slate-200 mr-2">
               <span className="text-xs font-medium text-slate-500">{selectedIds.length} selecionados</span>
               <Button size="sm" variant="outline" className="h-8" onClick={() => handleBulkAction('markbought')}>Comprados</Button>
               <Button size="sm" variant="outline" className="h-8" onClick={() => handleBulkAction('archive')}>Arquivar</Button>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" className="h-8 gap-1">
@@ -230,8 +230,8 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
                 <DropdownMenuContent align="end" className="w-48 max-h-64 overflow-y-auto">
                   <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">Mover para...</div>
                   {categories.map(cat => (
-                    <DropdownMenuItem 
-                      key={cat.id} 
+                    <DropdownMenuItem
+                      key={cat.id}
                       onClick={() => handleBulkAction('changecategory', { targetCategoryId: cat.id })}
                     >
                       {cat.name}
@@ -243,10 +243,10 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
               <Button size="sm" variant="destructive" className="h-8" onClick={() => handleBulkAction('delete')}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
           )}
-          
-          <Button 
-            size="sm" 
-            variant="ghost" 
+
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() => setQuery(prev => ({ ...prev, includeArchived: !prev.includeArchived, page: 1 }))}
             className={query.includeArchived ? "text-blue-600 bg-blue-50" : "text-slate-500"}
           >
@@ -260,8 +260,8 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-12 text-center">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className="rounded border-slate-300"
                   onChange={handleSelectAll}
                   checked={data?.items.length ? selectedIds.length === data.items.length : false}
@@ -299,15 +299,15 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
               data?.items.map((item) => (
                 <TableRow key={item.id} className={item.isArchived ? "opacity-60 grayscale-[0.5]" : ""}>
                   <TableCell className="text-center">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="rounded border-slate-300"
                       checked={selectedIds.includes(item.id)}
                       onChange={() => handleSelectOne(item.id)}
                     />
                   </TableCell>
                   <TableCell>
-                    <button 
+                    <button
                       onClick={() => handleToggleStatus(item)}
                       className="hover:scale-110 transition-transform"
                     >
@@ -393,8 +393,8 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
           </div>
           {data.totalPages > 1 && (
             <div className="flex items-center gap-1">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="icon"
                 className="h-8 w-8"
                 disabled={data.page === 1}
@@ -422,7 +422,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
                 } else if (total > 1) {
                   pages.push(total);
                 }
-                return pages.map((p, idx) => 
+                return pages.map((p, idx) =>
                   typeof p === 'string' ? (
                     <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">...</span>
                   ) : (
@@ -438,8 +438,8 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
                   )
                 );
               })()}
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="icon"
                 className="h-8 w-8"
                 disabled={data.page === data.totalPages}

@@ -122,7 +122,7 @@ public class ChecklistItemService : IChecklistItemService
                 item.CanceledAt = DateTime.UtcNow;
             else if (item.Status != ChecklistItemStatus.Canceled)
                 item.CanceledAt = null;
-                
+
             if (item.Status == ChecklistItemStatus.Archived)
                 item.IsArchived = true;
             else if (item.Status == ChecklistItemStatus.ToBuy)
