@@ -1,5 +1,8 @@
 using Diax.Application.Common;
 using Diax.Application.PromptGenerator.Common;
+using Diax.Application.PromptGenerator.Dtos;
+using Diax.Domain.Common;
+using Diax.Domain.PromptGenerator;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -16,13 +19,19 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
     private readonly ILogger<PromptGeneratorService> _logger;
     private readonly PromptGeneratorSettings _settings;
+    private readonly IUserPromptRepository _userPromptRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public PromptGeneratorService(
         ILogger<PromptGeneratorService> logger,
-        PromptGeneratorSettings settings)
+        PromptGeneratorSettings settings,
+        IUserPromptRepository userPromptRepository,
+        IUnitOfWork unitOfWork)
     {
         _logger = logger;
         _settings = settings;
+        _userPromptRepository = userPromptRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType, string? model = null)
@@ -1126,6 +1135,69 @@ Regras obrigatórias:
 - Seja objetivo e técnico.
 - Preencha os campos com base na solicitação do usuário, inferindo o contexto se necessário para criar um prompt robusto.
 """;
+    }
+
+    public async Task<string> GenerateAndSaveAsync(
+        string rawPrompt,
+        string provider,
+        string promptType,
+        string? model,
+        Guid userId)
+    {
+        // Gera o prompt usando o método existente
+        var generatedPrompt = await GenerateAsync(rawPrompt, provider, promptType, model);
+
+        // Salva no banco
+        var userPrompt = new UserPrompt(
+            userId,
+            rawPrompt,
+            generatedPrompt,
+            promptType,
+            provider,
+            model);
+
+        await _userPromptRepository.AddAsync(userPrompt);
+        await _unitOfWork.SaveChangesAsync();
+
+        return generatedPrompt;
+    }
+
+    public async Task<IEnumerable<UserPromptHistoryDto>> GetUserHistoryAsync(
+        Guid userId,
+        int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var prompts = await _userPromptRepository.GetByUserIdAsync(userId, limit, cancellationToken);
+
+        return prompts.Select(p => new UserPromptHistoryDto(
+            p.Id,
+            p.GetInputPreview(100),
+            p.PromptType,
+            p.Provider,
+            p.Model,
+            p.CreatedAt
+        ));
+    }
+
+    public async Task<UserPromptDetailDto?> GetPromptByIdAsync(
+        Guid promptId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var prompt = await _userPromptRepository.GetByIdWithUserAsync(promptId, userId, cancellationToken);
+
+        if (prompt == null)
+            return null;
+
+        return new UserPromptDetailDto(
+            prompt.Id,
+            prompt.OriginalInput,
+            prompt.GeneratedPrompt,
+            prompt.PromptType,
+            prompt.Provider,
+            prompt.Model,
+            prompt.CreatedAt
+        );
     }
 
     private sealed record ProviderSettings(

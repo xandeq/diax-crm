@@ -2,8 +2,12 @@ using Asp.Versioning;
 using Diax.Application.PromptGenerator;
 using Diax.Application.PromptGenerator.Common;
 using Diax.Application.PromptGenerator.Dtos;
+using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.EntityFrameworkCore;
 
 namespace Diax.Api.Controllers.V1;
 
@@ -15,13 +19,16 @@ public class PromptGeneratorController : ControllerBase
 {
     private readonly IPromptGeneratorService _promptGeneratorService;
     private readonly ILogger<PromptGeneratorController> _logger;
+    private readonly DiaxDbContext _db;
 
     public PromptGeneratorController(
         IPromptGeneratorService promptGeneratorService,
-        ILogger<PromptGeneratorController> logger)
+        ILogger<PromptGeneratorController> logger,
+        DiaxDbContext db)
     {
         _promptGeneratorService = promptGeneratorService;
         _logger = logger;
+        _db = db;
     }
 
     [HttpPost("generate")]
@@ -29,7 +36,7 @@ public class PromptGeneratorController : ControllerBase
     [ProducesResponseType(typeof(PromptErrorResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(PromptErrorResponseDto), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(PromptErrorResponseDto), StatusCodes.Status502BadGateway)]
-    public async Task<IActionResult> Generate([FromBody] GeneratePromptRequestDto request)
+    public async Task<IActionResult> Generate([FromBody] GeneratePromptRequestDto request, CancellationToken cancellationToken)
     {
         var correlationId = HttpContext.Items["CorrelationId"]?.ToString() ?? Guid.NewGuid().ToString();
 
@@ -44,20 +51,28 @@ public class PromptGeneratorController : ControllerBase
             });
         }
 
+        var userId = await ResolveUserIdAsync(cancellationToken);
+        if (userId == null)
+        {
+            return Unauthorized(new { error = "Usuário não autenticado." });
+        }
+
         try
         {
             _logger.LogInformation(
-                "Generate request started. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. CorrelationId: {CorrelationId}",
+                "Generate request started. User: {UserId}. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. CorrelationId: {CorrelationId}",
+                userId,
                 request.Provider ?? "default",
                 request.Model ?? "default",
                 request.PromptType ?? "default",
                 correlationId);
 
-            var result = await _promptGeneratorService.GenerateAsync(
+            var result = await _promptGeneratorService.GenerateAndSaveAsync(
                 request.RawPrompt,
                 request.Provider ?? "chatgpt",
                 request.PromptType ?? "professional",
-                request.Model);
+                request.Model,
+                userId.Value);
 
             return Ok(new GeneratePromptResponseDto(result));
         }
@@ -124,11 +139,66 @@ public class PromptGeneratorController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Retorna o histórico de prompts do usuário logado.
+    /// </summary>
+    [HttpGet("history")]
+    [ProducesResponseType(typeof(IEnumerable<UserPromptHistoryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetHistory(
+        [FromQuery] int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = await ResolveUserIdAsync(cancellationToken);
+        if (userId == null)
+            return Unauthorized(new { error = "User not found" });
+
+        var history = await _promptGeneratorService.GetUserHistoryAsync(userId.Value, limit, cancellationToken);
+        return Ok(history);
+    }
+
+    /// <summary>
+    /// Retorna os detalhes de um prompt específico do usuário.
+    /// </summary>
+    [HttpGet("history/{id:guid}")]
+    [ProducesResponseType(typeof(UserPromptDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPromptById(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(cancellationToken);
+        if (userId == null)
+            return Unauthorized(new { error = "User not found" });
+
+        var prompt = await _promptGeneratorService.GetPromptByIdAsync(id, userId.Value, cancellationToken);
+
+        if (prompt == null)
+            return NotFound(new { error = "Prompt not found" });
+
+        return Ok(prompt);
+    }
+
     [HttpGet("providers")]
     [ProducesResponseType(typeof(List<ProviderModelsDto>), StatusCodes.Status200OK)]
     [AllowAnonymous]
     public IActionResult GetProviders()
     {
         return Ok(AiModelCatalog.Providers);
+    }
+
+    private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+
+        var user = await _db.AdminUsers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
+
+        return user?.Id;
     }
 }

@@ -4,6 +4,7 @@ using Diax.Domain.Finance;
 using Diax.Domain.Household;
 using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
+using Diax.Domain.PromptGenerator;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Finance;
@@ -160,6 +161,7 @@ public static class DependencyInjection
         services.AddScoped<IImportedTransactionRepository, ImportedTransactionRepository>();
         services.AddScoped<IAppLogRepository, AppLogRepository>();
         services.AddScoped<ISnippetRepository, SnippetRepository>();
+        services.AddScoped<IUserPromptRepository, UserPromptRepository>();
         services.AddScoped<IChecklistCategoryRepository, ChecklistCategoryRepository>();
         services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
 

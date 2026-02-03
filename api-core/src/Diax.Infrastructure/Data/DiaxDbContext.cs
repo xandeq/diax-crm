@@ -5,6 +5,7 @@ using Diax.Domain.Finance;
 using Diax.Domain.Household;
 using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
+using Diax.Domain.PromptGenerator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -56,6 +57,7 @@ public class DiaxDbContext : DbContext
     public DbSet<StatementImport> StatementImports => Set<StatementImport>();
     public DbSet<ImportedTransaction> ImportedTransactions => Set<ImportedTransaction>();
     public DbSet<AppLog> AppLogs => Set<AppLog>();
+    public DbSet<UserPrompt> UserPrompts => Set<UserPrompt>();
     public DbSet<Snippet> Snippets => Set<Snippet>();
     public DbSet<ChecklistCategory> ChecklistCategories => Set<ChecklistCategory>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
