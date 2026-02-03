@@ -123,20 +123,6 @@ public class PromptGeneratorController : ControllerBase
                 CorrelationId = correlationId
             });
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex,
-                "Unexpected error generating prompt. CorrelationId: {CorrelationId}",
-                correlationId);
-
-            return StatusCode(StatusCodes.Status500InternalServerError, new PromptErrorResponseDto
-            {
-                Success = false,
-                ErrorCode = "INTERNAL_ERROR",
-                Message = "Falha ao gerar prompt. Tente novamente.",
-                CorrelationId = correlationId
-            });
-        }
     }
 
     /// <summary>

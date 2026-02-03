@@ -63,6 +63,9 @@ public class ExceptionLoggingMiddleware
                 environment: _environment.EnvironmentName);
 
             await logService.CreateAsync(appLog);
+
+            // Marca a requisição como loggeada para evitar duplicidade no RequestResponseLoggingMiddleware
+            context.Items["IsLogged"] = true;
         }
         catch (Exception logEx)
         {

@@ -60,8 +60,9 @@ public class RequestResponseLoggingMiddleware
             await responseBody.CopyToAsync(originalBodyStream);
             context.Response.Body = originalBodyStream;
 
-            // Loga requisições com erro (4xx/5xx) na tabela app_logs
-            if (context.Response.StatusCode >= 400)
+            // Loga requisições com erro (4xx/5xx) na tabela app_logs,
+            // desde que ainda não tenham sido logadas pelo ExceptionLoggingMiddleware
+            if (context.Response.StatusCode >= 400 && !context.Items.ContainsKey("IsLogged"))
             {
                 await LogRequestAsync(context, appLogService, correlationId, stopwatch.ElapsedMilliseconds, responseContent);
             }
