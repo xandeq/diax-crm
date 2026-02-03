@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -59,8 +61,12 @@ const AI_PROVIDERS = [
     fullName: 'Google Gemini',
     color: 'bg-blue-500/10 border-blue-500/20 text-blue-700',
     models: [
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' }
+      { id: 'models/gemini-2.5-flash', name: '⭐ Gemini 2.5 Flash (Recomendado)', category: 'Stable' },
+      { id: 'models/gemini-2.0-flash', name: 'Gemini 2.0 Flash', category: 'Stable' },
+      { id: 'models/gemini-flash-latest', name: 'Gemini Flash (Latest)', category: 'Stable' },
+      { id: 'models/gemini-pro-latest', name: 'Gemini Pro (Latest)', category: 'Stable' },
+      { id: 'models/gemma-3-4b-it', name: '💰 Gemma 3 4B IT (Econômico)', category: 'Economy' },
+      { id: 'models/gemma-3-12b-it', name: '💰 Gemma 3 12B IT (Econômico)', category: 'Economy' }
     ]
   },
   {
@@ -293,11 +299,32 @@ export default function PromptGeneratorPage() {
                       <SelectValue placeholder="Selecione o modelo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {currentModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
+                      {selectedProvider === 'gemini' ? (
+                        <>
+                          <SelectGroup>
+                            <SelectLabel>Stable</SelectLabel>
+                            {currentModels.filter(m => ('category' in m ? m.category : '') === 'Stable').map((model) => (
+                              <SelectItem key={model.id} value={model.id}>
+                                {model.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                          <SelectGroup>
+                            <SelectLabel>Economy / Gemma</SelectLabel>
+                            {currentModels.filter(m => ('category' in m ? m.category : '') === 'Economy').map((model) => (
+                              <SelectItem key={model.id} value={model.id}>
+                                {model.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      ) : (
+                        currentModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

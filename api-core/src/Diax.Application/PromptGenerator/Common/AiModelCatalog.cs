@@ -2,6 +2,29 @@ namespace Diax.Application.PromptGenerator.Common;
 
 public static class AiModelCatalog
 {
+    // ===== CATÁLOGO ESPECÍFICO DO GEMINI =====
+    // Modelos oficialmente aprovados para uso com generateContent
+    public static readonly List<GeminiModelDto> GeminiModels = new()
+    {
+        // Stable (Default)
+        new("models/gemini-2.5-flash", "Gemini 2.5 Flash", "Stable",
+            new() { "generateContent", "countTokens" }, IsDefault: true),
+
+        // Stable Alternatives
+        new("models/gemini-2.0-flash", "Gemini 2.0 Flash", "Stable",
+            new() { "generateContent", "countTokens" }),
+        new("models/gemini-flash-latest", "Gemini Flash (Latest)", "Stable",
+            new() { "generateContent", "countTokens" }),
+        new("models/gemini-pro-latest", "Gemini Pro (Latest)", "Stable",
+            new() { "generateContent", "countTokens" }),
+
+        // Economy (Gemma models)
+        new("models/gemma-3-4b-it", "Gemma 3 4B IT", "Economy",
+            new() { "generateContent" }),
+        new("models/gemma-3-12b-it", "Gemma 3 12B IT", "Economy",
+            new() { "generateContent" })
+    };
+
     public static readonly List<ProviderModelsDto> Providers = new()
     {
         new("chatgpt", "OpenAI", new List<AiModelDto>
@@ -24,13 +47,10 @@ public static class AiModelCatalog
             new("sonar-reasoning", "Sonar Reasoning", "Reasoning"),
             new("sonar-reasoning-pro", "Sonar Reasoning Pro", "Reasoning")
         }),
-        new("gemini", "Google Gemini", new List<AiModelDto>
-        {
-            new("gemini-1.5-flash", "Gemini 1.5 Flash", "Standard", true),
-            new("gemini-1.5-pro", "Gemini 1.5 Pro", "Standard"),
-            new("gemini-2.0-flash", "Gemini 2.0 Flash", "Standard"),
-            new("gemini-2.0-flash-thinking-preview", "Gemini 2.0 Thinking", "Reasoning")
-        }),
+        new("gemini", "Google Gemini", GeminiModels
+            .Where(m => m.SupportsGenerateContent)
+            .Select(m => new AiModelDto(m.Name, m.DisplayName, m.Category, m.IsDefault))
+            .ToList()),
         new("openrouter", "OpenRouter", new List<AiModelDto>
         {
             new("openai/gpt-4o-mini", "GPT-4o Mini", "Standard", true),
@@ -54,5 +74,37 @@ public static class AiModelCatalog
     public static bool IsModelValid(string providerId, string modelId)
     {
         return Providers.Any(p => p.ProviderId == providerId && p.Models.Any(m => m.Id == modelId));
+    }
+
+    // ===== MÉTODOS ESPECÍFICOS DO GEMINI =====
+
+    /// <summary>
+    /// Valida se um modelo Gemini existe e suporta generateContent.
+    /// </summary>
+    public static (bool IsValid, string? ErrorMessage) ValidateGeminiModel(string modelId)
+    {
+        var model = GeminiModels.FirstOrDefault(m => m.Name == modelId);
+
+        if (model == null)
+        {
+            var availableModels = string.Join(", ", GeminiModels.Select(m => m.Name));
+            return (false, $"Modelo Gemini '{modelId}' não encontrado. Modelos disponíveis: {availableModels}");
+        }
+
+        if (!model.SupportsGenerateContent)
+        {
+            return (false, $"Modelo Gemini '{modelId}' não suporta geração de texto (generateContent).");
+        }
+
+        return (true, null);
+    }
+
+    /// <summary>
+    /// Obtém o modelo Gemini padrão.
+    /// </summary>
+    public static string GetDefaultGeminiModel()
+    {
+        return GeminiModels.FirstOrDefault(m => m.IsDefault)?.Name
+               ?? GeminiModels.First().Name;
     }
 }

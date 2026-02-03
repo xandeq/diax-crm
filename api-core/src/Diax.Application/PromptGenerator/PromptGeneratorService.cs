@@ -62,6 +62,14 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
     private async Task<string> SendGeminiPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
     {
+        // ===== VALIDAÇÃO ESPECÍFICA DO GEMINI =====
+        var (isValid, errorMessage) = AiModelCatalog.ValidateGeminiModel(settings.Model);
+        if (!isValid)
+        {
+            _logger.LogWarning("Invalid Gemini model requested: {Model}. Error: {Error}", settings.Model, errorMessage);
+            throw new ArgumentException(errorMessage);
+        }
+
         if (string.IsNullOrWhiteSpace(settings.ApiKey))
         {
             _logger.LogError("API Key missing (Gemini detected as potentially unconfigured). Check environment variables.");
@@ -69,8 +77,9 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         }
 
         // Gemini URL: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={API_KEY}
+        // Note: setting.Model already starts with 'models/' from catalog
         var baseUrl = settings.BaseUrl.TrimEnd('/');
-        var endpoint = $"{baseUrl}/models/{settings.Model}:generateContent?key={settings.ApiKey}";
+        var endpoint = $"{baseUrl}/{settings.Model}:generateContent?key={settings.ApiKey}";
 
         var payload = new
         {
