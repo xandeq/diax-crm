@@ -290,3 +290,68 @@ export async function generatePrompt(
   // Aqui assumimos que se não é erro, tem finalPrompt (DTO de sucesso)
   return (data as any).finalPrompt;
 }
+
+// === HISTÓRICO DE PROMPTS ===
+
+export interface UserPromptHistory {
+  id: string;
+  inputPreview: string;
+  promptType: string;
+  provider: string;
+  model: string | null;
+  createdAt: string;
+}
+
+export interface UserPromptDetail {
+  id: string;
+  originalInput: string;
+  generatedPrompt: string;
+  promptType: string;
+  provider: string;
+  model: string | null;
+  createdAt: string;
+}
+
+/**
+ * Obtém o histórico de prompts do usuário logado.
+ */
+export async function getPromptHistory(limit: number = 50): Promise<UserPromptHistory[]> {
+  const baseUrl = getApiBaseUrl();
+  const token = getAccessToken();
+
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const response = await fetch(`${baseUrl}/prompt-generator/history?limit=${limit}`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch prompt history');
+  }
+
+  return response.json();
+}
+
+/**
+ * Obtém os detalhes de um prompt específico.
+ */
+export async function getPromptById(id: string): Promise<UserPromptDetail> {
+  const baseUrl = getApiBaseUrl();
+  const token = getAccessToken();
+
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const response = await fetch(`${baseUrl}/prompt-generator/history/${id}`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Prompt not found');
+  }
+
+  return response.json();
+}

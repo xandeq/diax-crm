@@ -5,23 +5,37 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { generatePrompt, PromptGeneratorError, PromptProvider, PromptType, promptTypeOptions } from '@/services/promptGenerator';
 import {
-  AlertCircle,
-  Check,
-  Copy,
-  LayoutTemplate,
-  Lightbulb,
-  RefreshCw,
-  Sparkles,
-  Wand2
+    generatePrompt,
+    getPromptById,
+    getPromptHistory,
+    PromptGeneratorError,
+    PromptProvider,
+    PromptType,
+    promptTypeOptions,
+    UserPromptHistory
+} from '@/services/promptGenerator';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+    AlertCircle,
+    Check,
+    Clock,
+    Copy,
+    ExternalLink,
+    History,
+    LayoutTemplate,
+    Lightbulb,
+    RefreshCw,
+    Sparkles,
+    Wand2
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -90,6 +104,8 @@ export default function PromptGeneratorPage() {
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
   const [selectedPromptType, setSelectedPromptType] = useState<PromptType>('professional');
   const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<UserPromptHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [errorObj, setErrorObj] = useState<{
     message: string;
     isRetryable: boolean;
@@ -98,6 +114,53 @@ export default function PromptGeneratorPage() {
 
   // Detalhes da técnica selecionada (Importado do promptGenerator.ts)
   const selectedTypeDetails = promptTypeOptions.find(t => t.value === selectedPromptType);
+
+  // Efeito para carregar o histórico inicialmente
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const data = await getPromptHistory(10); // Pegar os últimos 10
+      setHistory(data);
+    } catch (err) {
+      console.error('Erro ao carregar histórico:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleLoadHistoryItem = async (id: string) => {
+    try {
+      setLoading(true);
+      const detail = await getPromptById(id);
+
+      // Preencher o form com os dados do histórico
+      setRawPrompt(detail.originalInput);
+      setGeneratedPrompt(detail.generatedPrompt);
+      setSelectedProvider(detail.provider as PromptProvider);
+
+      // Se houver tipo de prompt salvo, tenta setar
+      if (detail.promptType) {
+        setSelectedPromptType(detail.promptType as PromptType);
+      }
+
+      if (detail.model) {
+        setSelectedModel(detail.model);
+      }
+
+      toast.success('Prompt carregado do histórico!');
+
+      // Scroll para o topo para ver o resultado
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      toast.error('Não foi possível carregar os detalhes do prompt.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Efeito para atualizar o modelo padrão quando o provider muda
   useEffect(() => {
@@ -131,6 +194,9 @@ export default function PromptGeneratorPage() {
 
       setGeneratedPrompt(result);
       toast.success('Prompt gerado com sucesso!');
+
+      // Atualizar o histórico após gerar um novo
+      loadHistory();
     } catch (err) {
       if (err instanceof PromptGeneratorError) {
         setErrorObj({
@@ -434,6 +500,74 @@ export default function PromptGeneratorPage() {
           </div>
         </div>
       </div>
+
+      {/* Seção de Histórico */}
+      <section className="space-y-4 pt-8 border-t border-dashed">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-bold tracking-tight">Seus Prompts Recentes</h2>
+          </div>
+          <Button variant="ghost" size="sm" onClick={loadHistory} disabled={loadingHistory} className="text-xs h-8">
+            <RefreshCw className={`h-3 w-3 mr-2 ${loadingHistory ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
+
+        {loadingHistory && history.length === 0 ? (
+          <div className="flex items-center justify-center p-12 border rounded-xl bg-muted/5">
+            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground mr-3" />
+            <span className="text-muted-foreground">Carregando histórico...</span>
+          </div>
+        ) : history.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {history.map((item) => (
+              <Card key={item.id} className="hover:border-primary/50 transition-colors shadow-sm overflow-hidden flex flex-col group">
+                <CardContent className="p-4 flex flex-col h-full space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px] uppercase font-bold py-0 h-5">
+                      {item.promptType || 'Padrão'}
+                    </Badge>
+                    <div className="flex items-center text-[10px] text-muted-foreground">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: ptBR })}
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-foreground/80 line-clamp-3 italic flex-1 bg-muted/30 p-2 rounded border border-muted/50">
+                    "{item.inputPreview}..."
+                  </p>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-dashed mt-auto">
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                       <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[80px]">
+                          {item.provider}
+                       </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 text-xs px-3 group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                      onClick={() => handleLoadHistoryItem(item.id)}
+                    >
+                      Ver Detalhes
+                      <ExternalLink className="w-3 h-3 ml-1.5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-12 border rounded-xl bg-muted/5 text-center">
+            <Sparkles className="h-10 w-10 text-muted/30 mb-3" />
+            <h3 className="text-lg font-medium text-muted-foreground">Nenhum prompt salvo ainda</h3>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto mt-1">
+              Comece a gerar seus prompts otimizados e eles aparecerão aqui automaticamente.
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
