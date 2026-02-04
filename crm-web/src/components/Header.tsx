@@ -116,8 +116,37 @@ export function Header() {
         {isAuthenticated && (
           <>
             <Link href="/dashboard/">Dashboard</Link>
-            <Link href="/leads/">Leads</Link>
-            <Link href="/customers/">Clientes</Link>
+
+            <div className="relative group">
+              <button
+                type="button"
+                className="hover:text-slate-900"
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                Clientes
+              </button>
+              <div
+                role="menu"
+                className="absolute left-0 top-full min-w-[180px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
+              >
+                <Link
+                  href="/customers/"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Clientes
+                </Link>
+                <Link
+                  href="/leads/"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Leads
+                </Link>
+              </div>
+            </div>
+
             <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
             <button
               onClick={logout}
