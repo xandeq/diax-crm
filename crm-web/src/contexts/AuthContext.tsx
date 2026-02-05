@@ -84,14 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = (role: UserRole) => user?.role === role;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isAdmin, 
-      hasRole, 
-      login, 
-      logout, 
-      isLoading 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
+      isAdmin,
+      hasRole,
+      login,
+      logout,
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>

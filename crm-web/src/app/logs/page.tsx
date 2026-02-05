@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { RoleGuard } from '@/components/RoleGuard';
 import { LogFilters } from '@/components/logs/LogFilters';
@@ -69,118 +69,113 @@ export default function LogsPage() {
     setTimeout(() => loadLogs(), 0);
   };
 
-  const handleRefresh = () => {
-    loadLogs();
-    loadStats();
-  };
-
   return (
     <RoleGuard allowedRoles={['Admin']}>
       <div className="space-y-6">
-        {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Logs do Sistema</h1>
-          <p className="text-gray-500 mt-1">Visualize e analise os logs da aplicação</p>
-        </div>
-        <Button onClick={handleRefresh} variant="outline" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <StatCard
-            label="Total"
-            value={stats.totalCount}
-            color="bg-gray-100 text-gray-800"
-          />
-          <StatCard
-            label={logLevelLabels[LogLevel.Debug]}
-            value={stats.debugCount}
-            color={levelColorClasses[LogLevel.Debug]}
-          />
-          <StatCard
-            label={logLevelLabels[LogLevel.Information]}
-            value={stats.informationCount}
-            color={levelColorClasses[LogLevel.Information]}
-          />
-          <StatCard
-            label={logLevelLabels[LogLevel.Warning]}
-            value={stats.warningCount}
-            color={levelColorClasses[LogLevel.Warning]}
-          />
-          <StatCard
-            label={logLevelLabels[LogLevel.Error]}
-            value={stats.errorCount}
-            color={levelColorClasses[LogLevel.Error]}
-          />
-          <StatCard
-            label={logLevelLabels[LogLevel.Critical]}
-            value={stats.criticalCount}
-            color={levelColorClasses[LogLevel.Critical]}
-          />
-        </div>
-      )}
-
-      {/* Filters */}
-      <LogFilters
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onApply={handleApplyFilters}
-      />
-
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-500" />
+        <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium text-red-800">Erro ao carregar logs</p>
-            <p className="text-sm text-red-600">{error}</p>
+            <h1 className="text-2xl font-bold text-gray-900">Logs do Sistema</h1>
+            <p className="text-gray-500 mt-1">Visualize e analise os logs da aplicação</p>
           </div>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={handleRefresh}>
-            Tentar novamente
+          <Button onClick={() => { loadLogs(); loadStats(); }} variant="outline" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
           </Button>
         </div>
-      )}
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border">
-        <LogsTable logs={data?.items || []} loading={loading} />
-
-        {/* Pagination */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <div className="text-sm text-gray-500">
-              Mostrando {((data.page - 1) * data.pageSize) + 1} a {Math.min(data.page * data.pageSize, data.totalCount)} de {data.totalCount} registros
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page <= 1}
-                onClick={() => handlePageChange(data.page - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Anterior
-              </Button>
-              <span className="text-sm text-gray-600">
-                Página {data.page} de {data.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page >= data.totalPages}
-                onClick={() => handlePageChange(data.page + 1)}
-              >
-                Próxima
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatCard
+              label="Total"
+              value={stats.totalCount}
+              color="bg-gray-100 text-gray-800"
+            />
+            <StatCard
+              label={logLevelLabels[LogLevel.Debug]}
+              value={stats.debugCount}
+              color={levelColorClasses[LogLevel.Debug]}
+            />
+            <StatCard
+              label={logLevelLabels[LogLevel.Information]}
+              value={stats.informationCount}
+              color={levelColorClasses[LogLevel.Information]}
+            />
+            <StatCard
+              label={logLevelLabels[LogLevel.Warning]}
+              value={stats.warningCount}
+              color={levelColorClasses[LogLevel.Warning]}
+            />
+            <StatCard
+              label={logLevelLabels[LogLevel.Error]}
+              value={stats.errorCount}
+              color={levelColorClasses[LogLevel.Error]}
+            />
+            <StatCard
+              label={logLevelLabels[LogLevel.Critical]}
+              value={stats.criticalCount}
+              color={levelColorClasses[LogLevel.Critical]}
+            />
           </div>
         )}
+
+        {/* Filters */}
+        <LogFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onApply={handleApplyFilters}
+        />
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            <div>
+              <p className="font-medium text-red-800">Erro ao carregar logs</p>
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={() => { loadLogs(); loadStats(); }}>
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+
+        {/* Table */}
+        <div className="bg-white rounded-lg border">
+          <LogsTable logs={data?.items || []} loading={loading} />
+
+          {/* Pagination */}
+          {data && data.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <div className="text-sm text-gray-500">
+                Mostrando {((data.page - 1) * data.pageSize) + 1} a {Math.min(data.page * data.pageSize, data.totalCount)} de {data.totalCount} registros
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={data.page <= 1}
+                  onClick={() => handlePageChange(data.page - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Página {data.page} de {data.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={data.page >= data.totalPages}
+                  onClick={() => handlePageChange(data.page + 1)}
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </RoleGuard>
   );
