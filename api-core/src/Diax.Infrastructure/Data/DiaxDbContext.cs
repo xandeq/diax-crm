@@ -6,6 +6,8 @@ using Diax.Domain.Household;
 using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
 using Diax.Domain.PromptGenerator;
+using Diax.Domain.AI;
+using Diax.Domain.UserGroups;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -66,6 +68,16 @@ public class DiaxDbContext : DbContext
     public DbSet<Snippet> Snippets => Set<Snippet>();
     public DbSet<ChecklistCategory> ChecklistCategories => Set<ChecklistCategory>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
+
+    // AI & RBAC
+    public DbSet<AiProvider> AiProviders => Set<AiProvider>();
+    public DbSet<AiModel> AiModels => Set<AiModel>();
+    public DbSet<UserGroup> UserGroups => Set<UserGroup>();
+    public DbSet<UserGroupMember> UserGroupMembers => Set<UserGroupMember>();
+    public DbSet<GroupAiProviderAccess> GroupAiProviderAccesses => Set<GroupAiProviderAccess>();
+    public DbSet<GroupAiModelAccess> GroupAiModelAccesses => Set<GroupAiModelAccess>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

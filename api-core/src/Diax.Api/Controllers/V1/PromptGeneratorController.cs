@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Diax.Application.PromptGenerator;
 using Diax.Application.PromptGenerator.Common;
 using Diax.Application.PromptGenerator.Dtos;
+using Diax.Application.AI;
 using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,15 +21,18 @@ public class PromptGeneratorController : ControllerBase
     private readonly IPromptGeneratorService _promptGeneratorService;
     private readonly ILogger<PromptGeneratorController> _logger;
     private readonly DiaxDbContext _db;
+    private readonly IAiCatalogService _aiCatalogService;
 
     public PromptGeneratorController(
         IPromptGeneratorService promptGeneratorService,
         ILogger<PromptGeneratorController> logger,
-        DiaxDbContext db)
+        DiaxDbContext db,
+        IAiCatalogService aiCatalogService)
     {
         _promptGeneratorService = promptGeneratorService;
         _logger = logger;
         _db = db;
+        _aiCatalogService = aiCatalogService;
     }
 
     [HttpPost("generate")]
@@ -55,6 +59,17 @@ public class PromptGeneratorController : ControllerBase
         if (userId == null)
         {
             return Unauthorized(new { error = "Usuário não autenticado." });
+        }
+
+        // Validate RBAC Access to Provider/Model
+        if (request.Provider != null && request.Model != null)
+        {
+            var hasAccess = await _aiCatalogService.ValidateUserAccessAsync(userId.Value, request.Provider, request.Model, cancellationToken);
+            if (!hasAccess)
+            {
+                _logger.LogWarning("Access denied for User {UserId} to Provider {Provider} Model {Model}", userId, request.Provider, request.Model);
+                return StatusCode(403, new { error = "Você não tem permissão para usar este provedor ou modelo de IA." });
+            }
         }
 
         try

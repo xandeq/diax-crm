@@ -1,0 +1,161 @@
+2026-02-05 05:57:12.225 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 05:57:12.784 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 05:57:25.074 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 05:57:25.606 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 05:57:26.794 -03:00 [INF] Executed DbCommand (13ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-02-05 05:57:26.818 -03:00 [INF] Executed DbCommand (10ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-02-05 05:57:26.823 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-02-05 05:57:26.828 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-02-05 05:57:26.859 -03:00 [INF] Executed DbCommand (16ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-02-05 05:57:27.108 -03:00 [INF] Applying migration '20260205085713_AddUserRoles'.
+2026-02-05 05:57:27.179 -03:00 [INF] Executed DbCommand (8ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [admin_users] ADD [role] int NOT NULL DEFAULT 0;
+2026-02-05 05:57:27.185 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260205085713_AddUserRoles', N'8.0.11');
+2026-02-05 05:59:04.306 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 10:38:36.883 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 10:38:37.596 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 11:03:42.320 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 11:03:42.996 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 11:03:56.461 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 11:03:57.073 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 11:03:58.503 -03:00 [INF] Executed DbCommand (12ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-02-05 11:03:58.525 -03:00 [INF] Executed DbCommand (10ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-02-05 11:03:58.532 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-02-05 11:03:58.536 -03:00 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-02-05 11:03:58.556 -03:00 [INF] Executed DbCommand (6ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-02-05 11:03:58.570 -03:00 [INF] Applying migration '20260205133838_AddAiRbacModule'.
+2026-02-05 11:03:58.668 -03:00 [INF] Executed DbCommand (4ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [ai_providers] (
+    [id] uniqueidentifier NOT NULL,
+    [key] nvarchar(50) NOT NULL,
+    [name] nvarchar(100) NOT NULL,
+    [is_enabled] bit NOT NULL,
+    [supports_list_models] bit NOT NULL,
+    [base_url] nvarchar(255) NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_ai_providers] PRIMARY KEY ([id])
+);
+2026-02-05 11:03:58.674 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [permissions] (
+    [id] uniqueidentifier NOT NULL,
+    [key] nvarchar(100) NOT NULL,
+    [description] nvarchar(255) NOT NULL,
+    CONSTRAINT [PK_permissions] PRIMARY KEY ([id])
+);
+2026-02-05 11:03:58.679 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [user_groups] (
+    [id] uniqueidentifier NOT NULL,
+    [key] nvarchar(50) NOT NULL,
+    [name] nvarchar(100) NOT NULL,
+    [is_system] bit NOT NULL,
+    [description] nvarchar(500) NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_user_groups] PRIMARY KEY ([id])
+);
+2026-02-05 11:03:58.686 -03:00 [INF] Executed DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [ai_models] (
+    [id] uniqueidentifier NOT NULL,
+    [provider_id] uniqueidentifier NOT NULL,
+    [model_key] nvarchar(100) NOT NULL,
+    [display_name] nvarchar(100) NOT NULL,
+    [is_enabled] bit NOT NULL,
+    [is_discovered] bit NOT NULL,
+    [input_cost_hint] decimal(18,2) NULL,
+    [output_cost_hint] decimal(18,2) NULL,
+    [max_tokens_hint] int NULL,
+    [capabilities_json] nvarchar(256) NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_ai_models] PRIMARY KEY ([id]),
+    CONSTRAINT [FK_ai_models_ai_providers_provider_id] FOREIGN KEY ([provider_id]) REFERENCES [ai_providers] ([id]) ON DELETE CASCADE
+);
+2026-02-05 11:03:58.692 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [group_ai_provider_access] (
+    [group_id] uniqueidentifier NOT NULL,
+    [provider_id] uniqueidentifier NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    CONSTRAINT [PK_group_ai_provider_access] PRIMARY KEY ([group_id], [provider_id]),
+    CONSTRAINT [FK_group_ai_provider_access_ai_providers_provider_id] FOREIGN KEY ([provider_id]) REFERENCES [ai_providers] ([id]) ON DELETE CASCADE,
+    CONSTRAINT [FK_group_ai_provider_access_user_groups_group_id] FOREIGN KEY ([group_id]) REFERENCES [user_groups] ([id]) ON DELETE CASCADE
+);
+2026-02-05 11:03:58.698 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [group_permissions] (
+    [group_id] uniqueidentifier NOT NULL,
+    [permission_id] uniqueidentifier NOT NULL,
+    CONSTRAINT [PK_group_permissions] PRIMARY KEY ([group_id], [permission_id]),
+    CONSTRAINT [FK_group_permissions_permissions_permission_id] FOREIGN KEY ([permission_id]) REFERENCES [permissions] ([id]) ON DELETE CASCADE,
+    CONSTRAINT [FK_group_permissions_user_groups_group_id] FOREIGN KEY ([group_id]) REFERENCES [user_groups] ([id]) ON DELETE CASCADE
+);
+2026-02-05 11:03:58.704 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [user_group_members] (
+    [user_id] uniqueidentifier NOT NULL,
+    [group_id] uniqueidentifier NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    CONSTRAINT [PK_user_group_members] PRIMARY KEY ([user_id], [group_id]),
+    CONSTRAINT [FK_user_group_members_admin_users_user_id] FOREIGN KEY ([user_id]) REFERENCES [admin_users] ([id]) ON DELETE CASCADE,
+    CONSTRAINT [FK_user_group_members_user_groups_group_id] FOREIGN KEY ([group_id]) REFERENCES [user_groups] ([id]) ON DELETE CASCADE
+);
+2026-02-05 11:03:58.711 -03:00 [INF] Executed DbCommand (2ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [group_ai_model_access] (
+    [group_id] uniqueidentifier NOT NULL,
+    [ai_model_id] uniqueidentifier NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    CONSTRAINT [PK_group_ai_model_access] PRIMARY KEY ([group_id], [ai_model_id]),
+    CONSTRAINT [FK_group_ai_model_access_ai_models_ai_model_id] FOREIGN KEY ([ai_model_id]) REFERENCES [ai_models] ([id]) ON DELETE CASCADE,
+    CONSTRAINT [FK_group_ai_model_access_user_groups_group_id] FOREIGN KEY ([group_id]) REFERENCES [user_groups] ([id]) ON DELETE CASCADE
+);
+2026-02-05 11:03:58.716 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_ai_models_provider_id_is_enabled] ON [ai_models] ([provider_id], [is_enabled]);
+2026-02-05 11:03:58.722 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE UNIQUE INDEX [IX_ai_models_provider_id_model_key] ON [ai_models] ([provider_id], [model_key]);
+2026-02-05 11:03:58.726 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE UNIQUE INDEX [IX_ai_providers_key] ON [ai_providers] ([key]);
+2026-02-05 11:03:58.731 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_group_ai_model_access_ai_model_id] ON [group_ai_model_access] ([ai_model_id]);
+2026-02-05 11:03:58.735 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_group_ai_provider_access_provider_id] ON [group_ai_provider_access] ([provider_id]);
+2026-02-05 11:03:58.741 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_group_permissions_permission_id] ON [group_permissions] ([permission_id]);
+2026-02-05 11:03:58.744 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE UNIQUE INDEX [IX_permissions_key] ON [permissions] ([key]);
+2026-02-05 11:03:58.749 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_user_group_members_group_id] ON [user_group_members] ([group_id]);
+2026-02-05 11:03:58.753 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE UNIQUE INDEX [IX_user_groups_key] ON [user_groups] ([key]);
+2026-02-05 11:03:58.759 -03:00 [INF] Executed DbCommand (3ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260205133838_AddAiRbacModule', N'8.0.11');
+2026-02-05 11:03:58.768 -03:00 [INF] Applying migration '20260205140343_RefineAccessControl'.
+2026-02-05 11:03:58.824 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [user_group_members] ADD [user_group_id] uniqueidentifier NULL;
+2026-02-05 11:03:58.828 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_user_group_members_user_group_id] ON [user_group_members] ([user_group_id]);
+2026-02-05 11:03:58.833 -03:00 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [user_group_members] ADD CONSTRAINT [FK_user_group_members_user_groups_user_group_id] FOREIGN KEY ([user_group_id]) REFERENCES [user_groups] ([id]);
+2026-02-05 11:03:58.837 -03:00 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260205140343_RefineAccessControl', N'8.0.11');

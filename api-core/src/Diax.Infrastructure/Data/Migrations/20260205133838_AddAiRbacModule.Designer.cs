@@ -4,6 +4,7 @@ using Diax.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Diax.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(DiaxDbContext))]
-    partial class DiaxDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260205133838_AddAiRbacModule")]
+    partial class AddAiRbacModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1883,15 +1886,9 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
-                    b.Property<Guid?>("UserGroupId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("user_group_id");
-
                     b.HasKey("UserId", "GroupId");
 
                     b.HasIndex("GroupId");
-
-                    b.HasIndex("UserGroupId");
 
                     b.ToTable("user_group_members", (string)null);
                 });
@@ -2130,10 +2127,6 @@ namespace Diax.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Diax.Domain.UserGroups.UserGroup", null)
-                        .WithMany("Members")
-                        .HasForeignKey("UserGroupId");
-
                     b.HasOne("Diax.Domain.Auth.AdminUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -2177,11 +2170,6 @@ namespace Diax.Infrastructure.Data.Migrations
             modelBuilder.Entity("Diax.Domain.Household.ChecklistCategory", b =>
                 {
                     b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("Diax.Domain.UserGroups.UserGroup", b =>
-                {
-                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,0 +1,170 @@
+using Diax.Application.AI.Dtos;
+using Diax.Domain.AI;
+
+namespace Diax.Application.AI;
+
+public class AiProviderAdminService : IAiProviderAdminService
+{
+    private readonly IAiProviderRepository _providerRepository;
+    private readonly IAiModelRepository _modelRepository;
+
+    public AiProviderAdminService(
+        IAiProviderRepository providerRepository,
+        IAiModelRepository modelRepository)
+    {
+        _providerRepository = providerRepository;
+        _modelRepository = modelRepository;
+    }
+
+    public async Task<IEnumerable<AiProviderDto>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var providers = await _providerRepository.GetAllIncludedAsync(cancellationToken);
+        return providers.Select(MapToDto);
+    }
+
+    public async Task<AiProviderDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var provider = await _providerRepository.GetByIdAsync(id, cancellationToken);
+        if (provider == null) return null;
+
+        // Ensure models are loaded if not included by GetByIdAsync (Repository<T> usually finds by key/id only)
+        // Check if models are loaded or load them
+        var models = await _modelRepository.GetByProviderIdAsync(id, cancellationToken);
+        // We can't set the collection on privacy encapsulated entity easily without method,
+        // but for DTO mapping we can use the list we just fetched.
+
+        return MapToDto(provider, models);
+    }
+
+    public async Task<AiProviderDto> CreateAsync(CreateAiProviderRequest request, CancellationToken cancellationToken = default)
+    {
+        // Check if key exists
+        var existing = await _providerRepository.GetByKeyAsync(request.Key, cancellationToken);
+        if (existing != null)
+        {
+            throw new InvalidOperationException($"Provider with key '{request.Key}' already exists.");
+        }
+
+        var provider = new AiProvider(request.Key, request.Name, request.SupportsListModels, request.BaseUrl);
+        await _providerRepository.AddAsync(provider, cancellationToken);
+
+        return MapToDto(provider);
+    }
+
+    public async Task UpdateAsync(Guid id, UpdateAiProviderRequest request, CancellationToken cancellationToken = default)
+    {
+        var provider = await _providerRepository.GetByIdAsync(id, cancellationToken);
+        if (provider == null) throw new KeyNotFoundException($"Provider with ID {id} not found.");
+
+        provider.UpdateDetails(request.Name, request.SupportsListModels, request.BaseUrl);
+
+        if (request.IsEnabled) provider.Enable();
+        else provider.Disable();
+
+        await _providerRepository.UpdateAsync(provider, cancellationToken);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var provider = await _providerRepository.GetByIdAsync(id, cancellationToken);
+        if (provider == null) return; // Or throw
+
+        await _providerRepository.DeleteAsync(provider, cancellationToken);
+    }
+
+    public async Task<IEnumerable<AiModelDto>> GetModelsByProviderIdAsync(Guid providerId, CancellationToken cancellationToken = default)
+    {
+        var models = await _modelRepository.GetByProviderIdAsync(providerId, cancellationToken);
+        return models.Select(MapToDto);
+    }
+
+    public async Task<AiModelDto> AddModelAsync(Guid providerId, AiModelDto modelDto, CancellationToken cancellationToken = default)
+    {
+        var provider = await _providerRepository.GetByIdAsync(providerId, cancellationToken);
+        if (provider == null) throw new KeyNotFoundException($"Provider with ID {providerId} not found.");
+
+        var model = new AiModel(providerId, modelDto.ModelKey, modelDto.DisplayName, modelDto.IsDiscovered);
+        model.UpdateDetails(modelDto.DisplayName, modelDto.InputCostHint, modelDto.OutputCostHint, modelDto.MaxTokensHint, null);
+
+        if (modelDto.IsEnabled) model.Enable();
+        else model.Disable();
+
+        await _modelRepository.AddAsync(model, cancellationToken);
+
+        return MapToDto(model);
+    }
+
+    public async Task UpdateModelAsync(Guid modelId, AiModelDto modelDto, CancellationToken cancellationToken = default)
+    {
+        var model = await _modelRepository.GetByIdAsync(modelId, cancellationToken);
+        if (model == null) throw new KeyNotFoundException($"Model with ID {modelId} not found.");
+
+        model.UpdateDetails(modelDto.DisplayName, modelDto.InputCostHint, modelDto.OutputCostHint, modelDto.MaxTokensHint, null);
+
+        if (modelDto.IsEnabled) model.Enable();
+        else model.Disable();
+
+        await _modelRepository.UpdateAsync(model, cancellationToken);
+    }
+
+    public async Task DeleteModelAsync(Guid modelId, CancellationToken cancellationToken = default)
+    {
+        var model = await _modelRepository.GetByIdAsync(modelId, cancellationToken);
+        if (model == null) return;
+
+        await _modelRepository.DeleteAsync(model, cancellationToken);
+    }
+
+    public async Task<SyncModelsResultDto> SyncModelsAsync(Guid providerId, CancellationToken cancellationToken = default)
+    {
+        var provider = await _providerRepository.GetByIdAsync(providerId, cancellationToken);
+        if (provider == null) throw new KeyNotFoundException($"Provider with ID {providerId} not found.");
+
+        if (!provider.SupportsListModels)
+        {
+            throw new InvalidOperationException($"Provider '{provider.Name}' does not support model listing.");
+        }
+
+        // TODO: Implement actual API call logic using HttpClientFactory and provider specific clients.
+        // For now, we return a mock result to allow frontend development to proceed.
+
+        return new SyncModelsResultDto(
+            DiscoveredCount: 0,
+            NewModels: 0,
+            ExistingModelsUpdated: 0,
+            Errors: new List<string> { "Sync implementation pending integration with HTTP clients." }
+        );
+    }
+
+    private static AiProviderDto MapToDto(AiProvider provider)
+    {
+        return MapToDto(provider, provider.Models);
+    }
+
+    private static AiProviderDto MapToDto(AiProvider provider, IEnumerable<AiModel> models)
+    {
+        return new AiProviderDto(
+            provider.Id,
+            provider.Key,
+            provider.Name,
+            provider.IsEnabled,
+            provider.SupportsListModels,
+            provider.BaseUrl,
+            models?.Select(MapToDto).ToList() ?? new List<AiModelDto>()
+        );
+    }
+
+    private static AiModelDto MapToDto(AiModel model)
+    {
+        return new AiModelDto(
+            model.Id,
+            model.ModelKey,
+            model.DisplayName,
+            model.IsEnabled,
+            model.IsDiscovered,
+            model.InputCostHint,
+            model.OutputCostHint,
+            model.MaxTokensHint
+        );
+    }
+}

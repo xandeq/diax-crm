@@ -7,6 +7,7 @@ using Diax.Application.Ai.HumanizeText;
 using Diax.Application.Household;
 using Diax.Application.Logs;
 using Diax.Application.Snippets;
+using Diax.Application.AI;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +24,7 @@ public static class DependencyInjection
 
         // Registra os serviços de aplicação
         services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddScoped<IUserGroupService, UserGroupService>();
         services.AddScoped<CustomerService>();
         services.AddScoped<IncomeService>();
         services.AddScoped<IncomeCategoryService>();
@@ -44,7 +46,9 @@ public static class DependencyInjection
         services.AddScoped<ISnippetService, SnippetService>();
         services.AddScoped<IChecklistCategoryService, ChecklistCategoryService>();
         services.AddScoped<IChecklistItemService, ChecklistItemService>();
-
+        services.AddScoped<IAiProviderAdminService, AiProviderAdminService>();
+        services.AddScoped<IAiCatalogService, AiCatalogService>();
+        services.AddScoped<IGroupAiAccessService, GroupAiAccessService>();
         return services;
     }
 }

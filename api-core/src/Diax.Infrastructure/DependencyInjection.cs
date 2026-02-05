@@ -12,6 +12,8 @@ using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Finance;
 using Diax.Infrastructure.Ai;
 using Diax.Shared.Ai;
+using Diax.Domain.AI;
+using Diax.Domain.UserGroups;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -170,6 +172,10 @@ public static class DependencyInjection
         services.AddScoped<IUserPromptRepository, UserPromptRepository>();
         services.AddScoped<IChecklistCategoryRepository, ChecklistCategoryRepository>();
         services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
+        services.AddScoped<IAiProviderRepository, AiProviderRepository>();
+        services.AddScoped<IAiModelRepository, AiModelRepository>();
+        services.AddScoped<IUserGroupRepository, UserGroupRepository>();
+        services.AddScoped<IGroupAiAccessRepository, GroupAiAccessRepository>();
 
         // ===== PARSERS =====
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();
