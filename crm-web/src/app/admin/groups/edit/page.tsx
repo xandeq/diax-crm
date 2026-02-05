@@ -10,9 +10,9 @@ import { adminGroupsService, GroupAiAccessDto, UserGroup } from '@/services/admi
 import { AiModel, AiProvider } from '@/services/aiCatalog';
 import { ArrowLeft, Bot, Loader2, Save } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { useSearchParams } from 'next/navigation';
 
 function EditGroupContent() {
   const searchParams = useSearchParams();
@@ -22,18 +22,18 @@ function EditGroupContent() {
   const [providers, setProviders] = useState<AiProvider[]>([]);
   const [modelsByProvider, setModelsByProvider] = useState<Record<string, AiModel[]>>({});
 
-  const [access, setAccess] = useState<GroupAiAccessDto>({ 
-      groupId: id || '', 
-      allowedProviderIds: [], 
-      allowedModelIds: [] 
+  const [access, setAccess] = useState<GroupAiAccessDto>({
+      groupId: id || '',
+      allowedProviderIds: [],
+      allowedModelIds: []
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    
+
     const fetchData = async () => {
       try {
         setLoading(true);

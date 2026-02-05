@@ -7,13 +7,12 @@ import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
-    SelectGroup,
     SelectItem,
-    SelectLabel,
     SelectTrigger,
-    SelectValue,
+    SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { AiProvider as CatalogProvider, getAiCatalog } from '@/services/aiCatalog';
 import {
     generatePrompt,
     getPromptById,
@@ -24,7 +23,6 @@ import {
     promptTypeOptions,
     UserPromptHistory
 } from '@/services/promptGenerator';
-import { getAiCatalog, AiProvider as CatalogProvider, AiModel as CatalogModel } from '@/services/aiCatalog';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {

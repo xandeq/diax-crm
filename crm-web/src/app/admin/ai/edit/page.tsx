@@ -15,9 +15,9 @@ import { adminAiProvidersService } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { useSearchParams } from 'next/navigation';
 
 function EditAiProviderContent() {
   const searchParams = useSearchParams();
