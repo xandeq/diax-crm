@@ -94,27 +94,37 @@ export default function PromptGeneratorPage() {
         setIsLoadingCatalog(true);
         try {
             // Load Catalog
+            console.log('[PromptGenerator] 🔄 Loading AI catalog...');
             const catalog = await getAiCatalog();
             setProviders(catalog);
 
-            // Set default provider/model if available
-            if (catalog.length > 0) {
+            if (catalog.length === 0) {
+                console.warn('[PromptGenerator] ⚠️ No AI providers available');
+                toast.warning(
+                    'Nenhum provedor de IA configurado. Entre em contato com o administrador.',
+                    { duration: 5000 }
+                );
+            } else {
+                console.log('[PromptGenerator] ✅ Loaded', catalog.length, 'providers');
+                
+                // Set default provider/model
                 const firstProv = catalog[0];
                 setSelectedProvider(firstProv.key);
                 if (firstProv.models.length > 0) {
                     setSelectedModel(firstProv.models[0].modelKey);
                 }
-            }
 
-            // Carregar histórico apenas se o catálogo carregou com sucesso
-            await loadHistory();
+                // Carregar histórico apenas se o catálogo carregou com sucesso
+                await loadHistory();
+            }
         } catch (error) {
             // Se for erro de autenticação, não mostra toast (vai redirecionar)
             if (error instanceof ApiError && error.status === 401) {
+                console.warn('[PromptGenerator] Auth error during catalog load');
                 return;
             }
-            console.error("Failed to load AI catalog", error);
-            toast.error("Erro ao carregar catálogo de IA.");
+            console.error('[PromptGenerator] ❌ Failed to load AI catalog', error);
+            toast.error('Erro ao carregar catálogo de IA.');
         } finally {
             setIsLoadingCatalog(false);
         }

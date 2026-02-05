@@ -1,6 +1,7 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Asp.Versioning;
 using Diax.Application.AI;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,28 +11,38 @@ namespace Diax.Api.Controllers.V1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/ai/catalog")]
 [Authorize]
-public class AiCatalogController : BaseApiController
+public class AiCatalogController : ControllerBase
 {
     private readonly IAiCatalogService _catalogService;
-    private readonly DiaxDbContext _db;
+    private readonly ILogger<AiCatalogController> _logger;
 
-    public AiCatalogController(IAiCatalogService catalogService, DiaxDbContext db)
+    public AiCatalogController(
+        IAiCatalogService catalogService,
+        ILogger<AiCatalogController> logger)
     {
         _catalogService = catalogService;
-        _db = db;
+        _logger = logger;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetCatalog(CancellationToken cancellationToken)
     {
-        // Usar o mesmo padrão de resolução de UserId dos outros controllers
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
-        if (!userId.HasValue)
+        var email = User.FindFirstValue(ClaimTypes.Email) 
+                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Email);
+
+        if (string.IsNullOrWhiteSpace(email))
         {
-            return Unauthorized(new { error = "User not found or not authenticated." });
+            _logger.LogWarning("[AiCatalog] No email claim found in token");
+            return Unauthorized(new { error = "Invalid authentication token." });
         }
 
-        var catalog = await _catalogService.GetUserCatalogAsync(userId.Value, cancellationToken);
+        _logger.LogInformation("[AiCatalog] Getting catalog for user: {Email}", email);
+
+        // Usar GetCatalogAsync que tem fallback para configuração
+        var catalog = await _catalogService.GetCatalogAsync(cancellationToken);
+        
+        _logger.LogInformation("[AiCatalog] Returning {Count} providers", catalog.Count);
+        
         return Ok(new { providers = catalog });
     }
 }
