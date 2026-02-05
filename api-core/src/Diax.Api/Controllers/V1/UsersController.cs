@@ -43,6 +43,9 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<UserResponse>> Update(Guid id, [FromBody] UpdateUserRequest request, CancellationToken ct)
     {
+        if (request == null)
+            return BadRequest(new { message = "O corpo da requisição não pode estar vazio." });
+
         var currentUserId = _currentUserService.UserId ?? throw new UnauthorizedAccessException();
         return Ok(await _service.UpdateAsync(id, request, currentUserId, ct));
     }

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { userService } from '@/services/users';
 import { UserRole } from '@/types/auth';
-import { UserResponse } from '@/types/users';
+import { UserResponse, UpdateUserRequest } from '@/types/users';
 import { AlertCircle, Plus, RefreshCw, Trash2, UserPlus, Shield, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -69,22 +69,30 @@ export default function UsersPage() {
 
     try {
       if (editingId) {
-        await userService.update(editingId, {
+        const updateData: UpdateUserRequest = {
           role: formData.role,
-          isActive: formData.isActive,
-          password: formData.password || undefined
-        });
+          isActive: formData.isActive
+        };
+        // Só incluir password se foi preenchido
+        if (formData.password && formData.password.trim() !== '') {
+          updateData.password = formData.password;
+        }
+        console.log('Updating user with data:', updateData);
+        await userService.update(editingId, updateData);
       } else {
-        await userService.create({
+        const createData = {
           email: formData.email,
           password: formData.password,
           role: formData.role
-        });
+        };
+        console.log('Creating user with data:', createData);
+        await userService.create(createData);
       }
       loadUsers();
       resetForm();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao salvar usuário.');
+      console.error('Error saving user:', err);
+      setError(err.response?.data?.message || err.message || 'Erro ao salvar usuário.');
     } finally {
       setSubmitting(false);
     }
@@ -159,7 +167,10 @@ export default function UsersPage() {
                 <label className="text-sm font-medium">Perfil</label>
                 <Select
                   value={formData.role}
-                  onValueChange={(val) => setFormData({ ...formData, role: val as UserRole })}
+                  onValueChange={(val: string) => {
+                    console.log('Role changed to:', val);
+                    setFormData({ ...formData, role: val as UserRole });
+                  }}
                   disabled={submitting}
                 >
                   <SelectTrigger>

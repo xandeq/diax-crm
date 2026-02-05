@@ -16,8 +16,9 @@ public record CreateUserRequest(
     UserRole Role
 );
 
-public record UpdateUserRequest(
-    UserRole Role,
-    bool IsActive,
-    string? Password = null
-);
+public class UpdateUserRequest
+{
+    public UserRole Role { get; set; }
+    public bool IsActive { get; set; }
+    public string? Password { get; set; }
+}

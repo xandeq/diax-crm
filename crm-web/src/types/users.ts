@@ -10,7 +10,7 @@ export interface UserResponse {
 
 export interface CreateUserRequest {
   email: string;
-  password?: string;
+  password: string;
   role: UserRole;
 }
 
