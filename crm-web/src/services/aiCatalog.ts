@@ -30,16 +30,23 @@ export async function getAiCatalog(): Promise<AiProvider[]> {
   const token = getAccessToken();
   if (!token) {
     console.warn('[aiCatalog] No access token available, skipping API call');
-    throw new ApiError(401, 'No access token available');
+    // Retornar array vazio em vez de lançar erro para não disparar logout
+    return [];
   }
 
   try {
     const response = await apiFetch<AiCatalogResponse>('/ai/catalog');
     return response.providers;
   } catch (error) {
-    // Se for erro 401, deixa propagar (o apiFetch já disparou auth:expired)
+    // Se for erro 401, logar detalhes mas NÃO propagar
+    // O AuthGuard cuidará do redirect se o token realmente estiver inválido
     if (error instanceof ApiError && error.status === 401) {
-      throw error;
+      console.error('[aiCatalog] 401 Unauthorized - Token may be invalid or endpoint misconfigured:', {
+        status: error.status,
+        message: error.message
+      });
+      // Retornar vazio para permitir que a página carregue
+      return [];
     }
 
     // Para outros erros, log e retorna vazio
