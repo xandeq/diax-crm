@@ -68,6 +68,7 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Permite deserialização case-insensitive
     });
 
 // API Versioning
