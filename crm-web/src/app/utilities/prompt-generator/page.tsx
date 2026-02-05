@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
+import { ApiError } from '@/services/api';
 import { AiProvider as CatalogProvider, getAiCatalog } from '@/services/aiCatalog';
 import {
   generatePrompt,
@@ -51,6 +52,7 @@ export default function PromptGeneratorPage() {
 
     const [providers, setProviders] = useState<CatalogProvider[]>([]);
     const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+    const [pageReady, setPageReady] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [rawPrompt, setRawPrompt] = useState('');
@@ -85,6 +87,9 @@ export default function PromptGeneratorPage() {
       return;
     }
 
+    // Marca a página como pronta apenas após confirmar autenticação
+    setPageReady(true);
+
     const loadData = async () => {
         setIsLoadingCatalog(true);
         try {
@@ -100,14 +105,19 @@ export default function PromptGeneratorPage() {
                     setSelectedModel(firstProv.models[0].modelKey);
                 }
             }
+            
+            // Carregar histórico apenas se o catálogo carregou com sucesso
+            await loadHistory();
         } catch (error) {
+            // Se for erro de autenticação, não mostra toast (vai redirecionar)
+            if (error instanceof ApiError && error.status === 401) {
+                return;
+            }
             console.error("Failed to load AI catalog", error);
             toast.error("Erro ao carregar catálogo de IA.");
         } finally {
             setIsLoadingCatalog(false);
         }
-
-        loadHistory();
     };
 
     loadData();
@@ -221,8 +231,8 @@ export default function PromptGeneratorPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Mostrar loading enquanto verifica autenticação
-  if (authLoading || !isAuthenticated) {
+  // Mostrar loading enquanto verifica autenticação ou página não está pronta
+  if (authLoading || !pageReady) {
     return (
       <div className="flex justify-center items-center h-screen">
         <RefreshCw className="h-8 w-8 animate-spin text-primary" />

@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+import { apiFetch, ApiError } from './api';
 
 export interface AiModel {
   id: string;
@@ -30,6 +30,12 @@ export async function getAiCatalog(): Promise<AiProvider[]> {
     const response = await apiFetch<AiCatalogResponse>('/ai/catalog');
     return response.providers;
   } catch (error) {
+    // Se for erro 401, deixa propagar (o apiFetch já disparou auth:expired)
+    if (error instanceof ApiError && error.status === 401) {
+      throw error;
+    }
+    
+    // Para outros erros, log e retorna vazio
     console.error('Error fetching AI catalog:', error);
     return [];
   }
