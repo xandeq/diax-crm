@@ -5,39 +5,39 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 import { AiProvider as CatalogProvider, getAiCatalog } from '@/services/aiCatalog';
 import {
-    generatePrompt,
-    getPromptById,
-    getPromptHistory,
-    PromptGeneratorError,
-    PromptProvider,
-    PromptType,
-    promptTypeOptions,
-    UserPromptHistory
+  generatePrompt,
+  getPromptById,
+  getPromptHistory,
+  PromptGeneratorError,
+  PromptProvider,
+  PromptType,
+  promptTypeOptions,
+  UserPromptHistory
 } from '@/services/promptGenerator';
-import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-    AlertCircle,
-    Check,
-    Clock,
-    Copy,
-    ExternalLink,
-    History,
-    LayoutTemplate,
-    Lightbulb,
-    RefreshCw,
-    Sparkles,
-    Wand2
+  AlertCircle,
+  Check,
+  Clock,
+  Copy,
+  ExternalLink,
+  History,
+  LayoutTemplate,
+  Lightbulb,
+  RefreshCw,
+  Sparkles,
+  Wand2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
