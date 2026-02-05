@@ -23,6 +23,7 @@ import {
     promptTypeOptions,
     UserPromptHistory
 } from '@/services/promptGenerator';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -38,12 +39,16 @@ import {
     Sparkles,
     Wand2
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // Removed static AI_PROVIDERS. Now loaded from API.
 
 export default function PromptGeneratorPage() {
+    const { isAuthenticated, isLoading: authLoading } = useAuth();
+    const router = useRouter();
+
     const [providers, setProviders] = useState<CatalogProvider[]>([]);
     const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
 
@@ -69,8 +74,17 @@ export default function PromptGeneratorPage() {
   // Detalhes da técnica selecionada (Importado do promptGenerator.ts)
   const selectedTypeDetails = promptTypeOptions.find(t => t.value === selectedPromptType);
 
-  // Efeito para carregar o histórico inicialmente
+  // Efeito para verificar autenticação e carregar dados
   useEffect(() => {
+    // Aguardar a verificação de auth terminar
+    if (authLoading) return;
+
+    // Redirecionar para login se não autenticado
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     const loadData = async () => {
         setIsLoadingCatalog(true);
         try {
@@ -97,7 +111,7 @@ export default function PromptGeneratorPage() {
     };
 
     loadData();
-  }, []);
+  }, [authLoading, isAuthenticated, router]);
 
   const loadHistory = async () => {
     try {
@@ -207,7 +221,14 @@ export default function PromptGeneratorPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-
+  // Mostrar loading enquanto verifica autenticação
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 max-w-6xl space-y-8">

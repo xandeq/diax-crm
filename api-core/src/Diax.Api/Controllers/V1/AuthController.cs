@@ -51,7 +51,7 @@ public class AuthController : ControllerBase
             if (!PasswordHash.Verify(admin.PasswordHash, request.Password))
                 return Unauthorized(new { message = "Invalid credentials." });
 
-            return Ok(CreateTokenResponse(admin.Email, admin.Role.ToString(), admin.Id));
+            return Ok(CreateTokenResponse(admin.Email, admin.Role.ToString()));
         }
 
         // Fallback (temporary): allow config-based admin while DB is empty
@@ -67,10 +67,10 @@ public class AuthController : ControllerBase
         if (!string.Equals(request.Password, adminPassword, StringComparison.Ordinal))
             return Unauthorized(new { message = "Invalid credentials." });
 
-        return Ok(CreateTokenResponse(adminEmail, "Admin", null));
+        return Ok(CreateTokenResponse(adminEmail, "Admin"));
     }
 
-    private LoginResponse CreateTokenResponse(string adminEmail, string role, Guid? userId)
+    private LoginResponse CreateTokenResponse(string adminEmail, string role)
     {
         var issuer = _configuration["Jwt:Issuer"] ?? "DiaxCRM";
         var audience = _configuration["Jwt:Audience"] ?? "DiaxCRM";
@@ -91,12 +91,6 @@ public class AuthController : ControllerBase
             new(ClaimTypes.Email, adminEmail),
             new(ClaimTypes.Role, role)
         };
-
-        if (userId.HasValue)
-        {
-            claims.Add(new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()));
-            claims.Add(new Claim("id", userId.Value.ToString()));
-        }
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
