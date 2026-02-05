@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Diax.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(DiaxDbContext))]
-    [Migration("20260205210055_RenameAdminUsersToUsers")]
+    [Migration("20260205211701_RenameAdminUsersToUsers")]
     partial class RenameAdminUsersToUsers
     {
         /// <inheritdoc />
