@@ -1,5 +1,6 @@
 'use client';
 
+import { RoleGuard } from '@/components/RoleGuard';
 import { LogFilters } from '@/components/logs/LogFilters';
 import { LogsTable } from '@/components/logs/LogsTable';
 import { Badge } from '@/components/ui/badge';
@@ -74,8 +75,9 @@ export default function LogsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <RoleGuard allowedRoles={['Admin']}>
+      <div className="space-y-6">
+        {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Logs do Sistema</h1>
@@ -180,7 +182,7 @@ export default function LogsPage() {
           </div>
         )}
       </div>
-    </div>
+    </RoleGuard>
   );
 }
 

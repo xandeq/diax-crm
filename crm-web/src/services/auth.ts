@@ -1,9 +1,5 @@
+import { LoginResponse, MeResponse } from '@/types/auth';
 import { apiFetch, setAccessToken } from './api';
-
-export type LoginResponse = {
-  accessToken: string;
-  expiresAtUtc: string;
-};
 
 export async function login(email: string, password: string) {
   const data = await apiFetch<LoginResponse>('/auth/login', {
@@ -24,11 +20,6 @@ export async function login(email: string, password: string) {
   setAccessToken(token);
   return { ...data, accessToken: token };
 }
-
-export type MeResponse = {
-  email: string;
-  roles: string[];
-};
 
 export async function me() {
   return apiFetch<MeResponse>('/auth/me', {

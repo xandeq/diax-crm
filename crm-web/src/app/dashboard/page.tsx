@@ -3,7 +3,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from '@/contexts/AuthContext';
-import { me, MeResponse } from '@/services/auth';
+import { me } from '@/services/auth';
+import { MeResponse } from '@/types/auth';
 import { Activity, AlertCircle, DollarSign, Loader2, TrendingUp, Users } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -67,6 +68,11 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Logado como:</span>
           <Badge variant="outline" className="font-mono">{data?.email}</Badge>
+          {data?.roles?.map(role => (
+            <Badge key={role} variant="secondary" className="bg-primary/10 text-primary border-none">
+              {role}
+            </Badge>
+          ))}
         </div>
       </div>
 

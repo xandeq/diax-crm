@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 
 export function Header() {
-  const { isAuthenticated, logout, isLoading } = useAuth();
+  const { isAuthenticated, user, isAdmin, logout, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -147,14 +147,22 @@ export function Header() {
               </div>
             </div>
 
-            <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
-            <button
-              onClick={logout}
-              className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium"
-              title="Sair"
-            >
-              <LogOut className="h-4 w-4" /> Sair
-            </button>
+            {isAdmin && (
+              <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
+            )}
+
+            <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
+              <span className="text-xs text-slate-400 font-normal hidden md:inline">
+                {user?.email}
+              </span>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium"
+                title="Sair"
+              >
+                <LogOut className="h-4 w-4" /> Sair
+              </button>
+            </div>
           </>
         )}
       </nav>
