@@ -38,7 +38,7 @@ public class GroupAiAccessRepository : IGroupAiAccessRepository
         var toAddIds = providerIds.Where(id => !existing.Any(e => e.ProviderId == id)).ToList();
 
         if (toRemove.Any()) _context.GroupAiProviderAccesses.RemoveRange(toRemove);
-        
+
         foreach (var id in toAddIds)
         {
             _context.GroupAiProviderAccesses.Add(new GroupAiProviderAccess(groupId, id));
@@ -57,7 +57,7 @@ public class GroupAiAccessRepository : IGroupAiAccessRepository
         var toAddIds = modelIds.Where(id => !existing.Any(e => e.AiModelId == id)).ToList();
 
         if (toRemove.Any()) _context.GroupAiModelAccesses.RemoveRange(toRemove);
-        
+
         foreach (var id in toAddIds)
         {
             _context.GroupAiModelAccesses.Add(new GroupAiModelAccess(groupId, id));

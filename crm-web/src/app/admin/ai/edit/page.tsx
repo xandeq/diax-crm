@@ -1,54 +1,54 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { adminAiProvidersService } from '@/services/adminAiProviders';
-import { AiProvider, AiModel } from '@/services/aiCatalog';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
-import { Loader2, ArrowLeft, Save } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; 
+import { adminAiProvidersService } from '@/services/adminAiProviders';
+import { AiModel, AiProvider } from '@/services/aiCatalog';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { Suspense, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 
-export default function AiProviderDetailsPage({ params }: { params: { id: string } }) {
+function EditAiProviderContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
+
   const [provider, setProvider] = useState<AiProvider | null>(null);
   const [models, setModels] = useState<AiModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
         const [p, m] = await Promise.all([
-          adminAiProvidersService.getById(params.id),
-          adminAiProvidersService.getModels(params.id)
+          adminAiProvidersService.getById(id),
+          adminAiProvidersService.getModels(id)
         ]);
         setProvider(p);
         setModels(m);
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to load provider details.',
-          variant: 'destructive',
-        });
+        toast.error('Failed to load provider details.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [params.id]);
+  }, [id]);
 
   const handleToggleModel = async (model: AiModel) => {
     try {
@@ -56,16 +56,12 @@ export default function AiProviderDetailsPage({ params }: { params: { id: string
       await adminAiProvidersService.updateModel(model.id, {
         isEnabled: !model.isEnabled
       });
-      
-      setModels(models.map(m => 
+
+      setModels(models.map(m =>
         m.id === model.id ? { ...m, isEnabled: !m.isEnabled } : m
       ));
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update model status.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update model status.');
     } finally {
         setSavingId(null);
     }
@@ -79,7 +75,7 @@ export default function AiProviderDetailsPage({ params }: { params: { id: string
     );
   }
 
-  if (!provider) return <div>Provider not found</div>;
+  if (!provider || !id) return <div>Provider not found</div>;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -136,8 +132,8 @@ export default function AiProviderDetailsPage({ params }: { params: { id: string
                   <TableCell className="font-mono text-sm">{model.modelKey}</TableCell>
                   <TableCell>{model.displayName}</TableCell>
                   <TableCell className="text-right">
-                    <Button 
-                      variant={model.isEnabled ? "destructive" : "default"} 
+                    <Button
+                      variant={model.isEnabled ? "destructive" : "default"}
                       size="sm"
                       onClick={() => handleToggleModel(model)}
                       disabled={savingId === model.id}
@@ -161,4 +157,12 @@ export default function AiProviderDetailsPage({ params }: { params: { id: string
       </Card>
     </div>
   );
+}
+
+export default function AiProviderDetailsPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="animate-spin text-primary" /></div>}>
+            <EditAiProviderContent />
+        </Suspense>
+    );
 }

@@ -1,5 +1,4 @@
 import { apiFetch, apiRequest } from './api';
-import { AiProvider, AiModel } from './aiCatalog';
 
 export interface UserGroup {
   id: string;
@@ -30,7 +29,7 @@ export const adminGroupsService = {
   delete: async (id: string): Promise<void> => {
     await apiRequest(`/admin/groups/${id}`, 'DELETE');
   },
-  
+
   // AI Access
   getAiAccess: async (groupId: string): Promise<GroupAiAccessDto> => {
     return await apiFetch<GroupAiAccessDto>(`/admin/groups/${groupId}/ai-access`);
@@ -46,4 +45,3 @@ export interface GroupAiAccessDto {
     allowedProviderIds: string[];
     allowedModelIds: string[];
 }
-

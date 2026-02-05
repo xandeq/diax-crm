@@ -1,43 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { adminGroupsService, UserGroup, GroupAiAccessDto } from '@/services/adminGroups';
-import { adminAiProvidersService } from '@/services/adminAiProviders';
-import { AiProvider, AiModel } from '@/services/aiCatalog';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, ArrowLeft, Save, Bot } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; 
+import { Label } from '@/components/ui/label';
+import { adminAiProvidersService } from '@/services/adminAiProviders';
+import { adminGroupsService, GroupAiAccessDto, UserGroup } from '@/services/adminGroups';
+import { AiModel, AiProvider } from '@/services/aiCatalog';
+import { ArrowLeft, Bot, Loader2, Save } from 'lucide-react';
 import Link from 'next/link';
+import { Suspense, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 
-export default function UserGroupDetailsPage({ params }: { params: { id: string } }) {
+function EditGroupContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
+
   const [group, setGroup] = useState<UserGroup | null>(null);
   const [providers, setProviders] = useState<AiProvider[]>([]);
   const [modelsByProvider, setModelsByProvider] = useState<Record<string, AiModel[]>>({});
-  
+
   const [access, setAccess] = useState<GroupAiAccessDto>({ 
-      groupId: params.id, 
+      groupId: id || '', 
       allowedProviderIds: [], 
       allowedModelIds: [] 
   });
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
+    if (!id) return;
+    
     const fetchData = async () => {
       try {
         setLoading(true);
         const [g, p, a] = await Promise.all([
-          adminGroupsService.getAll().then(list => list.find(x => x.id === params.id)), // Temporary until we have getById
+          adminGroupsService.getAll().then(list => list.find(x => x.id === id)), // Temporary until we have getById
           adminAiProvidersService.getAll(),
-          adminGroupsService.getAiAccess(params.id)
+          adminGroupsService.getAiAccess(id)
         ]);
-        
+
         setGroup(g || null);
         setProviders(p);
         setAccess(a);
@@ -52,33 +57,26 @@ export default function UserGroupDetailsPage({ params }: { params: { id: string 
         setModelsByProvider(modelsMap);
 
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to load group details.',
-          variant: 'destructive',
-        });
+        toast.error('Failed to load group details.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [params.id]);
+  }, [id]);
 
   const handleSave = async () => {
+    if (!id) return;
     try {
         setSaving(true);
-        await adminGroupsService.updateAiAccess(params.id, {
+        await adminGroupsService.updateAiAccess(id, {
             allowedProviderIds: access.allowedProviderIds,
             allowedModelIds: access.allowedModelIds
         });
-        toast({ title: 'Success', description: 'Permissions updated.' });
+        toast.success('Permissions updated.');
     } catch (error) {
-        toast({
-            title: 'Error',
-            description: 'Failed to update permissions.',
-            variant: 'destructive',
-        });
+        toast.error('Failed to update permissions.');
     } finally {
         setSaving(false);
     }
@@ -91,7 +89,7 @@ export default function UserGroupDetailsPage({ params }: { params: { id: string 
 
     if (checked) {
         newProviders.push(providerId);
-        // Auto-select all models for convenience? Or let user choose? 
+        // Auto-select all models for convenience? Or let user choose?
         // Let's auto-select all to ensure functionality "Works" by default
         const modelIds = providerModels.map(m => m.id);
         modelIds.forEach(id => {
@@ -103,7 +101,7 @@ export default function UserGroupDetailsPage({ params }: { params: { id: string 
         const modelIds = providerModels.map(m => m.id);
         newModels = newModels.filter(id => !modelIds.includes(id));
     }
-    
+
     setAccess({ ...access, allowedProviderIds: newProviders, allowedModelIds: newModels });
   };
 
@@ -125,7 +123,7 @@ export default function UserGroupDetailsPage({ params }: { params: { id: string 
     );
   }
 
-  if (!group) return <div>Group not found</div>;
+  if (!group || !id) return <div>Group not found</div>;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -155,8 +153,8 @@ export default function UserGroupDetailsPage({ params }: { params: { id: string 
                     {providers.map(provider => (
                         <div key={provider.id} className="border rounded-lg p-4">
                             <div className="flex items-center space-x-2 mb-4">
-                                <Checkbox 
-                                    id={`prov-${provider.id}`} 
+                                <Checkbox
+                                    id={`prov-${provider.id}`}
                                     checked={access.allowedProviderIds.includes(provider.id)}
                                     onCheckedChange={(c) => toggleProvider(provider.id, c === true)}
                                 />
@@ -170,8 +168,8 @@ export default function UserGroupDetailsPage({ params }: { params: { id: string 
                                 <div className="pl-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {(modelsByProvider[provider.id] || []).map(model => (
                                         <div key={model.id} className="flex items-center space-x-2">
-                                            <Checkbox 
-                                                id={`mod-${model.id}`} 
+                                            <Checkbox
+                                                id={`mod-${model.id}`}
                                                 checked={access.allowedModelIds.includes(model.id)}
                                                 onCheckedChange={(c) => toggleModel(model.id, c === true)}
                                             />
@@ -193,4 +191,12 @@ export default function UserGroupDetailsPage({ params }: { params: { id: string 
       </div>
     </div>
   );
+}
+
+export default function UserGroupDetailsPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="animate-spin text-primary" /></div>}>
+            <EditGroupContent />
+        </Suspense>
+    );
 }

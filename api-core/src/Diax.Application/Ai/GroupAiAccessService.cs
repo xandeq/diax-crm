@@ -15,7 +15,7 @@ public class GroupAiAccessService : IGroupAiAccessService
     {
         var providerIds = await _repository.GetAllowedProviderIdsAsync(groupId);
         var modelIds = await _repository.GetAllowedModelIdsAsync(groupId);
-        
+
         return new GroupAiAccessDto(groupId, providerIds, modelIds);
     }
 

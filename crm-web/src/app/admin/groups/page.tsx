@@ -1,31 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { adminGroupsService, UserGroup } from '@/services/adminGroups';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Loader2, Plus, Users, Trash2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; 
+import { Textarea } from '@/components/ui/textarea';
+import { adminGroupsService, UserGroup } from '@/services/adminGroups';
+import { Loader2, Plus, Trash2, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function UserGroupsPage() {
   const [groups, setGroups] = useState<UserGroup[]>([]);
@@ -33,8 +33,6 @@ export default function UserGroupsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', description: '' });
   const [creating, setCreating] = useState(false);
-  
-  const { toast } = useToast();
 
   const loadGroups = async () => {
     try {
@@ -43,11 +41,7 @@ export default function UserGroupsPage() {
       setGroups(data);
     } catch (error) {
         console.error(error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load user groups.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load user groups.');
     } finally {
       setLoading(false);
     }
@@ -59,20 +53,16 @@ export default function UserGroupsPage() {
 
   const handleCreate = async () => {
     if (!newGroup.name) return;
-    
+
     try {
       setCreating(true);
       await adminGroupsService.create(newGroup);
-      toast({ title: 'Success', description: 'Group created successfully.' });
+      toast.success('Group created successfully.');
       setIsCreateOpen(false);
       setNewGroup({ name: '', description: '' });
       loadGroups();
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create group.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to create group.');
     } finally {
       setCreating(false);
     }
@@ -80,13 +70,13 @@ export default function UserGroupsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this group?')) return;
-    
+
     try {
       await adminGroupsService.delete(id);
       setGroups(groups.filter(g => g.id !== id));
-      toast({ title: 'Success', description: 'Group deleted.' });
+      toast.success('Group deleted.');
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete group.', variant: 'destructive' });
+      toast.error('Failed to delete group.');
     }
   };
 
@@ -97,7 +87,7 @@ export default function UserGroupsPage() {
           <h1 className="text-3xl font-bold tracking-tight">User Groups</h1>
           <p className="text-muted-foreground">Manage user groups and their access permissions.</p>
         </div>
-        
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -114,19 +104,19 @@ export default function UserGroupsPage() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input 
-                  id="name" 
-                  value={newGroup.name} 
-                  onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} 
+                <Input
+                  id="name"
+                  value={newGroup.name}
+                  onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
                   placeholder="e.g. Content Writers"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="desc">Description</Label>
-                <Textarea 
-                  id="desc" 
-                  value={newGroup.description} 
-                  onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })} 
+                <Textarea
+                  id="desc"
+                  value={newGroup.description}
+                  onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
                   placeholder="Optional description"
                 />
               </div>
@@ -175,7 +165,7 @@ export default function UserGroupsPage() {
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="sm" asChild>
-                        <a href={`/admin/groups/${group.id}`}>Manage Access</a>
+                        <a href={`/admin/groups/edit?id=${group.id}`}>Manage Access</a>
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(group.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />

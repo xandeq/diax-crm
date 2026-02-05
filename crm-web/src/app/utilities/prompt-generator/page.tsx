@@ -19,7 +19,7 @@ import {
     getPromptById,
     getPromptHistory,
     PromptGeneratorError,
-    // PromptProvider,  <-- Removed usage of static type if possible, or keep mapped
+    PromptProvider,
     PromptType,
     promptTypeOptions,
     UserPromptHistory
@@ -49,41 +49,6 @@ export default function PromptGeneratorPage() {
     const [providers, setProviders] = useState<CatalogProvider[]>([]);
     const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
 
-    const [rawPrompt, setRawPrompt] = useState('');
-    const [selectedType, setSelectedType] = useState<PromptType>('professional');
-    const [selectedProvider, setSelectedProvider] = useState<string>(''); // Stores Provider Key (e.g. 'openai')
-    const [selectedModel, setSelectedModel] = useState<string>('');       // Stores Model Key (e.g. 'gpt-4o')
-
-    // Derived state for current provider object
-    const currentProvider = providers.find(p => p.key === selectedProvider);
-
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    fullName: 'DeepSeek',
-    color: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700',
-    models: [
-      { id: 'deepseek-chat', name: 'DeepSeek Chat (V3)' },
-      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (R1)' }
-    ]
-  },
-  {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    fullName: 'OpenRouter API',
-    color: 'bg-orange-500/10 border-orange-500/20 text-orange-700',
-    models: [
-      { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini (via OpenRouter)' },
-      { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-      { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B' }
-    ]
-  }
-];
-
-export default function PromptGeneratorPage() {
-    const [providers, setProviders] = useState<CatalogProvider[]>([]);
-    const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
-
     const [loading, setLoading] = useState(false);
     const [rawPrompt, setRawPrompt] = useState('');
     const [generatedPrompt, setGeneratedPrompt] = useState('');
@@ -101,6 +66,7 @@ export default function PromptGeneratorPage() {
 
     // Derived state for current provider object
     const currentProvider = providers.find(p => p.key === selectedProvider);
+    const currentModels = currentProvider?.models || [];
 
   // Detalhes da técnica selecionada (Importado do promptGenerator.ts)
   const selectedTypeDetails = promptTypeOptions.find(t => t.value === selectedPromptType);
@@ -179,15 +145,15 @@ export default function PromptGeneratorPage() {
 
   // Efeito para atualizar o modelo padrão quando o provider muda
   useEffect(() => {
-    const provider = AI_PROVIDERS.find(p => p.id === selectedProvider);
+    const provider = providers.find(p => p.key === selectedProvider);
     if (provider && provider.models.length > 0) {
       // Se o modelo atual não pertence a este provider, pega o primeiro da lista
-      const modelExists = provider.models.some(m => m.id === selectedModel);
+      const modelExists = provider.models.some(m => m.modelKey === selectedModel);
       if (!modelExists) {
-        setSelectedModel(provider.models[0].id);
+        setSelectedModel(provider.models[0].modelKey);
       }
     }
-  }, [selectedProvider, selectedModel]);
+  }, [selectedProvider, selectedModel, providers]);
 
   const handleGenerate = async () => {
     if (!rawPrompt.trim()) {
@@ -202,7 +168,7 @@ export default function PromptGeneratorPage() {
     try {
       const result = await generatePrompt(
         rawPrompt,
-        selectedProvider,
+        selectedProvider as PromptProvider,
         selectedPromptType,
         selectedModel
       );
@@ -243,9 +209,7 @@ export default function PromptGeneratorPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Helper para pegar os modelos do provider atual
-  const currentProvider = AI_PROVIDERS.find(p => p.id === selectedProvider);
-  const currentModels = currentProvider?.models || [];
+
 
   return (
     <div className="container mx-auto py-8 max-w-6xl space-y-8">
@@ -329,9 +293,6 @@ export default function PromptGeneratorPage() {
                            {model.displayName}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                     </SelectContent>
                   </Select>
                 </div>

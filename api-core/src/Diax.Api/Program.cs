@@ -194,7 +194,7 @@ try
             // Seed initial admin (idempotent) — usa app.Configuration (após Build)
             AdminUserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
             Log.Information("AdminUserSeeder completed.");
-            
+
             // Seed AI Providers
             AiDataSeeder.SeedAiProviders(db, seedLogger);
             Log.Information("AiDataSeeder completed.");

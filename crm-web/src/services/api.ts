@@ -126,3 +126,12 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     throw new ApiError(res.status, `Resposta inválida do servidor: ${text.substring(0, 100)}`);
   }
 }
+
+export async function apiRequest<T>(url: string, method: string, data?: any): Promise<T> {
+  const init: RequestInit = { method };
+  if (data !== undefined) {
+    init.body = JSON.stringify(data);
+  }
+  return await apiFetch<T>(url, init);
+}
+

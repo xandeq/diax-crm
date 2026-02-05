@@ -1,27 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { adminAiProvidersService } from '@/services/adminAiProviders';
-import { AiProvider, AiModel } from '@/services/aiCatalog';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
-import { Loader2, RefreshCw, Layers, CheckCircle2, XCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast'; 
+import { adminAiProvidersService } from '@/services/adminAiProviders';
+import { AiProvider } from '@/services/aiCatalog';
+import { Layers, Loader2, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function AiAdminPage() {
   const [providers, setProviders] = useState<AiProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const loadProviders = async () => {
     try {
@@ -30,11 +29,7 @@ export default function AiAdminPage() {
       setProviders(data);
     } catch (error) {
       console.error(error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load AI Providers.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load AI Providers.');
     } finally {
       setLoading(false);
     }
@@ -52,22 +47,15 @@ export default function AiAdminPage() {
         baseUrl: provider.baseUrl,
         isEnabled: !provider.isEnabled,
       });
-      
+
       // Update local state
-      setProviders(providers.map(p => 
+      setProviders(providers.map(p =>
         p.id === provider.id ? { ...p, isEnabled: !p.isEnabled } : p
       ));
 
-      toast({
-        title: 'Success',
-        description: `Provider ${provider.name} ${!provider.isEnabled ? 'enabled' : 'disabled'}.`,
-      });
+      toast.success(`Provider ${provider.name} ${!provider.isEnabled ? 'enabled' : 'disabled'}.`);
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update provider status.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update provider status.');
     }
   };
 
@@ -77,19 +65,12 @@ export default function AiAdminPage() {
     try {
       setSyncing(provider.id);
       const result = await adminAiProvidersService.syncModels(provider.id);
-      
-      toast({
-        title: 'Sync Completed',
-        description: `Discovered: ${result.discoveredCount}, New: ${result.newModels}, Updated: ${result.existingModelsUpdated}`,
-      });
-      
+
+      toast.success(`Sync Completed: Discovered: ${result.discoveredCount}, New: ${result.newModels}, Updated: ${result.existingModelsUpdated}`);
+
       // Optionally reload providers or just the models for this provider if we were showing them detailed
     } catch (error) {
-      toast({
-        title: 'Sync Failed',
-        description: 'Failed to synchronize models.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to synchronize models.');
     } finally {
       setSyncing(null);
     }
@@ -155,9 +136,9 @@ export default function AiAdminPage() {
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         {provider.supportsListModels && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleSyncModels(provider)}
                             disabled={syncing === provider.id || !provider.isEnabled}
                           >
@@ -169,17 +150,17 @@ export default function AiAdminPage() {
                             Sync
                           </Button>
                         )}
-                        
-                        <Button 
-                          variant={provider.isEnabled ? "destructive" : "default"} 
+
+                        <Button
+                          variant={provider.isEnabled ? "destructive" : "default"}
                           size="sm"
                           onClick={() => handleToggleProvider(provider)}
                         >
                           {provider.isEnabled ? 'Disable' : 'Enable'}
                         </Button>
-                        
+
                         <Button variant="outline" size="sm" asChild>
-                            <a href={`/admin/ai/${provider.id}`}>Manage Models</a>
+                            <a href={`/admin/ai/edit?id=${provider.id}`}>Manage Models</a>
                         </Button>
                       </TableCell>
                     </TableRow>

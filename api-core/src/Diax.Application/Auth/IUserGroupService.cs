@@ -9,7 +9,7 @@ public interface IUserGroupService
     Task<UserGroup> CreateAsync(string name, string description);
     Task UpdateAsync(Guid id, string name, string description);
     Task DeleteAsync(Guid id);
-    
+
     // Member management
     Task AddMemberAsync(Guid groupId, Guid userId);
     Task RemoveMemberAsync(Guid groupId, Guid userId);

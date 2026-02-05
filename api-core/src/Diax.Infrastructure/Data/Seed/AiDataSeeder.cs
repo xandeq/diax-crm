@@ -49,14 +49,14 @@ public static class AiDataSeeder
 
         db.AiProviders.AddRange(providers);
         db.SaveChanges();
-        
+
         // Habilitar todos por padrão neste seed inicial para facilitar o desenvolvimento
-        foreach(var p in providers) 
-        { 
-            p.Enable(); 
-            foreach(var m in p.Models) 
+        foreach(var p in providers)
+        {
+            p.Enable();
+            foreach(var m in p.Models)
             {
-                m.Enable(); 
+                m.Enable();
             }
         }
         db.SaveChanges();
@@ -67,12 +67,12 @@ public static class AiDataSeeder
     private static AiProvider CreateProvider(string key, string name, bool listModels, string baseUrl, (string key, string name)[] models)
     {
         var provider = new AiProvider(key, name, listModels, baseUrl);
-        
+
         foreach (var m in models)
         {
             provider.Models.Add(new AiModel(provider.Id, m.key, m.name, false));
         }
-        
+
         return provider;
     }
 }

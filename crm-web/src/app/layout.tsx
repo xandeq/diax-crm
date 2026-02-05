@@ -2,6 +2,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { Header } from '@/components/Header';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Calistoga, Inter, JetBrains_Mono } from "next/font/google";
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const inter = Inter({
@@ -48,6 +49,7 @@ export default function RootLayout({
               <main className="flex-1">
                 {children}
               </main>
+              <Toaster />
             </div>
           </AuthGuard>
         </AuthProvider>
