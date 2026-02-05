@@ -1,4 +1,4 @@
-import { apiFetch, ApiError, getAccessToken } from './api';
+import { ApiError, apiFetch, getAccessToken } from './api';
 
 export interface AiModel {
   id: string;
@@ -32,7 +32,7 @@ export async function getAiCatalog(): Promise<AiProvider[]> {
     console.warn('[aiCatalog] No access token available, skipping API call');
     throw new ApiError(401, 'No access token available');
   }
-  
+
   try {
     const response = await apiFetch<AiCatalogResponse>('/ai/catalog');
     return response.providers;
@@ -41,7 +41,7 @@ export async function getAiCatalog(): Promise<AiProvider[]> {
     if (error instanceof ApiError && error.status === 401) {
       throw error;
     }
-    
+
     // Para outros erros, log e retorna vazio
     console.error('Error fetching AI catalog:', error);
     return [];

@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { ApiError } from '@/services/api';
 import { AiProvider as CatalogProvider, getAiCatalog } from '@/services/aiCatalog';
+import { ApiError } from '@/services/api';
 import {
   generatePrompt,
   getPromptById,
@@ -105,7 +105,7 @@ export default function PromptGeneratorPage() {
                     setSelectedModel(firstProv.models[0].modelKey);
                 }
             }
-            
+
             // Carregar histórico apenas se o catálogo carregou com sucesso
             await loadHistory();
         } catch (error) {

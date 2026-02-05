@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[AuthContext] login() - Saving token to sessionStorage');
     setApiToken(token);
     decodeAndSetUser(token);
-    
+
     // Verificar se foi salvo corretamente
     const savedToken = getAccessToken();
     console.log('[AuthContext] login() - Token saved:', savedToken ? 'YES' : 'NO');
