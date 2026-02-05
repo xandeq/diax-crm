@@ -29,16 +29,16 @@ public class IncomeService : IApplicationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<IncomeResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<IncomeResponse>>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var incomes = await _repository.GetAllAsync(cancellationToken);
+        var incomes = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
         var response = incomes.Select(MapToResponse);
         return Result<IEnumerable<IncomeResponse>>.Success(response);
     }
 
-    public async Task<Result<IncomeResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<IncomeResponse>> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var income = await _repository.GetByIdAsync(id, cancellationToken);
+        var income = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (income == null)
         {
             return Result.Failure<IncomeResponse>(new Error("Income.NotFound", "Income not found"));
@@ -46,16 +46,18 @@ public class IncomeService : IApplicationService
         return Result<IncomeResponse>.Success(MapToResponse(income));
     }
 
-    public async Task<Result<IEnumerable<IncomeResponse>>> GetByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<IncomeResponse>>> GetByMonthAsync(int year, int month, Guid userId, CancellationToken cancellationToken = default)
     {
-        var incomes = await _repository.GetByMonthAsync(year, month, cancellationToken);
-        var response = incomes.Select(MapToResponse);
+        var incomes = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
+        var filteredIncomes = incomes.Where(i => i.Date.Year == year && i.Date.Month == month);
+        var response = filteredIncomes.Select(MapToResponse);
         return Result<IEnumerable<IncomeResponse>>.Success(response);
     }
 
-    public async Task<Result<PagedResult<IncomeResponse>>> GetPagedAsync(IncomePagedRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<PagedResult<IncomeResponse>>> GetPagedAsync(IncomePagedRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         Expression<Func<Income, bool>> predicate = i =>
+            i.UserId == userId &&
             (!request.StartDate.HasValue || i.Date >= request.StartDate.Value) &&
             (!request.EndDate.HasValue || i.Date <= request.EndDate.Value) &&
             (!request.CategoryId.HasValue || i.IncomeCategoryId == request.CategoryId.Value) &&
@@ -89,7 +91,7 @@ public class IncomeService : IApplicationService
         return Result<PagedResult<IncomeResponse>>.Success(response);
     }
 
-    public async Task<Result<Guid>> CreateAsync(CreateIncomeRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> CreateAsync(CreateIncomeRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         var category = await _categoryRepository.GetByIdAsync(request.IncomeCategoryId, cancellationToken);
         if (category == null || !category.IsActive)
@@ -98,7 +100,7 @@ public class IncomeService : IApplicationService
         }
 
         // Validate financial account exists
-        var account = await _accountRepository.GetByIdAsync(request.FinancialAccountId, cancellationToken);
+        var account = await _accountRepository.GetByIdAndUserAsync(request.FinancialAccountId, userId, cancellationToken);
         if (account == null)
         {
             return Result.Failure<Guid>(new Error("Income.InvalidAccount", "Financial account not found"));
@@ -116,7 +118,8 @@ public class IncomeService : IApplicationService
             request.PaymentMethod,
             request.IncomeCategoryId,
             request.IsRecurring,
-            request.FinancialAccountId
+            request.FinancialAccountId,
+            userId
         );
 
         // Credit account balance
@@ -129,9 +132,9 @@ public class IncomeService : IApplicationService
         return Result<Guid>.Success(income.Id);
     }
 
-    public async Task<Result> UpdateAsync(Guid id, UpdateIncomeRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateAsync(Guid id, UpdateIncomeRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var income = await _repository.GetByIdAsync(id, cancellationToken);
+        var income = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (income == null)
         {
             return Result.Failure(new Error("Income.NotFound", "Income not found"));
@@ -144,7 +147,7 @@ public class IncomeService : IApplicationService
         }
 
         // Validate new financial account exists
-        var newAccount = await _accountRepository.GetByIdAsync(request.FinancialAccountId, cancellationToken);
+        var newAccount = await _accountRepository.GetByIdAndUserAsync(request.FinancialAccountId, userId, cancellationToken);
         if (newAccount == null)
         {
             return Result.Failure(new Error("Income.InvalidAccount", "Financial account not found"));
@@ -158,7 +161,7 @@ public class IncomeService : IApplicationService
         // If account or amount changed, reverse old balance and apply new
         if (income.FinancialAccountId != request.FinancialAccountId || income.Amount != request.Amount)
         {
-            var oldAccount = await _accountRepository.GetByIdAsync(income.FinancialAccountId, cancellationToken);
+            var oldAccount = await _accountRepository.GetByIdAndUserAsync(income.FinancialAccountId, userId, cancellationToken);
             if (oldAccount != null)
             {
                 // Reverse old income from old account
@@ -187,9 +190,9 @@ public class IncomeService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var income = await _repository.GetByIdAsync(id, cancellationToken);
+        var income = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (income == null)
         {
             return Result.Failure(new Error("Income.NotFound", "Income not found"));
@@ -204,7 +207,7 @@ public class IncomeService : IApplicationService
         }
 
         // Reverse income from account (debit the amount)
-        var account = await _accountRepository.GetByIdAsync(income.FinancialAccountId, cancellationToken);
+        var account = await _accountRepository.GetByIdAndUserAsync(income.FinancialAccountId, userId, cancellationToken);
         if (account != null)
         {
             account.Debit(income.Amount);
@@ -217,7 +220,7 @@ public class IncomeService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result<BulkDeleteResponse>> DeleteRangeAsync(BulkDeleteRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<BulkDeleteResponse>> DeleteRangeAsync(BulkDeleteRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         if (request.Ids == null || !request.Ids.Any())
         {
@@ -238,7 +241,7 @@ public class IncomeService : IApplicationService
                 int deletedCount = 0;
                 foreach (var id in request.Ids)
                 {
-                    var result = await DeleteAsync(id, ct);
+                    var result = await DeleteAsync(id, userId, ct);
                     if (!result.IsSuccess)
                     {
                         await _unitOfWork.RollbackTransactionAsync(ct);

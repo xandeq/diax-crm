@@ -6,8 +6,9 @@ namespace Diax.Domain.Finance;
 /// Representa uma conta financeira onde receitas entram e despesas podem sair.
 /// Cartão de crédito NÃO é uma conta financeira.
 /// </summary>
-public class FinancialAccount : AuditableEntity
+public class FinancialAccount : AuditableEntity, IUserOwnedEntity
 {
+    public Guid UserId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public AccountType AccountType { get; private set; }
     public decimal InitialBalance { get; private set; }
@@ -24,6 +25,7 @@ public class FinancialAccount : AuditableEntity
         string name,
         AccountType accountType,
         decimal initialBalance,
+        Guid userId,
         bool isActive = true)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -32,10 +34,14 @@ public class FinancialAccount : AuditableEntity
         if (name.Length > 200)
             throw new ArgumentException("Account name cannot exceed 200 characters", nameof(name));
 
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required", nameof(userId));
+
         Name = name;
         AccountType = accountType;
         InitialBalance = initialBalance;
         Balance = initialBalance;
+        UserId = userId;
         IsActive = isActive;
     }
 

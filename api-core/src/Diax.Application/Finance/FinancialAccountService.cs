@@ -23,104 +23,106 @@ public class FinancialAccountService : IApplicationService
         _logger = logger;
     }
 
-    public async Task<Result<IEnumerable<FinancialAccountResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<FinancialAccountResponse>>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Fetching all financial accounts");
-            var accounts = await _repository.GetAllAsync(cancellationToken);
+            _logger.LogInformation("Fetching all financial accounts for user {UserId}", userId);
+            var accounts = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
             var response = accounts.Select(MapToResponse);
-            _logger.LogInformation("Successfully retrieved {Count} financial accounts", accounts.Count);
+            _logger.LogInformation("Successfully retrieved {Count} financial accounts for user {UserId}", accounts.Count(), userId);
             return Result<IEnumerable<FinancialAccountResponse>>.Success(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve financial accounts");
+            _logger.LogError(ex, "Failed to retrieve financial accounts for user {UserId}", userId);
             return Result.Failure<IEnumerable<FinancialAccountResponse>>(
                 new Error("FinancialAccount.QueryFailed", "Failed to retrieve financial accounts. Please check server logs for details."));
         }
     }
 
-    public async Task<Result<IEnumerable<FinancialAccountResponse>>> GetActiveAccountsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<FinancialAccountResponse>>> GetActiveAccountsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Fetching active financial accounts");
-            var accounts = await _repository.GetActiveAccountsAsync(cancellationToken);
-            var response = accounts.Select(MapToResponse);
-            _logger.LogInformation("Successfully retrieved {Count} active financial accounts", accounts.Count);
+            _logger.LogInformation("Fetching active financial accounts for user {UserId}", userId);
+            var accounts = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
+            var activeAccounts = accounts.Where(a => a.IsActive);
+            var response = activeAccounts.Select(MapToResponse);
+            _logger.LogInformation("Successfully retrieved {Count} active financial accounts for user {UserId}", activeAccounts.Count(), userId);
             return Result<IEnumerable<FinancialAccountResponse>>.Success(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve active financial accounts");
+            _logger.LogError(ex, "Failed to retrieve active financial accounts for user {UserId}", userId);
             return Result.Failure<IEnumerable<FinancialAccountResponse>>(
                 new Error("FinancialAccount.QueryFailed", "Failed to retrieve active financial accounts. Please check server logs for details."));
         }
     }
 
-    public async Task<Result<FinancialAccountResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<FinancialAccountResponse>> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Fetching financial account with ID: {AccountId}", id);
-            var account = await _repository.GetByIdAsync(id, cancellationToken);
+            _logger.LogInformation("Fetching financial account with ID: {AccountId} for user {UserId}", id, userId);
+            var account = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
             if (account == null)
             {
-                _logger.LogWarning("Financial account with ID {AccountId} not found", id);
+                _logger.LogWarning("Financial account with ID {AccountId} not found for user {UserId}", id, userId);
                 return Result.Failure<FinancialAccountResponse>(new Error("FinancialAccount.NotFound", "Financial account not found"));
             }
-            _logger.LogInformation("Successfully retrieved financial account {AccountId}", id);
+            _logger.LogInformation("Successfully retrieved financial account {AccountId} for user {UserId}", id, userId);
             return Result<FinancialAccountResponse>.Success(MapToResponse(account));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve financial account with ID: {AccountId}", id);
+            _logger.LogError(ex, "Failed to retrieve financial account with ID: {AccountId} for user {UserId}", id, userId);
             return Result.Failure<FinancialAccountResponse>(
                 new Error("FinancialAccount.QueryFailed", "Failed to retrieve financial account. Please check server logs for details."));
         }
     }
 
-    public async Task<Result<Guid>> CreateAsync(CreateFinancialAccountRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> CreateAsync(CreateFinancialAccountRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Creating financial account: {AccountName}", request.Name);
+            _logger.LogInformation("Creating financial account: {AccountName} for user {UserId}", request.Name, userId);
             var account = new FinancialAccount(
                 request.Name,
                 request.AccountType,
                 request.InitialBalance,
+                userId,
                 request.IsActive
             );
 
             await _repository.AddAsync(account, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Successfully created financial account {AccountId}", account.Id);
+            _logger.LogInformation("Successfully created financial account {AccountId} for user {UserId}", account.Id, userId);
             return Result<Guid>.Success(account.Id);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid financial account data: {AccountName}", request.Name);
+            _logger.LogWarning(ex, "Invalid financial account data: {AccountName} for user {UserId}", request.Name, userId);
             return Result.Failure<Guid>(new Error("FinancialAccount.ValidationFailed", ex.Message));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create financial account: {AccountName}", request.Name);
+            _logger.LogError(ex, "Failed to create financial account: {AccountName} for user {UserId}", request.Name, userId);
             return Result.Failure<Guid>(
                 new Error("FinancialAccount.CreateFailed", "Failed to create financial account. Please check server logs for details."));
         }
     }
 
-    public async Task<Result> UpdateAsync(Guid id, UpdateFinancialAccountRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateAsync(Guid id, UpdateFinancialAccountRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Updating financial account {AccountId}", id);
-            var account = await _repository.GetByIdAsync(id, cancellationToken);
+            _logger.LogInformation("Updating financial account {AccountId} for user {UserId}", id, userId);
+            var account = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
             if (account == null)
             {
-                _logger.LogWarning("Financial account with ID {AccountId} not found for update", id);
+                _logger.LogWarning("Financial account with ID {AccountId} not found for update for user {UserId}", id, userId);
                 return Result.Failure(new Error("FinancialAccount.NotFound", "Financial account not found"));
             }
 
@@ -133,43 +135,43 @@ public class FinancialAccountService : IApplicationService
             await _repository.UpdateAsync(account, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Successfully updated financial account {AccountId}", id);
+            _logger.LogInformation("Successfully updated financial account {AccountId} for user {UserId}", id, userId);
             return Result.Success();
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid update data for financial account {AccountId}", id);
+            _logger.LogWarning(ex, "Invalid update data for financial account {AccountId} for user {UserId}", id, userId);
             return Result.Failure(new Error("FinancialAccount.ValidationFailed", ex.Message));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update financial account {AccountId}", id);
+            _logger.LogError(ex, "Failed to update financial account {AccountId} for user {UserId}", id, userId);
             return Result.Failure(
                 new Error("FinancialAccount.UpdateFailed", "Failed to update financial account. Please check server logs for details."));
         }
     }
 
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Deleting financial account {AccountId}", id);
-            var account = await _repository.GetByIdAsync(id, cancellationToken);
+            _logger.LogInformation("Deleting financial account {AccountId} for user {UserId}", id, userId);
+            var account = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
             if (account == null)
             {
-                _logger.LogWarning("Financial account with ID {AccountId} not found for deletion", id);
+                _logger.LogWarning("Financial account with ID {AccountId} not found for deletion for user {UserId}", id, userId);
                 return Result.Failure(new Error("FinancialAccount.NotFound", "Financial account not found"));
             }
 
             await _repository.DeleteAsync(account, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Successfully deleted financial account {AccountId}", id);
+            _logger.LogInformation("Successfully deleted financial account {AccountId} for user {UserId}", id, userId);
             return Result.Success();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete financial account {AccountId}", id);
+            _logger.LogError(ex, "Failed to delete financial account {AccountId} for user {UserId}", id, userId);
             return Result.Failure(
                 new Error("FinancialAccount.DeleteFailed", "Failed to delete financial account. Please check server logs for details."));
         }

@@ -23,25 +23,27 @@ public class FinancialSummaryService : IApplicationService
 
     public async Task<Result<FinancialSummaryResponse>> GetSummaryAsync(
         FinancialSummaryRequest request,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
         var startDate = request.StartDate ?? DateTime.MinValue;
         var endDate = request.EndDate ?? DateTime.MaxValue;
 
-        // Get all expenses in period
-        var allExpenses = await _expenseRepository.GetAllAsync(cancellationToken);
+        // Get all expenses for user
+        var allExpenses = await _expenseRepository.GetAllByUserIdAsync(userId, cancellationToken);
         var expensesInPeriod = allExpenses
             .Where(e => e.Date >= startDate && e.Date <= endDate)
             .ToList();
 
-        // Get all incomes in period
-        var allIncomes = await _incomeRepository.GetAllAsync(cancellationToken);
+        // Get all incomes for user
+        var allIncomes = await _incomeRepository.GetAllByUserIdAsync(userId, cancellationToken);
         var incomesInPeriod = allIncomes
             .Where(i => i.Date >= startDate && i.Date <= endDate)
             .ToList();
 
-        // Get unpaid invoices
-        var unpaidInvoices = await _invoiceRepository.GetUnpaidInvoicesAsync(cancellationToken);
+        // Get all invoices for user to find unpaid ones
+        var allInvoices = await _invoiceRepository.GetAllByUserIdAsync(userId, cancellationToken);
+        var unpaidInvoices = allInvoices.Where(inv => !inv.IsPaid).ToList();
 
         // Calculate totals
         var totalIncome = incomesInPeriod.Sum(i => i.Amount);

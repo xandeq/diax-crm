@@ -44,4 +44,17 @@ public class ImportedTransactionRepository(DiaxDbContext context) : IImportedTra
         context.ImportedTransactions.Update(transaction);
         await Task.CompletedTask;
     }
+
+    public async Task<IEnumerable<ImportedTransaction>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await context.ImportedTransactions
+            .Where(x => x.UserId == userId)
+            .ToListAsync(ct);
+    }
+
+    public async Task<ImportedTransaction?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await context.ImportedTransactions
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
 }

@@ -90,6 +90,26 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<CreditCardInvoice>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Include(i => i.CreditCardGroup)
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(i => i.ReferenceYear)
+            .ThenByDescending(i => i.ReferenceMonth)
+            .ToListAsync(ct);
+    }
+
+    public async Task<CreditCardInvoice?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Include(i => i.CreditCardGroup)
+            .ThenInclude(g => g.Cards)
+            .Include(i => i.PaidFromAccount)
+            .Include(i => i.Expenses)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
+
     public new async Task AddAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default)
     {
         await DbSet.AddAsync(invoice, cancellationToken);

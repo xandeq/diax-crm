@@ -11,7 +11,7 @@ public class AdminUser : AuditableEntity
     // EF Core
     private AdminUser() { }
 
-    public AdminUser(string email, string passwordHash)
+    public AdminUser(string email, string passwordHash, Guid? id = null) : base(id ?? Guid.NewGuid())
     {
         SetEmail(email);
         SetPasswordHash(passwordHash);

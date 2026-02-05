@@ -38,8 +38,13 @@ public class DiaxDbContext : DbContext
             ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
             : value);
 
-    public DiaxDbContext(DbContextOptions<DiaxDbContext> options) : base(options)
+    private readonly ICurrentUserService? _currentUserService;
+
+    public DiaxDbContext(
+        DbContextOptions<DiaxDbContext> options,
+        ICurrentUserService? currentUserService = null) : base(options)
     {
+        _currentUserService = currentUserService;
     }
 
     // ===== DbSets =====
@@ -106,6 +111,32 @@ public class DiaxDbContext : DbContext
 
         // Aplica todas as configurações de entidades do assembly (IEntityTypeConfiguration)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DiaxDbContext).Assembly);
+
+        // ===== MULTI-TENANCY CONFIG & FILTERS =====
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(IUserOwnedEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                // Configura UserId como obrigatório
+                modelBuilder.Entity(entityType.ClrType).Property("UserId").IsRequired();
+
+                // Cria índice para UserId
+                modelBuilder.Entity(entityType.ClrType).HasIndex("UserId");
+            }
+        }
+
+        // Filtra automaticamente entidades que pertencem a um usuário
+        modelBuilder.Entity<FinancialAccount>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<Income>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<IncomeCategory>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<Expense>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<ExpenseCategory>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<CreditCard>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<CreditCardGroup>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<CreditCardInvoice>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<AccountTransfer>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<StatementImport>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
+        modelBuilder.Entity<ImportedTransaction>().HasQueryFilter(e => _currentUserService == null || _currentUserService.UserId == null || e.UserId == _currentUserService.UserId);
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.

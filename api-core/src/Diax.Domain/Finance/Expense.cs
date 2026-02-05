@@ -2,8 +2,9 @@ using Diax.Domain.Common;
 
 namespace Diax.Domain.Finance;
 
-public class Expense : AuditableEntity
+public class Expense : AuditableEntity, IUserOwnedEntity
 {
+    public Guid UserId { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public decimal Amount { get; private set; }
     public DateTime Date { get; private set; }
@@ -35,6 +36,7 @@ public class Expense : AuditableEntity
         PaymentMethod paymentMethod,
         Guid expenseCategoryId,
         bool isRecurring,
+        Guid userId,
         Guid? creditCardId = null,
         Guid? creditCardInvoiceId = null,
         Guid? financialAccountId = null,
@@ -50,12 +52,16 @@ public class Expense : AuditableEntity
         if (expenseCategoryId == Guid.Empty)
             throw new ArgumentException("ExpenseCategoryId cannot be empty", nameof(expenseCategoryId));
 
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required", nameof(userId));
+
         Description = description;
         Amount = amount;
         Date = date;
         PaymentMethod = paymentMethod;
         ExpenseCategoryId = expenseCategoryId;
         IsRecurring = isRecurring;
+        UserId = userId;
         CreditCardId = creditCardId;
         CreditCardInvoiceId = creditCardInvoiceId;
         FinancialAccountId = financialAccountId;

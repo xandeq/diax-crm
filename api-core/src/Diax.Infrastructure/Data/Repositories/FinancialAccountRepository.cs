@@ -48,4 +48,20 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
         DbSet.Remove(account);
         return Task.CompletedTask;
     }
+
+    public async Task<IEnumerable<FinancialAccount>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Where(x => x.UserId == userId)
+            .OrderBy(a => a.Name)
+            .ToListAsync(ct);
+    }
+
+    public async Task<FinancialAccount?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Include(a => a.Incomes)
+            .Include(a => a.Expenses)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
 }

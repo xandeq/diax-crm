@@ -22,16 +22,16 @@ public class CreditCardService : IApplicationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<CreditCardResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<CreditCardResponse>>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var creditCards = await _repository.GetAllAsync(cancellationToken);
+        var creditCards = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
         var response = creditCards.Select(c => MapToResponse(c));
         return Result<IEnumerable<CreditCardResponse>>.Success(response);
     }
 
-    public async Task<Result<CreditCardResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<CreditCardResponse>> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var creditCard = await _repository.GetByIdAsync(id, cancellationToken);
+        var creditCard = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (creditCard == null)
         {
             return Result.Failure<CreditCardResponse>(new Error("CreditCard.NotFound", "Credit card not found"));
@@ -40,14 +40,14 @@ public class CreditCardService : IApplicationService
         string? groupName = null;
         if (creditCard.CreditCardGroupId.HasValue)
         {
-            var group = await _groupRepository.GetByIdAsync(creditCard.CreditCardGroupId.Value);
+            var group = await _groupRepository.GetByIdAndUserAsync(creditCard.CreditCardGroupId.Value, userId, cancellationToken);
             groupName = group?.Name;
         }
 
         return Result<CreditCardResponse>.Success(MapToResponse(creditCard, groupName));
     }
 
-    public async Task<Result<Guid>> CreateAsync(CreateCreditCardRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> CreateAsync(CreateCreditCardRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         var creditCard = new CreditCard(
             request.Name,
@@ -55,6 +55,7 @@ public class CreditCardService : IApplicationService
             request.Limit,
             request.ClosingDay,
             request.DueDay,
+            userId,
             request.Brand,
             request.CardKind,
             request.IsActive,
@@ -67,9 +68,9 @@ public class CreditCardService : IApplicationService
         return Result<Guid>.Success(creditCard.Id);
     }
 
-    public async Task<Result> UpdateAsync(Guid id, UpdateCreditCardRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateAsync(Guid id, UpdateCreditCardRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var creditCard = await _repository.GetByIdAsync(id, cancellationToken);
+        var creditCard = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (creditCard == null)
         {
             return Result.Failure(new Error("CreditCard.NotFound", "Credit card not found"));
@@ -93,9 +94,9 @@ public class CreditCardService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var creditCard = await _repository.GetByIdAsync(id, cancellationToken);
+        var creditCard = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (creditCard == null)
         {
             return Result.Failure(new Error("CreditCard.NotFound", "Credit card not found"));

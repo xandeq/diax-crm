@@ -5,8 +5,9 @@ namespace Diax.Domain.Finance;
 /// <summary>
 /// Representa uma transferência entre duas contas financeiras
 /// </summary>
-public class AccountTransfer : AuditableEntity
+public class AccountTransfer : AuditableEntity, IUserOwnedEntity
 {
+    public Guid UserId { get; private set; }
     public Guid FromFinancialAccountId { get; private set; }
     public virtual FinancialAccount? FromFinancialAccount { get; private set; }
 
@@ -24,7 +25,8 @@ public class AccountTransfer : AuditableEntity
         Guid toFinancialAccountId,
         decimal amount,
         DateTime date,
-        string description)
+        string description,
+        Guid userId)
     {
         if (fromFinancialAccountId == Guid.Empty)
             throw new ArgumentException("Source account cannot be empty", nameof(fromFinancialAccountId));
@@ -41,11 +43,15 @@ public class AccountTransfer : AuditableEntity
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("Description cannot be empty", nameof(description));
 
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required", nameof(userId));
+
         FromFinancialAccountId = fromFinancialAccountId;
         ToFinancialAccountId = toFinancialAccountId;
         Amount = amount;
         Date = date;
         Description = description;
+        UserId = userId;
     }
 
     public void Update(

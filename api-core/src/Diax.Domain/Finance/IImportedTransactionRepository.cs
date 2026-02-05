@@ -8,4 +8,6 @@ public interface IImportedTransactionRepository
     Task<List<ImportedTransaction>> GetByIncomeIdAsync(Guid incomeId, CancellationToken cancellationToken = default);
     Task AddRangeAsync(IEnumerable<ImportedTransaction> transactions, CancellationToken cancellationToken = default);
     Task UpdateAsync(ImportedTransaction transaction, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ImportedTransaction>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<ImportedTransaction?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default);
 }

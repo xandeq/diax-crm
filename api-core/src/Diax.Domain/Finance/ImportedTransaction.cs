@@ -2,8 +2,9 @@ using Diax.Domain.Common;
 
 namespace Diax.Domain.Finance;
 
-public class ImportedTransaction : AuditableEntity
+public class ImportedTransaction : AuditableEntity, IUserOwnedEntity
 {
+    public Guid UserId { get; private set; }
     public Guid StatementImportId { get; private set; }
     public string RawDescription { get; private set; } = string.Empty;
     public decimal Amount { get; private set; }
@@ -26,14 +27,19 @@ public class ImportedTransaction : AuditableEntity
         Guid statementImportId,
         string rawDescription,
         decimal amount,
-        DateTime transactionDate)
+        DateTime transactionDate,
+        Guid userId)
     {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required", nameof(userId));
+
         return new ImportedTransaction
         {
             StatementImportId = statementImportId,
             RawDescription = rawDescription,
             Amount = amount,
             TransactionDate = transactionDate,
+            UserId = userId,
             Status = ImportTransactionStatus.Pending
         };
     }

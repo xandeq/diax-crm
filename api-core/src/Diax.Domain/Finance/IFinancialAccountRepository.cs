@@ -8,4 +8,6 @@ public interface IFinancialAccountRepository
     Task AddAsync(FinancialAccount account, CancellationToken cancellationToken = default);
     Task UpdateAsync(FinancialAccount account, CancellationToken cancellationToken = default);
     Task DeleteAsync(FinancialAccount account, CancellationToken cancellationToken = default);
+    Task<IEnumerable<FinancialAccount>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<FinancialAccount?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default);
 }

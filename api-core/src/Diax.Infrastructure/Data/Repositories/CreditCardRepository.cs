@@ -14,4 +14,17 @@ public class CreditCardRepository : Repository<CreditCard>, ICreditCardRepositor
         return await DbSet
             .FirstOrDefaultAsync(c => c.LastFourDigits == lastFourDigits, cancellationToken);
     }
+
+    public async Task<IEnumerable<CreditCard>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Where(x => x.UserId == userId)
+            .ToListAsync(ct);
+    }
+
+    public async Task<CreditCard?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
 }

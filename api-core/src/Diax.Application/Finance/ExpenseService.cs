@@ -26,16 +26,16 @@ public class ExpenseService : IApplicationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<ExpenseResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<ExpenseResponse>>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var expenses = await _repository.GetAllAsync(cancellationToken);
+        var expenses = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
         var response = expenses.Select(MapToResponse);
         return Result<IEnumerable<ExpenseResponse>>.Success(response);
     }
 
-    public async Task<Result<ExpenseResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<ExpenseResponse>> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var expense = await _repository.GetByIdAsync(id, cancellationToken);
+        var expense = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (expense == null)
         {
             return Result.Failure<ExpenseResponse>(new Error("Expense.NotFound", "Expense not found"));
@@ -43,16 +43,18 @@ public class ExpenseService : IApplicationService
         return Result<ExpenseResponse>.Success(MapToResponse(expense));
     }
 
-    public async Task<Result<IEnumerable<ExpenseResponse>>> GetByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<ExpenseResponse>>> GetByMonthAsync(int year, int month, Guid userId, CancellationToken cancellationToken = default)
     {
-        var expenses = await _repository.GetByMonthAsync(year, month, cancellationToken);
-        var response = expenses.Select(MapToResponse);
+        var expenses = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
+        var filteredExpenses = expenses.Where(e => e.Date.Year == year && e.Date.Month == month);
+        var response = filteredExpenses.Select(MapToResponse);
         return Result<IEnumerable<ExpenseResponse>>.Success(response);
     }
 
-    public async Task<Result<PagedResult<ExpenseResponse>>> GetPagedAsync(ExpensePagedRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<PagedResult<ExpenseResponse>>> GetPagedAsync(ExpensePagedRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         Expression<Func<Expense, bool>> predicate = e =>
+            e.UserId == userId &&
             (!request.StartDate.HasValue || e.Date >= request.StartDate.Value) &&
             (!request.EndDate.HasValue || e.Date <= request.EndDate.Value) &&
             (!request.CategoryId.HasValue || e.ExpenseCategoryId == request.CategoryId.Value) &&
@@ -87,12 +89,12 @@ public class ExpenseService : IApplicationService
         return Result<PagedResult<ExpenseResponse>>.Success(response);
     }
 
-    public async Task<Result<Guid>> CreateAsync(CreateExpenseRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> CreateAsync(CreateExpenseRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         // For cash payments, validate account exists and is active
         if (request.PaymentMethod != PaymentMethod.CreditCard && request.FinancialAccountId.HasValue)
         {
-            var account = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            var account = await _accountRepository.GetByIdAndUserAsync(request.FinancialAccountId.Value, userId, cancellationToken);
             if (account == null)
             {
                 return Result.Failure<Guid>(new Error("Expense.InvalidAccount", "Financial account not found"));
@@ -112,6 +114,7 @@ public class ExpenseService : IApplicationService
             request.PaymentMethod,
             request.ExpenseCategoryId,
             request.IsRecurring,
+            userId,
             request.CreditCardId,
             request.CreditCardInvoiceId,
             request.FinancialAccountId,
@@ -122,7 +125,7 @@ public class ExpenseService : IApplicationService
         // Debit account for cash expenses
         if (request.PaymentMethod != PaymentMethod.CreditCard && request.FinancialAccountId.HasValue)
         {
-            var account = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            var account = await _accountRepository.GetByIdAndUserAsync(request.FinancialAccountId.Value, userId, cancellationToken);
             if (account != null)
             {
                 account.Debit(request.Amount);
@@ -136,9 +139,9 @@ public class ExpenseService : IApplicationService
         return Result<Guid>.Success(expense.Id);
     }
 
-    public async Task<Result> UpdateAsync(Guid id, UpdateExpenseRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateAsync(Guid id, UpdateExpenseRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var expense = await _repository.GetByIdAsync(id, cancellationToken);
+        var expense = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (expense == null)
         {
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
@@ -147,7 +150,7 @@ public class ExpenseService : IApplicationService
         // For cash payments, validate new account exists and is active
         if (request.PaymentMethod != PaymentMethod.CreditCard && request.FinancialAccountId.HasValue)
         {
-            var newAccount = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            var newAccount = await _accountRepository.GetByIdAndUserAsync(request.FinancialAccountId.Value, userId, cancellationToken);
             if (newAccount == null)
             {
                 return Result.Failure(new Error("Expense.InvalidAccount", "Financial account not found"));
@@ -168,7 +171,7 @@ public class ExpenseService : IApplicationService
         if (!wasCredit && expense.FinancialAccountId.HasValue && (accountChanged || amountChanged || isCreditNow))
         {
             // Reverse old expense from old account (credit back)
-            var oldAccount = await _accountRepository.GetByIdAsync(expense.FinancialAccountId.Value, cancellationToken);
+            var oldAccount = await _accountRepository.GetByIdAndUserAsync(expense.FinancialAccountId.Value, userId, cancellationToken);
             if (oldAccount != null)
             {
                 oldAccount.Credit(expense.Amount);
@@ -179,7 +182,7 @@ public class ExpenseService : IApplicationService
         if (!isCreditNow && request.FinancialAccountId.HasValue)
         {
             // Apply new expense to new account (debit)
-            var newAccount = await _accountRepository.GetByIdAsync(request.FinancialAccountId.Value, cancellationToken);
+            var newAccount = await _accountRepository.GetByIdAndUserAsync(request.FinancialAccountId.Value, userId, cancellationToken);
             if (newAccount != null)
             {
                 newAccount.Debit(request.Amount);
@@ -207,9 +210,9 @@ public class ExpenseService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var expense = await _repository.GetByIdAsync(id, cancellationToken);
+        var expense = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (expense == null)
         {
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
@@ -226,7 +229,7 @@ public class ExpenseService : IApplicationService
         // Reverse cash expense from account (credit back)
         if (expense.PaymentMethod != PaymentMethod.CreditCard && expense.FinancialAccountId.HasValue)
         {
-            var account = await _accountRepository.GetByIdAsync(expense.FinancialAccountId.Value, cancellationToken);
+            var account = await _accountRepository.GetByIdAndUserAsync(expense.FinancialAccountId.Value, userId, cancellationToken);
             if (account != null)
             {
                 account.Credit(expense.Amount);
@@ -240,7 +243,7 @@ public class ExpenseService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result<BulkDeleteResponse>> DeleteRangeAsync(BulkDeleteRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<BulkDeleteResponse>> DeleteRangeAsync(BulkDeleteRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         if (request.Ids == null || !request.Ids.Any())
         {
@@ -261,7 +264,7 @@ public class ExpenseService : IApplicationService
                 int deletedCount = 0;
                 foreach (var id in request.Ids)
                 {
-                    var result = await DeleteAsync(id, ct);
+                    var result = await DeleteAsync(id, userId, ct);
                     if (!result.IsSuccess)
                     {
                         await _unitOfWork.RollbackTransactionAsync(ct);
@@ -281,9 +284,9 @@ public class ExpenseService : IApplicationService
         }, cancellationToken);
     }
 
-    public async Task<Result> MarkAsPaidAsync(Guid id, DateTime? paidDate = null, CancellationToken cancellationToken = default)
+    public async Task<Result> MarkAsPaidAsync(Guid id, Guid userId, DateTime? paidDate = null, CancellationToken cancellationToken = default)
     {
-        var expense = await _repository.GetByIdAsync(id, cancellationToken);
+        var expense = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (expense == null)
         {
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
@@ -296,9 +299,9 @@ public class ExpenseService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result> MarkAsPendingAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> MarkAsPendingAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var expense = await _repository.GetByIdAsync(id, cancellationToken);
+        var expense = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (expense == null)
         {
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
@@ -311,10 +314,10 @@ public class ExpenseService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result<IEnumerable<ExpenseResponse>>> GetByStatusAsync(ExpenseStatus status, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<ExpenseResponse>>> GetByStatusAsync(ExpenseStatus status, Guid userId, CancellationToken cancellationToken = default)
     {
-        var allExpenses = await _repository.GetAllAsync(cancellationToken);
-        var filteredExpenses = allExpenses.Where(e => e.Status == status);
+        var expenses = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
+        var filteredExpenses = expenses.Where(e => e.Status == status);
         var response = filteredExpenses.Select(MapToResponse);
         return Result<IEnumerable<ExpenseResponse>>.Success(response);
     }

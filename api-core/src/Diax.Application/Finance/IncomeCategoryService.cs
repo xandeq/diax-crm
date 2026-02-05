@@ -17,23 +17,24 @@ public class IncomeCategoryService : IApplicationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<IncomeCategoryResponse>>> GetActiveAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<IncomeCategoryResponse>>> GetActiveAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var categories = await _repository.GetActiveAsync(cancellationToken);
+        var categories = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
+        var activeCategories = categories.Where(c => c.IsActive);
+        var response = activeCategories.Select(c => new IncomeCategoryResponse(c.Id, c.Name, c.IsActive));
+        return Result<IEnumerable<IncomeCategoryResponse>>.Success(response);
+    }
+
+    public async Task<Result<IEnumerable<IncomeCategoryResponse>>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var categories = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
         var response = categories.Select(c => new IncomeCategoryResponse(c.Id, c.Name, c.IsActive));
         return Result<IEnumerable<IncomeCategoryResponse>>.Success(response);
     }
 
-    public async Task<Result<IEnumerable<IncomeCategoryResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IncomeCategoryResponse>> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var categories = await _repository.GetAllAsync(cancellationToken);
-        var response = categories.Select(c => new IncomeCategoryResponse(c.Id, c.Name, c.IsActive));
-        return Result<IEnumerable<IncomeCategoryResponse>>.Success(response);
-    }
-
-    public async Task<Result<IncomeCategoryResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        var category = await _repository.GetByIdAsync(id, cancellationToken);
+        var category = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (category == null)
         {
             return Result.Failure<IncomeCategoryResponse>(new Error("Category.NotFound", "Category not found"));
@@ -41,17 +42,17 @@ public class IncomeCategoryService : IApplicationService
         return Result<IncomeCategoryResponse>.Success(new IncomeCategoryResponse(category.Id, category.Name, category.IsActive));
     }
 
-    public async Task<Result<Guid>> CreateAsync(CreateIncomeCategoryRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> CreateAsync(CreateIncomeCategoryRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var category = new IncomeCategory(request.Name);
+        var category = new IncomeCategory(request.Name, userId);
         await _repository.AddAsync(category, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<Guid>.Success(category.Id);
     }
 
-    public async Task<Result> UpdateAsync(Guid id, UpdateIncomeCategoryRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateAsync(Guid id, UpdateIncomeCategoryRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var category = await _repository.GetByIdAsync(id, cancellationToken);
+        var category = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (category == null)
         {
             return Result.Failure(new Error("Category.NotFound", "Category not found"));
@@ -64,9 +65,9 @@ public class IncomeCategoryService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result> DeactivateAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeactivateAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var category = await _repository.GetByIdAsync(id, cancellationToken);
+        var category = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (category == null)
         {
             return Result.Failure(new Error("Category.NotFound", "Category not found"));

@@ -16,4 +16,18 @@ public class ExpenseCategoryRepository : Repository<ExpenseCategory>, IExpenseCa
             .OrderBy(x => x.Name)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IEnumerable<ExpenseCategory>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Where(x => x.UserId == userId)
+            .OrderBy(x => x.Name)
+            .ToListAsync(ct);
+    }
+
+    public async Task<ExpenseCategory?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
 }

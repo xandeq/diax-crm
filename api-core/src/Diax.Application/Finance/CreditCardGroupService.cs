@@ -15,25 +15,25 @@ public class CreditCardGroupService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<CreditCardGroupResponse>> GetAllAsync()
+    public async Task<IEnumerable<CreditCardGroupResponse>> GetAllAsync(Guid userId)
     {
-        var groups = await _repository.GetAllAsync();
+        var groups = await _repository.GetAllByUserIdAsync(userId);
         return groups.Select(MapToResponse);
     }
 
-    public async Task<IEnumerable<CreditCardGroupResponse>> GetActiveGroupsAsync()
+    public async Task<IEnumerable<CreditCardGroupResponse>> GetActiveGroupsAsync(Guid userId)
     {
-        var groups = await _repository.GetActiveGroupsAsync();
-        return groups.Select(MapToResponse);
+        var groups = await _repository.GetAllByUserIdAsync(userId);
+        return groups.Where(g => g.IsActive).Select(MapToResponse);
     }
 
-    public async Task<CreditCardGroupResponse?> GetByIdAsync(Guid id)
+    public async Task<CreditCardGroupResponse?> GetByIdAsync(Guid id, Guid userId)
     {
-        var group = await _repository.GetByIdWithCardsAsync(id);
+        var group = await _repository.GetByIdAndUserAsync(id, userId);
         return group == null ? null : MapToResponse(group);
     }
 
-    public async Task<CreditCardGroupResponse> CreateAsync(CreateCreditCardGroupRequest request)
+    public async Task<CreditCardGroupResponse> CreateAsync(CreateCreditCardGroupRequest request, Guid userId)
     {
         var group = new CreditCardGroup(
             request.Name,
@@ -41,6 +41,7 @@ public class CreditCardGroupService
             request.ClosingDay,
             request.DueDay,
             request.SharedLimit,
+            userId,
             request.IsActive);
 
         await _repository.AddAsync(group);
@@ -49,9 +50,9 @@ public class CreditCardGroupService
         return MapToResponse(group);
     }
 
-    public async Task<CreditCardGroupResponse?> UpdateAsync(Guid id, UpdateCreditCardGroupRequest request)
+    public async Task<CreditCardGroupResponse?> UpdateAsync(Guid id, UpdateCreditCardGroupRequest request, Guid userId)
     {
-        var group = await _repository.GetByIdAsync(id);
+        var group = await _repository.GetByIdAndUserAsync(id, userId);
         if (group == null)
             return null;
 
@@ -67,13 +68,13 @@ public class CreditCardGroupService
         await _unitOfWork.SaveChangesAsync();
 
         // Reload with cards to calculate limits
-        var updatedGroup = await _repository.GetByIdWithCardsAsync(id);
+        var updatedGroup = await _repository.GetByIdAndUserAsync(id, userId);
         return updatedGroup == null ? null : MapToResponse(updatedGroup);
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, Guid userId)
     {
-        var group = await _repository.GetByIdAsync(id);
+        var group = await _repository.GetByIdAndUserAsync(id, userId);
         if (group == null)
             return false;
 

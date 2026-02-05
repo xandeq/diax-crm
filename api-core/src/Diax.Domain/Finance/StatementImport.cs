@@ -2,8 +2,9 @@ using Diax.Domain.Common;
 
 namespace Diax.Domain.Finance;
 
-public class StatementImport : AuditableEntity
+public class StatementImport : AuditableEntity, IUserOwnedEntity
 {
+    public Guid UserId { get; private set; }
     public StatementImportType ImportType { get; private set; }
     public Guid? FinancialAccountId { get; private set; }
     public Guid? CreditCardGroupId { get; private set; }
@@ -29,15 +30,20 @@ public class StatementImport : AuditableEntity
         string fileName,
         string fileContentType,
         long fileSize,
+        Guid userId,
         Guid? financialAccountId = null,
         Guid? creditCardGroupId = null)
     {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required", nameof(userId));
+
         return new StatementImport
         {
             ImportType = importType,
             FileName = fileName,
             FileContentType = fileContentType,
             FileSize = fileSize,
+            UserId = userId,
             FinancialAccountId = financialAccountId,
             CreditCardGroupId = creditCardGroupId,
             Status = ImportStatus.Pending

@@ -16,4 +16,18 @@ public class IncomeCategoryRepository : Repository<IncomeCategory>, IIncomeCateg
             .OrderBy(x => x.Name)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IEnumerable<IncomeCategory>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Where(x => x.UserId == userId)
+            .OrderBy(x => x.Name)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IncomeCategory?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
 }

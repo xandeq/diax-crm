@@ -44,6 +44,7 @@ public class ExpenseCategoryConfiguration : IEntityTypeConfiguration<ExpenseCate
         {
             Id = id,
             Name = name,
+            UserId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             IsActive = true,
             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         };

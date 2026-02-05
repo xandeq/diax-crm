@@ -1,4 +1,5 @@
 using Diax.Domain.Common;
+using Diax.Infrastructure.Identity;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
 using Diax.Domain.Household;
@@ -145,6 +146,9 @@ public static class DependencyInjection
 
         // ===== UNIT OF WORK =====
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // ===== IDENTITY & CURRENT USER =====
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // ===== REPOSITÓRIOS =====
         services.AddScoped<ICustomerRepository, CustomerRepository>();

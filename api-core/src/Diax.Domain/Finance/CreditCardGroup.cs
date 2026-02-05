@@ -2,8 +2,9 @@ using Diax.Domain.Common;
 
 namespace Diax.Domain.Finance;
 
-public class CreditCardGroup : AuditableEntity
+public class CreditCardGroup : AuditableEntity, IUserOwnedEntity
 {
+    public Guid UserId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string? Bank { get; private set; }
     public int ClosingDay { get; private set; }
@@ -24,6 +25,7 @@ public class CreditCardGroup : AuditableEntity
         int closingDay,
         int dueDay,
         decimal sharedLimit,
+        Guid userId,
         bool isActive = true)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -38,11 +40,15 @@ public class CreditCardGroup : AuditableEntity
         if (sharedLimit < 0)
             throw new ArgumentException("Shared limit cannot be negative", nameof(sharedLimit));
 
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required", nameof(userId));
+
         Name = name;
         Bank = bank;
         ClosingDay = closingDay;
         DueDay = dueDay;
         SharedLimit = sharedLimit;
+        UserId = userId;
         IsActive = isActive;
     }
 

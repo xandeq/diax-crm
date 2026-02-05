@@ -40,6 +40,7 @@ public class StatementImportService
         string contentType,
         long fileSize,
         Stream fileStream,
+        Guid userId,
         CancellationToken ct = default)
     {
         // 1. Identify parser
@@ -57,6 +58,7 @@ public class StatementImportService
             fileName,
             contentType,
             fileSize,
+            userId,
             request.FinancialAccountId,
             request.CreditCardGroupId);
 
@@ -73,7 +75,8 @@ public class StatementImportService
                     import.Id,
                     parsed.RawDescription,
                     parsed.Amount,
-                    parsed.TransactionDate);
+                    parsed.TransactionDate,
+                    userId);
 
                 transactions.Add(transaction);
             }
@@ -98,9 +101,9 @@ public class StatementImportService
         }
     }
 
-    public async Task<Result<List<StatementImportResponse>>> GetAllAsync(CancellationToken ct = default)
+    public async Task<Result<List<StatementImportResponse>>> GetAllAsync(Guid userId, CancellationToken ct = default)
     {
-        var imports = await _importRepository.GetAllAsync(ct);
+        var imports = await _importRepository.GetAllByUserIdAsync(userId, ct);
         var response = imports.OrderByDescending(i => i.CreatedAt)
             .Select(i => new StatementImportResponse(
                 i.Id,
@@ -122,9 +125,9 @@ public class StatementImportService
         return Result<List<StatementImportResponse>>.Success(response);
     }
 
-    public async Task<Result<StatementImportDetailResponse>> GetDetailAsync(Guid id, CancellationToken ct = default)
+    public async Task<Result<StatementImportDetailResponse>> GetDetailAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
-        var import = await _importRepository.GetByIdAsync(id, ct);
+        var import = await _importRepository.GetByIdAndUserAsync(id, userId, ct);
         if (import == null)
         {
             return Result.Failure<StatementImportDetailResponse>(new Error("Import.NotFound", "Importação não encontrada."));
@@ -165,9 +168,9 @@ public class StatementImportService
         return Result<StatementImportDetailResponse>.Success(response);
     }
 
-    public async Task<Result<StatementImportPostPreviewResponse>> PreviewPostAsync(Guid id, CancellationToken ct = default)
+    public async Task<Result<StatementImportPostPreviewResponse>> PreviewPostAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
-        var import = await _importRepository.GetByIdAsync(id, ct);
+        var import = await _importRepository.GetByIdAndUserAsync(id, userId, ct);
         if (import == null)
         {
             return Result.Failure<StatementImportPostPreviewResponse>(new Error("Import.NotFound", "Importação não encontrada."));
@@ -187,9 +190,9 @@ public class StatementImportService
         return Result<StatementImportPostPreviewResponse>.Success(response);
     }
 
-    public async Task<Result<StatementImportPostResponse>> PostAsync(Guid id, StatementImportPostRequest request, CancellationToken ct = default)
+    public async Task<Result<StatementImportPostResponse>> PostAsync(Guid id, StatementImportPostRequest request, Guid userId, CancellationToken ct = default)
     {
-        var import = await _importRepository.GetByIdAsync(id, ct);
+        var import = await _importRepository.GetByIdAndUserAsync(id, userId, ct);
         if (import == null)
         {
             return Result.Failure<StatementImportPostResponse>(new Error("Import.NotFound", "Importação não encontrada."));
@@ -211,7 +214,7 @@ public class StatementImportService
             return Result.Failure<StatementImportPostResponse>(new Error("Import.UnsupportedType", "Apenas importações de conta corrente são suportadas para postagem automática no momento."));
         }
 
-        var financialAccount = await _accountRepository.GetByIdAsync(import.FinancialAccountId!.Value, ct);
+        var financialAccount = await _accountRepository.GetByIdAndUserAsync(import.FinancialAccountId!.Value, userId, ct);
         if (financialAccount == null)
         {
             return Result.Failure<StatementImportPostResponse>(new Error("Import.AccountNotFound", "Conta financeira não encontrada."));
@@ -232,9 +235,9 @@ public class StatementImportService
         var minDate = transactions.Min(t => t.TransactionDate);
         var maxDate = transactions.Max(t => t.TransactionDate);
 
-        // For now, let's just query each transaction to be safe or fetch a batch.
-        // Given the scale, querying each is fine for now, but a batch is better.
-        // We'll use a simple approach: find if there's any record with same amount, date and description for this account.
+        // Fetch relevant records for idempotency check
+        var existingIncomesAll = await _incomeRepository.GetAllByUserIdAsync(userId, ct);
+        var existingExpensesAll = await _expenseRepository.GetAllByUserIdAsync(userId, ct);
 
         foreach (var transaction in transactions)
         {
@@ -268,8 +271,7 @@ public class StatementImportService
                     var amount = Math.Abs(transaction.Amount);
 
                     // Check for duplicate expense
-                    var existingExpenses = await _expenseRepository.GetByMonthAsync(transaction.TransactionDate.Year, transaction.TransactionDate.Month, ct);
-                    var isDuplicate = existingExpenses.Any(e =>
+                    var isDuplicate = existingExpensesAll.Any(e =>
                         e.Amount == amount &&
                         e.Date.Date == transaction.TransactionDate.Date &&
                         e.Description == transaction.RawDescription &&
@@ -290,6 +292,7 @@ public class StatementImportService
                         paymentMethod: PaymentMethod.BankTransfer, // Default for bank statements
                         expenseCategoryId: defaultExpenseCategoryId,
                         isRecurring: false,
+                        userId: userId,
                         financialAccountId: financialAccount.Id,
                         status: ExpenseStatus.Paid,
                         paidDate: transaction.TransactionDate
@@ -303,8 +306,7 @@ public class StatementImportService
                 else
                 {
                     // Check for duplicate income
-                    var existingIncomes = await _incomeRepository.GetByMonthAsync(transaction.TransactionDate.Year, transaction.TransactionDate.Month, ct);
-                    var isDuplicate = existingIncomes.Any(i =>
+                    var isDuplicate = existingIncomesAll.Any(i =>
                         i.Amount == transaction.Amount &&
                         i.Date.Date == transaction.TransactionDate.Date &&
                         i.Description == transaction.RawDescription &&
@@ -325,7 +327,8 @@ public class StatementImportService
                         paymentMethod: PaymentMethod.Pix, // Default for bank statements
                         incomeCategoryId: defaultIncomeCategoryId,
                         isRecurring: false,
-                        financialAccountId: financialAccount.Id
+                        financialAccountId: financialAccount.Id,
+                        userId: userId
                     );
 
                     financialAccount.Credit(transaction.Amount);
@@ -355,9 +358,9 @@ public class StatementImportService
         ));
     }
 
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task<Result> DeleteAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
-        var import = await _importRepository.GetByIdAsync(id, ct);
+        var import = await _importRepository.GetByIdAndUserAsync(id, userId, ct);
         if (import == null)
         {
             return Result.Failure(new Error("Import.NotFound", "Importação não encontrada."));
@@ -365,19 +368,11 @@ public class StatementImportService
 
         var transactions = await _transactionRepository.GetByImportIdAsync(id, ct);
 
-        // Potential check: don't allow delete if some transactions were already matched/created?
-        // Or if we delete, we should ideally delete the created incomes/expenses too?
-        // Usually, the user wants to delete because they imported the wrong file.
-        // If they already "posted", deleting the import shouldn't necessarily delete the financial records unless explicitly asked.
-        // For now, let's just delete the import and transactions, but block if already posted to avoid orphan records or confusion.
-
         if (transactions.Any(t => t.CreatedExpenseId != null || t.CreatedIncomeId != null))
         {
             return Result.Failure(new Error("Import.AlreadyPosted", "Não é possível excluir uma importação que já possui lançamentos postados."));
         }
 
-        // We can just rely on the repository to delete.
-        // Need to check if IStatementImportRepository has delete.
         await _importRepository.DeleteAsync(import, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 

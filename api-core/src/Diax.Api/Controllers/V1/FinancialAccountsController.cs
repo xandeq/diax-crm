@@ -1,10 +1,13 @@
 using Asp.Versioning;
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
+using Diax.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Diax.Api.Controllers.V1;
 
+[Authorize]
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
@@ -12,19 +15,24 @@ namespace Diax.Api.Controllers.V1;
 public class FinancialAccountsController : BaseApiController
 {
     private readonly FinancialAccountService _service;
+    private readonly DiaxDbContext _db;
     private readonly ILogger<FinancialAccountsController> _logger;
 
-    public FinancialAccountsController(FinancialAccountService service, ILogger<FinancialAccountsController> logger)
+    public FinancialAccountsController(FinancialAccountService service, DiaxDbContext db, ILogger<FinancialAccountsController> logger)
     {
         _service = service;
+        _db = db;
         _logger = logger;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
         _logger.LogInformation("GET /api/v1/financialaccounts - Request received");
-        var result = await _service.GetAllAsync(cancellationToken);
+        var result = await _service.GetAllAsync(userId.Value, cancellationToken);
         if (!result.IsSuccess)
         {
             _logger.LogError("GET /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
@@ -42,8 +50,11 @@ public class FinancialAccountsController : BaseApiController
     [HttpGet("active")]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
     {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
         _logger.LogInformation("GET /api/v1/financialaccounts/active - Request received");
-        var result = await _service.GetActiveAccountsAsync(cancellationToken);
+        var result = await _service.GetActiveAccountsAsync(userId.Value, cancellationToken);
         if (!result.IsSuccess)
         {
             _logger.LogError("GET /api/v1/financialaccounts/active - Failed: {ErrorCode} - {ErrorMessage}",
@@ -61,8 +72,11 @@ public class FinancialAccountsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
         _logger.LogInformation("GET /api/v1/financialaccounts/{Id} - Request received", id);
-        var result = await _service.GetByIdAsync(id, cancellationToken);
+        var result = await _service.GetByIdAsync(id, userId.Value, cancellationToken);
         if (!result.IsSuccess)
         {
             _logger.LogError("GET /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
@@ -80,8 +94,11 @@ public class FinancialAccountsController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFinancialAccountRequest request, CancellationToken cancellationToken)
     {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
         _logger.LogInformation("POST /api/v1/financialaccounts - Request received");
-        var result = await _service.CreateAsync(request, cancellationToken);
+        var result = await _service.CreateAsync(request, userId.Value, cancellationToken);
         if (!result.IsSuccess)
         {
             _logger.LogError("POST /api/v1/financialaccounts - Failed: {ErrorCode} - {ErrorMessage}",
@@ -99,8 +116,11 @@ public class FinancialAccountsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFinancialAccountRequest request, CancellationToken cancellationToken)
     {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
         _logger.LogInformation("PUT /api/v1/financialaccounts/{Id} - Request received", id);
-        var result = await _service.UpdateAsync(id, request, cancellationToken);
+        var result = await _service.UpdateAsync(id, request, userId.Value, cancellationToken);
         if (!result.IsSuccess)
         {
             _logger.LogError("PUT /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",
@@ -118,8 +138,11 @@ public class FinancialAccountsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
         _logger.LogInformation("DELETE /api/v1/financialaccounts/{Id} - Request received", id);
-        var result = await _service.DeleteAsync(id, cancellationToken);
+        var result = await _service.DeleteAsync(id, userId.Value, cancellationToken);
         if (!result.IsSuccess)
         {
             _logger.LogError("DELETE /api/v1/financialaccounts/{Id} - Failed: {ErrorCode} - {ErrorMessage}",

@@ -33,4 +33,19 @@ public class CreditCardGroupRepository : Repository<CreditCardGroup>, ICreditCar
             .ThenInclude(i => i.Expenses)
             .FirstOrDefaultAsync(g => g.Id == id);
     }
+
+    public async Task<IEnumerable<CreditCardGroup>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await Context.CreditCardGroups
+            .Include(g => g.Cards)
+            .Where(x => x.UserId == userId)
+            .ToListAsync(ct);
+    }
+
+    public async Task<CreditCardGroup?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await Context.CreditCardGroups
+            .Include(g => g.Cards)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
 }

@@ -34,4 +34,22 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .OrderByDescending(e => e.Date)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IEnumerable<Expense>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Include(e => e.ExpenseCategory)
+            .Where(e => e.UserId == userId)
+            .OrderByDescending(e => e.Date)
+            .ToListAsync(ct);
+    }
+
+    public async Task<Expense?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .Include(e => e.ExpenseCategory)
+            .Include(e => e.CreditCard)
+            .Include(e => e.FinancialAccount)
+            .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId, ct);
+    }
 }

@@ -5,8 +5,9 @@ namespace Diax.Domain.Finance;
 /// <summary>
 /// Representa uma receita que SEMPRE entra em uma conta financeira
 /// </summary>
-public class Income : AuditableEntity
+public class Income : AuditableEntity, IUserOwnedEntity
 {
+    public Guid UserId { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public decimal Amount { get; private set; }
     public DateTime Date { get; private set; }
@@ -27,7 +28,8 @@ public class Income : AuditableEntity
         PaymentMethod paymentMethod,
         Guid incomeCategoryId,
         bool isRecurring,
-        Guid financialAccountId)
+        Guid financialAccountId,
+        Guid userId)
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("Description cannot be empty", nameof(description));
@@ -38,6 +40,9 @@ public class Income : AuditableEntity
         if (financialAccountId == Guid.Empty)
             throw new ArgumentException("Income must be linked to a financial account", nameof(financialAccountId));
 
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required", nameof(userId));
+
         Description = description;
         Amount = amount;
         Date = date;
@@ -45,6 +50,7 @@ public class Income : AuditableEntity
         IncomeCategoryId = incomeCategoryId;
         IsRecurring = isRecurring;
         FinancialAccountId = financialAccountId;
+        UserId = userId;
     }
 
     public void Update(

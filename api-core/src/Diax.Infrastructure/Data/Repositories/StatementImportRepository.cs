@@ -36,4 +36,19 @@ public class StatementImportRepository(DiaxDbContext context) : IStatementImport
         context.StatementImports.Remove(import);
         await Task.CompletedTask;
     }
+
+    public async Task<IEnumerable<StatementImport>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await context.StatementImports
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(ct);
+    }
+
+    public async Task<StatementImport?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
+    {
+        return await context.StatementImports
+            .Include(x => x.Transactions)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+    }
 }

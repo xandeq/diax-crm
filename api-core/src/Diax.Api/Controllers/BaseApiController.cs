@@ -1,5 +1,9 @@
+using Diax.Infrastructure.Data;
 using Diax.Shared.Results;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Diax.Api.Controllers;
 
@@ -9,6 +13,25 @@ namespace Diax.Api.Controllers;
 [ApiController]
 public abstract class BaseApiController : ControllerBase
 {
+    /// <summary>
+    /// Resolve o ID do usuário logado a partir do token e do banco de dados.
+    /// </summary>
+    protected async Task<Guid?> ResolveUserIdAsync(DiaxDbContext db, CancellationToken ct = default)
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email)
+                 ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
+                 ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (string.IsNullOrWhiteSpace(email)) return null;
+
+        var user = await db.AdminUsers
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .SingleOrDefaultAsync(x => x.Email == email, ct);
+
+        return user?.Id;
+    }
+
     /// <summary>
     /// Converte um Result em IActionResult apropriado.
     /// </summary>

@@ -7,4 +7,6 @@ public interface IStatementImportRepository
     Task AddAsync(StatementImport import, CancellationToken cancellationToken = default);
     Task UpdateAsync(StatementImport import, CancellationToken cancellationToken = default);
     Task DeleteAsync(StatementImport import, CancellationToken cancellationToken = default);
+    Task<IEnumerable<StatementImport>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<StatementImport?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default);
 }

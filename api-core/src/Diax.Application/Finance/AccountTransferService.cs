@@ -22,16 +22,16 @@ public class AccountTransferService : IApplicationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<IEnumerable<AccountTransferResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<AccountTransferResponse>>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var transfers = await _repository.GetAllAsync(cancellationToken);
+        var transfers = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
         var response = transfers.Select(MapToResponse);
         return Result<IEnumerable<AccountTransferResponse>>.Success(response);
     }
 
-    public async Task<Result<AccountTransferResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<AccountTransferResponse>> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var transfer = await _repository.GetByIdAsync(id, cancellationToken);
+        var transfer = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (transfer == null)
         {
             return Result.Failure<AccountTransferResponse>(new Error("AccountTransfer.NotFound", "Transfer not found"));
@@ -39,24 +39,32 @@ public class AccountTransferService : IApplicationService
         return Result<AccountTransferResponse>.Success(MapToResponse(transfer));
     }
 
-    public async Task<Result<IEnumerable<AccountTransferResponse>>> GetByAccountIdAsync(Guid accountId, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<AccountTransferResponse>>> GetByAccountIdAsync(Guid accountId, Guid userId, CancellationToken cancellationToken = default)
     {
+        // First verify account belongs to user
+        var account = await _accountRepository.GetByIdAndUserAsync(accountId, userId, cancellationToken);
+        if (account == null)
+        {
+            return Result.Failure<IEnumerable<AccountTransferResponse>>(new Error("FinancialAccount.NotFound", "Account not found"));
+        }
+
         var transfers = await _repository.GetByAccountIdAsync(accountId);
         var response = transfers.Select(MapToResponse);
         return Result<IEnumerable<AccountTransferResponse>>.Success(response);
     }
 
-    public async Task<Result<IEnumerable<AccountTransferResponse>>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<AccountTransferResponse>>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, Guid userId, CancellationToken cancellationToken = default)
     {
-        var transfers = await _repository.GetByDateRangeAsync(startDate, endDate);
-        var response = transfers.Select(MapToResponse);
+        var transfers = await _repository.GetAllByUserIdAsync(userId, cancellationToken);
+        var filteredTransfers = transfers.Where(t => t.Date >= startDate && t.Date <= endDate);
+        var response = filteredTransfers.Select(MapToResponse);
         return Result<IEnumerable<AccountTransferResponse>>.Success(response);
     }
 
-    public async Task<Result<Guid>> CreateAsync(CreateAccountTransferRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<Guid>> CreateAsync(CreateAccountTransferRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
         // Validate source account exists and is active
-        var fromAccount = await _accountRepository.GetByIdAsync(request.FromFinancialAccountId, cancellationToken);
+        var fromAccount = await _accountRepository.GetByIdAndUserAsync(request.FromFinancialAccountId, userId, cancellationToken);
         if (fromAccount == null)
         {
             return Result.Failure<Guid>(new Error("AccountTransfer.InvalidFromAccount", "Source account not found"));
@@ -68,7 +76,7 @@ public class AccountTransferService : IApplicationService
         }
 
         // Validate destination account exists and is active
-        var toAccount = await _accountRepository.GetByIdAsync(request.ToFinancialAccountId, cancellationToken);
+        var toAccount = await _accountRepository.GetByIdAndUserAsync(request.ToFinancialAccountId, userId, cancellationToken);
         if (toAccount == null)
         {
             return Result.Failure<Guid>(new Error("AccountTransfer.InvalidToAccount", "Destination account not found"));
@@ -85,7 +93,8 @@ public class AccountTransferService : IApplicationService
             request.ToFinancialAccountId,
             request.Amount,
             request.Date,
-            request.Description
+            request.Description,
+            userId
         );
 
         // Debit source account
@@ -103,16 +112,16 @@ public class AccountTransferService : IApplicationService
         return Result<Guid>.Success(transfer.Id);
     }
 
-    public async Task<Result> UpdateAsync(Guid id, UpdateAccountTransferRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateAsync(Guid id, UpdateAccountTransferRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
-        var transfer = await _repository.GetByIdAsync(id, cancellationToken);
+        var transfer = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (transfer == null)
         {
             return Result.Failure(new Error("AccountTransfer.NotFound", "Transfer not found"));
         }
 
         // Validate new source account
-        var newFromAccount = await _accountRepository.GetByIdAsync(request.FromFinancialAccountId, cancellationToken);
+        var newFromAccount = await _accountRepository.GetByIdAndUserAsync(request.FromFinancialAccountId, userId, cancellationToken);
         if (newFromAccount == null)
         {
             return Result.Failure(new Error("AccountTransfer.InvalidFromAccount", "Source account not found"));
@@ -124,7 +133,7 @@ public class AccountTransferService : IApplicationService
         }
 
         // Validate new destination account
-        var newToAccount = await _accountRepository.GetByIdAsync(request.ToFinancialAccountId, cancellationToken);
+        var newToAccount = await _accountRepository.GetByIdAndUserAsync(request.ToFinancialAccountId, userId, cancellationToken);
         if (newToAccount == null)
         {
             return Result.Failure(new Error("AccountTransfer.InvalidToAccount", "Destination account not found"));
@@ -136,14 +145,14 @@ public class AccountTransferService : IApplicationService
         }
 
         // Reverse old transfer
-        var oldFromAccount = await _accountRepository.GetByIdAsync(transfer.FromFinancialAccountId, cancellationToken);
+        var oldFromAccount = await _accountRepository.GetByIdAndUserAsync(transfer.FromFinancialAccountId, userId, cancellationToken);
         if (oldFromAccount != null)
         {
             oldFromAccount.Credit(transfer.Amount); // Reverse debit
             await _accountRepository.UpdateAsync(oldFromAccount, cancellationToken);
         }
 
-        var oldToAccount = await _accountRepository.GetByIdAsync(transfer.ToFinancialAccountId, cancellationToken);
+        var oldToAccount = await _accountRepository.GetByIdAndUserAsync(transfer.ToFinancialAccountId, userId, cancellationToken);
         if (oldToAccount != null)
         {
             oldToAccount.Debit(transfer.Amount); // Reverse credit
@@ -170,23 +179,23 @@ public class AccountTransferService : IApplicationService
         return Result.Success();
     }
 
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
-        var transfer = await _repository.GetByIdAsync(id, cancellationToken);
+        var transfer = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (transfer == null)
         {
             return Result.Failure(new Error("AccountTransfer.NotFound", "Transfer not found"));
         }
 
         // Reverse transfer: credit source, debit destination
-        var fromAccount = await _accountRepository.GetByIdAsync(transfer.FromFinancialAccountId, cancellationToken);
+        var fromAccount = await _accountRepository.GetByIdAndUserAsync(transfer.FromFinancialAccountId, userId, cancellationToken);
         if (fromAccount != null)
         {
             fromAccount.Credit(transfer.Amount);
             await _accountRepository.UpdateAsync(fromAccount, cancellationToken);
         }
 
-        var toAccount = await _accountRepository.GetByIdAsync(transfer.ToFinancialAccountId, cancellationToken);
+        var toAccount = await _accountRepository.GetByIdAndUserAsync(transfer.ToFinancialAccountId, userId, cancellationToken);
         if (toAccount != null)
         {
             toAccount.Debit(transfer.Amount);

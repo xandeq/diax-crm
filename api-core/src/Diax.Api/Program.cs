@@ -39,6 +39,9 @@ builder.Host.UseSerilog();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Add HttpContextAccessor for CurrentUserService
+builder.Services.AddHttpContextAccessor();
+
 // HttpClient factory (used for external AI providers)
 builder.Services.AddHttpClient();
 
