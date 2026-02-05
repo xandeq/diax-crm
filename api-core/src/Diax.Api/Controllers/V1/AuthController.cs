@@ -35,23 +35,27 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             return Unauthorized(new { message = "Invalid credentials." });
 
-        var email = request.Email.Trim();
+        var email = request.Email.Trim().ToLowerInvariant();
 
-        // Prefer DB-backed admin users
-        var hasDbAdmins = await _db.AdminUsers.AnyAsync();
-        if (hasDbAdmins)
+        // Prefer DB-backed users
+        var hasDbUsers = await _db.Users.AnyAsync();
+        if (hasDbUsers)
         {
-            var admin = await _db.AdminUsers
+            var user = await _db.Users
                 .AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Email == email);
 
-            if (admin is null || !admin.IsActive)
+            if (user is null || !user.IsActive)
                 return Unauthorized(new { message = "Invalid credentials." });
 
-            if (!PasswordHash.Verify(admin.PasswordHash, request.Password))
+            if (!PasswordHash.Verify(user.PasswordHash, request.Password))
                 return Unauthorized(new { message = "Invalid credentials." });
 
-            return Ok(CreateTokenResponse(admin.Email, admin.Role.ToString()));
+            // Determinar role via grupos (RBAC)
+            var isAdmin = await _db.UserGroupMembers
+                .AnyAsync(ugm => ugm.UserId == user.Id && ugm.Group.Key == "system-admin");
+
+            return Ok(CreateTokenResponse(user.Email, isAdmin ? "Admin" : "User"));
         }
 
         // Fallback (temporary): allow config-based admin while DB is empty
@@ -111,12 +115,40 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     [ProducesResponseType(typeof(MeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
         var email = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue(JwtRegisteredClaimNames.Email) ?? "";
         var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToArray();
 
-        return Ok(new MeResponse(email, roles));
+        // Buscar info adicional do usuário
+        var dbUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+        var isAdmin = false;
+        var groups = Array.Empty<string>();
+        var permissions = Array.Empty<string>();
+
+        if (dbUser != null)
+        {
+            isAdmin = await _db.UserGroupMembers
+                .AnyAsync(ugm => ugm.UserId == dbUser.Id && ugm.Group.Key == "system-admin");
+
+            groups = await _db.UserGroupMembers
+                .Where(ugm => ugm.UserId == dbUser.Id)
+                .Select(ugm => ugm.Group.Key)
+                .ToArrayAsync();
+
+            var groupIds = await _db.UserGroupMembers
+                .Where(ugm => ugm.UserId == dbUser.Id)
+                .Select(ugm => ugm.GroupId)
+                .ToListAsync();
+
+            permissions = await _db.GroupPermissions
+                .Where(gp => groupIds.Contains(gp.GroupId))
+                .Select(gp => gp.Permission.Key)
+                .Distinct()
+                .ToArrayAsync();
+        }
+
+        return Ok(new MeResponse(email, roles, isAdmin, groups, permissions));
     }
 
     public record LoginRequest(string Email, string Password);
@@ -130,5 +162,5 @@ public class AuthController : ControllerBase
         public string Token => AccessToken;
     }
 
-    public record MeResponse(string Email, string[] Roles);
+    public record MeResponse(string Email, string[] Roles, bool IsAdmin, string[] Groups, string[] Permissions);
 }

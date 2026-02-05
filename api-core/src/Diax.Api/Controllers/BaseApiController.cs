@@ -24,7 +24,7 @@ public abstract class BaseApiController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(email)) return null;
 
-        var user = await db.AdminUsers
+        var user = await db.Users
             .AsNoTracking()
             .IgnoreQueryFilters()
             .SingleOrDefaultAsync(x => x.Email == email, ct);

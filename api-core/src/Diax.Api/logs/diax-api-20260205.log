@@ -159,3 +159,17 @@ ALTER TABLE [user_group_members] ADD CONSTRAINT [FK_user_group_members_user_grou
 2026-02-05 11:03:58.837 -03:00 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20260205140343_RefineAccessControl', N'8.0.11');
+2026-02-05 17:58:25.373 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 17:58:26.466 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 17:59:26.357 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 17:59:27.194 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-02-05 17:59:29.456 -03:00 [INF] Executed DbCommand (21ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-02-05 17:59:29.489 -03:00 [INF] Executed DbCommand (16ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-02-05 17:59:29.515 -03:00 [INF] Executed DbCommand (10ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-02-05 18:00:53.882 -03:00 [INF] EF Core SQL Server: DataSource=(localdb)\MSSQLLocalDB Database=diax_crm_dev Encrypt=True TrustServerCertificate=true
+2026-02-05 18:00:54.616 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.

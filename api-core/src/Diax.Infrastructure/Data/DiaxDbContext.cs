@@ -51,7 +51,7 @@ public class DiaxDbContext : DbContext
 
     // ===== DbSets =====
     public DbSet<Customer> Customers => Set<Customer>();
-    public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
+    public DbSet<User> Users => Set<User>();
     public DbSet<Income> Incomes => Set<Income>();
     public DbSet<IncomeCategory> IncomeCategories => Set<IncomeCategory>();
     public DbSet<Expense> Expenses => Set<Expense>();

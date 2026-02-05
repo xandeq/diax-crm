@@ -154,7 +154,8 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // ===== REPOSITÓRIOS =====
-        services.AddScoped<IAdminUserRepository, AdminUserRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<Diax.Application.Auth.IPermissionService, Diax.Infrastructure.Auth.PermissionService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IIncomeRepository, IncomeRepository>();
         services.AddScoped<IIncomeCategoryRepository, IncomeCategoryRepository>();

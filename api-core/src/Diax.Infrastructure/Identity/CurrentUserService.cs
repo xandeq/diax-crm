@@ -37,15 +37,15 @@ public class CurrentUserService : ICurrentUserService
 
     private Guid? ResolveUserId()
     {
-        var user = _httpContextAccessor.HttpContext?.User;
-        if (user == null || !user.Identity?.IsAuthenticated == true)
+        var principal = _httpContextAccessor.HttpContext?.User;
+        if (principal == null || !principal.Identity?.IsAuthenticated == true)
         {
             return null;
         }
 
-        var email = user.FindFirstValue(ClaimTypes.Email)
-            ?? user.FindFirstValue(JwtRegisteredClaimNames.Email)
-            ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        var email = principal.FindFirstValue(ClaimTypes.Email)
+            ?? principal.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
         if (string.IsNullOrEmpty(email))
         {
@@ -59,11 +59,11 @@ public class CurrentUserService : ICurrentUserService
         var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
 
         // Use IgnoreQueryFilters to avoid reaching for CurrentUserService during this internal lookup
-        var adminUser = db.AdminUsers
+        var userEntity = db.Users
             .AsNoTracking()
             .IgnoreQueryFilters()
             .FirstOrDefault(u => u.Email == email);
 
-        return adminUser?.Id;
+        return userEntity?.Id;
     }
 }

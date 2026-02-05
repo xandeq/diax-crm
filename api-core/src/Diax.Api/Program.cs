@@ -181,7 +181,7 @@ try
     Log.Information("Starting database migrations and seeding...");
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
-    var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("AdminUserSeeder");
+    var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("UserSeeder");
 
     // Wrap migration in timeout to prevent ANCM startup timeout (120s default)
     var migrationTask = Task.Run(() =>
@@ -193,8 +193,8 @@ try
             Log.Information("Database migrations applied successfully.");
 
             // Seed initial admin (idempotent) — usa app.Configuration (após Build)
-            AdminUserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
-            Log.Information("AdminUserSeeder completed.");
+            UserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
+            Log.Information("UserSeeder completed.");
 
             // Seed AI Providers
             AiDataSeeder.SeedAiProviders(db, seedLogger);

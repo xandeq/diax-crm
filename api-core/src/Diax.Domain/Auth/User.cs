@@ -1,23 +1,24 @@
-using Diax.Domain.Auth.Enums;
 using Diax.Domain.Common;
 
 namespace Diax.Domain.Auth;
 
-public class AdminUser : AuditableEntity
+/// <summary>
+/// Entidade de usuário do sistema.
+/// Substitui AdminUser. Papéis são definidos via UserGroups/Permissions (RBAC).
+/// </summary>
+public class User : AuditableEntity
 {
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
-    public UserRole Role { get; private set; } = UserRole.User;
 
     // EF Core
-    private AdminUser() { }
+    private User() { }
 
-    public AdminUser(string email, string passwordHash, UserRole role = UserRole.User, Guid? id = null) : base(id ?? Guid.NewGuid())
+    public User(string email, string passwordHash, Guid? id = null) : base(id ?? Guid.NewGuid())
     {
         SetEmail(email);
         SetPasswordHash(passwordHash);
-        Role = role;
         IsActive = true;
     }
 
@@ -26,7 +27,7 @@ public class AdminUser : AuditableEntity
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email is required.", nameof(email));
 
-        Email = email.Trim();
+        Email = email.Trim().ToLowerInvariant();
     }
 
     public void SetPasswordHash(string passwordHash)
@@ -35,11 +36,6 @@ public class AdminUser : AuditableEntity
             throw new ArgumentException("PasswordHash is required.", nameof(passwordHash));
 
         PasswordHash = passwordHash;
-    }
-
-    public void SetRole(UserRole role)
-    {
-        Role = role;
     }
 
     public void Disable() => IsActive = false;

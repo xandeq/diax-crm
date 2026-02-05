@@ -196,7 +196,7 @@ public class PromptGeneratorController : ControllerBase
         if (string.IsNullOrWhiteSpace(email))
             return null;
 
-        var user = await _db.AdminUsers
+        var user = await _db.Users
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
 

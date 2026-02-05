@@ -8,8 +8,11 @@ public class UserGroupMember
     public Guid GroupId { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
-    public AdminUser User { get; private set; }
-    public UserGroup Group { get; private set; }
+    public User User { get; private set; } = null!;
+    public UserGroup Group { get; private set; } = null!;
+
+    // EF Core
+    private UserGroupMember() { }
 
     public UserGroupMember(Guid userId, Guid groupId)
     {

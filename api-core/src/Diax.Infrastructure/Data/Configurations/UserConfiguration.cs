@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Diax.Infrastructure.Data.Configurations;
 
-public class AdminUserConfiguration : IEntityTypeConfiguration<AdminUser>
+public class UserConfiguration : IEntityTypeConfiguration<User>
 {
-    public void Configure(EntityTypeBuilder<AdminUser> builder)
+    public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("admin_users");
+        builder.ToTable("users");
 
         builder.HasKey(x => x.Id);
 
@@ -36,6 +36,6 @@ public class AdminUserConfiguration : IEntityTypeConfiguration<AdminUser>
 
         builder.HasIndex(x => x.Email)
             .IsUnique()
-            .HasDatabaseName("IX_AdminUsers_Email");
+            .HasDatabaseName("IX_Users_Email");
     }
 }
