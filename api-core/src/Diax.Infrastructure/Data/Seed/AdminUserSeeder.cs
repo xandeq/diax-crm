@@ -34,7 +34,7 @@ public static class AdminUserSeeder
 
         var passwordHash = PasswordHash.HashPassword(adminPassword);
         var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        var admin = new AdminUser(adminEmail.Trim(), passwordHash, adminId);
+        var admin = new AdminUser(adminEmail.Trim(), passwordHash, adminId, UserRole.Admin);
 
         db.AdminUsers.Add(admin);
         db.SaveChanges();

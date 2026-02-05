@@ -7,15 +7,17 @@ public class AdminUser : AuditableEntity
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
+    public UserRole Role { get; private set; } = UserRole.User;
 
     // EF Core
     private AdminUser() { }
 
-    public AdminUser(string email, string passwordHash, Guid? id = null) : base(id ?? Guid.NewGuid())
+    public AdminUser(string email, string passwordHash, Guid? id = null, UserRole role = UserRole.User) : base(id ?? Guid.NewGuid())
     {
         SetEmail(email);
         SetPasswordHash(passwordHash);
         IsActive = true;
+        Role = role;
     }
 
     public void SetEmail(string email)
@@ -33,6 +35,8 @@ public class AdminUser : AuditableEntity
 
         PasswordHash = passwordHash;
     }
+
+    public void ChangeRole(UserRole role) => Role = role;
 
     public void Disable() => IsActive = false;
     public void Enable() => IsActive = true;

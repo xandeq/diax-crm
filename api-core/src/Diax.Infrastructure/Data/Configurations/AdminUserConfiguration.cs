@@ -23,6 +23,10 @@ public class AdminUserConfiguration : IEntityTypeConfiguration<AdminUser>
         builder.Property(x => x.IsActive)
             .IsRequired();
 
+        builder.Property(x => x.Role)
+            .IsRequired()
+            .HasDefaultValue(Diax.Domain.Auth.UserRole.User);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 
