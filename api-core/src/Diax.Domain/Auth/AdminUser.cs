@@ -1,3 +1,4 @@
+using Diax.Domain.Auth.Enums;
 using Diax.Domain.Common;
 
 namespace Diax.Domain.Auth;
@@ -7,14 +8,16 @@ public class AdminUser : AuditableEntity
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
+    public UserRole Role { get; private set; } = UserRole.User;
 
     // EF Core
     private AdminUser() { }
 
-    public AdminUser(string email, string passwordHash, Guid? id = null) : base(id ?? Guid.NewGuid())
+    public AdminUser(string email, string passwordHash, UserRole role = UserRole.User, Guid? id = null) : base(id ?? Guid.NewGuid())
     {
         SetEmail(email);
         SetPasswordHash(passwordHash);
+        Role = role;
         IsActive = true;
     }
 
@@ -32,6 +35,11 @@ public class AdminUser : AuditableEntity
             throw new ArgumentException("PasswordHash is required.", nameof(passwordHash));
 
         PasswordHash = passwordHash;
+    }
+
+    public void SetRole(UserRole role)
+    {
+        Role = role;
     }
 
     public void Disable() => IsActive = false;
