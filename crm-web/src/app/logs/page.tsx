@@ -2,6 +2,7 @@
 
 import { LogFilters } from '@/components/logs/LogFilters';
 import { LogsTable } from '@/components/logs/LogsTable';
+import { RoleGuard } from '@/components/RoleGuard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AppLogFilterRequest, AppLogPagedResponse, AppLogStatsResponse, LogLevel, logLevelLabels, logsService } from '@/services/logs';
@@ -74,6 +75,7 @@ export default function LogsPage() {
   };
 
   return (
+    <RoleGuard allowedRoles={['Admin']}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -181,6 +183,7 @@ export default function LogsPage() {
         )}
       </div>
     </div>
+    </RoleGuard>
   );
 }
 

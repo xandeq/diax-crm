@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 
 export function Header() {
-  const { isAuthenticated, logout, isLoading } = useAuth();
+  const { isAuthenticated, logout, isLoading, isAdmin } = useAuth();
 
   if (isLoading) {
     return (
@@ -147,7 +147,7 @@ export function Header() {
               </div>
             </div>
 
-            <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
+            {isAdmin && <Link href="/logs/" className="hover:text-slate-900">Logs</Link>}
             <button
               onClick={logout}
               className="flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium"
