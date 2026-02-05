@@ -279,10 +279,12 @@ public class AiCatalogService : IAiCatalogService
                 _configuration["PromptGenerator:Google:BaseUrl"] ?? "https://generativelanguage.googleapis.com",
                 new List<AiModelDto>
                 {
-                    new(Guid.NewGuid(), "gemini-2.0-flash-exp", "Gemini 2.0 Flash", true, false, null, null, null),
-                    new(Guid.NewGuid(), "gemini-exp-1206", "Gemini Experimental", true, false, null, null, null),
-                    new(Guid.NewGuid(), "gemini-1.5-pro", "Gemini 1.5 Pro", true, false, null, null, null),
-                    new(Guid.NewGuid(), "gemini-1.5-flash", "Gemini 1.5 Flash", true, false, null, null, null)
+                    new(Guid.NewGuid(), "gemini-2.5-flash", "Gemini 2.5 Flash", true, false, null, null, null),
+                    new(Guid.NewGuid(), "gemini-2.0-flash", "Gemini 2.0 Flash", true, false, null, null, null),
+                    new(Guid.NewGuid(), "gemini-flash-latest", "Gemini Flash Latest", true, false, null, null, null),
+                    new(Guid.NewGuid(), "gemini-pro-latest", "Gemini Pro Latest", true, false, null, null, null),
+                    new(Guid.NewGuid(), "gemma-3-4b-it", "Gemma 3 4B IT", true, false, null, null, null),
+                    new(Guid.NewGuid(), "gemma-3-12b-it", "Gemma 3 12B IT", true, false, null, null, null)
                 }
             ));
         }

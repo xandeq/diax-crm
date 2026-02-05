@@ -25,9 +25,12 @@ public static class AiDataSeeder
             }),
             CreateProvider("gemini", "Google Gemini", true, "https://generativelanguage.googleapis.com", new[]
             {
-                ("gemini-1.5-pro", "Gemini 1.5 Pro"),
-                ("gemini-1.5-flash", "Gemini 1.5 Flash"),
-                ("gemini-2.0-flash", "Gemini 2.0 Flash")
+                ("gemini-2.5-flash", "Gemini 2.5 Flash"),
+                ("gemini-2.0-flash", "Gemini 2.0 Flash"),
+                ("gemini-flash-latest", "Gemini Flash Latest"),
+                ("gemini-pro-latest", "Gemini Pro Latest"),
+                ("gemma-3-4b-it", "Gemma 3 4B IT"),
+                ("gemma-3-12b-it", "Gemma 3 12B IT")
             }),
             CreateProvider("perplexity", "Perplexity", true, "https://api.perplexity.ai", new[]
             {
