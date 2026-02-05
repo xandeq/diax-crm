@@ -36,7 +36,7 @@ public class UserGroupService : IUserGroupService
 
         await _repository.AddAsync(group);
         await _unitOfWork.SaveChangesAsync(); // ✅ CRÍTICO: Persistir no banco
-        
+
         return group;
     }
 

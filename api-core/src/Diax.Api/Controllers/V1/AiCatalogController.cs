@@ -27,7 +27,7 @@ public class AiCatalogController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetCatalog(CancellationToken cancellationToken)
     {
-        var email = User.FindFirstValue(ClaimTypes.Email) 
+        var email = User.FindFirstValue(ClaimTypes.Email)
                     ?? User.FindFirstValue(JwtRegisteredClaimNames.Email);
 
         if (string.IsNullOrWhiteSpace(email))
@@ -40,9 +40,9 @@ public class AiCatalogController : ControllerBase
 
         // Usar GetCatalogAsync que tem fallback para configuração
         var catalog = await _catalogService.GetCatalogAsync(cancellationToken);
-        
+
         _logger.LogInformation("[AiCatalog] Returning {Count} providers", catalog.Count);
-        
+
         return Ok(new { providers = catalog });
     }
 }

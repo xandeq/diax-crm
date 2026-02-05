@@ -106,7 +106,7 @@ export default function PromptGeneratorPage() {
                 );
             } else {
                 console.log('[PromptGenerator] ✅ Loaded', catalog.length, 'providers');
-                
+
                 // Set default provider/model
                 const firstProv = catalog[0];
                 setSelectedProvider(firstProv.key);

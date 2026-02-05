@@ -37,7 +37,7 @@ public class AiCatalogService : IAiCatalogService
 
         // Tentar buscar providers do banco
         var allProviders = await _providerRepository.GetAllIncludedAsync(cancellationToken);
-        
+
         if (allProviders == null || !allProviders.Any())
         {
             _logger.LogWarning("[AiCatalog] No providers found in database. Using configuration fallback.");
@@ -45,7 +45,7 @@ public class AiCatalogService : IAiCatalogService
         }
 
         _logger.LogInformation("[AiCatalog] Found {Count} providers in database", allProviders.Count());
-        
+
         var result = new List<AiProviderDto>();
         foreach (var provider in allProviders)
         {
@@ -90,7 +90,7 @@ public class AiCatalogService : IAiCatalogService
 
         // 2. Get All Enabled Providers
         var allProviders = await _providerRepository.GetAllIncludedAsync(cancellationToken);
-        
+
         if (allProviders == null || !allProviders.Any())
         {
             _logger.LogWarning("[AiCatalog] No providers in database for user {UserId}. Using configuration fallback.", userId);
@@ -219,7 +219,7 @@ public class AiCatalogService : IAiCatalogService
         // OpenAI
         var openAiKey = _configuration["PromptGenerator:OpenAI:ApiKey"];
         _logger.LogDebug("[AiCatalog] OpenAI ApiKey configured: {IsConfigured}", !string.IsNullOrWhiteSpace(openAiKey));
-        
+
         if (!string.IsNullOrWhiteSpace(openAiKey))
         {
             providers.Add(new AiProviderDto(
@@ -240,10 +240,10 @@ public class AiCatalogService : IAiCatalogService
         }
 
         // Anthropic Claude
-        var anthropicKey = _configuration["PromptGenerator:Anthropic:ApiKey"] 
+        var anthropicKey = _configuration["PromptGenerator:Anthropic:ApiKey"]
                           ?? _configuration["Anthropic:ApiKey"];
         _logger.LogDebug("[AiCatalog] Anthropic ApiKey configured: {IsConfigured}", !string.IsNullOrWhiteSpace(anthropicKey));
-        
+
         if (!string.IsNullOrWhiteSpace(anthropicKey))
         {
             providers.Add(new AiProviderDto(
@@ -264,10 +264,10 @@ public class AiCatalogService : IAiCatalogService
         }
 
         // Google Gemini
-        var geminiKey = _configuration["PromptGenerator:Google:ApiKey"] 
+        var geminiKey = _configuration["PromptGenerator:Google:ApiKey"]
                        ?? _configuration["Google:ApiKey"];
         _logger.LogDebug("[AiCatalog] Google ApiKey configured: {IsConfigured}", !string.IsNullOrWhiteSpace(geminiKey));
-        
+
         if (!string.IsNullOrWhiteSpace(geminiKey))
         {
             providers.Add(new AiProviderDto(
@@ -290,7 +290,7 @@ public class AiCatalogService : IAiCatalogService
         // Perplexity
         var perplexityKey = _configuration["PromptGenerator:Perplexity:ApiKey"];
         _logger.LogDebug("[AiCatalog] Perplexity ApiKey configured: {IsConfigured}", !string.IsNullOrWhiteSpace(perplexityKey));
-        
+
         if (!string.IsNullOrWhiteSpace(perplexityKey))
         {
             providers.Add(new AiProviderDto(
@@ -311,7 +311,7 @@ public class AiCatalogService : IAiCatalogService
         // DeepSeek
         var deepseekKey = _configuration["PromptGenerator:DeepSeek:ApiKey"];
         _logger.LogDebug("[AiCatalog] DeepSeek ApiKey configured: {IsConfigured}", !string.IsNullOrWhiteSpace(deepseekKey));
-        
+
         if (!string.IsNullOrWhiteSpace(deepseekKey))
         {
             providers.Add(new AiProviderDto(
@@ -335,8 +335,8 @@ public class AiCatalogService : IAiCatalogService
         }
         else
         {
-            _logger.LogInformation("[AiCatalog] Built {Count} providers from configuration: {Providers}", 
-                providers.Count, 
+            _logger.LogInformation("[AiCatalog] Built {Count} providers from configuration: {Providers}",
+                providers.Count,
                 string.Join(", ", providers.Select(p => p.Name)));
         }
 

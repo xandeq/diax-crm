@@ -35,9 +35,9 @@ export async function getAiCatalog(): Promise<AiProvider[]> {
 
   try {
     console.log('[aiCatalog] 🔄 Fetching AI catalog...');
-    
+
     const response = await apiFetch<AiCatalogResponse>('/ai/catalog');
-    
+
     console.log('[aiCatalog] ✅ Response received:', {
       providersCount: response.providers?.length ?? 0,
       providers: response.providers?.map(p => p.name) ?? []
