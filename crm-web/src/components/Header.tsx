@@ -148,7 +148,10 @@ export function Header() {
             </div>
 
             {isAdmin && (
-              <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
+              <>
+                <Link href="/users/" className="hover:text-slate-900">Usuários</Link>
+                <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
+              </>
             )}
 
             <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
