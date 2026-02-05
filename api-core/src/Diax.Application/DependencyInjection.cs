@@ -1,3 +1,4 @@
+using Diax.Application.Auth;
 using Diax.Application.Customers;
 using Diax.Application.Finance;
 using Diax.Application.HtmlExtraction;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
 
         // Registra os serviços de aplicação
+        services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<CustomerService>();
         services.AddScoped<IncomeService>();
         services.AddScoped<IncomeCategoryService>();

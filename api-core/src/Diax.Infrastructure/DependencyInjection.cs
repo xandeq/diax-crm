@@ -1,3 +1,4 @@
+using Diax.Domain.Auth;
 using Diax.Domain.Common;
 using Diax.Infrastructure.Identity;
 using Diax.Domain.Customers;
@@ -151,6 +152,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // ===== REPOSITÓRIOS =====
+        services.AddScoped<IAdminUserRepository, AdminUserRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IIncomeRepository, IncomeRepository>();
         services.AddScoped<IIncomeCategoryRepository, IncomeCategoryRepository>();
