@@ -19,11 +19,12 @@ import {
     getPromptById,
     getPromptHistory,
     PromptGeneratorError,
-    PromptProvider,
+    // PromptProvider,  <-- Removed usage of static type if possible, or keep mapped
     PromptType,
     promptTypeOptions,
     UserPromptHistory
 } from '@/services/promptGenerator';
+import { getAiCatalog, AiProvider as CatalogProvider, AiModel as CatalogModel } from '@/services/aiCatalog';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -42,43 +43,20 @@ import {
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-// Lista estática de providers e modelos como fallback e referência
-const AI_PROVIDERS = [
-  {
-    id: 'chatgpt',
-    name: 'ChatGPT',
-    fullName: 'OpenAI ChatGPT',
-    color: 'bg-green-500/10 border-green-500/20 text-green-700',
-    models: [
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-      { id: 'gpt-4o', name: 'GPT-4o' },
-      { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
-    ]
-  },
-  {
-    id: 'gemini',
-    name: 'Gemini',
-    fullName: 'Google Gemini',
-    color: 'bg-blue-500/10 border-blue-500/20 text-blue-700',
-    models: [
-      { id: 'models/gemini-2.5-flash', name: '⭐ Gemini 2.5 Flash (Recomendado)', category: 'Stable' },
-      { id: 'models/gemini-2.0-flash', name: 'Gemini 2.0 Flash', category: 'Stable' },
-      { id: 'models/gemini-flash-latest', name: 'Gemini Flash (Latest)', category: 'Stable' },
-      { id: 'models/gemini-pro-latest', name: 'Gemini Pro (Latest)', category: 'Stable' },
-      { id: 'models/gemma-3-4b-it', name: '💰 Gemma 3 4B IT (Econômico)', category: 'Economy' },
-      { id: 'models/gemma-3-12b-it', name: '💰 Gemma 3 12B IT (Econômico)', category: 'Economy' }
-    ]
-  },
-  {
-    id: 'perplexity',
-    name: 'Perplexity',
-    fullName: 'Perplexity AI',
-    color: 'bg-teal-500/10 border-teal-500/20 text-teal-700',
-    models: [
-      { id: 'sonar-pro', name: 'Sonar Pro' },
-      { id: 'sonar', name: 'Sonar' }
-    ]
-  },
+// Removed static AI_PROVIDERS. Now loaded from API.
+
+export default function PromptGeneratorPage() {
+    const [providers, setProviders] = useState<CatalogProvider[]>([]);
+    const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+
+    const [rawPrompt, setRawPrompt] = useState('');
+    const [selectedType, setSelectedType] = useState<PromptType>('professional');
+    const [selectedProvider, setSelectedProvider] = useState<string>(''); // Stores Provider Key (e.g. 'openai')
+    const [selectedModel, setSelectedModel] = useState<string>('');       // Stores Model Key (e.g. 'gpt-4o')
+
+    // Derived state for current provider object
+    const currentProvider = providers.find(p => p.key === selectedProvider);
+
   {
     id: 'deepseek',
     name: 'DeepSeek',
@@ -103,27 +81,58 @@ const AI_PROVIDERS = [
 ];
 
 export default function PromptGeneratorPage() {
-  const [loading, setLoading] = useState(false);
-  const [rawPrompt, setRawPrompt] = useState('');
-  const [generatedPrompt, setGeneratedPrompt] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState<PromptProvider>('chatgpt');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
-  const [selectedPromptType, setSelectedPromptType] = useState<PromptType>('professional');
-  const [copied, setCopied] = useState(false);
-  const [history, setHistory] = useState<UserPromptHistory[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [errorObj, setErrorObj] = useState<{
-    message: string;
-    isRetryable: boolean;
-    correlationId?: string;
-  } | null>(null);
+    const [providers, setProviders] = useState<CatalogProvider[]>([]);
+    const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+
+    const [loading, setLoading] = useState(false);
+    const [rawPrompt, setRawPrompt] = useState('');
+    const [generatedPrompt, setGeneratedPrompt] = useState('');
+    const [selectedProvider, setSelectedProvider] = useState<string>(''); // Stores Provider Key (e.g. 'openai')
+    const [selectedModel, setSelectedModel] = useState<string>('');       // Stores Model Key (e.g. 'gpt-4o')
+    const [selectedPromptType, setSelectedPromptType] = useState<PromptType>('professional');
+    const [copied, setCopied] = useState(false);
+    const [history, setHistory] = useState<UserPromptHistory[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [errorObj, setErrorObj] = useState<{
+        message: string;
+        isRetryable: boolean;
+        correlationId?: string;
+    } | null>(null);
+
+    // Derived state for current provider object
+    const currentProvider = providers.find(p => p.key === selectedProvider);
 
   // Detalhes da técnica selecionada (Importado do promptGenerator.ts)
   const selectedTypeDetails = promptTypeOptions.find(t => t.value === selectedPromptType);
 
   // Efeito para carregar o histórico inicialmente
   useEffect(() => {
-    loadHistory();
+    const loadData = async () => {
+        setIsLoadingCatalog(true);
+        try {
+            // Load Catalog
+            const catalog = await getAiCatalog();
+            setProviders(catalog);
+
+            // Set default provider/model if available
+            if (catalog.length > 0) {
+                const firstProv = catalog[0];
+                setSelectedProvider(firstProv.key);
+                if (firstProv.models.length > 0) {
+                    setSelectedModel(firstProv.models[0].modelKey);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load AI catalog", error);
+            toast.error("Erro ao carregar catálogo de IA.");
+        } finally {
+            setIsLoadingCatalog(false);
+        }
+
+        loadHistory();
+    };
+
+    loadData();
   }, []);
 
   const loadHistory = async () => {
@@ -146,7 +155,7 @@ export default function PromptGeneratorPage() {
       // Preencher o form com os dados do histórico
       setRawPrompt(detail.originalInput);
       setGeneratedPrompt(detail.generatedPrompt);
-      setSelectedProvider(detail.provider as PromptProvider);
+      setSelectedProvider(detail.provider); // Cast removed, handling string
 
       // Se houver tipo de prompt salvo, tenta setar
       if (detail.promptType) {
@@ -255,23 +264,34 @@ export default function PromptGeneratorPage() {
       {/* Seleção de Provider (Estilo Tabs/Cards) */}
       <section className="space-y-3">
         <Label className="text-base font-semibold">1. Escolha a Inteligência Artificial</Label>
+
+        {isLoadingCatalog ? (
+            <div className="flex gap-4">
+                {[1, 2, 3].map(i => <div key={i} className="h-24 w-1/3 bg-muted animate-pulse rounded-xl" />)}
+            </div>
+        ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {AI_PROVIDERS.map((provider) => (
+          {providers.map((provider) => (
             <div
-              key={provider.id}
-              onClick={() => setSelectedProvider(provider.id as PromptProvider)}
+              key={provider.key}
+              onClick={() => {
+                setSelectedProvider(provider.key);
+                // Auto select first model
+                if (provider.models.length > 0) setSelectedModel(provider.models[0].modelKey);
+                else setSelectedModel('');
+              }}
               className={`
                 cursor-pointer rounded-xl border p-4 transition-all hover:bg-muted/50 relative overflow-hidden
-                ${selectedProvider === provider.id
+                ${selectedProvider === provider.key
                   ? `ring-2 ring-primary border-transparent bg-primary/5`
                   : 'border-muted hover:border-primary/50'}
               `}
             >
               <div className="flex flex-col items-center justify-center text-center gap-2 h-full z-10 relative">
-                <span className={`font-semibold ${selectedProvider === provider.id ? 'text-primary' : 'text-foreground'}`}>
+                <span className={`font-semibold ${selectedProvider === provider.key ? 'text-primary' : 'text-foreground'}`}>
                   {provider.name}
                 </span>
-                {selectedProvider === provider.id && (
+                {selectedProvider === provider.key && (
                   <Badge variant="secondary" className="text-[10px] h-5 px-1.5 absolute top-0 right-0 m-2">
                     Ativo
                   </Badge>
@@ -280,6 +300,7 @@ export default function PromptGeneratorPage() {
             </div>
           ))}
         </div>
+        )}
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -294,37 +315,23 @@ export default function PromptGeneratorPage() {
                 {/* Seleção de Modelo */}
                 <div className="space-y-2">
                   <Label>Modelo ({currentProvider?.name})</Label>
-                  <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <Select
+                    value={selectedModel}
+                    onValueChange={setSelectedModel}
+                    disabled={!currentProvider || currentProvider.models.length === 0}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o modelo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {selectedProvider === 'gemini' ? (
-                        <>
-                          <SelectGroup>
-                            <SelectLabel>Stable</SelectLabel>
-                            {currentModels.filter(m => ('category' in m ? m.category : '') === 'Stable').map((model) => (
-                              <SelectItem key={model.id} value={model.id}>
-                                {model.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                          <SelectGroup>
-                            <SelectLabel>Economy / Gemma</SelectLabel>
-                            {currentModels.filter(m => ('category' in m ? m.category : '') === 'Economy').map((model) => (
-                              <SelectItem key={model.id} value={model.id}>
-                                {model.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </>
-                      ) : (
-                        currentModels.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            {model.name}
-                          </SelectItem>
-                        ))
-                      )}
+                      {currentProvider?.models.map((model) => (
+                        <SelectItem key={model.modelKey} value={model.modelKey}>
+                           {model.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                     </SelectContent>
                   </Select>
                 </div>

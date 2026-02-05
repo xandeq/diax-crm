@@ -148,10 +148,26 @@ export function Header() {
             </div>
 
             {isAdmin && (
-              <>
-                <Link href="/users/" className="hover:text-slate-900">Usuários</Link>
-                <Link href="/logs/" className="hover:text-slate-900">Logs</Link>
-              </>
+              <div className="relative group">
+                <button
+                  type="button"
+                  className="hover:text-slate-900 font-medium"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                >
+                  Admin
+                </button>
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full min-w-[200px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
+                >
+                  <Link href="/users/" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Usuários</Link>
+                  <Link href="/logs/" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Logs do Sistema</Link>
+                  <div className="border-t border-slate-100 my-1"></div>
+                  <Link href="/admin/groups" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Grupos & Permissões</Link>
+                  <Link href="/admin/ai" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Provedores IA</Link>
+                </div>
+              </div>
             )}
 
             <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
