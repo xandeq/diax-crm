@@ -42,6 +42,9 @@ public class UserManagementService : IUserManagementService
 
     public async Task<UserResponse> UpdateAsync(Guid id, UpdateUserRequest request, Guid currentUserId, CancellationToken cancellationToken = default)
     {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        if (_repository == null) throw new InvalidOperationException("Repository is null");
+
         var user = await _repository.GetByIdAsync(id, cancellationToken);
         if (user == null) throw new Exception("Usuário não encontrado.");
 
@@ -52,7 +55,10 @@ public class UserManagementService : IUserManagementService
 
         user.SetRole(request.Role);
         
-        if (request.IsActive) user.Enable();
+        if (request.IsActive) 
+        {
+            user.Enable();
+        }
         else 
         {
             if (user.Role == UserRole.Admin)
@@ -68,7 +74,8 @@ public class UserManagementService : IUserManagementService
 
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            user.SetPasswordHash(PasswordHash.HashPassword(request.Password));
+            var hashedPassword = PasswordHash.HashPassword(request.Password);
+            user.SetPasswordHash(hashedPassword);
         }
 
         await _repository.UpdateAsync(user, cancellationToken);
