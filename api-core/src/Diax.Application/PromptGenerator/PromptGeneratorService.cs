@@ -110,7 +110,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         var timeoutSeconds = GetTimeoutSeconds();
         using var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
-        
+
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
         {
             Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
