@@ -123,7 +123,7 @@ jobs:
                 "Gemini": {
                   "ApiKey": $geminiKey,
                   "BaseUrl": "https://generativelanguage.googleapis.com/v1beta",
-                  "Model": "gemini-1.5-flash"
+                  "Model": "gemini-2.5-flash"
                 },
                 "OpenRouter": {
                   "ApiKey": $openrouterKey,

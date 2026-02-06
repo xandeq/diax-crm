@@ -70,10 +70,10 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     private async Task<string> SendGeminiPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
     {
         // ===== VALIDAÇÃO USANDO BANCO DE DADOS =====
-        var isValidModel = await _modelValidator.IsValidModelAsync("google", settings.Model);
+        var isValidModel = await _modelValidator.IsValidModelAsync("gemini", settings.Model);
         if (!isValidModel)
         {
-            var validModels = await _modelValidator.GetActiveModelKeysAsync("google");
+            var validModels = await _modelValidator.GetActiveModelKeysAsync("gemini");
             var errorMessage = $"Modelo Gemini '{settings.Model}' não encontrado. Modelos disponíveis: {string.Join(", ", validModels)}";
             _logger.LogWarning("Invalid Gemini model requested: {Model}", settings.Model);
             throw new ArgumentException(errorMessage);
@@ -454,7 +454,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         return providerName.ToLowerInvariant() switch
         {
             "chatgpt" => "openai",
-            "gemini" => "google",
+            "gemini" => "gemini",
             _ => providerName
         };
     }
