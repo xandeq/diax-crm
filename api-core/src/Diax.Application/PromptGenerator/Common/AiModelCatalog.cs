@@ -1,5 +1,19 @@
 namespace Diax.Application.PromptGenerator.Common;
 
+/// <summary>
+/// ⚠️ OBSOLETO: Esta classe não deve mais ser usada como fonte de verdade para providers/models de IA.
+///
+/// MIGRAÇÃO CONCLUÍDA:
+/// - Use IAiCatalogService (lê do banco de dados) para consultar providers/models disponíveis
+/// - Use IAiProviderManagementService para adicionar novos providers/models dinamicamente
+/// - Use AiDataSeeder para popular o banco inicial (migrations)
+///
+/// Esta classe permanece apenas para referência de modelos específicos do Gemini
+/// que requerem validações particulares (suporte a generateContent, etc).
+///
+/// TODO: Remover completamente após migrar lógica Gemini-específica para o banco.
+/// </summary>
+[Obsolete("Use IAiCatalogService (banco de dados) em vez de catálogos hardcoded. Esta classe será removida em versões futuras.")]
 public static class AiModelCatalog
 {
     // ===== CATÁLOGO ESPECÍFICO DO GEMINI =====

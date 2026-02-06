@@ -49,6 +49,14 @@ public static class DependencyInjection
         services.AddScoped<IAiProviderAdminService, AiProviderAdminService>();
         services.AddScoped<IAiCatalogService, AiCatalogService>();
         services.AddScoped<IGroupAiAccessService, GroupAiAccessService>();
+
+        // AI Model Validator com cache (fonte única de verdade = banco)
+        services.AddScoped<IAiModelValidator, AiModelValidator>();
+        services.AddScoped<IAiProviderManagementService, AiProviderManagementService>();
+
+        // Memory Cache para AiModelValidator
+        services.AddMemoryCache();
+
         return services;
     }
 }
