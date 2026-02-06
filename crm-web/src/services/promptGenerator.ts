@@ -1,7 +1,12 @@
 import { isPromptError, PromptErrorResponse } from '@/types/api';
 import { apiFetch, getAccessToken, getApiBaseUrl } from './api';
 
-export type PromptProvider = 'chatgpt' | 'perplexity' | 'deepseek' | 'gemini' | 'openrouter';
+/**
+ * Provider de IA para geração de prompts.
+ * Os providers disponíveis são carregados dinamicamente do banco de dados via API.
+ * Use getPromptModels() para obter a lista atualizada de providers.
+ */
+export type PromptProvider = string;
 
 export type PromptType = 'professional' | 'pas' | 'aida' | 'fab' | 'pear' | 'goat' | 'care' | 'rtf' | 'risen' | 'costar' | 'cot' | 'tot' | 'cod' | 'tag' | 'bab' | 'create' | 'fsp' | 'sref' | 'deep_research' | 'context_objective';
 

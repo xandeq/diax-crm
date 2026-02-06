@@ -1,6 +1,11 @@
 import { apiFetch } from './api';
 
-export type HumanizeProvider = 'chatgpt' | 'perplexity' | 'deepseek';
+/**
+ * Provider de IA para humanização de texto.
+ * Os providers disponíveis são carregados dinamicamente do banco de dados via API.
+ * Use getAiCatalog() de aiCatalog.ts para obter a lista atualizada.
+ */
+export type HumanizeProvider = string;
 
 export type HumanizeTone = 'humanize_text_light' | 'humanize_text_professional' | 'humanize_text_marketing' | 'humanize_text_documentation';
 

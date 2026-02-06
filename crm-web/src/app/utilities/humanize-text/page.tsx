@@ -4,16 +4,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAiCatalog, type AiProvider } from '@/services/aiCatalog';
 import { humanizeText, humanizeToneOptions, type HumanizeProvider, type HumanizeTone } from '@/services/humanizeText';
 import { AlertCircle, Check, Copy, Eraser, Loader2, Sparkles, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-const providerOptions: { value: HumanizeProvider; label: string }[] = [
-  { value: 'chatgpt', label: 'ChatGPT' },
-  { value: 'perplexity', label: 'Perplexity' },
-  { value: 'deepseek', label: 'DeepSeek' },
-];
+interface ProviderOption {
+  value: string;
+  label: string;
+}
 
 export default function HumanizeTextPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -21,14 +21,49 @@ export default function HumanizeTextPage() {
 
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
-  const [provider, setProvider] = useState<HumanizeProvider>('chatgpt');
+  const [provider, setProvider] = useState<HumanizeProvider>('');
   const [tone, setTone] = useState<HumanizeTone>('humanize_text_professional');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pageReady, setPageReady] = useState(false);
 
+  // Providers carregados dinamicamente da API (banco de dados)
+  const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+
   const selectedTone = humanizeToneOptions.find((option) => option.value === tone);
+
+  // Carregar providers da API ao montar o componente
+  useEffect(() => {
+    async function loadProviders() {
+      try {
+        const catalog = await getAiCatalog();
+        const options = catalog
+          .filter((p: AiProvider) => p.isEnabled)
+          .map((p: AiProvider) => ({
+            value: p.key,
+            label: p.name,
+          }));
+
+        setProviderOptions(options);
+
+        // Selecionar primeiro provider disponível como padrão
+        if (options.length > 0 && !provider) {
+          setProvider(options[0].value);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar providers:', err);
+        setError('Erro ao carregar provedores de IA. Recarregue a página.');
+      } finally {
+        setLoadingProviders(false);
+      }
+    }
+
+    if (isAuthenticated) {
+      loadProviders();
+    }
+  }, [isAuthenticated, provider]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -84,7 +119,7 @@ export default function HumanizeTextPage() {
     setCopied(false);
   };
 
-  if (authLoading || !pageReady) {
+  if (authLoading || !pageReady || loadingProviders) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -117,14 +152,19 @@ export default function HumanizeTextPage() {
                   <label className="text-sm font-medium">IA (Provedor)</label>
                   <select
                     value={provider}
-                    onChange={(e) => setProvider(e.target.value as HumanizeProvider)}
-                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    onChange={(e) => setProvider(e.target.value)}
+                    disabled={providerOptions.length === 0}
+                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                   >
-                    {providerOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
+                    {providerOptions.length === 0 ? (
+                      <option value="">Nenhum provider disponível</option>
+                    ) : (
+                      providerOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
                 <div className="space-y-2">

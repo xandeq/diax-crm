@@ -2,9 +2,13 @@ using FluentValidation;
 
 namespace Diax.Application.Ai.HumanizeText;
 
+/// <summary>
+/// Validador de request para humanização de texto.
+/// NOTA: A validação do provider é feita no HumanizeTextService consultando o banco de dados.
+/// Este validator contém apenas validações síncronas básicas.
+/// </summary>
 public class HumanizeTextValidator : AbstractValidator<HumanizeTextRequestDto>
 {
-    private readonly string[] _allowedProviders = { "chatgpt", "perplexity", "deepseek" };
     private readonly string[] _allowedTones =
     {
         "humanize_text_light",
@@ -20,9 +24,8 @@ public class HumanizeTextValidator : AbstractValidator<HumanizeTextRequestDto>
             .MaximumLength(20000).WithMessage("O texto de entrada deve ter no máximo 20.000 caracteres.");
 
         RuleFor(x => x.Provider)
-            .NotEmpty().WithMessage("O provedor de IA deve ser informado.")
-            .Must(p => _allowedProviders.Contains(p.ToLower()))
-            .WithMessage("Provedor inválido. Opções: ChatGPT, Perplexity, DeepSeek.");
+            .NotEmpty().WithMessage("O provedor de IA deve ser informado.");
+        // Validação do provider contra o banco é feita no Service (async)
 
         RuleFor(x => x.Tone)
             .NotEmpty().WithMessage("O tom deve ser informado.")
