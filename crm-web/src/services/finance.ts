@@ -530,9 +530,29 @@ export const financeService = {
         });
     },
     deleteIncomesBulk: async (ids: string[]) => {
+        // Validar que todos os IDs são GUIDs válidos antes de enviar
+        const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const validIds = ids.filter(id => {
+            const isValid = guidRegex.test(id);
+            if (!isValid) {
+                console.warn(`⚠️ ID inválido filtrado: ${id}`);
+            }
+            return isValid;
+        });
+
+        if (validIds.length === 0) {
+            throw new Error('Nenhum ID válido foi fornecido para exclusão');
+        }
+
+        if (validIds.length !== ids.length) {
+            console.warn(`⚠️ ${ids.length - validIds.length} IDs inválidos foram filtrados`);
+        }
+
+        console.log(`🔍 Enviando ${validIds.length} IDs para exclusão:`, validIds);
+
         return apiFetch<BulkDeleteResponse>('/incomes/bulk-delete', {
             method: 'POST',
-            body: JSON.stringify({ ids }),
+            body: JSON.stringify({ ids: validIds }),
         });
     },
 

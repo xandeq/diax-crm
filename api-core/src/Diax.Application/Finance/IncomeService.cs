@@ -195,6 +195,19 @@ public class IncomeService : IApplicationService
         var income = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (income == null)
         {
+            // Log detalhado para diagnóstico - por que não encontrou?
+            var anyIncomeWithId = await _repository.GetByIdAsync(id, cancellationToken);
+            if (anyIncomeWithId != null)
+            {
+                // Receita existe mas pertence a outro usuário
+                Console.WriteLine($"[IncomeService.DeleteAsync] ERRO: Receita {id} existe mas pertence ao usuário {anyIncomeWithId.UserId}, tentativa de exclusão por {userId}");
+            }
+            else
+            {
+                // Receita não existe no banco
+                Console.WriteLine($"[IncomeService.DeleteAsync] ERRO: Receita {id} não existe no banco de dados");
+            }
+
             return Result.Failure(new Error("Income.NotFound", "Income not found"));
         }
 
@@ -227,10 +240,20 @@ public class IncomeService : IApplicationService
             return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, 0, 0, new List<string>()));
         }
 
+        // Validar IDs vazios que podem vir de deserialização JSON incorreta
+        var emptyIds = request.Ids.Where(id => id == Guid.Empty).ToList();
+        if (emptyIds.Any())
+        {
+            Console.WriteLine($"[IncomeService.DeleteRangeAsync] ERRO: {emptyIds.Count} IDs vazios (Guid.Empty) detectados na lista");
+            return Result.Failure<BulkDeleteResponse>(new Error("General.InvalidIds", $"{emptyIds.Count} IDs inválidos foram enviados"));
+        }
+
         if (request.Ids.Count > 100)
         {
             return Result.Failure<BulkDeleteResponse>(new Error("General.BatchLimitExceeded", "O limite máximo é de 100 itens por exclusão."));
         }
+
+        Console.WriteLine($"[IncomeService.DeleteRangeAsync] Iniciando exclusão de {request.Ids.Count} receitas para usuário {userId}");
 
         return await _unitOfWork.ExecuteStrategyAsync(async (ct) =>
         {
