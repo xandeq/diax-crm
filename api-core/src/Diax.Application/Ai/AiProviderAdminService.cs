@@ -10,6 +10,7 @@ public class AiProviderAdminService : IAiProviderAdminService
     private readonly IAiProviderRepository _providerRepository;
     private readonly IAiModelRepository _modelRepository;
     private readonly IOpenRouterClient _openRouterClient;
+    private readonly IOpenAiClient _openAiClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AiProviderAdminService> _logger;
 
@@ -20,12 +21,14 @@ public class AiProviderAdminService : IAiProviderAdminService
         IAiProviderRepository providerRepository,
         IAiModelRepository modelRepository,
         IOpenRouterClient openRouterClient,
+        IOpenAiClient openAiClient,
         IMemoryCache cache,
         ILogger<AiProviderAdminService> logger)
     {
         _providerRepository = providerRepository;
         _modelRepository = modelRepository;
         _openRouterClient = openRouterClient;
+        _openAiClient = openAiClient;
         _cache = cache;
         _logger = logger;
     }
@@ -197,27 +200,15 @@ public class AiProviderAdminService : IAiProviderAdminService
 
         _logger.LogInformation("Discovering models for provider: {Provider}", providerKey);
 
-        // Currently only OpenRouter is supported
-        if (!providerKey.Equals("openrouter", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Model discovery not supported for provider: {Provider}", providerKey);
-            throw new NotSupportedException($"Model discovery is not yet supported for provider '{providerKey}'. Only 'openrouter' is supported.");
-        }
-
         try
         {
-            var response = await _openRouterClient.GetModelsAsync(cancellationToken);
-
-            var discoveredModels = response.Data
-                .Select(m => new DiscoveredModelDto(
-                    Id: m.Id,
-                    Name: m.Name,
-                    Provider: "openrouter",
-                    ContextLength: m.ContextLength,
-                    InputCostHint: m.Pricing?.Prompt,
-                    OutputCostHint: m.Pricing?.Completion
-                ))
-                .ToList();
+            var discoveredModels = providerKey.ToLowerInvariant() switch
+            {
+                "openrouter" => await DiscoverOpenRouterModelsAsync(cancellationToken),
+                "openai" => await DiscoverOpenAiModelsAsync(cancellationToken),
+                _ => throw new NotSupportedException(
+                    $"Model discovery is not yet supported for provider '{providerKey}'.")
+            };
 
             // Cache the result
             _cache.Set(cacheKey, discoveredModels, CacheDuration);
@@ -229,10 +220,46 @@ public class AiProviderAdminService : IAiProviderAdminService
 
             return discoveredModels;
         }
+        catch (NotSupportedException)
+        {
+            _logger.LogWarning("Model discovery not supported for provider: {Provider}", providerKey);
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to discover models for provider: {Provider}", providerKey);
             throw;
         }
+    }
+
+    private async Task<List<DiscoveredModelDto>> DiscoverOpenRouterModelsAsync(CancellationToken cancellationToken)
+    {
+        var response = await _openRouterClient.GetModelsAsync(cancellationToken);
+
+        return response.Data
+            .Select(m => new DiscoveredModelDto(
+                Id: m.Id,
+                Name: m.Name,
+                Provider: "openrouter",
+                ContextLength: m.ContextLength,
+                InputCostHint: m.Pricing?.Prompt,
+                OutputCostHint: m.Pricing?.Completion
+            ))
+            .OrderBy(m => m.Name)
+            .ToList();
+    }
+
+    private async Task<List<DiscoveredModelDto>> DiscoverOpenAiModelsAsync(CancellationToken cancellationToken)
+    {
+        var response = await _openAiClient.GetModelsAsync(cancellationToken);
+
+        return response.Data
+            .Select(m => new DiscoveredModelDto(
+                Id: m.Id,
+                Name: m.Id,  // OpenAI API only provides id, no friendly name
+                Provider: "openai"
+            ))
+            .OrderBy(m => m.Id)
+            .ToList();
     }
 }

@@ -190,6 +190,9 @@ public static class DependencyInjection
         // Register OpenRouterClient as typed HttpClient
         services.AddHttpClient<IOpenRouterClient, OpenRouterClient>();
 
+        // Register OpenAiClient as typed HttpClient
+        services.AddHttpClient<IOpenAiClient, OpenAiClient>();
+
         return services;
     }
 }
