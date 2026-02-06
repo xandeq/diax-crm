@@ -1,61 +1,40 @@
--- Script de Atualização do Catálogo de Modelos IA (Gemini 2.5/2.0 + Fixes)
--- Alvo: Banco de Produção (SmarterASP)
--- Data: 2026-02-06
+﻿-- Script para corrigir e garantir os modelos Gemini na produção
+-- Ajustado para usar snake_case e chave 'gemini'
 
-DECLARE @GeminiProviderId UNIQUEIDENTIFIER;
+-- 1. Obter o ID do provedor Google (usando a chave 'gemini')
+DECLARE @GoogleProviderId UNIQUEIDENTIFIER;
+SELECT @GoogleProviderId = id FROM ai_providers WHERE [key] = 'gemini';
 
--- 1. Localizar o ID do provedor 'gemini'
-SELECT @GeminiProviderId = Id
-FROM AiProviders
-WHERE [Key] = 'gemini';
-
-IF @GeminiProviderId IS NOT NULL
+IF @GoogleProviderId IS NOT NULL
 BEGIN
-    PRINT 'Provedor Gemini encontrado. Iniciando atualização de modelos...';
-
-    -- Lista de modelos para garantir que existam
-    -- FORMATO: ModelKey, DisplayName
-    DECLARE @ModelsToUpdate TABLE (ModelKey NVARCHAR(100), DisplayName NVARCHAR(200));
-
-    INSERT INTO @ModelsToUpdate (ModelKey, DisplayName)
-    VALUES
-        ('gemini-2.5-flash', 'Gemini 2.5 Flash'),
-        ('gemini-2.0-flash', 'Gemini 2.0 Flash'),
-        ('gemini-1.5-flash', 'Gemini 1.5 Flash'),
-        ('gemma-3-4b-it', 'Gemma 3 4B IT'),
-        ('gemma-3-12b-it', 'Gemma 3 12B IT');
-
-    -- Cursor ou Loop para inserir os modelos faltantes
-    DECLARE @mKey NVARCHAR(100), @mName NVARCHAR(200);
-
-    DECLARE cur CURSOR FOR SELECT ModelKey, DisplayName FROM @ModelsToUpdate;
-    OPEN cur;
-    FETCH NEXT FROM cur INTO @mKey, @mName;
-
-    WHILE @@FETCH_STATUS = 0
+    -- 2. Garantir que gemini-2.5-flash exista e esteja ativo
+    IF NOT EXISTS (SELECT 1 FROM ai_models WHERE model_key = 'gemini-2.5-flash')
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM AiModels WHERE ProviderId = @GeminiProviderId AND ModelKey = @mKey)
-        BEGIN
-            INSERT INTO AiModels (Id, ProviderId, ModelKey, DisplayName, IsEnabled, CreatedAt, IsDiscovered)
-            VALUES (NEWID(), @GeminiProviderId, @mKey, @mName, 1, GETUTCDATE(), 0);
-            PRINT 'SUCCESS: Modelo ' + @mKey + ' inserido e habilitado.';
-        END
-        ELSE
-        BEGIN
-            -- Se já existe, garante que está habilitado
-            UPDATE AiModels SET IsEnabled = 1 WHERE ProviderId = @GeminiProviderId AND ModelKey = @mKey;
-            PRINT 'INFO: Modelo ' + @mKey + ' já existe (garantido como habilitado).';
-        END
-
-        FETCH NEXT FROM cur INTO @mKey, @mName;
+        INSERT INTO ai_models (id, provider_id, model_key, display_name, is_enabled, is_discovered, created_at, created_by, updated_at, updated_by)
+        VALUES (NEWID(), @GoogleProviderId, 'gemini-2.5-flash', 'Gemini 2.5 Flash', 1, 0, GETDATE(), 'system', GETDATE(), 'system');
+    END
+    ELSE
+    BEGIN
+        UPDATE ai_models SET is_enabled = 1 WHERE model_key = 'gemini-2.5-flash';
     END
 
-    CLOSE cur;
-    DEALLOCATE cur;
+    -- 3. Garantir que gemini-2.0-flash exista e esteja ativo
+    IF NOT EXISTS (SELECT 1 FROM ai_models WHERE model_key = 'gemini-2.0-flash')
+    BEGIN
+        INSERT INTO ai_models (id, provider_id, model_key, display_name, is_enabled, is_discovered, created_at, created_by, updated_at, updated_by)
+        VALUES (NEWID(), @GoogleProviderId, 'gemini-2.0-flash', 'Gemini 2.0 Flash', 1, 0, GETDATE(), 'system', GETDATE(), 'system');
+    END
+    ELSE
+    BEGIN
+        UPDATE ai_models SET is_enabled = 1 WHERE model_key = 'gemini-2.0-flash';
+    END
 
-    PRINT 'Atualização concluída com sucesso.';
+    -- 4. Re-ativar gemini-1.5-flash se ele estiver desativado
+    UPDATE ai_models SET is_enabled = 1 WHERE model_key = 'gemini-1.5-flash';
+
+    PRINT 'Sucesso: Modelos Gemini atualizados.';
 END
 ELSE
 BEGIN
-    PRINT 'ERRO: Provedor Gemini não encontrado na tabela AiProviders!';
+    PRINT 'Erro: Provedor com chave ''gemini'' não encontrado na tabela ai_providers.';
 END
