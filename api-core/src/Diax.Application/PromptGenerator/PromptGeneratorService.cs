@@ -1,9 +1,10 @@
 using Diax.Application.Common;
-using Diax.Application.PromptGenerator.Common;
 using Diax.Application.PromptGenerator.Dtos;
+using Diax.Application.AI;
 using Diax.Domain.Common;
 using Diax.Domain.PromptGenerator;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -21,17 +22,23 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     private readonly PromptGeneratorSettings _settings;
     private readonly IUserPromptRepository _userPromptRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAiModelValidator _modelValidator;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public PromptGeneratorService(
         ILogger<PromptGeneratorService> logger,
         PromptGeneratorSettings settings,
         IUserPromptRepository userPromptRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAiModelValidator modelValidator,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _settings = settings;
         _userPromptRepository = userPromptRepository;
         _unitOfWork = unitOfWork;
+        _modelValidator = modelValidator;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType, string? model = null)
@@ -62,11 +69,13 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
     private async Task<string> SendGeminiPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
     {
-        // ===== VALIDAÇÃO ESPECÍFICA DO GEMINI =====
-        var (isValid, errorMessage) = AiModelCatalog.ValidateGeminiModel(settings.Model);
-        if (!isValid)
+        // ===== VALIDAÇÃO USANDO BANCO DE DADOS =====
+        var isValidModel = await _modelValidator.IsValidModelAsync("google", settings.Model);
+        if (!isValidModel)
         {
-            _logger.LogWarning("Invalid Gemini model requested: {Model}. Error: {Error}", settings.Model, errorMessage);
+            var validModels = await _modelValidator.GetActiveModelKeysAsync("google");
+            var errorMessage = $"Modelo Gemini '{settings.Model}' não encontrado. Modelos disponíveis: {string.Join(", ", validModels)}";
+            _logger.LogWarning("Invalid Gemini model requested: {Model}", settings.Model);
             throw new ArgumentException(errorMessage);
         }
 
@@ -77,9 +86,10 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         }
 
         // Gemini URL: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={API_KEY}
-        // Note: setting.Model already starts with 'models/' from catalog
+        // Banco armazena sem prefixo (gemini-2.5-flash), mas API exige prefixo (models/gemini-2.5-flash)
+        var modelPath = settings.Model.StartsWith("models/") ? settings.Model : $"models/{settings.Model}";
         var baseUrl = settings.BaseUrl.TrimEnd('/');
-        var endpoint = $"{baseUrl}/{settings.Model}:generateContent?key={settings.ApiKey}";
+        var endpoint = $"{baseUrl}/{modelPath}:generateContent?key={settings.ApiKey}";
 
         var payload = new
         {
@@ -98,10 +108,9 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         };
 
         var timeoutSeconds = GetTimeoutSeconds();
-        using var client = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(timeoutSeconds)
-        };
+        using var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
         {
             Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
@@ -413,29 +422,41 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         // Priority:
         // 1. Requested model from frontend (if valid)
         // 2. Configured model in appsettings
-        // 3. Catalog default model
+        // 3. First active model from database
 
         string model;
-        var catalogDefault = AiModelCatalog.GetDefaultModel(providerName);
+        var activeModels = _modelValidator.GetActiveModelKeysAsync(NormalizeProviderForDatabase(providerName)).GetAwaiter().GetResult();
+        var databaseDefault = activeModels.FirstOrDefault() ?? string.Empty;
 
         if (!string.IsNullOrWhiteSpace(requestedModel))
         {
-            if (AiModelCatalog.IsModelValid(providerName, requestedModel))
+            var isValid = _modelValidator.IsValidModelAsync(NormalizeProviderForDatabase(providerName), requestedModel).GetAwaiter().GetResult();
+            if (isValid)
             {
                 model = requestedModel;
             }
             else
             {
                 _logger.LogWarning("Invalid model '{RequestedModel}' for provider '{Provider}'. Falling back to default.", requestedModel, providerName);
-                model = !string.IsNullOrWhiteSpace(config.Model) ? config.Model : catalogDefault;
+                model = !string.IsNullOrWhiteSpace(config.Model) ? config.Model : databaseDefault;
             }
         }
         else
         {
-            model = !string.IsNullOrWhiteSpace(config.Model) ? config.Model : catalogDefault;
+            model = !string.IsNullOrWhiteSpace(config.Model) ? config.Model : databaseDefault;
         }
 
         return new ProviderSettings(providerName, config.ApiKey, baseUrl, model);
+    }
+
+    private string NormalizeProviderForDatabase(string providerName)
+    {
+        return providerName.ToLowerInvariant() switch
+        {
+            "chatgpt" => "openai",
+            "gemini" => "google",
+            _ => providerName
+        };
     }
 
     private string BuildEndpoint(string baseUrl)

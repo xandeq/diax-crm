@@ -1,6 +1,5 @@
 using Asp.Versioning;
 using Diax.Application.PromptGenerator;
-using Diax.Application.PromptGenerator.Common;
 using Diax.Application.PromptGenerator.Dtos;
 using Diax.Application.AI;
 using Diax.Infrastructure.Data;
@@ -180,11 +179,12 @@ public class PromptGeneratorController : ControllerBase
     }
 
     [HttpGet("providers")]
-    [ProducesResponseType(typeof(List<ProviderModelsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [AllowAnonymous]
-    public IActionResult GetProviders()
+    public async Task<IActionResult> GetProviders(CancellationToken cancellationToken)
     {
-        return Ok(AiModelCatalog.Providers);
+        var providers = await _aiCatalogService.GetCatalogAsync(cancellationToken);
+        return Ok(providers);
     }
 
     private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)

@@ -19,6 +19,9 @@ public static class DependencyInjection
     {
         var assembly = typeof(DependencyInjection).Assembly;
 
+        // HttpClient para chamadas externas
+        services.AddHttpClient();
+
         // Registra todos os validators do FluentValidation
         services.AddValidatorsFromAssembly(assembly);
 
