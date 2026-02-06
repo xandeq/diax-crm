@@ -227,7 +227,7 @@ public class ExpenseService : IApplicationService
                 // Despesa não existe no banco
                 Console.WriteLine($"[ExpenseService.DeleteAsync] ERRO: Despesa {id} não existe no banco de dados");
             }
-            
+
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
         }
 
@@ -275,7 +275,7 @@ public class ExpenseService : IApplicationService
         {
             return Result.Failure<BulkDeleteResponse>(new Error("General.BatchLimitExceeded", "O limite máximo é de 100 itens por exclusão."));
         }
-        
+
         Console.WriteLine($"[ExpenseService.DeleteRangeAsync] Iniciando exclusão de {request.Ids.Count} despesas para usuário {userId}");
 
         return await _unitOfWork.ExecuteStrategyAsync(async (ct) =>
@@ -285,11 +285,18 @@ public class ExpenseService : IApplicationService
             try
             {
                 int deletedCount = 0;
+                var errors = new List<string>();
                 foreach (var id in request.Ids)
                 {
                     var result = await DeleteAsync(id, userId, ct);
                     if (!result.IsSuccess)
                     {
+                        if (result.Error.Code == "Expense.NotFound")
+                        {
+                            errors.Add($"{result.Error.Code}:{id}");
+                            continue;
+                        }
+
                         await _unitOfWork.RollbackTransactionAsync(ct);
                         return Result.Failure<BulkDeleteResponse>(result.Error);
                     }
@@ -297,7 +304,7 @@ public class ExpenseService : IApplicationService
                 }
 
                 await _unitOfWork.CommitTransactionAsync(ct);
-                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, 0, new List<string>()));
+                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, errors.Count, errors));
             }
             catch (Exception ex)
             {

@@ -262,11 +262,18 @@ public class IncomeService : IApplicationService
             try
             {
                 int deletedCount = 0;
+                var errors = new List<string>();
                 foreach (var id in request.Ids)
                 {
                     var result = await DeleteAsync(id, userId, ct);
                     if (!result.IsSuccess)
                     {
+                        if (result.Error.Code == "Income.NotFound")
+                        {
+                            errors.Add($"{result.Error.Code}:{id}");
+                            continue;
+                        }
+
                         await _unitOfWork.RollbackTransactionAsync(ct);
                         return Result.Failure<BulkDeleteResponse>(result.Error);
                     }
@@ -274,7 +281,7 @@ public class IncomeService : IApplicationService
                 }
 
                 await _unitOfWork.CommitTransactionAsync(ct);
-                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, 0, new List<string>()));
+                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, errors.Count, errors));
             }
             catch (Exception ex)
             {
