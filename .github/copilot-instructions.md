@@ -49,6 +49,42 @@ O projeto é um monorepo dividido em três responsabilidades principais:
 
 ---
 
+## 3.1. Banco de Dados — REGRAS OBRIGATÓRIAS
+
+> **⚠️ REGRA CRÍTICA: Toda operação de banco de dados (EF Core Migrations, comandos SQL, queries)
+> DEVE ser executada contra o banco de PRODUÇÃO (SmarterASP), NUNCA contra o banco local (LocalDB).**
+
+**Banco de Produção (ÚNICO ALVO):**
+- **Servidor:** `sql1002.site4now.net` (SmarterASP)
+- **Connection String:** Lida automaticamente via `appsettings.Production.json` (arquivo local, não-commitado)
+- **Variável de ambiente obrigatória:** `ASPNETCORE_ENVIRONMENT=Production`
+
+**Banco Local (PROIBIDO PARA OPERAÇÕES):**
+- ❌ NUNCA executar `dotnet ef database update` sem `ASPNETCORE_ENVIRONMENT=Production`
+- ❌ NUNCA executar `sqlcmd` contra `(localdb)\MSSQLLocalDB`
+- ❌ NUNCA usar `ConnectionStrings__DefaultConnection` apontando para LocalDB
+
+**Como executar migrations:**
+```powershell
+cd api-core
+.\scripts\update-db.ps1   # Já configurado para PRODUÇÃO
+```
+
+**Como executar SQL direto:**
+```powershell
+# Ler connection string do arquivo local de produção
+$cs = (Get-Content "api-core/src/Diax.Api/appsettings.Production.json" | ConvertFrom-Json).ConnectionStrings.DefaultConnection
+sqlcmd -S "sql1002.site4now.net" -d "db_aaf0a8_diaxcrm" -U "db_aaf0a8_diaxcrm_admin" -P "SENHA" -Q "SUA QUERY"
+```
+
+**Como criar migrations (única exceção — roda local apenas para gerar código):**
+```powershell
+cd api-core
+.\scripts\add-migration.ps1 -Name "NomeDaMigration"
+```
+
+---
+
 ## 4. Pipelines & DevOps (`.github/workflows/`)
 
 **Objetivo:** Automação de deploy para ambientes de produção.
