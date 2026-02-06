@@ -89,14 +89,19 @@ export default function IncomesPage() {
     if (selectedIds.length > 0) {
       setIsDeleting(true);
       try {
-        await financeService.deleteIncomesBulk(selectedIds);
+        const response = await financeService.deleteIncomesBulk(selectedIds);
         setRowSelection({});
-        loadIncomes();
         setIsBulkDeleting(false);
-      } catch (err) {
-        alert('Erro ao excluir receitas em massa.');
+        if (response.failedCount > 0) {
+          alert(`${response.deletedCount} receita(s) excluída(s). ${response.failedCount} não encontrada(s) — dados foram atualizados.`);
+        }
+      } catch (err: any) {
+        alert(err?.status === 404
+          ? 'Registros não encontrados. A lista será atualizada.'
+          : 'Erro ao excluir receitas em massa.');
       } finally {
         setIsDeleting(false);
+        loadIncomes();
       }
       return;
     }
@@ -105,12 +110,14 @@ export default function IncomesPage() {
     setIsDeleting(true);
     try {
       await financeService.deleteIncome(deleteId);
-      setDeleteId(null);
-      loadIncomes();
-    } catch (err) {
-      alert('Erro ao excluir receita.');
+    } catch (err: any) {
+      alert(err?.status === 404
+        ? 'Receita não encontrada. A lista será atualizada.'
+        : 'Erro ao excluir receita.');
     } finally {
+      setDeleteId(null);
       setIsDeleting(false);
+      loadIncomes();
     }
   };
 

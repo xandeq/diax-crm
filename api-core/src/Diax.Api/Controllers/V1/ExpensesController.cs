@@ -72,7 +72,7 @@ public class ExpensesController : BaseApiController
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.UpdateAsync(id, request, userId.Value, cancellationToken);
-        return result.IsSuccess ? NoContent() : BadRequest(result.Error);
+        return HandleResult(result);
     }
 
     [HttpDelete("{id}")]
@@ -82,7 +82,7 @@ public class ExpensesController : BaseApiController
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteAsync(id, userId.Value, cancellationToken);
-        return result.IsSuccess ? NoContent() : BadRequest(result.Error);
+        return HandleResult(result);
     }
 
     [HttpPost("bulk-delete")]
@@ -124,6 +124,6 @@ public class ExpensesController : BaseApiController
             _logger.LogWarning("[BulkDelete] Falha - {ErrorCode}: {ErrorMessage}", result.Error.Code, result.Error.Message);
         }
 
-        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : HandleResult(result);
     }
 }

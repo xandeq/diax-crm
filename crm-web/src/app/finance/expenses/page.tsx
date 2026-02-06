@@ -89,14 +89,19 @@ export default function ExpensesPage() {
     if (selectedIds.length > 0) {
       setIsDeleting(true);
       try {
-        await financeService.deleteExpensesBulk(selectedIds);
+        const response = await financeService.deleteExpensesBulk(selectedIds);
         setRowSelection({});
-        loadExpenses();
         setIsBulkDeleting(false);
-      } catch (err) {
-        alert('Erro ao excluir despesas em massa.');
+        if (response.failedCount > 0) {
+          alert(`${response.deletedCount} despesa(s) excluída(s). ${response.failedCount} não encontrada(s) — dados foram atualizados.`);
+        }
+      } catch (err: any) {
+        alert(err?.status === 404
+          ? 'Registros não encontrados. A lista será atualizada.'
+          : 'Erro ao excluir despesas em massa.');
       } finally {
         setIsDeleting(false);
+        loadExpenses();
       }
       return;
     }
@@ -105,12 +110,14 @@ export default function ExpensesPage() {
     setIsDeleting(true);
     try {
       await financeService.deleteExpense(deleteId);
-      setDeleteId(null);
-      loadExpenses();
-    } catch (err) {
-      alert('Erro ao excluir despesa.');
+    } catch (err: any) {
+      alert(err?.status === 404
+        ? 'Despesa não encontrada. A lista será atualizada.'
+        : 'Erro ao excluir despesa.');
     } finally {
+      setDeleteId(null);
       setIsDeleting(false);
+      loadExpenses();
     }
   };
 

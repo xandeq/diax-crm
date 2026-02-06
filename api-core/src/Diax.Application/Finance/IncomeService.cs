@@ -281,7 +281,8 @@ public class IncomeService : IApplicationService
                 }
 
                 await _unitOfWork.CommitTransactionAsync(ct);
-                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, errors.Count, errors));
+                var success = deletedCount > 0 || errors.Count == 0;
+                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(success, deletedCount, errors.Count, errors));
             }
             catch (Exception ex)
             {
