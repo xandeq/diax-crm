@@ -215,6 +215,19 @@ public class ExpenseService : IApplicationService
         var expense = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
         if (expense == null)
         {
+            // Log detalhado para diagnóstico - por que não encontrou?
+            var anyExpenseWithId = await _repository.GetByIdAsync(id, cancellationToken);
+            if (anyExpenseWithId != null)
+            {
+                // Despesa existe mas pertence a outro usuário
+                Console.WriteLine($"[ExpenseService.DeleteAsync] ERRO: Despesa {id} existe mas pertence ao usuário {anyExpenseWithId.UserId}, tentativa de exclusão por {userId}");
+            }
+            else
+            {
+                // Despesa não existe no banco
+                Console.WriteLine($"[ExpenseService.DeleteAsync] ERRO: Despesa {id} não existe no banco de dados");
+            }
+            
             return Result.Failure(new Error("Expense.NotFound", "Expense not found"));
         }
 
@@ -250,10 +263,20 @@ public class ExpenseService : IApplicationService
             return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, 0, 0, new List<string>()));
         }
 
+        // Validar IDs vazios que podem vir de deserialização JSON incorreta
+        var emptyIds = request.Ids.Where(id => id == Guid.Empty).ToList();
+        if (emptyIds.Any())
+        {
+            Console.WriteLine($"[ExpenseService.DeleteRangeAsync] ERRO: {emptyIds.Count} IDs vazios (Guid.Empty) detectados na lista");
+            return Result.Failure<BulkDeleteResponse>(new Error("General.InvalidIds", $"{emptyIds.Count} IDs inválidos foram enviados"));
+        }
+
         if (request.Ids.Count > 100)
         {
             return Result.Failure<BulkDeleteResponse>(new Error("General.BatchLimitExceeded", "O limite máximo é de 100 itens por exclusão."));
         }
+        
+        Console.WriteLine($"[ExpenseService.DeleteRangeAsync] Iniciando exclusão de {request.Ids.Count} despesas para usuário {userId}");
 
         return await _unitOfWork.ExecuteStrategyAsync(async (ct) =>
         {

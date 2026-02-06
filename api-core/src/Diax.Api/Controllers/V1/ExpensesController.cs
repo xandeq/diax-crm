@@ -86,12 +86,44 @@ public class ExpensesController : BaseApiController
     }
 
     [HttpPost("bulk-delete")]
-    public async Task<IActionResult> BulkDelete([FromBody] BulkDeleteRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> BulkDelete([FromBody] BulkDeleteRequest? request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("[BulkDelete] Iniciado com {Count} IDs", request?.Ids?.Count ?? 0);
+
+        if (request == null || request.Ids == null || !request.Ids.Any())
+        {
+            _logger.LogWarning("[BulkDelete] Request vazio ou nulo");
+            return BadRequest(new { error = "General.EmptyRequest", message = "Nenhum ID foi fornecido" });
+        }
+
+        _logger.LogDebug("[BulkDelete] IDs recebidos: {Ids}", string.Join(", ", request.Ids.Take(5)));
+        var invalidIds = request.Ids.Where(id => id == Guid.Empty).ToList();
+        if (invalidIds.Any())
+        {
+            _logger.LogWarning("[BulkDelete] {Count} IDs inválidos (Guid.Empty) detectados", invalidIds.Count);
+            return BadRequest(new { error = "General.InvalidIds", message = $"{invalidIds.Count} IDs inválidos (vazios) foram enviados" });
+        }
+
         var userId = await ResolveUserIdAsync(_db, cancellationToken);
-        if (!userId.HasValue) return Unauthorized();
+        if (!userId.HasValue)
+        {
+            _logger.LogWarning("[BulkDelete] Unauthorized - UserId não resolvido");
+            return Unauthorized();
+        }
+
+        _logger.LogDebug("[BulkDelete] UserId resolvido: {UserId}", userId.Value);
 
         var result = await _service.DeleteRangeAsync(request, userId.Value, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            _logger.LogInformation("[BulkDelete] Sucesso - {DeletedCount} despesas excluídas", result.Value.DeletedCount);
+        }
+        else
+        {
+            _logger.LogWarning("[BulkDelete] Falha - {ErrorCode}: {ErrorMessage}", result.Error.Code, result.Error.Message);
+        }
+
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 }
