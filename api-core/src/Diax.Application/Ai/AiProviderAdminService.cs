@@ -1,6 +1,5 @@
 using Diax.Application.AI.Dtos;
 using Diax.Domain.AI;
-using Diax.Infrastructure.Ai;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
