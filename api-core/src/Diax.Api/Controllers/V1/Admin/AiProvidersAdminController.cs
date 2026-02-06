@@ -103,4 +103,32 @@ public class AiProvidersAdminController : ControllerBase
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
+
+    /// <summary>
+    /// Discover available models from provider's external API (OpenRouter only for now)
+    /// </summary>
+    [HttpGet("discover-models/{providerKey}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DiscoverModels(string providerKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var models = await _providerService.DiscoverModelsAsync(providerKey, cancellationToken);
+            return Ok(new { success = true, data = models, totalCount = models.Count() });
+        }
+        catch (NotSupportedException ex)
+        {
+            return BadRequest(new { success = false, error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(503, new { success = false, error = "Não foi possível conectar ao provedor", details = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, error = "Erro ao descobrir modelos", details = ex.Message });
+        }
+    }
 }

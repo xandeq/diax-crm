@@ -17,4 +17,9 @@ public interface IAiProviderAdminService
     Task DeleteModelAsync(Guid modelId, CancellationToken cancellationToken = default);
 
     Task<SyncModelsResultDto> SyncModelsAsync(Guid providerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Discover available models from provider's API (currently supports OpenRouter only)
+    /// </summary>
+    Task<IEnumerable<DiscoveredModelDto>> DiscoverModelsAsync(string providerKey, CancellationToken cancellationToken = default);
 }

@@ -186,6 +186,9 @@ public static class DependencyInjection
         services.AddScoped<IAiTextTransformClient, PerplexityClient>();
         services.AddScoped<IAiTextTransformClient, DeepSeekClient>();
 
+        // Register OpenRouterClient as typed HttpClient
+        services.AddHttpClient<IOpenRouterClient, OpenRouterClient>();
+
         return services;
     }
 }

@@ -1,5 +1,8 @@
 using Diax.Application.AI.Dtos;
 using Diax.Domain.AI;
+using Diax.Infrastructure.Ai;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.AI;
 
@@ -7,13 +10,25 @@ public class AiProviderAdminService : IAiProviderAdminService
 {
     private readonly IAiProviderRepository _providerRepository;
     private readonly IAiModelRepository _modelRepository;
+    private readonly IOpenRouterClient _openRouterClient;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<AiProviderAdminService> _logger;
+
+    private const string CacheKeyDiscoveredModels = "ai-discovered-models:{0}";
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
     public AiProviderAdminService(
         IAiProviderRepository providerRepository,
-        IAiModelRepository modelRepository)
+        IAiModelRepository modelRepository,
+        IOpenRouterClient openRouterClient,
+        IMemoryCache cache,
+        ILogger<AiProviderAdminService> logger)
     {
         _providerRepository = providerRepository;
         _modelRepository = modelRepository;
+        _openRouterClient = openRouterClient;
+        _cache = cache;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<AiProviderDto>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -166,5 +181,59 @@ public class AiProviderAdminService : IAiProviderAdminService
             model.OutputCostHint,
             model.MaxTokensHint
         );
+    }
+
+    public async Task<IEnumerable<DiscoveredModelDto>> DiscoverModelsAsync(
+        string providerKey,
+        CancellationToken cancellationToken = default)
+    {
+        var cacheKey = string.Format(CacheKeyDiscoveredModels, providerKey.ToLowerInvariant());
+
+        // Try get from cache
+        if (_cache.TryGetValue<IEnumerable<DiscoveredModelDto>>(cacheKey, out var cachedModels) && cachedModels != null)
+        {
+            _logger.LogInformation("Returning cached discovered models for provider: {Provider}", providerKey);
+            return cachedModels;
+        }
+
+        _logger.LogInformation("Discovering models for provider: {Provider}", providerKey);
+
+        // Currently only OpenRouter is supported
+        if (!providerKey.Equals("openrouter", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Model discovery not supported for provider: {Provider}", providerKey);
+            throw new NotSupportedException($"Model discovery is not yet supported for provider '{providerKey}'. Only 'openrouter' is supported.");
+        }
+
+        try
+        {
+            var response = await _openRouterClient.GetModelsAsync(cancellationToken);
+
+            var discoveredModels = response.Data
+                .Select(m => new DiscoveredModelDto(
+                    Id: m.Id,
+                    Name: m.Name,
+                    Provider: "openrouter",
+                    ContextLength: m.ContextLength,
+                    InputCostHint: m.Pricing?.Prompt,
+                    OutputCostHint: m.Pricing?.Completion
+                ))
+                .ToList();
+
+            // Cache the result
+            _cache.Set(cacheKey, discoveredModels, CacheDuration);
+
+            _logger.LogInformation(
+                "Successfully discovered {Count} models for provider: {Provider}",
+                discoveredModels.Count,
+                providerKey);
+
+            return discoveredModels;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to discover models for provider: {Provider}", providerKey);
+            throw;
+        }
     }
 }

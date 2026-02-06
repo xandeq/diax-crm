@@ -22,6 +22,23 @@ export interface SyncModelsResponse {
   errors: string[];
 }
 
+export interface DiscoveredModel {
+  id: string;
+  name: string;
+  provider: string;
+  contextLength?: number;
+  inputCostHint?: string;
+  outputCostHint?: string;
+}
+
+export interface DiscoverModelsResponse {
+  success: boolean;
+  data: DiscoveredModel[];
+  totalCount: number;
+  error?: string;
+  details?: string;
+}
+
 export const adminAiProvidersService = {
   getAll: async (): Promise<AiProvider[]> => {
     return await apiFetch<AiProvider[]>('/admin/ai/providers');
@@ -62,5 +79,12 @@ export const adminAiProvidersService = {
 
   syncModels: async (providerId: string): Promise<SyncModelsResponse> => {
     return await apiRequest<SyncModelsResponse>(`/admin/ai/providers/${providerId}/sync-models`, 'POST');
+  },
+
+  /**
+   * Discover available models from provider's API (currently supports OpenRouter only)
+   */
+  discoverModels: async (providerKey: string): Promise<DiscoverModelsResponse> => {
+    return await apiFetch<DiscoverModelsResponse>(`/admin/ai/providers/discover-models/${providerKey}`);
   }
 };
