@@ -54,6 +54,7 @@ function EditAiProviderContent() {
     try {
       setSavingId(model.id);
       await adminAiProvidersService.updateModel(model.id, {
+        ...model,
         isEnabled: !model.isEnabled
       });
 
