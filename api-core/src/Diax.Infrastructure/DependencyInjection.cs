@@ -14,6 +14,7 @@ using Diax.Infrastructure.Ai;
 using Diax.Shared.Ai;
 using Diax.Domain.AI;
 using Diax.Domain.UserGroups;
+using Diax.Application.AI;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
