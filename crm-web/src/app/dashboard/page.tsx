@@ -39,7 +39,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <div className="hidden md:flex items-center space-x-2">
-           <span className="text-sm text-muted-foreground mr-2">Bem-vindo, {userData.name}</span>
+           <span className="text-sm text-muted-foreground mr-2">Bem-vindo, {userData.email}</span>
            {userData.roles?.map(role => (
             <Badge key={role} variant="secondary">
               {role}

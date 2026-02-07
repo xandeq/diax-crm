@@ -45,8 +45,8 @@ export function FinanceSummaryWidget() {
       {data && (
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Saldo Total</p>
-            <p className="text-2xl font-bold">{formatCurrency(data.totalBalance)}</p>
+            <p className="text-xs text-muted-foreground">Fluxo de Caixa</p>
+            <p className="text-2xl font-bold">{formatCurrency(data.netCashFlow)}</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -60,7 +60,7 @@ export function FinanceSummaryWidget() {
               <TrendingDown className="h-3 w-3 text-red-500" />
               Despesas
             </div>
-            <p className="text-lg font-semibold text-red-600">{formatCurrency(data.totalExpense)}</p>
+            <p className="text-lg font-semibold text-red-600">{formatCurrency(data.totalExpenses)}</p>
           </div>
         </div>
       )}
