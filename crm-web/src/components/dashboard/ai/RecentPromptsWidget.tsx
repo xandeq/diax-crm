@@ -1,0 +1,49 @@
+'use client';
+
+import { WidgetCard } from "@/components/dashboard/WidgetCard";
+import { getPromptHistory, UserPromptHistory } from "@/services/promptGenerator";
+import { Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+
+export function RecentPromptsWidget() {
+  const [items, setItems] = useState<UserPromptHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const history = await getPromptHistory(5);
+        setItems(history);
+      } catch (err) {
+        setError("Erro ao carregar prompts.");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  return (
+    <WidgetCard
+      title="Últimos Prompts"
+      icon={<Sparkles className="h-4 w-4" />}
+      isLoading={isLoading}
+      error={error}
+    >
+      {items.length === 0 ? (
+        <div className="text-sm text-muted-foreground">Nenhum prompt encontrado.</div>
+      ) : (
+        <ul className="space-y-2">
+          {items.map(item => (
+            <li key={item.id} className="min-w-0">
+              <span className="block truncate text-sm">{item.inputPreview}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </WidgetCard>
+  );
+}

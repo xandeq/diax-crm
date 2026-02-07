@@ -1,7 +1,10 @@
 'use client';
 
+import { RecentPromptsWidget } from "@/components/dashboard/ai/RecentPromptsWidget";
 import { CrmSummaryWidget } from "@/components/dashboard/crm/CrmSummaryWidget";
 import { FinanceSummaryWidget } from "@/components/dashboard/finance/FinanceSummaryWidget";
+import { ShoppingListWidget } from "@/components/dashboard/household/ShoppingListWidget";
+import { RecentSnippetsWidget } from "@/components/dashboard/snippets/RecentSnippetsWidget";
 import { SystemHealthWidget } from "@/components/dashboard/system/SystemHealthWidget";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,6 +56,9 @@ export default function DashboardPage() {
         <FinanceSummaryWidget />
         <CrmSummaryWidget />
         <SystemHealthWidget />
+        <ShoppingListWidget />
+        <RecentPromptsWidget />
+        <RecentSnippetsWidget />
       </div>
     </div>
   );
