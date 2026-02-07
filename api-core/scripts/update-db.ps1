@@ -15,21 +15,13 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Entrar na raiz do projeto (api-core)
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
 # ══════════════════════════════════════════════════════════════
 # ⚠️  ATENÇÃO: Este script SEMPRE aponta para PRODUÇÃO.
 # ══════════════════════════════════════════════════════════════
 $env:ASPNETCORE_ENVIRONMENT = "Production"
-
-# Verificar se appsettings.Production.json existe
-$prodSettings = "src\Diax.Api\appsettings.Production.json"
-if (-not (Test-Path $prodSettings)) {
-  Write-Host "`n✗ ERRO: Arquivo appsettings.Production.json não encontrado!" -ForegroundColor Red
-  Write-Host "  Caminho esperado: $prodSettings" -ForegroundColor Yellow
-  Write-Host "  Execute scripts\set-local-db-secret.ps1 para configurar." -ForegroundColor Yellow
-  exit 1
-}
 
 # Tentar obter a connection string dos User Secrets
 Write-Host "Buscando credenciais em .NET User Secrets..." -ForegroundColor Cyan
@@ -41,9 +33,6 @@ if (-not $connString) {
     exit 1
 }
 
-# ══════════════════════════════════════════════════════════════
-# ⚠️  ATENÇÃO: EXECUTANDO CONTRA PRODUÇÃO
-# ══════════════════════════════════════════════════════════════
 Write-Host "`n══════════════════════════════════════════════════════════" -ForegroundColor Red
 Write-Host "  EF CORE MIGRATIONS — PRODUÇÃO (SmarterASP)" -ForegroundColor Red
 Write-Host "══════════════════════════════════════════════════════════" -ForegroundColor Red
@@ -51,19 +40,14 @@ Write-Host "  Ambiente: Production" -ForegroundColor Yellow
 Write-Host "  Servidor: sql1002.site4now.net" -ForegroundColor Yellow
 Write-Host ""
 
-# Executar atualização passando a connection string explicitamente
-dotnet ef database update `
-  --project "src\Diax.Infrastructure\Diax.Infrastructure.csproj" `
-  --startup-project "src\Diax.Api\Diax.Api.csproj" `
-  --context Diax.Infrastructure.Data.DiaxDbContext `
-  --connection "$connString" `
-  --verbose
+# Executar atualização
+dotnet ef database update --project "src\Diax.Infrastructure\Diax.Infrastructure.csproj" --startup-project "src\Diax.Api\Diax.Api.csproj" --context Diax.Infrastructure.Data.DiaxDbContext --connection "$connString" --verbose
 
 if ($LASTEXITCODE -eq 0) {
-  Write-Host "`n✓ Migrations aplicadas com sucesso em PRODUÇÃO!" -ForegroundColor Green
+    Write-Host "`n✓ Migrations aplicadas com sucesso em PRODUÇÃO!" -ForegroundColor Green
 } else {
-  Write-Host "`n✗ Erro ao aplicar migrations" -ForegroundColor Red
-  exit 1
+    Write-Host "`n✗ Erro ao aplicar migrations" -ForegroundColor Red
+    exit 1
 }
 
 Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue

@@ -1,170 +1,211 @@
 {
+  "name": "Tech News Curator (AI & Dev)",
   "nodes": [
     {
       "parameters": {
-        "triggerTimes": {
-          "item": [
+        "rule": {
+          "interval": [
             {
-              "mode": "everyX",
-              "unit": "minutes",
-              "value": 10
+              "field": "days",
+              "value": 1
             }
           ]
         }
       },
-      "id": "Cron",
-      "name": "Cron",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [-1040, 1024]
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
-        "operation": "read",
-        "sheetId": "12obtoigJl3LZ23McnM1o7FJHGG1qGtMZhGTJNVgbW6w",
-        "range": "topo de funil!A2:H",
-        "options": {
-          "valueRenderMode": "UNFORMATTED_VALUE",
-          "dateTimeRenderOption": "FORMATTED_STRING",
-          "returnAllMatches": true,
-          "keyRow": 1
-        }
+        "jsCode": "return [\n  { json: { url: \"https://openai.com/news/rss.xml\" } },\n  { json: { url: \"https://research.google/blog/rss\" } },\n  { json: { url: \"https://www.technologyreview.com/topic/artificial-intelligence/feed\" } },\n  { json: { url: \"https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml\" } },\n  { json: { url: \"https://www.wired.com/feed/tag/ai/latest/rss\" } },\n  { json: { url: \"https://feeds.feedburner.com/GDBcode\" } },\n  { json: { url: \"https://sdtimes.com/feed\" } },\n  { json: { url: \"https://www.developer.com/feed/\" } },\n  { json: { url: \"http://export.arxiv.org/rss/cs.CL\" } },\n  { json: { url: \"https://aiiottalk.com/feed\" } }\n];"
       },
-      "id": "Google Sheets - Read",
-      "name": "Google Sheets - Read",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 3,
-      "position": [-752, 1024],
+      "id": "feed-list",
+      "name": "Feed List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}"
+      },
+      "id": "rss-read",
+      "name": "RSS Feed Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.4,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge all items and remove duplicates based on link\nconst items = $input.all();\nconst uniqueItems = new Map();\n\nconst keywords = /AI|Artificial Intelligence|Machine Learning|LLM|GPT|Neural Network|Software|Developer|Coding|Programming|DevOps/i;\n\nitems.forEach(item => {\n  const link = item.json.link || item.json.guid;\n  const title = item.json.title || '';\n  \n  // Deduplicate and Simple Keyword Filter\n  if (link && !uniqueItems.has(link) && keywords.test(title)) {\n    uniqueItems.set(link, item.json);\n  }\n});\n\nreturn Array.from(uniqueItems.values()).map(i => ({ json: i }));"
+      },
+      "id": "filter-dedupe",
+      "name": "Filter & Dedupe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "=Analyze the following article title and summary/content.\n\nTitle: {{ $json.title }}\nContent: {{ $json.contentSnippet || $json.content || '' }}\n\nTask:\n1. Score relevance to \"Artificial Intelligence\" and \"Software Development\" from 0 to 100.\n2. Write a concise summary (3-4 sentences).\n\nOutput Valid JSON:\n{\n\"score\": 85,\n\"summary\": \"...\"\n}"
+            }
+          ]
+        },
+        "jsonOutput": true
+      },
+      "id": "openai-analyze",
+      "name": "OpenAI Analyze",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "REPLACE_WITH_YOUR_CRED_ID",
-          "name": "Google Sheets account"
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
         }
       }
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json[\"sent\"]}}",
-              "operation": "isEmpty"
-            },
-            {
-              "value1": "={{$json[\"sent\"]}}",
-              "operation": "notEqual",
-              "value2": "ENVIADO"
-            }
-          ]
-        },
-        "combineOperation": "any"
+        "jsCode": "// Sort by score and take top 10\nconst items = $input.all().map(i => {\n  const content = i.json.message?.content || i.json;\n  // Parse if string, handle if object\n  const data = typeof content === 'string' ? JSON.parse(content) : content;\n  \n  return {\n    json: {\n      ...i.json,\n      analysis: data\n    }\n  };\n});\n\nitems.sort((a, b) => (b.json.analysis.score || 0) - (a.json.analysis.score || 0));\n\nreturn items.slice(0, 10);"
       },
-      "id": "Filter Not Sent",
-      "name": "Filter Not Sent",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [-496, 1024]
+      "id": "top-10",
+      "name": "Top 10",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
     },
     {
       "parameters": {
-        "mode": "keepItems",
-        "keep": "first",
-        "limit": 1
+        "jsCode": "let html = '<h1>Daily Tech News Digest</h1>';\n\n$input.all().forEach(item => {\n  const title = item.json.title;\n  const link = item.json.link;\n  const summary = item.json.analysis.summary;\n  const score = item.json.analysis.score;\n  \n  html += `\n    <div style=\"margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;\">\n      <h3><a href=\"${link}\">${title}</a> <span style=\"font-size: 0.8em; color: #666;\">(Score: ${score})</span></h3>\n      <p>${summary}</p>\n    </div>\n  `;\n});\n\nreturn [{ json: { html } }];"
       },
-      "id": "Take First",
-      "name": "Take First",
-      "type": "n8n-nodes-base.itemLists",
-      "typeVersion": 1,
-      "position": [-240, 1024]
+      "id": "html-builder",
+      "name": "HTML Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
     },
     {
       "parameters": {
-        "fromEmail": "=envio@alexandrequeiroz.com.br",
-        "toEmail": "={{$json[\"email\"]}}",
-        "subject": "Olá {{$json[\"name\"] || \"\"}} — Oferta especial para sua empresa",
-        "emailFormat": "html",
-        "html": "<p>Olá {{$json[\"name\"] || \"\"}},</p><p>Preparamos uma oferta especial para sua empresa em {{$json[\"city\"] || \"sua cidade\"}}.</p><p>Website: {{$json[\"website\"] || \"n/d\"}}<br>Fonte: {{$json[\"source_url\"] || \"n/d\"}}<br>Telefone: {{$json[\"phone\"] || \"n/d\"}}</p><p>Obrigado!</p>",
+        "fromEmail": "newsletter@meudominio.com",
+        "toEmail": "acq20@example.com",
+        "subject": "Tech News Digest",
+        "html": "={{ $json.html }}",
         "options": {}
       },
-      "id": "Send Email",
-      "name": "Email - SMARTERASP",
+      "id": "send-email",
+      "name": "Send Email",
       "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2,
-      "position": [0, 1024],
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        0
+      ],
       "credentials": {
         "smtp": {
-          "id": "wmsv8RspUoMF3G8W",
-          "name": "SMTP Envios AlexandreQueiroz"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "sheetId": "12obtoigJl3LZ23McnM1o7FJHGG1qGtMZhGTJNVgbW6w",
-        "range": "topo de funil!A1:H",
-        "key": "={{$json[\"rowNumber\"]}}",
-        "keyType": "row",
-        "options": {
-          "valueInputMode": "RAW"
-        },
-        "updateAll": false,
-        "values": [
-          {
-            "column": "sent",
-            "value": "ENVIADO"
-          }
-        ]
-      },
-      "id": "Mark Sent",
-      "name": "Mark Sent",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 3,
-      "position": [240, 1024],
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "REPLACE_WITH_YOUR_CRED_ID",
-          "name": "Google Sheets account"
+          "id": "YOUR_SMTP_CREDENTIAL_ID",
+          "name": "SMTP account"
         }
       }
     }
   ],
   "connections": {
-    "Cron": {
+    "Schedule Trigger": {
       "main": [
         [
           {
-            "node": "Google Sheets - Read",
+            "node": "Feed List",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Sheets - Read": {
+    "Feed List": {
       "main": [
         [
           {
-            "node": "Filter Not Sent",
+            "node": "RSS Feed Read",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Filter Not Sent": {
+    "RSS Feed Read": {
       "main": [
         [
           {
-            "node": "Take First",
+            "node": "Filter & Dedupe",
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
-    "Take First": {
+    "Filter & Dedupe": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Analyze": {
+      "main": [
+        [
+          {
+            "node": "Top 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 10": {
+      "main": [
+        [
+          {
+            "node": "HTML Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Builder": {
       "main": [
         [
           {
@@ -174,20 +215,6 @@
           }
         ]
       ]
-    },
-    "Send Email": {
-      "main": [
-        [
-          {
-            "node": "Mark Sent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
-  },
-  "active": false,
-  "settings": {},
-  "versionId": "1"
+  }
 }
