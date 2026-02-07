@@ -193,6 +193,12 @@ public static class DependencyInjection
         // Register OpenAiClient as typed HttpClient
         services.AddHttpClient<IOpenAiClient, OpenAiClient>();
 
+        // Register GeminiClient as typed HttpClient
+        services.AddHttpClient<IGeminiClient, GeminiClient>();
+
+        // Register DeepSeekModelClient as typed HttpClient
+        services.AddHttpClient<IDeepSeekModelClient, DeepSeekModelClient>();
+
         return services;
     }
 }

@@ -11,6 +11,8 @@ public class AiProviderAdminService : IAiProviderAdminService
     private readonly IAiModelRepository _modelRepository;
     private readonly IOpenRouterClient _openRouterClient;
     private readonly IOpenAiClient _openAiClient;
+    private readonly IGeminiClient _geminiClient;
+    private readonly IDeepSeekModelClient _deepSeekModelClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AiProviderAdminService> _logger;
 
@@ -22,6 +24,8 @@ public class AiProviderAdminService : IAiProviderAdminService
         IAiModelRepository modelRepository,
         IOpenRouterClient openRouterClient,
         IOpenAiClient openAiClient,
+        IGeminiClient geminiClient,
+        IDeepSeekModelClient deepSeekModelClient,
         IMemoryCache cache,
         ILogger<AiProviderAdminService> logger)
     {
@@ -29,6 +33,8 @@ public class AiProviderAdminService : IAiProviderAdminService
         _modelRepository = modelRepository;
         _openRouterClient = openRouterClient;
         _openAiClient = openAiClient;
+        _geminiClient = geminiClient;
+        _deepSeekModelClient = deepSeekModelClient;
         _cache = cache;
         _logger = logger;
     }
@@ -206,6 +212,9 @@ public class AiProviderAdminService : IAiProviderAdminService
             {
                 "openrouter" => await DiscoverOpenRouterModelsAsync(cancellationToken),
                 "openai" => await DiscoverOpenAiModelsAsync(cancellationToken),
+                "gemini" => await DiscoverGeminiModelsAsync(cancellationToken),
+                "deepseek" => await DiscoverDeepSeekModelsAsync(cancellationToken),
+                "perplexity" => GetPerplexityModels(),
                 _ => throw new NotSupportedException(
                     $"Model discovery is not yet supported for provider '{providerKey}'.")
             };
@@ -261,5 +270,48 @@ public class AiProviderAdminService : IAiProviderAdminService
             ))
             .OrderBy(m => m.Id)
             .ToList();
+    }
+
+    private async Task<List<DiscoveredModelDto>> DiscoverGeminiModelsAsync(CancellationToken cancellationToken)
+    {
+        var response = await _geminiClient.GetModelsAsync(cancellationToken);
+
+        return response.Models
+            .Where(m => m.SupportedGenerationMethods.Contains("generateContent"))
+            .Select(m => new DiscoveredModelDto(
+                Id: m.Name.StartsWith("models/") ? m.Name["models/".Length..] : m.Name,
+                Name: m.DisplayName,
+                Provider: "gemini",
+                ContextLength: m.InputTokenLimit
+            ))
+            .OrderBy(m => m.Name)
+            .ToList();
+    }
+
+    private async Task<List<DiscoveredModelDto>> DiscoverDeepSeekModelsAsync(CancellationToken cancellationToken)
+    {
+        var response = await _deepSeekModelClient.GetModelsAsync(cancellationToken);
+
+        return response.Data
+            .Select(m => new DiscoveredModelDto(
+                Id: m.Id,
+                Name: m.Id,  // DeepSeek API only provides id, no friendly name
+                Provider: "deepseek"
+            ))
+            .OrderBy(m => m.Id)
+            .ToList();
+    }
+
+    private static List<DiscoveredModelDto> GetPerplexityModels()
+    {
+        return new List<DiscoveredModelDto>
+        {
+            new(Id: "sonar", Name: "Sonar", Provider: "perplexity"),
+            new(Id: "sonar-pro", Name: "Sonar Pro", Provider: "perplexity"),
+            new(Id: "sonar-deep-research", Name: "Sonar Deep Research", Provider: "perplexity"),
+            new(Id: "sonar-reasoning", Name: "Sonar Reasoning", Provider: "perplexity"),
+            new(Id: "sonar-reasoning-pro", Name: "Sonar Reasoning Pro", Provider: "perplexity"),
+            new(Id: "r1-1776", Name: "R1-1776", Provider: "perplexity"),
+        };
     }
 }
