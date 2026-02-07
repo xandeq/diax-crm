@@ -34,6 +34,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
     public async Task<IEnumerable<Income>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(i => i.IncomeCategory)
             .Where(x => x.UserId == userId)
             .ToListAsync(ct);
@@ -42,6 +43,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
     public async Task<Income?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(i => i.IncomeCategory)
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
     }

@@ -38,6 +38,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public async Task<IEnumerable<Expense>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(e => e.ExpenseCategory)
             .Where(e => e.UserId == userId)
             .OrderByDescending(e => e.Date)
@@ -47,6 +48,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public async Task<Expense?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(e => e.ExpenseCategory)
             .Include(e => e.CreditCard)
             .Include(e => e.FinancialAccount)
