@@ -304,8 +304,7 @@ public class ExpenseService : IApplicationService
                 }
 
                 await _unitOfWork.CommitTransactionAsync(ct);
-                var success = deletedCount > 0 || errors.Count == 0;
-                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(success, deletedCount, errors.Count, errors));
+                return Result<BulkDeleteResponse>.Success(new BulkDeleteResponse(true, deletedCount, errors.Count, errors));
             }
             catch (Exception ex)
             {
