@@ -2,6 +2,7 @@ import { apiFetch, apiRequest } from './api';
 
 export interface UserGroup {
   id: string;
+  key: string;
   name: string;
   description?: string;
   memberCount?: number;

@@ -1,21 +1,21 @@
-import { UserRole } from './auth';
-
 export interface UserResponse {
   id: string;
   email: string;
-  role: UserRole;
   isActive: boolean;
+  isAdmin: boolean;
+  groups: string[];
+  permissions: string[];
   createdAt: string;
 }
 
 export interface CreateUserRequest {
   email: string;
   password: string;
-  role: UserRole;
+  groupKeys?: string[];
 }
 
 export interface UpdateUserRequest {
-  role: UserRole;
   isActive: boolean;
   password?: string;
+  groupKeys?: string[];
 }

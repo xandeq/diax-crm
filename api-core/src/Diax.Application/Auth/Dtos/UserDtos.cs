@@ -22,3 +22,10 @@ public class UpdateUserRequest
     public string? Password { get; set; }
     public List<string>? GroupKeys { get; set; }
 }
+
+public record GroupMemberDto(
+    Guid UserId,
+    string Email,
+    bool IsActive,
+    DateTime JoinedAt
+);

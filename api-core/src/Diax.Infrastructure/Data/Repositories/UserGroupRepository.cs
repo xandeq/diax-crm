@@ -26,6 +26,7 @@ public class UserGroupRepository : Repository<UserGroup>, IUserGroupRepository
     {
         return await DbSet
              .Include(g => g.Members)
+                .ThenInclude(m => m.User)
              .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
     }
 }

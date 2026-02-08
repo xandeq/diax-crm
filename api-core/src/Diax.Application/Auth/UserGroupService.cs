@@ -1,3 +1,4 @@
+using Diax.Application.Auth.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.UserGroups;
 
@@ -57,6 +58,19 @@ public class UserGroupService : IUserGroupService
 
         await _repository.DeleteAsync(group);
         await _unitOfWork.SaveChangesAsync(); // ✅ CRÍTICO: Confirmar deleção
+    }
+
+    public async Task<List<GroupMemberDto>> GetMembersAsync(Guid groupId)
+    {
+        var group = await _repository.GetByIdWithMembersAsync(groupId);
+        if (group == null) throw new KeyNotFoundException("User group not found");
+
+        return group.Members.Select(m => new GroupMemberDto(
+            m.UserId,
+            m.User?.Email ?? "unknown",
+            m.User?.IsActive ?? false,
+            m.CreatedAt
+        )).ToList();
     }
 
     public async Task AddMemberAsync(Guid groupId, Guid userId)

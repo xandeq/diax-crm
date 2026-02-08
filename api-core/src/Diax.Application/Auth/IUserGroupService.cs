@@ -1,3 +1,4 @@
+using Diax.Application.Auth.Dtos;
 using Diax.Domain.UserGroups;
 
 namespace Diax.Application.Auth;
@@ -11,6 +12,7 @@ public interface IUserGroupService
     Task DeleteAsync(Guid id);
 
     // Member management
+    Task<List<GroupMemberDto>> GetMembersAsync(Guid groupId);
     Task AddMemberAsync(Guid groupId, Guid userId);
     Task RemoveMemberAsync(Guid groupId, Guid userId);
 }

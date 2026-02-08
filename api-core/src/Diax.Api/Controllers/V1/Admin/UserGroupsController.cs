@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.Auth;
+using Diax.Application.Auth.Dtos;
 using Diax.Domain.UserGroups;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ namespace Diax.Api.Controllers.V1.Admin;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/admin/groups")]
-// [Authorize(Roles = "Admin")] // Uncomment when Auth is fully active
+// [Authorize(Roles = "Admin")]
 public class UserGroupsController : ControllerBase
 {
     private readonly IUserGroupService _userGroupService;
@@ -68,8 +69,51 @@ public class UserGroupsController : ControllerBase
         }
     }
 
-    // Members endpoints omitted for brevity for now, focus on Group management first
+    // ── Members management ──
+
+    [HttpGet("{groupId:guid}/members")]
+    public async Task<ActionResult<List<GroupMemberDto>>> GetMembers(Guid groupId)
+    {
+        try
+        {
+            var members = await _userGroupService.GetMembersAsync(groupId);
+            return Ok(members);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpPost("{groupId:guid}/members")]
+    public async Task<IActionResult> AddMember(Guid groupId, [FromBody] AddMemberRequest request)
+    {
+        try
+        {
+            await _userGroupService.AddMemberAsync(groupId, request.UserId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpDelete("{groupId:guid}/members/{userId:guid}")]
+    public async Task<IActionResult> RemoveMember(Guid groupId, Guid userId)
+    {
+        try
+        {
+            await _userGroupService.RemoveMemberAsync(groupId, userId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 }
 
 public record CreateUserGroupRequest(string Name, string Description);
 public record UpdateUserGroupRequest(string Name, string Description);
+public record AddMemberRequest(Guid UserId);
