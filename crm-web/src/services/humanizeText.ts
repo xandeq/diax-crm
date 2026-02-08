@@ -18,7 +18,6 @@ export interface HumanizeToneOption {
 export interface HumanizeTextRequest {
   provider: HumanizeProvider;
   model?: string;
-  model?: string;
   tone: HumanizeTone;
   inputText: string;
   language?: string;
