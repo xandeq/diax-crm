@@ -18,8 +18,21 @@ public class UserGroupService : IUserGroupService
     public async Task<List<UserGroup>> GetAllAsync()
     {
         var result = await _repository.GetAllAsync();
-        // Force evaluation if needed, but List is expected
         return result.ToList();
+    }
+
+    public async Task<List<UserGroupDto>> GetAllWithCountAsync()
+    {
+        var groups = await _repository.GetAllWithMembersAsync();
+        return groups.Select(g => new UserGroupDto(
+            g.Id,
+            g.Key,
+            g.Name,
+            g.Description,
+            g.IsSystem,
+            g.Members.Count,
+            g.CreatedAt
+        )).ToList();
     }
 
     public async Task<UserGroup?> GetByIdAsync(Guid id)

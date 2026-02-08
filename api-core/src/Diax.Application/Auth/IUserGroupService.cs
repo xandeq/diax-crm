@@ -6,6 +6,7 @@ namespace Diax.Application.Auth;
 public interface IUserGroupService
 {
     Task<List<UserGroup>> GetAllAsync();
+    Task<List<UserGroupDto>> GetAllWithCountAsync();
     Task<UserGroup?> GetByIdAsync(Guid id);
     Task<UserGroup> CreateAsync(string name, string description);
     Task UpdateAsync(Guid id, string name, string description);

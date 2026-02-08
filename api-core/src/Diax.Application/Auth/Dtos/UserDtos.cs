@@ -29,3 +29,13 @@ public record GroupMemberDto(
     bool IsActive,
     DateTime JoinedAt
 );
+
+public record UserGroupDto(
+    Guid Id,
+    string Key,
+    string Name,
+    string? Description,
+    bool IsSystem,
+    int MemberCount,
+    DateTime CreatedAt
+);

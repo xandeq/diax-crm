@@ -21,9 +21,9 @@ public class UserGroupsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<UserGroup>>> GetAll()
+    public async Task<ActionResult<List<UserGroupDto>>> GetAll()
     {
-        return Ok(await _userGroupService.GetAllAsync());
+        return Ok(await _userGroupService.GetAllWithCountAsync());
     }
 
     [HttpGet("{id:guid}")]

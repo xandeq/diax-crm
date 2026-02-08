@@ -29,4 +29,12 @@ public class UserGroupRepository : Repository<UserGroup>, IUserGroupRepository
                 .ThenInclude(m => m.User)
              .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
     }
+
+    public async Task<IEnumerable<UserGroup>> GetAllWithMembersAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(g => g.Members)
+            .OrderBy(g => g.Name)
+            .ToListAsync(cancellationToken);
+    }
 }
