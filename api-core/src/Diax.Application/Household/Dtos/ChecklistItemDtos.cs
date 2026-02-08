@@ -48,6 +48,7 @@ public record UpdateChecklistItemRequest(
 public record ChecklistItemsQuery(
     Guid? CategoryId = null,
     ChecklistItemStatus? Status = null,
+    ChecklistItemPriority? Priority = null,
     string? Q = null,
     DateTime? DateFrom = null,
     DateTime? DateTo = null,

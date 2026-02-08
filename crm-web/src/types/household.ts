@@ -44,6 +44,7 @@ export interface ChecklistItem {
 export interface ChecklistItemsQuery {
   categoryId?: string;
   status?: ChecklistItemStatus;
+  priority?: ChecklistPriority;
   q?: string;
   dateFrom?: string;
   dateTo?: string;

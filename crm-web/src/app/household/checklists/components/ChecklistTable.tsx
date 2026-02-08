@@ -76,7 +76,11 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     sortBy: searchParams.get('sortBy') || 'createdAt',
     sortDir: (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc',
     includeArchived: searchParams.get('includeArchived') === 'true',
-    q: searchParams.get('q') || ''
+    q: searchParams.get('q') || '',
+    status: searchParams.get('status') ? Number(searchParams.get('status')) as ChecklistItemStatus : undefined,
+    priority: searchParams.get('priority') ? Number(searchParams.get('priority')) as ChecklistPriority : undefined,
+    dateFrom: searchParams.get('dateFrom') || '',
+    dateTo: searchParams.get('dateTo') || ''
   }));
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -89,6 +93,10 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     if (query.sortDir && query.sortDir !== 'desc') params.set('sortDir', query.sortDir); else params.delete('sortDir');
     if (query.includeArchived) params.set('includeArchived', 'true'); else params.delete('includeArchived');
     if (query.q) params.set('q', query.q); else params.delete('q');
+    if (query.status !== undefined) params.set('status', query.status.toString()); else params.delete('status');
+    if (query.priority !== undefined) params.set('priority', query.priority.toString()); else params.delete('priority');
+    if (query.dateFrom) params.set('dateFrom', query.dateFrom); else params.delete('dateFrom');
+    if (query.dateTo) params.set('dateTo', query.dateTo); else params.delete('dateTo');
 
     const newPath = `${pathname}?${params.toString()}`;
     if (newPath !== `${pathname}?${searchParams.toString()}`) {
@@ -195,6 +203,72 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
             value={query.q || ''}
             onChange={(e) => setQuery(prev => ({ ...prev, q: e.target.value, page: 1 }))}
           />
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select
+            value={query.status?.toString() || ''}
+            onValueChange={(value) => setQuery(prev => ({ ...prev, status: value ? Number(value) as ChecklistItemStatus : undefined, page: 1 }))}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="0">A Comprar</SelectItem>
+              <SelectItem value="1">Comprado</SelectItem>
+              <SelectItem value="2">Cancelado</SelectItem>
+              <SelectItem value="3">Arquivado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={query.priority?.toString() || ''}
+            onValueChange={(value) => setQuery(prev => ({ ...prev, priority: value ? Number(value) as ChecklistPriority : undefined, page: 1 }))}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Prioridade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas</SelectItem>
+              <SelectItem value="0">Baixa</SelectItem>
+              <SelectItem value="1">Média</SelectItem>
+              <SelectItem value="2">Alta</SelectItem>
+              <SelectItem value="3">Urgente</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Input
+            type="date"
+            placeholder="Data inicial"
+            className="w-40"
+            value={query.dateFrom || ''}
+            onChange={(e) => setQuery(prev => ({ ...prev, dateFrom: e.target.value, page: 1 }))}
+          />
+
+          <Input
+            type="date"
+            placeholder="Data final"
+            className="w-40"
+            value={query.dateTo || ''}
+            onChange={(e) => setQuery(prev => ({ ...prev, dateTo: e.target.value, page: 1 }))}
+          />
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setQuery(prev => ({
+              ...prev,
+              status: undefined,
+              priority: undefined,
+              dateFrom: '',
+              dateTo: '',
+              page: 1
+            }))}
+            className="text-slate-500"
+          >
+            Limpar Filtros
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">

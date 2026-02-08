@@ -42,6 +42,7 @@ export const checklistService = {
     const params = new URLSearchParams();
     if (query.categoryId) params.append('categoryId', query.categoryId);
     if (query.status !== undefined) params.append('status', query.status.toString());
+    if (query.priority !== undefined) params.append('priority', query.priority.toString());
     if (query.q) params.append('q', query.q);
     if (query.dateFrom) params.append('dateFrom', query.dateFrom);
     if (query.dateTo) params.append('dateTo', query.dateTo);

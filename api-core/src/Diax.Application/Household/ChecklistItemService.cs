@@ -36,6 +36,7 @@ public class ChecklistItemService : IChecklistItemService
         Expression<Func<ChecklistItem, bool>> predicate = i =>
             (!query.CategoryId.HasValue || i.CategoryId == query.CategoryId.Value) &&
             (!query.Status.HasValue || i.Status == query.Status.Value) &&
+            (!query.Priority.HasValue || i.Priority == query.Priority.Value) &&
             (string.IsNullOrWhiteSpace(query.Q) || i.Title.Contains(query.Q) || (i.Description != null && i.Description.Contains(query.Q))) &&
             (!query.DateFrom.HasValue || i.TargetDate >= query.DateFrom.Value) &&
             (!query.DateTo.HasValue || i.TargetDate <= query.DateTo.Value) &&
