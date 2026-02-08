@@ -145,6 +145,9 @@ function EditAiProviderContent() {
         setShowModelsDialog(false);
         // Small delay to ensure DB consistency in production before refreshing
         setTimeout(() => fetchData(true), 1000);
+      } else {
+        toast.error('Erro ao salvar modelos');
+      }
     } catch (error: any) {
       toast.error(error?.message || 'Erro ao salvar modelos');
     } finally {
