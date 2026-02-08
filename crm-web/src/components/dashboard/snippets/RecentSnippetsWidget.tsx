@@ -1,8 +1,10 @@
 'use client';
 
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
+import { Button } from "@/components/ui/button";
 import { SnippetResponse, snippetService } from "@/services/snippetService";
 import { Code2 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function RecentSnippetsWidget() {
@@ -35,6 +37,11 @@ export function RecentSnippetsWidget() {
       icon={<Code2 className="h-4 w-4" />}
       isLoading={isLoading}
       error={error}
+      action={
+        <Button asChild variant="outline" size="sm">
+          <Link href="/utilities/snippets">Ver snippets</Link>
+        </Button>
+      }
     >
       {items.length === 0 ? (
         <div className="text-sm text-muted-foreground">Nenhum snippet encontrado.</div>

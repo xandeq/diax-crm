@@ -1,10 +1,12 @@
 'use client';
 
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { checklistService } from "@/services/checklistService";
 import { ChecklistItem, ChecklistItemStatus } from "@/types/household";
 import { ShoppingCart } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function ShoppingListWidget() {
@@ -40,6 +42,11 @@ export function ShoppingListWidget() {
       icon={<ShoppingCart className="h-4 w-4" />}
       isLoading={isLoading}
       error={error}
+      action={
+        <Button asChild variant="outline" size="sm">
+          <Link href="/household/checklists">Ver lista</Link>
+        </Button>
+      }
     >
       {items.length === 0 ? (
         <div className="text-sm text-muted-foreground">Nenhum item encontrado.</div>

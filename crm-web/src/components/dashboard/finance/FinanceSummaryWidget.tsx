@@ -1,9 +1,11 @@
 'use client';
 
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { FinancialSummary, financeService } from "@/services/finance";
 import { DollarSign, TrendingDown, TrendingUp } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function FinanceSummaryWidget() {
@@ -41,6 +43,11 @@ export function FinanceSummaryWidget() {
       isLoading={isLoading}
       error={error}
       className="col-span-2"
+      action={
+        <Button asChild variant="outline" size="sm">
+          <Link href="/finance">Ver detalhes</Link>
+        </Button>
+      }
     >
       {data && (
         <div className="grid grid-cols-3 gap-4">

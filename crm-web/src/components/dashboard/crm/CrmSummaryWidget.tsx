@@ -1,9 +1,11 @@
 'use client';
 
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
+import { Button } from "@/components/ui/button";
 import { getCustomers } from "@/services/customers";
 import { getLeads } from "@/services/leads";
 import { UserPlus, Users } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function CrmSummaryWidget() {
@@ -40,6 +42,11 @@ export function CrmSummaryWidget() {
       icon={<Users className="h-4 w-4" />}
       isLoading={isLoading}
       error={error}
+      action={
+        <Button asChild variant="outline" size="sm">
+          <Link href="/leads">Ver leads</Link>
+        </Button>
+      }
     >
       {counts && (
         <div className="grid grid-cols-2 gap-4">

@@ -1,8 +1,10 @@
 'use client';
 
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
+import { Button } from "@/components/ui/button";
 import { AppLogStatsResponse, logsService } from "@/services/logs";
 import { Activity, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function SystemHealthWidget() {
@@ -32,6 +34,11 @@ export function SystemHealthWidget() {
       icon={<Activity className="h-4 w-4" />}
       isLoading={isLoading}
       error={error}
+      action={
+        <Button asChild variant="outline" size="sm">
+          <Link href="/logs">Ver logs</Link>
+        </Button>
+      }
     >
       {stats && (
         <div className="grid grid-cols-3 gap-2">

@@ -1,8 +1,10 @@
 'use client';
 
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
+import { Button } from "@/components/ui/button";
 import { getPromptHistory, UserPromptHistory } from "@/services/promptGenerator";
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export function RecentPromptsWidget() {
@@ -32,6 +34,11 @@ export function RecentPromptsWidget() {
       icon={<Sparkles className="h-4 w-4" />}
       isLoading={isLoading}
       error={error}
+      action={
+        <Button asChild variant="outline" size="sm">
+          <Link href="/utilities/prompt-generator">Ver prompts</Link>
+        </Button>
+      }
     >
       {items.length === 0 ? (
         <div className="text-sm text-muted-foreground">Nenhum prompt encontrado.</div>
