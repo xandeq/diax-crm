@@ -47,7 +47,7 @@ import { toast } from 'sonner';
 // Removed static AI_PROVIDERS. Now loaded from API.
 
 export default function PromptGeneratorPage() {
-    const { isAuthenticated, isLoading: authLoading } = useAuth();
+    const { isAuthenticated, user, isLoading: authLoading } = useAuth();
     const router = useRouter();
 
     const [providers, setProviders] = useState<CatalogProvider[]>([]);
@@ -324,7 +324,7 @@ export default function PromptGeneratorPage() {
                     disabled={!currentProvider || currentProvider.models.length === 0}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o modelo" />
+                      <SelectValue placeholder={currentProvider?.models.length === 0 ? "Nenhum modelo habilitado" : "Selecione o modelo"} />
                     </SelectTrigger>
                     <SelectContent>
                       {currentProvider?.models.map((model) => (
@@ -334,6 +334,11 @@ export default function PromptGeneratorPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {!isLoadingCatalog && currentProvider && currentProvider.models.length === 0 && (
+                    <p className="text-[10px] text-destructive font-medium">
+                      Este provedor não possui modelos habilitados no catálogo.
+                    </p>
+                  )}
                 </div>
 
                 {/* Seleção de Técnica */}
