@@ -186,6 +186,7 @@ public static class DependencyInjection
         services.AddScoped<IAiTextTransformClient, ChatGptClient>();
         services.AddScoped<IAiTextTransformClient, PerplexityClient>();
         services.AddScoped<IAiTextTransformClient, DeepSeekClient>();
+        services.AddScoped<IAiTextTransformClient, OpenRouterTextTransformClient>();
 
         // Register OpenRouterClient as typed HttpClient
         services.AddHttpClient<IOpenRouterClient, OpenRouterClient>();
