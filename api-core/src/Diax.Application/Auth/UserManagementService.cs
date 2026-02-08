@@ -70,7 +70,7 @@ public class UserManagementService : IUserManagementService
         var user = await _repository.GetByIdAsync(id, cancellationToken)
             ?? throw new Exception("Usuário não encontrado.");
 
-        // Proteção: não remover último admin
+        // Proteção: não permitir que admin remova a si próprio do grupo system-admin
         if (id == currentUserId && request.GroupKeys != null)
         {
             var currentIsAdmin = await _permissionService.IsAdminAsync(currentUserId, cancellationToken);
@@ -78,7 +78,11 @@ public class UserManagementService : IUserManagementService
 
             if (currentIsAdmin && willRemoveAdmin)
             {
-                throw new Exception("Você não pode remover sua própria permissão de Administrador.");
+                var receivedKeys = string.Join(", ", request.GroupKeys);
+                throw new Exception(
+                    $"Você não pode remover sua própria permissão de Administrador. " +
+                    $"O grupo 'system-admin' deve estar presente na lista de grupos. " +
+                    $"Grupos recebidos: [{receivedKeys}]");
             }
         }
 

@@ -129,7 +129,7 @@ export default function UsersPage() {
 
   // Helper: resolve group key to group name
   const getGroupName = (key: string) => {
-    const group = groups.find(g => g.key === key || g.name.toLowerCase().replace(/\s+/g, '-') === key);
+    const group = groups.find(g => g.key === key);
     return group?.name || key;
   };
 
@@ -208,8 +208,8 @@ export default function UsersPage() {
                     <p className="text-sm text-muted-foreground">Nenhum grupo cadastrado. Crie um em Grupos & Permissões.</p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {groups.map((group) => {
-                        const groupKey = group.key ?? group.name.toLowerCase().replace(/\s+/g, '-');
+                      {groups.filter(g => g.key).map((group) => {
+                        const groupKey = group.key;
                         const isChecked = formData.groupKeys.includes(groupKey);
                         return (
                           <div
