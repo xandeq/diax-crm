@@ -68,7 +68,7 @@ public class HumanizeTextService : IApplicationService, IHumanizeTextService
         var options = new AiClientOptions(
             ApiKey: providerSettings.ApiKey,
             BaseUrl: providerSettings.BaseUrl ?? string.Empty,
-            Model: providerSettings.Model ?? string.Empty,
+            Model: !string.IsNullOrWhiteSpace(request.Model) ? request.Model : (providerSettings.Model ?? string.Empty),
             Temperature: request.Temperature ?? 0.7,
             MaxTokens: request.MaxTokens
         );

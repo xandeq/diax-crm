@@ -5,15 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAiCatalog, type AiProvider } from '@/services/aiCatalog';
-import { humanizeText, humanizeToneOptions, type HumanizeProvider, type HumanizeTone } from '@/services/humanizeText';
+import { humanizeText, humanizeToneOptions, type HumanizeTone } from '@/services/humanizeText';
 import { AlertCircle, Check, Copy, Eraser, Loader2, Sparkles, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
-interface ProviderOption {
-  value: string;
-  label: string;
-}
 
 export default function HumanizeTextPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -21,17 +16,21 @@ export default function HumanizeTextPage() {
 
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
-  const [provider, setProvider] = useState<HumanizeProvider>('');
-  const [tone, setTone] = useState<HumanizeTone>('humanize_text_professional');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [pageReady, setPageReady] = useState(false);
 
-  // Providers carregados dinamicamente da API (banco de dados)
-  const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
+  // Configurações de IA
+  const [providers, setProviders] = useState<AiProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [tone, setTone] = useState<HumanizeTone>('humanize_text_professional');
   const [loadingProviders, setLoadingProviders] = useState(true);
 
+  // Derived state
+  const currentProvider = providers.find(p => p.key === selectedProvider);
+  const currentModels = (currentProvider?.models || []).filter(m => m.isEnabled);
   const selectedTone = humanizeToneOptions.find((option) => option.value === tone);
 
   // Carregar providers da API ao montar o componente
@@ -39,18 +38,20 @@ export default function HumanizeTextPage() {
     async function loadProviders() {
       try {
         const catalog = await getAiCatalog();
-        const options = catalog
-          .filter((p: AiProvider) => p.isEnabled)
-          .map((p: AiProvider) => ({
-            value: p.key,
-            label: p.name,
-          }));
+        // Filtrar apenas providers habilitados
+        const enabledProviders = catalog.filter(p => p.isEnabled);
 
-        setProviderOptions(options);
+        setProviders(enabledProviders);
 
-        // Selecionar primeiro provider disponível como padrão
-        if (options.length > 0 && !provider) {
-          setProvider(options[0].value);
+        // Default selection logic
+        if (enabledProviders.length > 0 && !selectedProvider) {
+          const firstProv = enabledProviders[0];
+          setSelectedProvider(firstProv.key);
+
+          const enabledModels = firstProv.models.filter(m => m.isEnabled);
+          if (enabledModels.length > 0) {
+            setSelectedModel(enabledModels[0].modelKey);
+          }
         }
       } catch (err) {
         console.error('Erro ao carregar providers:', err);
@@ -63,7 +64,8 @@ export default function HumanizeTextPage() {
     if (isAuthenticated) {
       loadProviders();
     }
-  }, [isAuthenticated, provider]);
+  }, [isAuthenticated, selectedProvider]); // added selectedProvider to deps to ensure init logic runs if needed, though mostly runs once. Actually better to remove it from deps if we only want init. But 'loadProviders' is defined inside.
+
 
   useEffect(() => {
     if (authLoading) return;
@@ -89,7 +91,8 @@ export default function HumanizeTextPage() {
     try {
       const result = await humanizeText({
         inputText,
-        provider,
+        provider: selectedProvider,
+        model: selectedModel || undefined,
         tone,
       });
       setOutputText(result.outputText);
@@ -147,39 +150,75 @@ export default function HumanizeTextPage() {
               <CardTitle className="text-xl font-serif">Configurações</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">IA (Provedor)</label>
-                  <select
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    disabled={providerOptions.length === 0}
-                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-                  >
-                    {providerOptions.length === 0 ? (
-                      <option value="">Nenhum provider disponível</option>
-                    ) : (
-                      providerOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))
-                    )}
-                  </select>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>IA (Provedor)</Label>
+                    <Select
+                      value={selectedProvider}
+                      onValueChange={(val) => {
+                        setSelectedProvider(val);
+                        // Auto-select model logic
+                        const prov = providers.find(p => p.key === val);
+                        if (prov) {
+                          const enabled = prov.models.filter(m => m.isEnabled);
+                          if (enabled.length > 0) setSelectedModel(enabled[0].modelKey);
+                          else setSelectedModel('');
+                        }
+                      }}
+                      disabled={providers.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o provedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {providers.map((p) => (
+                          <SelectItem key={p.key} value={p.key}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Modelo</Label>
+                    <Select
+                      value={selectedModel}
+                      onValueChange={setSelectedModel}
+                      disabled={!currentProvider || currentModels.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={currentModels.length === 0 ? "Nenhum modelo" : "Selecione o modelo"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentModels.map((m) => (
+                          <SelectItem key={m.modelKey} value={m.modelKey}>
+                            {m.displayName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Tom de Texto</label>
-                  <select
+                  <Label>Tom de Texto</Label>
+                   <Select
                     value={tone}
-                    onChange={(e) => setTone(e.target.value as HumanizeTone)}
-                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    onValueChange={(val) => setTone(val as HumanizeTone)}
                   >
-                    {humanizeToneOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {humanizeToneOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
