@@ -1,5 +1,6 @@
 using Diax.Application.AI.Dtos;
 using Diax.Domain.AI;
+using Diax.Domain.Common;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -9,6 +10,7 @@ public class AiProviderAdminService : IAiProviderAdminService
 {
     private readonly IAiProviderRepository _providerRepository;
     private readonly IAiModelRepository _modelRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IOpenRouterClient _openRouterClient;
     private readonly IOpenAiClient _openAiClient;
     private readonly IGeminiClient _geminiClient;
@@ -22,6 +24,7 @@ public class AiProviderAdminService : IAiProviderAdminService
     public AiProviderAdminService(
         IAiProviderRepository providerRepository,
         IAiModelRepository modelRepository,
+        IUnitOfWork unitOfWork,
         IOpenRouterClient openRouterClient,
         IOpenAiClient openAiClient,
         IGeminiClient geminiClient,
@@ -31,6 +34,7 @@ public class AiProviderAdminService : IAiProviderAdminService
     {
         _providerRepository = providerRepository;
         _modelRepository = modelRepository;
+        _unitOfWork = unitOfWork;
         _openRouterClient = openRouterClient;
         _openAiClient = openAiClient;
         _geminiClient = geminiClient;
@@ -70,6 +74,7 @@ public class AiProviderAdminService : IAiProviderAdminService
 
         var provider = new AiProvider(request.Key, request.Name, request.SupportsListModels, request.BaseUrl);
         await _providerRepository.AddAsync(provider, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return MapToDto(provider);
     }
@@ -85,6 +90,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         else provider.Disable();
 
         await _providerRepository.UpdateAsync(provider, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -93,6 +99,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         if (provider == null) return; // Or throw
 
         await _providerRepository.DeleteAsync(provider, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<AiModelDto>> GetModelsByProviderIdAsync(Guid providerId, CancellationToken cancellationToken = default)
@@ -113,6 +120,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         else model.Disable();
 
         await _modelRepository.AddAsync(model, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return MapToDto(model);
     }
@@ -157,6 +165,8 @@ public class AiProviderAdminService : IAiProviderAdminService
                 await _modelRepository.AddAsync(model, cancellationToken);
             }
         }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private static decimal? TryGetDecimal(string? value)
@@ -178,6 +188,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         else model.Disable();
 
         await _modelRepository.UpdateAsync(model, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteModelAsync(Guid modelId, CancellationToken cancellationToken = default)
@@ -186,6 +197,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         if (model == null) return;
 
         await _modelRepository.DeleteAsync(model, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<SyncModelsResultDto> SyncModelsAsync(Guid providerId, CancellationToken cancellationToken = default)

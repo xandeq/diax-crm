@@ -76,8 +76,11 @@ function EditAiProviderContent() {
       setModels(models.map(m =>
         m.id === model.id ? { ...m, isEnabled: !m.isEnabled } : m
       ));
+      toast.success(`Modelo ${model.isEnabled ? 'desabilitado' : 'habilitado'} com sucesso`);
     } catch (error) {
       toast.error('Failed to update model status.');
+      // Revert local state by re-fetching
+      await fetchData(true);
     } finally {
         setSavingId(null);
     }
@@ -90,8 +93,7 @@ function EditAiProviderContent() {
       setSavingId(modelId);
       await adminAiProvidersService.deleteModel(modelId);
       toast.success('Modelo removido com sucesso');
-      // Small delay to ensure DB consistency in production
-      setTimeout(() => fetchData(true), 500);
+      await fetchData(true);
     } catch (error) {
       toast.error('Erro ao remover modelo');
     } finally {
@@ -143,8 +145,7 @@ function EditAiProviderContent() {
       if (result.success) {
         toast.success(result.message);
         setShowModelsDialog(false);
-        // Small delay to ensure DB consistency in production before refreshing
-        setTimeout(() => fetchData(true), 1000);
+        await fetchData(true);
       } else {
         toast.error('Erro ao salvar modelos');
       }
