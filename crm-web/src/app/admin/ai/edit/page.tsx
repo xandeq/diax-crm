@@ -11,9 +11,17 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { adminAiProvidersService } from '@/services/adminAiProviders';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Eye, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -28,25 +36,31 @@ function EditAiProviderContent() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Discovery logic
+  const [showModelsDialog, setShowModelsDialog] = useState(false);
+  const [discoveredModels, setDiscoveredModels] = useState<DiscoveredModel[]>([]);
+  const [loadingDiscovery, setLoadingDiscovery] = useState(false);
+  const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
+  const [savingBatch, setSavingBatch] = useState(false);
+
+  const fetchData = async () => {
     if (!id) return;
+    try {
+      setLoading(true);
+      const [p, m] = await Promise.all([
+        adminAiProvidersService.getById(id),
+        adminAiProvidersService.getModels(id)
+      ]);
+      setProvider(p);
+      setModels(m);
+    } catch (error) {
+      toast.error('Failed to load provider details.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [p, m] = await Promise.all([
-          adminAiProvidersService.getById(id),
-          adminAiProvidersService.getModels(id)
-        ]);
-        setProvider(p);
-        setModels(m);
-      } catch (error) {
-        toast.error('Failed to load provider details.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchData();
   }, [id]);
 
@@ -68,6 +82,61 @@ function EditAiProviderContent() {
     }
   };
 
+  const handleViewModels = async () => {
+    if (!provider) return;
+
+    try {
+      setLoadingDiscovery(true);
+      setShowModelsDialog(true);
+      setDiscoveredModels([]);
+      setSelectedModelKeys([]);
+
+      const response = await adminAiProvidersService.discoverModels(provider.key);
+
+      if (response.success && response.data) {
+        setDiscoveredModels(response.data);
+        toast.success(`${response.totalCount} modelos carregados com sucesso`);
+      } else {
+        toast.error(response.error || 'Erro ao carregar modelos');
+        setShowModelsDialog(false);
+      }
+    } catch (error: any) {
+      console.error('Error discovering models:', error);
+      toast.error(error?.message || 'Falha ao carregar modelos disponíveis');
+      setShowModelsDialog(false);
+    } finally {
+      setLoadingDiscovery(false);
+    }
+  };
+
+  const handleToggleModelSelection = (key: string) => {
+    setSelectedModelKeys(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const handleSaveBatch = async () => {
+    if (selectedModelKeys.length === 0 || !id) return;
+
+    try {
+      setSavingBatch(true);
+      const modelsToSave = discoveredModels.filter(m => selectedModelKeys.includes(m.id));
+      const result = await adminAiProvidersService.addBatchModels(id, modelsToSave);
+
+      if (result.success) {
+        toast.success(result.message);
+        setShowModelsDialog(false);
+        await fetchData(); // Refresh list
+      } else {
+        toast.error('Erro ao salvar modelos');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Erro ao salvar modelos');
+    } finally {
+      setSavingBatch(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -80,16 +149,23 @@ function EditAiProviderContent() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" asChild>
-          <Link href="/admin/ai">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{provider.name} Models</h1>
-          <p className="text-muted-foreground">Manage available models for this provider.</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" asChild>
+            <Link href="/admin/ai">
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{provider.name} Models</h1>
+            <p className="text-muted-foreground">Manage available models for this provider.</p>
+          </div>
         </div>
+        {provider.supportsListModels && (
+          <Button onClick={handleViewModels} variant="outline">
+            <Eye className="h-4 w-4 mr-2" /> Ver Modelos (API)
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -156,6 +232,105 @@ function EditAiProviderContent() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog for viewing available models from API */}
+      <Dialog open={showModelsDialog} onOpenChange={setShowModelsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Modelos Disponíveis (API) - {provider.name}</DialogTitle>
+            <DialogDescription>
+              Selecione os modelos que deseja habilitar no sistema para o provedor {provider.key}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingDiscovery ? (
+            <div className="flex flex-col justify-center items-center py-12">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <span className="mt-4 text-muted-foreground font-medium">Carregando modelos da API...</span>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto pr-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">Select</TableHead>
+                      <TableHead>Model ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {discoveredModels.map((model) => {
+                      const isAlreadyInSystem = models.some(m => m.modelKey === model.id);
+                      return (
+                        <TableRow 
+                          key={model.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleToggleModelSelection(model.id)}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox 
+                              checked={selectedModelKeys.includes(model.id)}
+                              onCheckedChange={() => handleToggleModelSelection(model.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            <div className="flex items-center gap-2">
+                                {model.id}
+                                {isAlreadyInSystem && <Badge variant="secondary" className="text-[10px]">In System</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium text-sm">{model.name}</TableCell>
+                          <TableCell>
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                              {model.contextLength && <span>Ctx: {model.contextLength.toLocaleString()}</span>}
+                              {model.inputCostHint && (
+                                <div className="flex gap-2">
+                                  <span>In: ${model.inputCostHint}</span>
+                                  <span>Out: ${model.outputCostHint}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex justify-between items-center pt-6 border-t mt-4 bg-background">
+                <div className="text-sm">
+                  <span className="font-semibold text-primary">{selectedModelKeys.length}</span> modelos selecionados
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => setShowModelsDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSaveBatch} 
+                    disabled={selectedModelKeys.length === 0 || savingBatch}
+                    className="min-w-[180px]"
+                  >
+                    {savingBatch ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Adicionar/Atualizar Selecionados
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

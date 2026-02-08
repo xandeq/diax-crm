@@ -92,6 +92,24 @@ public class AiProvidersAdminController : ControllerBase
         }
     }
 
+    [HttpPost("{providerId}/batch-models")]
+    public async Task<IActionResult> AddModelsBatch(Guid providerId, [FromBody] List<DiscoveredModelDto> models, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _providerService.UpdateModelsBatchAsync(providerId, models, cancellationToken);
+            return Ok(new { success = true, message = $"{models.Count} modelos processados com sucesso." });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound("Provider not found");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Erro ao processar modelos", detail = ex.Message });
+        }
+    }
+
     [HttpPost("{providerId}/sync-models")]
     public async Task<IActionResult> SyncModels(Guid providerId, CancellationToken cancellationToken)
     {

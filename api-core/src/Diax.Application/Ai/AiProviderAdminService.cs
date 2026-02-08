@@ -117,6 +117,56 @@ public class AiProviderAdminService : IAiProviderAdminService
         return MapToDto(model);
     }
 
+    public async Task UpdateModelsBatchAsync(Guid providerId, List<DiscoveredModelDto> models, CancellationToken cancellationToken = default)
+    {
+        var provider = await _providerRepository.GetByIdAsync(providerId, cancellationToken);
+        if (provider == null) throw new KeyNotFoundException($"Provider with ID {providerId} not found.");
+
+        var existingModels = await _modelRepository.GetByProviderIdAsync(providerId, cancellationToken);
+        var existingKeys = existingModels.ToDictionary(m => m.ModelKey.ToLowerInvariant(), m => m);
+
+        foreach (var discovered in models)
+        {
+            var key = discovered.Id.ToLowerInvariant();
+            if (existingKeys.TryGetValue(key, out var existing))
+            {
+                // Update existing
+                // If it was discovered but not enabled, we enable it now since user selected it
+                existing.Enable();
+                existing.UpdateDetails(
+                    discovered.Name,
+                    TryGetDecimal(discovered.InputCostHint),
+                    TryGetDecimal(discovered.OutputCostHint),
+                    discovered.ContextLength,
+                    existing.CapabilitiesJson
+                );
+                await _modelRepository.UpdateAsync(existing, cancellationToken);
+            }
+            else
+            {
+                // Add new
+                var model = new AiModel(providerId, discovered.Id, discovered.Name, isDiscovered: true);
+                model.Enable();
+                model.UpdateDetails(
+                    discovered.Name,
+                    TryGetDecimal(discovered.InputCostHint),
+                    TryGetDecimal(discovered.OutputCostHint),
+                    discovered.ContextLength,
+                    null
+                );
+                await _modelRepository.AddAsync(model, cancellationToken);
+            }
+        }
+    }
+
+    private static decimal? TryGetDecimal(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var result))
+            return result;
+        return null;
+    }
+
     public async Task UpdateModelAsync(Guid modelId, AiModelDto modelDto, CancellationToken cancellationToken = default)
     {
         var model = await _modelRepository.GetByIdAsync(modelId, cancellationToken);

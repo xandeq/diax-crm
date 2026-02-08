@@ -13,6 +13,7 @@ public interface IAiProviderAdminService
 
     Task<IEnumerable<AiModelDto>> GetModelsByProviderIdAsync(Guid providerId, CancellationToken cancellationToken = default);
     Task<AiModelDto> AddModelAsync(Guid providerId, AiModelDto modelDto, CancellationToken cancellationToken = default);
+    Task UpdateModelsBatchAsync(Guid providerId, List<DiscoveredModelDto> models, CancellationToken cancellationToken = default);
     Task UpdateModelAsync(Guid modelId, AiModelDto modelDto, CancellationToken cancellationToken = default);
     Task DeleteModelAsync(Guid modelId, CancellationToken cancellationToken = default);
 

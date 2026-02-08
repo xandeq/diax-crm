@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -10,13 +11,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -27,7 +21,7 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiProvider } from '@/services/aiCatalog';
-import { Eye, Layers, Loader2, RefreshCw } from 'lucide-react';
+import { Eye, Layers, Loader2, RefreshCw, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -35,12 +29,15 @@ export default function AiAdminPage() {
   const [providers, setProviders] = useState<AiProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [savingBatch, setSavingBatch] = useState(false);
 
   // Dialog state for viewing models
   const [showModelsDialog, setShowModelsDialog] = useState(false);
   const [discoveredModels, setDiscoveredModels] = useState<DiscoveredModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
+  const [selectedProviderKey, setSelectedProviderKey] = useState<string>('');
+  const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
 
   const loadProviders = async () => {
@@ -97,15 +94,17 @@ export default function AiAdminPage() {
     }
   };
 
-  const handleViewModels = async (providerKey: string) => {
+  const handleViewModels = async (provider: AiProvider) => {
     try {
       setLoadingModels(true);
-      setSelectedProvider(providerKey);
+      setSelectedProviderId(provider.id);
+      setSelectedProviderKey(provider.key);
       setShowModelsDialog(true);
       setDiscoveredModels([]);
       setSelectedModel('');
+      setSelectedModelKeys([]);
 
-      const response = await adminAiProvidersService.discoverModels(providerKey);
+      const response = await adminAiProvidersService.discoverModels(provider.key);
 
       if (response.success && response.data) {
         setDiscoveredModels(response.data);
@@ -120,6 +119,33 @@ export default function AiAdminPage() {
       setShowModelsDialog(false);
     } finally {
       setLoadingModels(false);
+    }
+  };
+
+  const handleToggleModelSelection = (key: string) => {
+    setSelectedModelKeys(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const handleSaveBatch = async () => {
+    if (selectedModelKeys.length === 0) return;
+
+    try {
+      setSavingBatch(true);
+      const modelsToSave = discoveredModels.filter(m => selectedModelKeys.includes(m.id));
+      const result = await adminAiProvidersService.addBatchModels(selectedProviderId, modelsToSave);
+
+      if (result.success) {
+        toast.success(result.message);
+        setShowModelsDialog(false);
+      } else {
+        toast.error('Erro ao salvar modelos');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Erro ao salvar modelos');
+    } finally {
+      setSavingBatch(false);
     }
   };
 
@@ -201,7 +227,7 @@ export default function AiAdminPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleViewModels(provider.key)}
+                              onClick={() => handleViewModels(provider)}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               Ver Modelos
@@ -232,71 +258,91 @@ export default function AiAdminPage() {
 
       {/* Dialog for viewing available models */}
       <Dialog open={showModelsDialog} onOpenChange={setShowModelsDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Modelos Disponíveis - {selectedProvider.toUpperCase()}</DialogTitle>
+            <DialogTitle>Modelos Disponíveis - {selectedProviderKey.toUpperCase()}</DialogTitle>
             <DialogDescription>
-              Visualize todos os modelos disponíveis no provedor {selectedProvider}
+              Selecione os modelos que deseja habilitar no sistema para o provedor {selectedProviderKey}.
             </DialogDescription>
           </DialogHeader>
 
           {loadingModels ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-muted-foreground">Carregando modelos...</span>
+            <div className="flex flex-col justify-center items-center py-12">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <span className="mt-4 text-muted-foreground font-medium">Carregando modelos da API...</span>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Selecione um modelo:</label>
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolha um modelo..." />
-                  </SelectTrigger>
-                  <SelectContent>
+            <>
+              <div className="flex-1 overflow-y-auto pr-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">Select</TableHead>
+                      <TableHead>Model ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {discoveredModels.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name} ({model.id})
-                      </SelectItem>
+                      <TableRow
+                        key={model.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleToggleModelSelection(model.id)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedModelKeys.includes(model.id)}
+                            onCheckedChange={() => handleToggleModelSelection(model.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{model.id}</TableCell>
+                        <TableCell className="font-medium text-sm">{model.name}</TableCell>
+                        <TableCell>
+                          <div className="text-xs text-muted-foreground space-y-0.5">
+                            {model.contextLength && <span>Ctx: {model.contextLength.toLocaleString()}</span>}
+                            {model.inputCostHint && (
+                              <div className="flex gap-2">
+                                <span>In: ${model.inputCostHint}</span>
+                                <span>Out: ${model.outputCostHint}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </TableBody>
+                </Table>
               </div>
 
-              {selectedModel && (
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <h4 className="font-semibold mb-2">Detalhes do Modelo:</h4>
-                  {(() => {
-                    const model = discoveredModels.find(m => m.id === selectedModel);
-                    return model ? (
-                      <div className="space-y-1 text-sm">
-                        <p><span className="font-medium">ID:</span> {model.id}</p>
-                        <p><span className="font-medium">Nome:</span> {model.name}</p>
-                        <p><span className="font-medium">Provider:</span> {model.provider}</p>
-                        {model.contextLength && (
-                          <p><span className="font-medium">Context Length:</span> {model.contextLength.toLocaleString()} tokens</p>
-                        )}
-                        {model.inputCostHint && (
-                          <p><span className="font-medium">Input Cost:</span> ${model.inputCostHint}</p>
-                        )}
-                        {model.outputCostHint && (
-                          <p><span className="font-medium">Output Cost:</span> ${model.outputCostHint}</p>
-                        )}
-                      </div>
-                    ) : null;
-                  })()}
+              <div className="flex justify-between items-center pt-6 border-t mt-4 bg-background">
+                <div className="text-sm">
+                  <span className="font-semibold text-primary">{selectedModelKeys.length}</span> modelos selecionados de <span className="font-semibold">{discoveredModels.length}</span>
                 </div>
-              )}
-
-              <div className="flex justify-between items-center pt-4 border-t">
-                <p className="text-sm text-muted-foreground">
-                  {discoveredModels.length} modelos disponíveis
-                </p>
-                <Button variant="outline" onClick={() => setShowModelsDialog(false)}>
-                  Fechar
-                </Button>
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => setShowModelsDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSaveBatch}
+                    disabled={selectedModelKeys.length === 0 || savingBatch}
+                    className="min-w-[180px]"
+                  >
+                    {savingBatch ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Adicionar Selecionados
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

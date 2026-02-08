@@ -82,9 +82,16 @@ export const adminAiProvidersService = {
   },
 
   /**
-   * Discover available models from provider's API (currently supports OpenRouter only)
+   * Discover available models from provider's API (OpenAI, Gemini, OpenRouter, DeepSeek)
    */
   discoverModels: async (providerKey: string): Promise<DiscoverModelsResponse> => {
     return await apiFetch<DiscoverModelsResponse>(`/admin/ai/providers/discover-models/${providerKey}`);
+  },
+
+  /**
+   * Add multiple models to a provider in batch
+   */
+  addBatchModels: async (providerId: string, models: DiscoveredModel[]): Promise<{ success: boolean; message: string }> => {
+    return await apiRequest<{ success: boolean; message: string }>(`/admin/ai/providers/${providerId}/batch-models`, 'POST', models);
   }
 };
