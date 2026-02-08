@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Eye, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -43,10 +43,10 @@ function EditAiProviderContent() {
   const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
   const [savingBatch, setSavingBatch] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     if (!id) return;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [p, m] = await Promise.all([
         adminAiProvidersService.getById(id),
         adminAiProvidersService.getModels(id)
@@ -56,7 +56,7 @@ function EditAiProviderContent() {
     } catch (error) {
       toast.error('Failed to load provider details.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -72,6 +72,7 @@ function EditAiProviderContent() {
         isEnabled: !model.isEnabled
       });
 
+      // Local update for immediate feedback
       setModels(models.map(m =>
         m.id === model.id ? { ...m, isEnabled: !m.isEnabled } : m
       ));
@@ -79,6 +80,22 @@ function EditAiProviderContent() {
       toast.error('Failed to update model status.');
     } finally {
         setSavingId(null);
+    }
+  };
+
+  const handleDeleteModel = async (modelId: string) => {
+    if (!confirm('Are you sure you want to delete this model?')) return;
+
+    try {
+      setSavingId(modelId);
+      await adminAiProvidersService.deleteModel(modelId);
+      toast.success('Modelo removido com sucesso');
+      // Small delay to ensure DB consistency in production
+      setTimeout(() => fetchData(true), 500);
+    } catch (error) {
+      toast.error('Erro ao remover modelo');
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -126,10 +143,8 @@ function EditAiProviderContent() {
       if (result.success) {
         toast.success(result.message);
         setShowModelsDialog(false);
-        await fetchData(); // Refresh list
-      } else {
-        toast.error('Erro ao salvar modelos');
-      }
+        // Small delay to ensure DB consistency in production before refreshing
+        setTimeout(() => fetchData(true), 1000);
     } catch (error: any) {
       toast.error(error?.message || 'Erro ao salvar modelos');
     } finally {
@@ -209,15 +224,27 @@ function EditAiProviderContent() {
                   <TableCell className="font-mono text-sm">{model.modelKey}</TableCell>
                   <TableCell>{model.displayName}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant={model.isEnabled ? "destructive" : "default"}
-                      size="sm"
-                      onClick={() => handleToggleModel(model)}
-                      disabled={savingId === model.id}
-                    >
-                      {savingId === model.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {model.isEnabled ? 'Disable' : 'Enable'}
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant={model.isEnabled ? "destructive" : "default"}
+                        size="sm"
+                        onClick={() => handleToggleModel(model)}
+                        disabled={savingId === model.id}
+                        className="w-[100px]"
+                      >
+                        {savingId === model.id ? <Loader2 className="h-4 w-4 animate-spin" /> : (model.isEnabled ? 'Disable' : 'Enable')}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteModel(model.id)}
+                        disabled={savingId === model.id}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
