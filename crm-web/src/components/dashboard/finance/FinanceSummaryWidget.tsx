@@ -4,7 +4,7 @@ import { WidgetCard } from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { FinancialSummary, financeService } from "@/services/finance";
-import { DollarSign, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, DollarSign, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -44,8 +44,11 @@ export function FinanceSummaryWidget() {
       error={error}
       className="col-span-2"
       action={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/finance">Ver detalhes</Link>
+        <Button asChild variant="default" size="sm" className="gap-2">
+          <Link href="/finance">
+            Ver detalhes
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       }
     >

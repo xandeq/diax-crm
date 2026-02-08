@@ -40,6 +40,7 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-widget-enter: widget-enter 0.35s ease-out;
 
   @keyframes accordion-down {
     from { height: 0; }
@@ -48,6 +49,10 @@
   @keyframes accordion-up {
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
+  }
+  @keyframes widget-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
 
@@ -134,5 +139,9 @@
 
   .gradient-border {
     @apply relative rounded-xl bg-gradient-to-br from-accent via-accent-secondary to-accent p-[2px];
+  }
+
+  .widget-enter {
+    animation: var(--animate-widget-enter);
   }
 }

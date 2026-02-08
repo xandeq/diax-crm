@@ -3,7 +3,7 @@
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/button";
 import { AppLogStatsResponse, logsService } from "@/services/logs";
-import { Activity, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, CheckCircle, Info } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -35,8 +35,11 @@ export function SystemHealthWidget() {
       isLoading={isLoading}
       error={error}
       action={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/logs">Ver logs</Link>
+        <Button asChild variant="default" size="sm" className="gap-2">
+          <Link href="/logs">
+            Ver logs
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       }
     >

@@ -4,7 +4,7 @@ import { WidgetCard } from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/button";
 import { getCustomers } from "@/services/customers";
 import { getLeads } from "@/services/leads";
-import { UserPlus, Users } from "lucide-react";
+import { ArrowRight, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -43,8 +43,11 @@ export function CrmSummaryWidget() {
       isLoading={isLoading}
       error={error}
       action={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/leads">Ver leads</Link>
+        <Button asChild variant="default" size="sm" className="gap-2">
+          <Link href="/leads">
+            Ver leads
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       }
     >

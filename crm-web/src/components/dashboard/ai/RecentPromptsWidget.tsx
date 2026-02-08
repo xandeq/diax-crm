@@ -3,7 +3,7 @@
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/button";
 import { getPromptHistory, UserPromptHistory } from "@/services/promptGenerator";
-import { Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -35,8 +35,11 @@ export function RecentPromptsWidget() {
       isLoading={isLoading}
       error={error}
       action={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/utilities/prompt-generator">Ver prompts</Link>
+        <Button asChild variant="default" size="sm" className="gap-2">
+          <Link href="/utilities/prompt-generator">
+            Ver prompts
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       }
     >

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { checklistService } from "@/services/checklistService";
 import { ChecklistItem, ChecklistItemStatus } from "@/types/household";
-import { ShoppingCart } from "lucide-react";
+import { ArrowRight, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -43,8 +43,11 @@ export function ShoppingListWidget() {
       isLoading={isLoading}
       error={error}
       action={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/household/checklists">Ver lista</Link>
+        <Button asChild variant="default" size="sm" className="gap-2">
+          <Link href="/household/checklists">
+            Ver lista
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       }
     >

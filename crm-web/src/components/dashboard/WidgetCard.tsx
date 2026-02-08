@@ -22,13 +22,12 @@ export function WidgetCard({
   action
 }: WidgetCardProps) {
   return (
-    <Card className={className}>
+    <Card className={`widget-enter ${className}`.trim()}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
             {icon && <div className="text-muted-foreground">{icon}</div>}
             <CardTitle className="text-sm font-medium">{title}</CardTitle>
         </div>
-        {action}
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -40,7 +39,14 @@ export function WidgetCard({
             {error}
           </div>
         ) : (
-          children
+          <div className="space-y-4">
+            {children}
+            {action && (
+              <div className="flex justify-center">
+                {action}
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

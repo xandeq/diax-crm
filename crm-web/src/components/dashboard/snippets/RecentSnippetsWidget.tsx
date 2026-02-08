@@ -3,7 +3,7 @@
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/button";
 import { SnippetResponse, snippetService } from "@/services/snippetService";
-import { Code2 } from "lucide-react";
+import { ArrowRight, Code2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -38,8 +38,11 @@ export function RecentSnippetsWidget() {
       isLoading={isLoading}
       error={error}
       action={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/utilities/snippets">Ver snippets</Link>
+        <Button asChild variant="default" size="sm" className="gap-2">
+          <Link href="/utilities/snippets">
+            Ver snippets
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       }
     >
