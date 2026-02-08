@@ -5,40 +5,40 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { AiProvider as CatalogProvider, getAiCatalog } from '@/services/aiCatalog';
 import { ApiError } from '@/services/api';
 import {
-  generatePrompt,
-  getPromptById,
-  getPromptHistory,
-  PromptGeneratorError,
-  PromptProvider,
-  PromptType,
-  promptTypeOptions,
-  UserPromptHistory
+    generatePrompt,
+    getPromptById,
+    getPromptHistory,
+    PromptGeneratorError,
+    PromptProvider,
+    PromptType,
+    promptTypeOptions,
+    UserPromptHistory
 } from '@/services/promptGenerator';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  AlertCircle,
-  Check,
-  Clock,
-  Copy,
-  ExternalLink,
-  History,
-  LayoutTemplate,
-  Lightbulb,
-  RefreshCw,
-  Sparkles,
-  Wand2
+    AlertCircle,
+    Check,
+    Clock,
+    Copy,
+    ExternalLink,
+    History,
+    LayoutTemplate,
+    Lightbulb,
+    RefreshCw,
+    Sparkles,
+    Wand2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -71,7 +71,7 @@ export default function PromptGeneratorPage() {
 
     // Derived state for current provider object
     const currentProvider = providers.find(p => p.key === selectedProvider);
-    const currentModels = currentProvider?.models || [];
+    const currentModels = (currentProvider?.models || []).filter(m => m.isEnabled);
 
   // Detalhes da técnica selecionada (Importado do promptGenerator.ts)
   const selectedTypeDetails = promptTypeOptions.find(t => t.value === selectedPromptType);
@@ -178,12 +178,15 @@ export default function PromptGeneratorPage() {
   // Efeito para atualizar o modelo padrão quando o provider muda
   useEffect(() => {
     const provider = providers.find(p => p.key === selectedProvider);
-    if (provider && provider.models.length > 0) {
+    const enabledModels = provider?.models.filter(m => m.isEnabled) ?? [];
+    if (provider && enabledModels.length > 0) {
       // Se o modelo atual não pertence a este provider, pega o primeiro da lista
-      const modelExists = provider.models.some(m => m.modelKey === selectedModel);
+      const modelExists = enabledModels.some(m => m.modelKey === selectedModel);
       if (!modelExists) {
-        setSelectedModel(provider.models[0].modelKey);
+        setSelectedModel(enabledModels[0].modelKey);
       }
+    } else if (provider) {
+      setSelectedModel('');
     }
   }, [selectedProvider, selectedModel, providers]);
 
@@ -279,8 +282,9 @@ export default function PromptGeneratorPage() {
               key={provider.key}
               onClick={() => {
                 setSelectedProvider(provider.key);
-                // Auto select first model
-                if (provider.models.length > 0) setSelectedModel(provider.models[0].modelKey);
+                // Auto select first enabled model
+                const enabledModels = provider.models.filter(m => m.isEnabled);
+                if (enabledModels.length > 0) setSelectedModel(enabledModels[0].modelKey);
                 else setSelectedModel('');
               }}
               className={`
@@ -321,20 +325,20 @@ export default function PromptGeneratorPage() {
                   <Select
                     value={selectedModel}
                     onValueChange={setSelectedModel}
-                    disabled={!currentProvider || currentProvider.models.length === 0}
+                    disabled={!currentProvider || currentModels.length === 0}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={currentProvider?.models.length === 0 ? "Nenhum modelo habilitado" : "Selecione o modelo"} />
+                      <SelectValue placeholder={currentModels.length === 0 ? "Nenhum modelo habilitado" : "Selecione o modelo"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {currentProvider?.models.map((model) => (
+                      {currentModels.map((model) => (
                         <SelectItem key={model.modelKey} value={model.modelKey}>
                            {model.displayName}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {!isLoadingCatalog && currentProvider && currentProvider.models.length === 0 && (
+                  {!isLoadingCatalog && currentProvider && currentModels.length === 0 && (
                     <p className="text-[10px] text-destructive font-medium">
                       Este provedor não possui modelos habilitados no catálogo.
                     </p>
