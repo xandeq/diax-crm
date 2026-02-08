@@ -38,11 +38,13 @@ import {
     AlertTriangle,
     Archive,
     ArrowUpDown,
+    Calendar,
     CheckCircle2,
     ChevronLeft,
     ChevronRight,
     Circle,
     ExternalLink,
+    FilterX,
     Flame,
     FolderInput,
     MoreVertical,
@@ -77,10 +79,10 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     sortDir: (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc',
     includeArchived: searchParams.get('includeArchived') === 'true',
     q: searchParams.get('q') || '',
-    status: searchParams.get('status') ? Number(searchParams.get('status')) as ChecklistItemStatus : undefined,
-    priority: searchParams.get('priority') ? Number(searchParams.get('priority')) as ChecklistPriority : undefined,
-    dateFrom: searchParams.get('dateFrom') || '',
-    dateTo: searchParams.get('dateTo') || ''
+    status: searchParams.get('status') !== null ? Number(searchParams.get('status')) as ChecklistItemStatus : undefined,
+    priority: searchParams.get('priority') !== null ? Number(searchParams.get('priority')) as ChecklistPriority : undefined,
+    dateFrom: searchParams.get('dateFrom') || undefined,
+    dateTo: searchParams.get('dateTo') || undefined,
   }));
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -195,80 +197,84 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
   return (
     <div className="flex flex-col">
       <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Buscar itens..."
-            className="pl-10 bg-white"
-            value={query.q || ''}
-            onChange={(e) => setQuery(prev => ({ ...prev, q: e.target.value, page: 1 }))}
-          />
-        </div>
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar itens..."
+              className="pl-10 bg-white h-10"
+              value={query.q || ''}
+              onChange={(e) => setQuery(prev => ({ ...prev, q: e.target.value, page: 1 }))}
+            />
+          </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
           <Select
-            value={query.status?.toString() || ''}
-            onValueChange={(value) => setQuery(prev => ({ ...prev, status: value ? Number(value) as ChecklistItemStatus : undefined, page: 1 }))}
+            value={query.status?.toString() || "all"}
+            onValueChange={(val) => setQuery(prev => ({ ...prev, status: val === "all" ? undefined : Number(val), page: 1 }))}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full md:w-40 bg-white h-10">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
-              <SelectItem value="0">A Comprar</SelectItem>
-              <SelectItem value="1">Comprado</SelectItem>
-              <SelectItem value="2">Cancelado</SelectItem>
-              <SelectItem value="3">Arquivado</SelectItem>
+              <SelectItem value="all">Todos Status</SelectItem>
+              <SelectItem value={ChecklistItemStatus.ToBuy.toString()}>A Comprar</SelectItem>
+              <SelectItem value={ChecklistItemStatus.Bought.toString()}>Comprado</SelectItem>
+              <SelectItem value={ChecklistItemStatus.Canceled.toString()}>Cancelado</SelectItem>
+              <SelectItem value={ChecklistItemStatus.Archived.toString()}>Arquivado</SelectItem>
             </SelectContent>
           </Select>
 
           <Select
-            value={query.priority?.toString() || ''}
-            onValueChange={(value) => setQuery(prev => ({ ...prev, priority: value ? Number(value) as ChecklistPriority : undefined, page: 1 }))}
+            value={query.priority?.toString() || "all"}
+            onValueChange={(val) => setQuery(prev => ({ ...prev, priority: val === "all" ? undefined : Number(val), page: 1 }))}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full md:w-36 bg-white h-10">
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas</SelectItem>
-              <SelectItem value="0">Baixa</SelectItem>
-              <SelectItem value="1">Média</SelectItem>
-              <SelectItem value="2">Alta</SelectItem>
-              <SelectItem value="3">Urgente</SelectItem>
+              <SelectItem value="all">Todas Prioridades</SelectItem>
+              <SelectItem value={ChecklistPriority.Low.toString()}>Baixa</SelectItem>
+              <SelectItem value={ChecklistPriority.Medium.toString()}>Média</SelectItem>
+              <SelectItem value={ChecklistPriority.High.toString()}>Alta</SelectItem>
+              <SelectItem value={ChecklistPriority.Urgent.toString()}>Urgente</SelectItem>
             </SelectContent>
           </Select>
 
-          <Input
-            type="date"
-            placeholder="Data inicial"
-            className="w-40"
-            value={query.dateFrom || ''}
-            onChange={(e) => setQuery(prev => ({ ...prev, dateFrom: e.target.value, page: 1 }))}
-          />
+          <div className="flex items-center gap-1 bg-white border rounded-md px-2 h-10 text-slate-600">
+            <Calendar className="h-4 w-4 text-slate-400" />
+            <input
+              type="date"
+              className="text-xs md:text-sm outline-none bg-transparent"
+              value={query.dateFrom || ''}
+              onChange={(e) => setQuery(prev => ({ ...prev, dateFrom: e.target.value, page: 1 }))}
+            />
+            <span className="text-slate-300">-</span>
+            <input
+              type="date"
+              className="text-xs md:text-sm outline-none bg-transparent"
+              value={query.dateTo || ''}
+              onChange={(e) => setQuery(prev => ({ ...prev, dateTo: e.target.value, page: 1 }))}
+            />
+          </div>
 
-          <Input
-            type="date"
-            placeholder="Data final"
-            className="w-40"
-            value={query.dateTo || ''}
-            onChange={(e) => setQuery(prev => ({ ...prev, dateTo: e.target.value, page: 1 }))}
-          />
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setQuery(prev => ({
-              ...prev,
-              status: undefined,
-              priority: undefined,
-              dateFrom: '',
-              dateTo: '',
-              page: 1
-            }))}
-            className="text-slate-500"
-          >
-            Limpar Filtros
-          </Button>
+          {(query.q || query.status !== undefined || query.priority !== undefined || query.dateFrom || query.dateTo) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setQuery(prev => ({
+                ...prev,
+                q: '',
+                status: undefined,
+                priority: undefined,
+                dateFrom: undefined,
+                dateTo: undefined,
+                page: 1
+              }))}
+              className="h-10 text-slate-500 hover:text-red-500"
+            >
+              <FilterX className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
