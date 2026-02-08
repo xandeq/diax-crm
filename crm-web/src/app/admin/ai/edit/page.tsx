@@ -3,25 +3,25 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Loader2, Eye, Save } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -264,13 +264,13 @@ function EditAiProviderContent() {
                     {discoveredModels.map((model) => {
                       const isAlreadyInSystem = models.some(m => m.modelKey === model.id);
                       return (
-                        <TableRow 
-                          key={model.id} 
+                        <TableRow
+                          key={model.id}
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleToggleModelSelection(model.id)}
                         >
                           <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox 
+                            <Checkbox
                               checked={selectedModelKeys.includes(model.id)}
                               onCheckedChange={() => handleToggleModelSelection(model.id)}
                             />
@@ -308,8 +308,8 @@ function EditAiProviderContent() {
                   <Button variant="outline" onClick={() => setShowModelsDialog(false)}>
                     Cancelar
                   </Button>
-                  <Button 
-                    onClick={handleSaveBatch} 
+                  <Button
+                    onClick={handleSaveBatch}
                     disabled={selectedModelKeys.length === 0 || savingBatch}
                     className="min-w-[180px]"
                   >
