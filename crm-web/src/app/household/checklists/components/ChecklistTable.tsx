@@ -298,6 +298,12 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
                   <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 1 })}>
                     Comprado
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 2 })}>
+                    Cancelado
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 3 })}>
+                    Arquivado
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
