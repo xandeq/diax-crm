@@ -5,23 +5,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Eye, Loader2, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Save, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -42,6 +43,7 @@ function EditAiProviderContent() {
   const [loadingDiscovery, setLoadingDiscovery] = useState(false);
   const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
   const [savingBatch, setSavingBatch] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchData = async (silent = false) => {
     if (!id) return;
@@ -109,6 +111,7 @@ function EditAiProviderContent() {
       setShowModelsDialog(true);
       setDiscoveredModels([]);
       setSelectedModelKeys([]);
+      setSearchTerm('');
 
       const response = await adminAiProvidersService.discoverModels(provider.key);
 
@@ -281,6 +284,16 @@ function EditAiProviderContent() {
             </div>
           ) : (
             <>
+              <div className="relative mb-4 px-1">
+                <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Filtrar modelos por nome ou ID..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
               <div className="flex-1 overflow-y-auto pr-2">
                 <Table>
                   <TableHeader>
@@ -292,7 +305,13 @@ function EditAiProviderContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {discoveredModels.map((model) => {
+                    {discoveredModels
+                      .filter(m =>
+                        !searchTerm ||
+                        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        m.id.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((model) => {
                       const isAlreadyInSystem = models.some(m => m.modelKey === model.id);
                       return (
                         <TableRow
@@ -327,6 +346,13 @@ function EditAiProviderContent() {
                         </TableRow>
                       );
                     })}
+                    {searchTerm && discoveredModels.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.id.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                Nenhum modelo encontrado para "{searchTerm}"
+                            </TableCell>
+                        </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
