@@ -5,20 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
@@ -44,6 +44,30 @@ function EditAiProviderContent() {
   const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
   const [savingBatch, setSavingBatch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Computes which models should be shown based on search term
+  const visibleModels = discoveredModels.filter(m =>
+    !searchTerm ||
+    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    m.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Check if all CURRENTLY VISIBLE models are selected
+  // We only check if visibleModels length > 0 to avoid checking empty lists
+  const areAllVisibleSelected = visibleModels.length > 0 && visibleModels.every(m => selectedModelKeys.includes(m.id));
+
+  const handleSelectAllVisible = () => {
+    if (areAllVisibleSelected) {
+      // Deselect all visible models
+      const visibleIds = visibleModels.map(m => m.id);
+      setSelectedModelKeys(prev => prev.filter(key => !visibleIds.includes(key)));
+    } else {
+      // Select all visible models
+      const visibleIds = visibleModels.map(m => m.id);
+      // Combine current selection with visible IDs, removing duplicates with Set
+      setSelectedModelKeys(prev => [...new Set([...prev, ...visibleIds])]);
+    }
+  };
 
   const fetchData = async (silent = false) => {
     if (!id) return;
@@ -305,13 +329,7 @@ function EditAiProviderContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {discoveredModels
-                      .filter(m =>
-                        !searchTerm ||
-                        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        m.id.toLowerCase().includes(searchTerm.toLowerCase())
-                      )
-                      .map((model) => {
+                    {visibleModels.map((model) => {
                       const isAlreadyInSystem = models.some(m => m.modelKey === model.id);
                       return (
                         <TableRow
@@ -346,7 +364,7 @@ function EditAiProviderContent() {
                         </TableRow>
                       );
                     })}
-                    {searchTerm && discoveredModels.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.id.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                    {searchTerm && visibleModels.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                                 Nenhum modelo encontrado para "{searchTerm}"
@@ -362,6 +380,9 @@ function EditAiProviderContent() {
                   <span className="font-semibold text-primary">{selectedModelKeys.length}</span> modelos selecionados
                 </div>
                 <div className="flex gap-3">
+                  <Button variant="outline" onClick={handleSelectAllVisible} disabled={visibleModels.length === 0}>
+                    {areAllVisibleSelected ? 'Deselect Visible' : 'Select Visible'}
+                  </Button>
                   <Button variant="outline" onClick={() => setShowModelsDialog(false)}>
                     Cancelar
                   </Button>
