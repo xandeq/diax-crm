@@ -136,8 +136,10 @@ export interface Expense {
     expenseCategoryName?: string;
     isRecurring: boolean;
     creditCardId?: string;
+    creditCardName?: string; // New
     creditCardInvoiceId?: string;
     financialAccountId?: string;
+    financialAccountName?: string; // New
     status: ExpenseStatus;
     paidDate?: string;
     createdAt: string;

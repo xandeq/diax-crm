@@ -8,7 +8,7 @@ import { formatDisplayDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { Expense, ExpenseCategory, ExpenseStatus, financeService, FinancialAccount, FinancialFilters, PagedResponse } from '@/services/finance';
 import { ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, Edit, Plus, Trash2, Wallet } from 'lucide-react';
+import { ArrowUpDown, CreditCardIcon, Edit, Plus, Trash2, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -166,13 +166,25 @@ export default function ExpensesPage() {
       ),
     },
     {
-      accessorKey: 'financialAccountId',
-      header: 'Conta',
-      cell: ({ row }) => (
-        <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-700 font-medium rounded-lg">
-          {accounts.find(a => a.id === row.original.financialAccountId)?.name || '-'}
-        </Badge>
-      ),
+      id: 'source',
+      header: 'Origem',
+      cell: ({ row }) => {
+        const expense = row.original;
+        if (expense.creditCardId) {
+            return (
+                <Badge variant="outline" className="bg-purple-50/50 border-purple-100 text-purple-700 font-medium rounded-lg gap-1">
+                    <CreditCardIcon className="h-3 w-3" />
+                    {expense.creditCardName || 'Cartão'}
+                </Badge>
+            );
+        }
+        return (
+            <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-700 font-medium rounded-lg gap-1">
+                <Wallet className="h-3 w-3" />
+                {expense.financialAccountName || '-'}
+            </Badge>
+        );
+      },
     },
     {
       accessorKey: 'amount',

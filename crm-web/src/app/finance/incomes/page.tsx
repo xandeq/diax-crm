@@ -167,7 +167,7 @@ export default function IncomesPage() {
     },
     {
       accessorKey: 'financialAccountName',
-      header: 'Conta',
+      header: 'Conta / Origem',
       cell: ({ row }) => (
         <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-700 font-medium rounded-lg">
           {row.original.financialAccountName}
