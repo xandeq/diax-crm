@@ -8,6 +8,7 @@ public class StatementImport : AuditableEntity, IUserOwnedEntity
     public StatementImportType ImportType { get; private set; }
     public Guid? FinancialAccountId { get; private set; }
     public Guid? CreditCardGroupId { get; private set; }
+    public Guid? CreditCardId { get; private set; } // New property
     public string FileName { get; private set; } = string.Empty;
     public string FileContentType { get; private set; } = string.Empty;
     public long FileSize { get; private set; }
@@ -21,6 +22,7 @@ public class StatementImport : AuditableEntity, IUserOwnedEntity
     // Navigation properties
     public virtual FinancialAccount? FinancialAccount { get; private set; }
     public virtual CreditCardGroup? CreditCardGroup { get; private set; }
+    public virtual CreditCard? CreditCard { get; private set; } // New navigation
     public virtual ICollection<ImportedTransaction> Transactions { get; private set; } = new List<ImportedTransaction>();
 
     private StatementImport() { } // EF Core
@@ -32,7 +34,8 @@ public class StatementImport : AuditableEntity, IUserOwnedEntity
         long fileSize,
         Guid userId,
         Guid? financialAccountId = null,
-        Guid? creditCardGroupId = null)
+        Guid? creditCardGroupId = null,
+        Guid? creditCardId = null) // New parameter
     {
         if (userId == Guid.Empty)
             throw new ArgumentException("UserId is required", nameof(userId));
@@ -46,6 +49,7 @@ public class StatementImport : AuditableEntity, IUserOwnedEntity
             UserId = userId,
             FinancialAccountId = financialAccountId,
             CreditCardGroupId = creditCardGroupId,
+            CreditCardId = creditCardId, // Set property
             Status = ImportStatus.Pending
         };
     }

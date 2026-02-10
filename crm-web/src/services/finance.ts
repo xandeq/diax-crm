@@ -427,6 +427,7 @@ export interface UploadStatementRequest {
     importType: StatementImportType;
     financialAccountId?: string;
     creditCardGroupId?: string;
+    creditCardId?: string;
 }
 
 export interface BulkDeleteResponse {

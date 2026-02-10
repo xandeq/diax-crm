@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCardGroup, financeService, FinancialAccount, StatementImportType } from "@/services/finance";
+import { CreditCard, financeService, FinancialAccount, StatementImportType } from "@/services/finance";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,14 +15,14 @@ import * as z from "zod";
 const formSchema = z.object({
   importType: z.string().min(1, "Selecione o tipo de importação"),
   financialAccountId: z.string().optional(),
-  creditCardGroupId: z.string().optional(),
+  creditCardId: z.string().optional(),
 }).refine(data => {
   if (data.importType === StatementImportType.Account.toString() && !data.financialAccountId) return false;
-  if (data.importType === StatementImportType.CreditCard.toString() && !data.creditCardGroupId) return false;
+  if (data.importType === StatementImportType.CreditCard.toString() && !data.creditCardId) return false;
   return true;
 }, {
-  message: "Selecione a conta ou grupo de cartão correspondente",
-  path: ["financialAccountId"]
+  message: "Selecione a conta ou cartão correspondente",
+  path: ["financialAccountId"] // This path is a bit weird for a general error, but keeping it simple
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -35,7 +35,7 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  const [cardGroups, setCardGroups] = useState<CreditCardGroup[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
@@ -50,12 +50,12 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [accs, groups] = await Promise.all([
+        const [accs, cards] = await Promise.all([
           financeService.getActiveFinancialAccounts(),
-          financeService.getCreditCardGroups(),
+          financeService.getCreditCards(),
         ]);
         setAccounts(accs);
-        setCardGroups(groups.filter(g => g.isActive));
+        setCreditCards(cards.filter(c => c.isActive));
       } catch (err) {
         console.error("Erro ao carregar dados para importação", err);
       }
@@ -82,7 +82,7 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
       await financeService.uploadStatement({
         importType: parseInt(values.importType),
         financialAccountId: values.financialAccountId,
-        creditCardGroupId: values.creditCardGroupId,
+        creditCardId: values.creditCardId,
       }, file);
 
       form.reset();
@@ -143,17 +143,17 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="creditCardGroupId">Grupo de Cartão</Label>
+                <Label htmlFor="creditCardId">Cartão de Crédito</Label>
                 <Select
-                  onValueChange={(value) => form.setValue("creditCardGroupId", value)}
-                  value={form.watch("creditCardGroupId")}
+                  onValueChange={(value) => form.setValue("creditCardId", value)}
+                  value={form.watch("creditCardId")}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o grupo" />
+                    <SelectValue placeholder="Selecione o cartão" />
                   </SelectTrigger>
                   <SelectContent>
-                    {cardGroups.map(group => (
-                      <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                    {creditCards.map(card => (
+                      <SelectItem key={card.id} value={card.id}>{card.name} - {card.lastFourDigits}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

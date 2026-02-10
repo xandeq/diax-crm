@@ -13,6 +13,7 @@ public class StatementImportService
     private readonly IExpenseRepository _expenseRepository;
     private readonly IIncomeRepository _incomeRepository;
     private readonly IFinancialAccountRepository _accountRepository;
+    private readonly ICreditCardRepository _creditCardRepository; // New dependency
     private readonly IEnumerable<IFileParser> _parsers;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -22,6 +23,7 @@ public class StatementImportService
         IExpenseRepository expenseRepository,
         IIncomeRepository incomeRepository,
         IFinancialAccountRepository accountRepository,
+        ICreditCardRepository creditCardRepository, // New dependency
         IEnumerable<IFileParser> parsers,
         IUnitOfWork unitOfWork)
     {
@@ -30,6 +32,7 @@ public class StatementImportService
         _expenseRepository = expenseRepository;
         _incomeRepository = incomeRepository;
         _accountRepository = accountRepository;
+        _creditCardRepository = creditCardRepository;
         _parsers = parsers;
         _unitOfWork = unitOfWork;
     }
@@ -52,6 +55,17 @@ public class StatementImportService
             return Result.Failure<Guid>(new Error("Import.UnsupportedFormat", "Formato de arquivo não suportado."));
         }
 
+        // Logic to fetch CreditCardGroupId if CreditCardId is provided
+        Guid? creditCardGroupId = request.CreditCardGroupId;
+        if (request.CreditCardId.HasValue && !creditCardGroupId.HasValue)
+        {
+            var card = await _creditCardRepository.GetByIdAndUserAsync(request.CreditCardId.Value, userId, ct);
+            if (card != null && card.CreditCardGroupId.HasValue)
+            {
+                creditCardGroupId = card.CreditCardGroupId;
+            }
+        }
+
         // 2. Create import record
         var import = StatementImport.Create(
             request.ImportType,
@@ -60,7 +74,8 @@ public class StatementImportService
             fileSize,
             userId,
             request.FinancialAccountId,
-            request.CreditCardGroupId);
+            creditCardGroupId,
+            request.CreditCardId);
 
         await _importRepository.AddAsync(import, ct);
 

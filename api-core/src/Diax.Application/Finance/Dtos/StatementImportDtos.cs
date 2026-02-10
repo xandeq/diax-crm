@@ -5,7 +5,8 @@ namespace Diax.Application.Finance.Dtos;
 public record UploadStatementRequest(
     StatementImportType ImportType,
     Guid? FinancialAccountId,
-    Guid? CreditCardGroupId
+    Guid? CreditCardGroupId,
+    Guid? CreditCardId // New property
 );
 
 public record StatementImportResponse(
