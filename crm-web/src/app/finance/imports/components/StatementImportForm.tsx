@@ -162,11 +162,11 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="statement-file">Arquivo CSV</Label>
+            <Label htmlFor="statement-file">Arquivo (CSV ou PDF)</Label>
             <Input
               id="statement-file"
               type="file"
-              accept=".csv"
+              accept=".csv,.pdf"
               onChange={onFileChange}
               className="cursor-pointer"
             />

@@ -181,6 +181,7 @@ public static class DependencyInjection
 
         // ===== PARSERS =====
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();
+        services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.PdfFileParser>();
 
         // ===== AI CLIENTS =====
         services.AddScoped<IAiTextTransformClient, ChatGptClient>();

@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Diax.Application.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -93,6 +94,62 @@ public class OpenAiClient : IOpenAiClient
         {
             _logger.LogError(ex, "Unexpected error calling OpenAI API");
             throw new InvalidOperationException("Failed to communicate with OpenAI API", ex);
+        }
+    }
+
+    public async Task<OpenAiChatCompletionResponse> CreateChatCompletionAsync(OpenAiChatCompletionRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            _logger.LogError("OpenAI API key not configured");
+            throw new InvalidOperationException("OpenAI API key not configured. Set OPENAI_API_KEY environment variable.");
+        }
+
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var jsonContent = JsonSerializer.Serialize(request, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
+
+            httpRequest.Content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+            _logger.LogInformation("Sending chat completion request to OpenAI model {Model}", request.Model);
+
+            using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "OpenAI API request failed. Status: {StatusCode}, Response: {Response}",
+                    (int)response.StatusCode,
+                    responseBody);
+
+                throw new HttpRequestException($"OpenAI API returned {response.StatusCode}: {responseBody}");
+            }
+
+            var result = JsonSerializer.Deserialize<OpenAiChatCompletionResponse>(
+                responseBody,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (result == null || result.Choices == null)
+            {
+                _logger.LogWarning("OpenAI API returned invalid response structure");
+                throw new InvalidOperationException("Invalid response from OpenAI API");
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create chat completion");
+            throw;
         }
     }
 }
