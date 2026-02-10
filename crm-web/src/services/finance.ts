@@ -804,6 +804,7 @@ export const financeService = {
         formData.append('ImportType', data.importType.toString());
         if (data.financialAccountId) formData.append('FinancialAccountId', data.financialAccountId);
         if (data.creditCardGroupId) formData.append('CreditCardGroupId', data.creditCardGroupId);
+        if (data.creditCardId) formData.append('CreditCardId', data.creditCardId);
 
         return apiFetch<void>('/StatementImports/upload', {
             method: 'POST',
