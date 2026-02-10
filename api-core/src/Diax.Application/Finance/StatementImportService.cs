@@ -223,16 +223,19 @@ public class StatementImportService
             return Result.Failure<StatementImportPostResponse>(new Error("Import.MissingAccount", "Conta financeira não vinculada à importação."));
         }
 
-        // We only support FinancialAccount for now
-        if (import.ImportType != StatementImportType.FinancialAccount)
+        if (import.ImportType == StatementImportType.CreditCard && !import.CreditCardId.HasValue)
         {
-            return Result.Failure<StatementImportPostResponse>(new Error("Import.UnsupportedType", "Apenas importações de conta corrente são suportadas para postagem automática no momento."));
+             return Result.Failure<StatementImportPostResponse>(new Error("Import.MissingCard", "Cartão de crédito não vinculado à importação."));
         }
 
-        var financialAccount = await _accountRepository.GetByIdAndUserAsync(import.FinancialAccountId!.Value, userId, ct);
-        if (financialAccount == null)
+        FinancialAccount? financialAccount = null;
+        if (import.FinancialAccountId.HasValue)
         {
-            return Result.Failure<StatementImportPostResponse>(new Error("Import.AccountNotFound", "Conta financeira não encontrada."));
+            financialAccount = await _accountRepository.GetByIdAndUserAsync(import.FinancialAccountId.Value, userId, ct);
+            if (financialAccount == null)
+            {
+                return Result.Failure<StatementImportPostResponse>(new Error("Import.AccountNotFound", "Conta financeira não encontrada."));
+            }
         }
 
         var transactions = (await _transactionRepository.GetByImportIdAsync(id, ct)).ToList();
@@ -245,10 +248,6 @@ public class StatementImportService
         // Default categories from seed data
         var defaultExpenseCategoryId = Guid.Parse("20000000-0000-0000-0000-000000000014"); // Não Categorizado
         var defaultIncomeCategoryId = Guid.Parse("10000000-0000-0000-0000-000000000008"); // Outros
-
-        // Fetch all incomes and expenses for the period of the import to do in-memory deduplication (more efficient)
-        var minDate = transactions.Min(t => t.TransactionDate);
-        var maxDate = transactions.Max(t => t.TransactionDate);
 
         // Fetch relevant records for idempotency check
         var existingIncomesAll = await _incomeRepository.GetAllByUserIdAsync(userId, ct);
@@ -290,7 +289,10 @@ public class StatementImportService
                         e.Amount == amount &&
                         e.Date.Date == transaction.TransactionDate.Date &&
                         e.Description == transaction.RawDescription &&
-                        e.FinancialAccountId == financialAccount.Id);
+                        (
+                            (import.ImportType == StatementImportType.FinancialAccount && e.FinancialAccountId == import.FinancialAccountId) ||
+                            (import.ImportType == StatementImportType.CreditCard && e.CreditCardId == import.CreditCardId)
+                        ));
 
                     if (isDuplicate)
                     {
@@ -304,28 +306,49 @@ public class StatementImportService
                         description: transaction.RawDescription,
                         amount: amount,
                         date: transaction.TransactionDate,
-                        paymentMethod: PaymentMethod.BankTransfer, // Default for bank statements
+                        paymentMethod: import.ImportType == StatementImportType.CreditCard ? PaymentMethod.CreditCard : PaymentMethod.BankTransfer,
                         expenseCategoryId: defaultExpenseCategoryId,
                         isRecurring: false,
                         userId: userId,
-                        financialAccountId: financialAccount.Id,
-                        status: ExpenseStatus.Paid,
-                        paidDate: transaction.TransactionDate
+                        financialAccountId: import.ImportType == StatementImportType.FinancialAccount ? import.FinancialAccountId : null,
+                        creditCardId: import.ImportType == StatementImportType.CreditCard ? import.CreditCardId : null,
+                        status: import.ImportType == StatementImportType.CreditCard ? ExpenseStatus.Pending : ExpenseStatus.Paid, // Credit Card expenses are pending invoice payment
+                        paidDate: import.ImportType == StatementImportType.CreditCard ? null : transaction.TransactionDate
                     );
 
-                    financialAccount.Debit(amount);
+                    if (financialAccount != null)
+                    {
+                        financialAccount.Debit(amount);
+                    }
+
                     await _expenseRepository.AddAsync(expense, ct);
                     transaction.MarkAsCreated(expenseId: expense.Id);
                     createdExpenses++;
                 }
                 else
                 {
+                    // Income on Credit Card? Usually a refund or payment.
+                    // For now, let's treat it as Income but loosely.
+                    // However, Income entities usually require FinancialAccountId.
+                    // If it's a Credit Card, we might not be able to create an Income easily unless we support CreditCard Incomes (refunds).
+                    // Current Income entity: financialAccountId is required? Let's check.
+                    // Checking Income.cs...
+                    // For now, if it's Credit Card, we might skip Incomes or handle them differently.
+                    // Let's assume for now we only support Expenses for Credit Cards or block Incomes if no Financial Account.
+
+                    if (import.ImportType == StatementImportType.CreditCard)
+                    {
+                         transaction.MarkAsSkipped("Receitas em cartão de crédito não suportadas automaticamente ainda.");
+                         skipped++;
+                         continue;
+                    }
+
                     // Check for duplicate income
                     var isDuplicate = existingIncomesAll.Any(i =>
                         i.Amount == transaction.Amount &&
                         i.Date.Date == transaction.TransactionDate.Date &&
                         i.Description == transaction.RawDescription &&
-                        i.FinancialAccountId == financialAccount.Id);
+                        i.FinancialAccountId == financialAccount!.Id);
 
                     if (isDuplicate)
                     {
@@ -339,14 +362,14 @@ public class StatementImportService
                         description: transaction.RawDescription,
                         amount: transaction.Amount,
                         date: transaction.TransactionDate,
-                        paymentMethod: PaymentMethod.Pix, // Default for bank statements
+                        paymentMethod: PaymentMethod.Pix,
                         incomeCategoryId: defaultIncomeCategoryId,
                         isRecurring: false,
-                        financialAccountId: financialAccount.Id,
+                        financialAccountId: financialAccount!.Id,
                         userId: userId
                     );
 
-                    financialAccount.Credit(transaction.Amount);
+                    financialAccount!.Credit(transaction.Amount);
                     await _incomeRepository.AddAsync(income, ct);
                     transaction.MarkAsCreated(incomeId: income.Id);
                     createdIncomes++;
@@ -362,7 +385,10 @@ public class StatementImportService
         // Update import stats
         import.Complete(import.TotalRecords, import.ProcessedRecords + createdExpenses + createdIncomes, import.FailedRecords + failed);
 
-        await _accountRepository.UpdateAsync(financialAccount, ct);
+        if (financialAccount != null)
+        {
+            await _accountRepository.UpdateAsync(financialAccount, ct);
+        }
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<StatementImportPostResponse>.Success(new StatementImportPostResponse(
