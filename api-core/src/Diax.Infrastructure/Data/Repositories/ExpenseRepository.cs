@@ -14,6 +14,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public override async Task<IEnumerable<Expense>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(e => e.ExpenseCategory)
             .OrderByDescending(e => e.Date)
             .ToListAsync(cancellationToken);
@@ -22,6 +23,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public override async Task<Expense?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(e => e.ExpenseCategory)
             .Include(e => e.CreditCard)
             .Include(e => e.FinancialAccount)
@@ -31,6 +33,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public async Task<IEnumerable<Expense>> GetByMonthAsync(int year, int month, CancellationToken cancellationToken = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(e => e.ExpenseCategory)
             .Where(e => e.Date.Year == year && e.Date.Month == month)
             .OrderByDescending(e => e.Date)
@@ -56,6 +59,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.FinancialAccount)
             .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId, ct);
     }
+
     public override async Task<PagedResult<Expense>> GetPagedAsync(
         int page,
         int pageSize,
@@ -64,6 +68,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         CancellationToken cancellationToken = default)
     {
         IQueryable<Expense> query = DbSet
+            .IgnoreQueryFilters()
             .Include(e => e.ExpenseCategory)
             .Include(e => e.CreditCard)
             .Include(e => e.FinancialAccount);
