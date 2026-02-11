@@ -12,4 +12,6 @@ public class ExpensePagedRequest : PagedRequest
     public decimal? MinAmount { get; set; }
     public decimal? MaxAmount { get; set; }
     public ExpenseStatus? Status { get; set; }
+    public Guid? CreditCardId { get; set; }
+    public Guid? CreditCardInvoiceId { get; set; }
 }

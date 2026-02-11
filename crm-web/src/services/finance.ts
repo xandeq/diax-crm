@@ -423,6 +423,8 @@ export interface FinancialFilters {
     minAmount?: number;
     maxAmount?: number;
     status?: number;
+    creditCardId?: string;
+    creditCardInvoiceId?: string;
 }
 
 export interface UploadStatementRequest {

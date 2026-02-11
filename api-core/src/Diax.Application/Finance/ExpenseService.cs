@@ -62,6 +62,8 @@ public class ExpenseService : IApplicationService
             (!request.MinAmount.HasValue || e.Amount >= request.MinAmount.Value) &&
             (!request.MaxAmount.HasValue || e.Amount <= request.MaxAmount.Value) &&
             (!request.Status.HasValue || e.Status == request.Status.Value) &&
+            (!request.CreditCardId.HasValue || e.CreditCardId == request.CreditCardId.Value) &&
+            (!request.CreditCardInvoiceId.HasValue || e.CreditCardInvoiceId == request.CreditCardInvoiceId.Value) &&
             (string.IsNullOrWhiteSpace(request.Search) || e.Description.Contains(request.Search));
 
         Func<IQueryable<Expense>, IOrderedQueryable<Expense>> orderBy = request.SortBy?.ToLower() switch
