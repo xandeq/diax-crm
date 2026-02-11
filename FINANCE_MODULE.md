@@ -43,8 +43,11 @@ src/app/finance/
 | **Receitas** | `/finance/incomes` | Listagem, filtro e exclusão de receitas. | `FinancialGrid`, `FinancialToolbar` |
 | **Despesas** | `/finance/expenses` | Listagem de despesas (conta ou cartão). | `FinancialGrid`, `DeleteModal` |
 | **Cartões** | `/finance/credit-cards` | Gestão de cartões, limites e faturas. | `CreditCardList`, `InvoiceList` |
-| **Detalhes do Cartão** | `/finance/credit-cards/[id]` | Faturas do cartão e despesas da fatura. | `CreditCardDetailsPage`, `FinancialGrid` |
+| **Detalhes do Cartão** | `/finance/credit-cards/details?id={id}` | Faturas e despesas (Query Param para compatibilidade Export). | `CreditCardDetailsPage`, `FinancialGrid` |
 | **Importação** | `/finance/imports` | Upload de extratos e conciliação (Match). | `StatementImportForm`, `TransactionMatcher` |
+
+### 🧭 Navegação
+Todas as páginas do módulo compartilham o `FinanceNav`, uma barra de navegação superior para acesso rápido a todas as seções (Receitas, Despesas, Cartões, etc.).
 
 ---
 

@@ -52,7 +52,7 @@ export default function CreditCardsPage() {
             {creditCards.map((card) => (
               <tr key={card.id} className="hover:bg-gray-50 transition-colors cursor-pointer">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Link href={`/finance/credit-cards/${card.id}`} className="text-blue-600 hover:text-blue-800 font-medium block">
+                  <Link href={`/finance/credit-cards/details?id=${card.id}`} className="text-blue-600 hover:text-blue-800 font-medium block">
                     {card.name}
                   </Link>
                 </td>
