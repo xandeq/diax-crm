@@ -39,7 +39,7 @@ src/app/finance/
 
 | Página | Rota | Responsabilidade | Components Chave |
 |--------|------|------------------|------------------|
-| **Dashboard** | `/finance` | Visão geral dos saldos e atalhos rápidos. | `FinanceStats`, `QuickActions` |
+| **Dashboard** | `/finance` | Visão geral, KPIs, Gráficos e Ações Rápidas. | `DashboardClient`, `FinanceStats` |
 | **Receitas** | `/finance/incomes` | Listagem, filtro e exclusão de receitas. | `FinancialGrid`, `FinancialToolbar` |
 | **Despesas** | `/finance/expenses` | Listagem de despesas (conta ou cartão). | `FinancialGrid`, `DeleteModal` |
 | **Cartões** | `/finance/credit-cards` | Gestão de cartões, limites e faturas. | `CreditCardList`, `InvoiceList` |
