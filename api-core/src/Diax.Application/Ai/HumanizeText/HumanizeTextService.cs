@@ -3,6 +3,7 @@ using Diax.Application.Ai.Services;
 using Diax.Application.Common;
 using Diax.Application.PromptGenerator;
 using Diax.Domain.AI;
+using Diax.Domain.Common;
 using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
 
