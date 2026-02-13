@@ -1,6 +1,8 @@
 using Diax.Application.AI;
+using Diax.Application.AI.Services;
 using Diax.Application.Common;
 using Diax.Application.PromptGenerator;
+using Diax.Domain.AI;
 using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
 
@@ -15,21 +17,30 @@ public class HumanizeTextService : IApplicationService, IHumanizeTextService
     private readonly IEnumerable<IAiTextTransformClient> _aiClients;
     private readonly PromptGeneratorSettings _settings;
     private readonly IAiModelValidator _aiModelValidator;
+    private readonly IAiUsageTrackingService _usageTracking;
+    private readonly IAiProviderRepository _providerRepository;
+    private readonly IAiModelRepository _modelRepository;
     private readonly ILogger<HumanizeTextService> _logger;
 
     public HumanizeTextService(
         IEnumerable<IAiTextTransformClient> aiClients,
         PromptGeneratorSettings settings,
         IAiModelValidator aiModelValidator,
+        IAiUsageTrackingService usageTracking,
+        IAiProviderRepository providerRepository,
+        IAiModelRepository modelRepository,
         ILogger<HumanizeTextService> logger)
     {
         _aiClients = aiClients;
         _settings = settings;
         _aiModelValidator = aiModelValidator;
+        _usageTracking = usageTracking;
+        _providerRepository = providerRepository;
+        _modelRepository = modelRepository;
         _logger = logger;
     }
 
-    public async Task<HumanizeTextResponseDto> HumanizeAsync(HumanizeTextRequestDto request, CancellationToken ct = default)
+    public async Task<HumanizeTextResponseDto> HumanizeAsync(HumanizeTextRequestDto request, Guid userId, CancellationToken ct = default)
     {
         var providerKey = request.Provider.ToLower();
 
@@ -82,17 +93,99 @@ public class HumanizeTextService : IApplicationService, IHumanizeTextService
             requestId, providerKey, request.Tone, request.InputText.Length);
 
         var startTime = DateTime.UtcNow;
-        var outputText = await client.TransformAsync(systemPrompt, userPrompt, options, ct);
-        var duration = DateTime.UtcNow - startTime;
+        string? outputText = null;
+        bool success = false;
+        string? errorMsg = null;
 
-        _logger.LogInformation("HumanizeText completed. RequestId: {RequestId}. OutputLength: {OutputLength}. Duration: {Duration}ms",
-            requestId, outputText.Length, duration.TotalMilliseconds);
+        try
+        {
+            outputText = await client.TransformAsync(systemPrompt, userPrompt, options, ct);
+            success = true;
 
-        return new HumanizeTextResponseDto(
-            OutputText: outputText,
-            ProviderUsed: providerKey,
-            ToneUsed: request.Tone,
-            RequestId: requestId
-        );
+            var duration = DateTime.UtcNow - startTime;
+
+            _logger.LogInformation("HumanizeText completed. RequestId: {RequestId}. OutputLength: {OutputLength}. Duration: {Duration}ms",
+                requestId, outputText.Length, duration.TotalMilliseconds);
+
+            // Track usage (fire and forget - don't block response)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var provider = await _providerRepository.GetByKeyAsync(providerKey, CancellationToken.None);
+                    if (provider != null)
+                    {
+                        var modelKey = !string.IsNullOrWhiteSpace(request.Model) ? request.Model : null;
+                        var model = modelKey != null
+                            ? await _modelRepository.GetByProviderAndModelKeyAsync(provider.Id, modelKey, CancellationToken.None)
+                            : (await _modelRepository.GetByProviderIdAsync(provider.Id, CancellationToken.None)).FirstOrDefault();
+
+                        if (model != null)
+                        {
+                            await _usageTracking.LogUsageAsync(
+                                userId: userId,
+                                providerId: provider.Id,
+                                modelId: model.Id,
+                                featureType: "Humanization",
+                                duration: duration,
+                                success: success,
+                                requestId: requestId,
+                                cancellationToken: CancellationToken.None
+                            );
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to track usage for request {RequestId}", requestId);
+                }
+            }, CancellationToken.None);
+
+            return new HumanizeTextResponseDto(
+                OutputText: outputText,
+                ProviderUsed: providerKey,
+                ToneUsed: request.Tone,
+                RequestId: requestId
+            );
+        }
+        catch (Exception ex)
+        {
+            errorMsg = ex.Message;
+            var duration = DateTime.UtcNow - startTime;
+
+            // Track failed usage
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var provider = await _providerRepository.GetByKeyAsync(providerKey, CancellationToken.None);
+                    if (provider != null)
+                    {
+                        var models = await _modelRepository.GetByProviderIdAsync(provider.Id, CancellationToken.None);
+                        var model = models.FirstOrDefault();
+                        if (model != null)
+                        {
+                            await _usageTracking.LogUsageAsync(
+                                userId: userId,
+                                providerId: provider.Id,
+                                modelId: model.Id,
+                                featureType: "Humanization",
+                                duration: duration,
+                                success: false,
+                                requestId: requestId,
+                                errorMessage: errorMsg,
+                                cancellationToken: CancellationToken.None
+                            );
+                        }
+                    }
+                }
+                catch (Exception trackEx)
+                {
+                    _logger.LogError(trackEx, "Failed to track failed usage for request {RequestId}", requestId);
+                }
+            }, CancellationToken.None);
+
+            throw;
+        }
     }
 }

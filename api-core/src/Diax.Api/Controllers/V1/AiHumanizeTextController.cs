@@ -75,7 +75,7 @@ public class AiHumanizeTextController : BaseApiController
                 });
             }
 
-            var result = await _service.HumanizeAsync(request);
+            var result = await _service.HumanizeAsync(request, userId.Value);
             return Ok(result);
         }
         catch (ArgumentException ex)
