@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Eye, Key, Loader2, Save, Search, Settings, Trash2 } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Save, Search, Settings, Trash2, Key } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -230,6 +230,25 @@ function EditAiProviderContent() {
           <EditProviderSettingsForm
             provider={provider}
             onUpdated={() => fetchData(true)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            API Key Configuration
+          </CardTitle>
+          <CardDescription>
+            Configure the API key for this provider. Keys are encrypted and stored securely.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ApiKeyConfigForm
+            providerId={id}
+            providerName={provider.name}
+            onSaved={() => toast.success('API key saved successfully')}
           />
         </CardContent>
       </Card>
