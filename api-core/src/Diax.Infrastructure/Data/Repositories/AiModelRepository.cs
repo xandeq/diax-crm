@@ -23,4 +23,10 @@ public class AiModelRepository : Repository<AiModel>, IAiModelRepository
             .OrderBy(x => x.DisplayName)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<AiModel?> GetByProviderAndModelKeyAsync(Guid providerId, string modelKey, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .FirstOrDefaultAsync(x => x.ProviderId == providerId && x.ModelKey == modelKey, cancellationToken);
+    }
 }

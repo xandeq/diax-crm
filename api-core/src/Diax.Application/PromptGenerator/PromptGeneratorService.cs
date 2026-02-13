@@ -1188,7 +1188,6 @@ Regras obrigatórias:
         var normalizedProvider = NormalizeProvider(provider);
         var requestId = Guid.NewGuid().ToString();
         var startTime = DateTime.UtcNow;
-        bool success = false;
         string? errorMessage = null;
         string? generatedPrompt = null;
 
@@ -1196,7 +1195,6 @@ Regras obrigatórias:
         {
             // Gera o prompt usando o método existente
             generatedPrompt = await GenerateAsync(rawPrompt, provider, promptType, model);
-            success = true;
 
             // Salva no banco
             var userPrompt = new UserPrompt(
