@@ -21,15 +21,17 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiProvider } from '@/services/aiCatalog';
-import { Eye, Layers, Loader2, RefreshCw, Save } from 'lucide-react';
+import { Eye, Layers, Loader2, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { CreateProviderDialog } from '@/components/admin/ai/CreateProviderDialog';
 
 export default function AiAdminPage() {
   const [providers, setProviders] = useState<AiProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [savingBatch, setSavingBatch] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   // Dialog state for viewing models
   const [showModelsDialog, setShowModelsDialog] = useState(false);
@@ -149,6 +151,27 @@ export default function AiAdminPage() {
     }
   };
 
+  const handleDeleteProvider = async (provider: AiProvider) => {
+    const confirmMessage = `Are you sure you want to delete "${provider.name}"?\n\nThis will also delete:\n- All associated models\n- API key credentials\n- Group access permissions\n\nThis action cannot be undone.`;
+
+    if (!confirm(confirmMessage)) return;
+
+    try {
+      setDeleting(provider.id);
+      await adminAiProvidersService.delete(provider.id);
+
+      toast.success(`Provider "${provider.name}" deleted successfully`);
+
+      // Remove from local state
+      setProviders(providers.filter(p => p.id !== provider.id));
+    } catch (error: any) {
+      console.error('Error deleting provider:', error);
+      toast.error(error?.response?.data?.message || 'Failed to delete provider');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -156,9 +179,12 @@ export default function AiAdminPage() {
           <h1 className="text-3xl font-bold tracking-tight">AI Providers Administration</h1>
           <p className="text-muted-foreground">Manage AI providers, models, and access controls.</p>
         </div>
-        <Button onClick={loadProviders} variant="outline">
-          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-        </Button>
+        <div className="flex gap-2">
+          <CreateProviderDialog onCreated={loadProviders} />
+          <Button onClick={loadProviders} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6">
@@ -207,45 +233,68 @@ export default function AiAdminPage() {
                             )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        {provider.supportsListModels && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSyncModels(provider)}
-                              disabled={syncing === provider.id || !provider.isEnabled}
-                            >
-                              {syncing === provider.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                  <RefreshCw className="h-4 w-4 mr-1" />
-                              )}
-                              Sync
-                            </Button>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {provider.supportsListModels && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSyncModels(provider)}
+                                disabled={syncing === provider.id || !provider.isEnabled || deleting === provider.id}
+                              >
+                                {syncing === provider.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <RefreshCw className="h-4 w-4 mr-1" />
+                                )}
+                                Sync
+                              </Button>
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewModels(provider)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Ver Modelos
-                            </Button>
-                          </>
-                        )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewModels(provider)}
+                                disabled={deleting === provider.id}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver Modelos
+                              </Button>
+                            </>
+                          )}
 
-                        <Button
-                          variant={provider.isEnabled ? "destructive" : "default"}
-                          size="sm"
-                          onClick={() => handleToggleProvider(provider)}
-                        >
-                          {provider.isEnabled ? 'Disable' : 'Enable'}
-                        </Button>
+                          <Button
+                            variant={provider.isEnabled ? "destructive" : "default"}
+                            size="sm"
+                            onClick={() => handleToggleProvider(provider)}
+                            disabled={deleting === provider.id}
+                          >
+                            {provider.isEnabled ? 'Disable' : 'Enable'}
+                          </Button>
 
-                        <Button variant="outline" size="sm" asChild>
-                            <a href={`/admin/ai/edit?id=${provider.id}`}>Manage Models</a>
-                        </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            disabled={deleting === provider.id}
+                          >
+                              <a href={`/admin/ai/edit?id=${provider.id}`}>Manage</a>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteProvider(provider)}
+                            disabled={deleting === provider.id}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            {deleting === provider.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

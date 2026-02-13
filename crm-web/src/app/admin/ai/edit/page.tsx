@@ -22,12 +22,13 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Eye, Key, Loader2, Save, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Eye, Key, Loader2, Save, Search, Settings, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ApiKeyConfigForm } from '@/components/admin/ai/ApiKeyConfigForm';
+import { EditProviderSettingsForm } from '@/components/admin/ai/EditProviderSettingsForm';
 
 function EditAiProviderContent() {
   const searchParams = useSearchParams();
@@ -217,15 +218,19 @@ function EditAiProviderContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Provider Settings
+          </CardTitle>
+          <CardDescription>
+            Configure provider metadata and features.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-            <div>
-                <span className="font-semibold">Key:</span> {provider.key}
-            </div>
-            <div>
-                <span className="font-semibold">Base URL:</span> {provider.baseUrl || 'Default'}
-            </div>
+        <CardContent>
+          <EditProviderSettingsForm
+            provider={provider}
+            onUpdated={() => fetchData(true)}
+          />
         </CardContent>
       </Card>
 
