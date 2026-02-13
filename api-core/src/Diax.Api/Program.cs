@@ -45,6 +45,11 @@ builder.Services.AddHttpContextAccessor();
 // HttpClient factory (used for external AI providers)
 builder.Services.AddHttpClient();
 
+// Data Protection API (for encrypting API keys)
+// NOTE: Em produção, chaves são armazenadas no AppDomain por padrão (IIS)
+// Considerar migração para Azure Key Vault ou similar se escalar
+builder.Services.AddDataProtection();
+
 // Prompt Generator settings (API keys from env vars or config)
 var promptGeneratorSettings = new PromptGeneratorSettings();
 builder.Configuration.GetSection("PromptGenerator").Bind(promptGeneratorSettings);

@@ -39,6 +39,17 @@ export interface DiscoverModelsResponse {
   details?: string;
 }
 
+export interface CredentialStatusDto {
+  isConfigured: boolean;
+  lastFourDigits: string | null;
+}
+
+export interface TestConnectionResultDto {
+  success: boolean;
+  message: string;
+  errorDetails?: string | null;
+}
+
 export const adminAiProvidersService = {
   getAll: async (): Promise<AiProvider[]> => {
     return await apiFetch<AiProvider[]>('/admin/ai/providers');
@@ -93,5 +104,28 @@ export const adminAiProvidersService = {
    */
   addBatchModels: async (providerId: string, models: DiscoveredModel[]): Promise<{ success: boolean; message: string }> => {
     return await apiRequest<{ success: boolean; message: string }>(`/admin/ai/providers/${providerId}/batch-models`, 'POST', models);
+  },
+
+  // ===== API Key Management =====
+
+  /**
+   * Save encrypted API key for a provider
+   */
+  saveApiKey: async (providerId: string, apiKey: string): Promise<void> => {
+    await apiRequest(`/admin/ai/providers/${providerId}/credentials`, 'POST', { apiKey });
+  },
+
+  /**
+   * Get credential status (configured + last 4 digits)
+   */
+  getCredentialStatus: async (providerId: string): Promise<CredentialStatusDto> => {
+    return await apiFetch<CredentialStatusDto>(`/admin/ai/providers/${providerId}/credentials/status`);
+  },
+
+  /**
+   * Test connection with provider using configured API key
+   */
+  testConnection: async (providerId: string): Promise<TestConnectionResultDto> => {
+    return await apiRequest<TestConnectionResultDto>(`/admin/ai/providers/${providerId}/test-connection`, 'POST');
   }
 };

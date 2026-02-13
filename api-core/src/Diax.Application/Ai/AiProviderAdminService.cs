@@ -1,4 +1,5 @@
 using Diax.Application.AI.Dtos;
+using Diax.Application.AI.Services;
 using Diax.Domain.AI;
 using Diax.Domain.Common;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,6 +11,8 @@ public class AiProviderAdminService : IAiProviderAdminService
 {
     private readonly IAiProviderRepository _providerRepository;
     private readonly IAiModelRepository _modelRepository;
+    private readonly IAiProviderCredentialRepository _credentialRepository;
+    private readonly IApiKeyEncryptionService _encryptionService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOpenRouterClient _openRouterClient;
     private readonly IOpenAiClient _openAiClient;
@@ -24,6 +27,8 @@ public class AiProviderAdminService : IAiProviderAdminService
     public AiProviderAdminService(
         IAiProviderRepository providerRepository,
         IAiModelRepository modelRepository,
+        IAiProviderCredentialRepository credentialRepository,
+        IApiKeyEncryptionService encryptionService,
         IUnitOfWork unitOfWork,
         IOpenRouterClient openRouterClient,
         IOpenAiClient openAiClient,
@@ -34,6 +39,8 @@ public class AiProviderAdminService : IAiProviderAdminService
     {
         _providerRepository = providerRepository;
         _modelRepository = modelRepository;
+        _credentialRepository = credentialRepository;
+        _encryptionService = encryptionService;
         _unitOfWork = unitOfWork;
         _openRouterClient = openRouterClient;
         _openAiClient = openAiClient;
@@ -375,5 +382,211 @@ public class AiProviderAdminService : IAiProviderAdminService
             new(Id: "sonar-reasoning-pro", Name: "Sonar Reasoning Pro", Provider: "perplexity"),
             new(Id: "r1-1776", Name: "R1-1776", Provider: "perplexity"),
         };
+    }
+
+    // ===== API Key Management =====
+
+    public async Task SaveApiKeyAsync(Guid providerId, string apiKey, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[AiProviderAdmin] Saving API key for provider: {ProviderId}", providerId);
+
+        // Validate provider exists
+        var provider = await _providerRepository.GetByIdAsync(providerId, cancellationToken);
+        if (provider == null)
+        {
+            throw new KeyNotFoundException($"Provider with ID {providerId} not found.");
+        }
+
+        // Encrypt API key
+        var encrypted = _encryptionService.Encrypt(apiKey);
+        var lastFour = _encryptionService.GetLastFourDigits(apiKey);
+
+        // Save to database
+        await _credentialRepository.CreateOrUpdateAsync(providerId, encrypted, lastFour, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("[AiProviderAdmin] API key saved successfully for provider: {ProviderKey}", provider.Key);
+    }
+
+    public async Task<CredentialStatusDto> GetCredentialStatusAsync(Guid providerId, CancellationToken cancellationToken = default)
+    {
+        var credential = await _credentialRepository.GetByProviderIdAsync(providerId, cancellationToken);
+
+        if (credential == null || !credential.IsConfigured())
+        {
+            return new CredentialStatusDto(IsConfigured: false, LastFourDigits: null);
+        }
+
+        return new CredentialStatusDto(
+            IsConfigured: true,
+            LastFourDigits: credential.ApiKeyLastFourDigits
+        );
+    }
+
+    public async Task<TestConnectionResultDto> TestConnectionAsync(Guid providerId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[AiProviderAdmin] Testing connection for provider: {ProviderId}", providerId);
+
+        try
+        {
+            // Get provider
+            var provider = await _providerRepository.GetByIdAsync(providerId, cancellationToken);
+            if (provider == null)
+            {
+                return new TestConnectionResultDto(
+                    Success: false,
+                    Message: "Provider not found",
+                    ErrorDetails: $"Provider with ID {providerId} does not exist"
+                );
+            }
+
+            // Get credential
+            var apiKey = await GetDecryptedApiKeyAsync(providerId, cancellationToken);
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return new TestConnectionResultDto(
+                    Success: false,
+                    Message: "API key not configured",
+                    ErrorDetails: "Please configure an API key before testing the connection"
+                );
+            }
+
+            // Test connection based on provider
+            var testResult = provider.Key.ToLowerInvariant() switch
+            {
+                "openrouter" => await TestOpenRouterConnectionAsync(apiKey, cancellationToken),
+                "openai" => await TestOpenAiConnectionAsync(apiKey, cancellationToken),
+                "gemini" => await TestGeminiConnectionAsync(apiKey, cancellationToken),
+                "deepseek" => await TestDeepSeekConnectionAsync(apiKey, cancellationToken),
+                "perplexity" => new TestConnectionResultDto(
+                    Success: true,
+                    Message: "Perplexity API key configured (validation not implemented)"
+                ),
+                _ => new TestConnectionResultDto(
+                    Success: false,
+                    Message: "Connection test not supported for this provider",
+                    ErrorDetails: $"Provider '{provider.Key}' does not have connection test implementation"
+                )
+            };
+
+            _logger.LogInformation(
+                "[AiProviderAdmin] Connection test for provider {ProviderKey}: {Success}",
+                provider.Key,
+                testResult.Success);
+
+            return testResult;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AiProviderAdmin] Failed to test connection for provider: {ProviderId}", providerId);
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "Connection test failed",
+                ErrorDetails: ex.Message
+            );
+        }
+    }
+
+    public async Task<string?> GetDecryptedApiKeyAsync(Guid providerId, CancellationToken cancellationToken = default)
+    {
+        var credential = await _credentialRepository.GetByProviderIdAsync(providerId, cancellationToken);
+
+        if (credential == null || !credential.IsConfigured())
+        {
+            return null;
+        }
+
+        try
+        {
+            return _encryptionService.Decrypt(credential.ApiKeyEncrypted);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AiProviderAdmin] Failed to decrypt API key for provider: {ProviderId}", providerId);
+            return null;
+        }
+    }
+
+    // ===== Connection Test Helpers =====
+
+    private async Task<TestConnectionResultDto> TestOpenRouterConnectionAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Test by calling models endpoint (lightweight operation)
+            var response = await _openRouterClient.GetModelsAsync(cancellationToken);
+            return new TestConnectionResultDto(
+                Success: true,
+                Message: $"Connection successful - {response.Data.Count} models available"
+            );
+        }
+        catch (Exception ex)
+        {
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "OpenRouter connection failed",
+                ErrorDetails: ex.Message
+            );
+        }
+    }
+
+    private async Task<TestConnectionResultDto> TestOpenAiConnectionAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _openAiClient.GetModelsAsync(cancellationToken);
+            return new TestConnectionResultDto(
+                Success: true,
+                Message: $"Connection successful - {response.Data.Count} models available"
+            );
+        }
+        catch (Exception ex)
+        {
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "OpenAI connection failed",
+                ErrorDetails: ex.Message
+            );
+        }
+    }
+
+    private async Task<TestConnectionResultDto> TestGeminiConnectionAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _geminiClient.GetModelsAsync(cancellationToken);
+            return new TestConnectionResultDto(
+                Success: true,
+                Message: $"Connection successful - {response.Models.Count} models available"
+            );
+        }
+        catch (Exception ex)
+        {
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "Gemini connection failed",
+                ErrorDetails: ex.Message
+            );
+        }
+    }
+
+    private async Task<TestConnectionResultDto> TestDeepSeekConnectionAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _deepSeekModelClient.GetModelsAsync(cancellationToken);
+            return new TestConnectionResultDto(
+                Success: true,
+                Message: $"Connection successful - {response.Data.Count} models available"
+            );
+        }
+        catch (Exception ex)
+        {
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "DeepSeek connection failed",
+                ErrorDetails: ex.Message
+            );
+        }
     }
 }

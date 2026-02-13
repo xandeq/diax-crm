@@ -176,6 +176,7 @@ public static class DependencyInjection
         services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
         services.AddScoped<IAiProviderRepository, AiProviderRepository>();
         services.AddScoped<IAiModelRepository, AiModelRepository>();
+        services.AddScoped<IAiProviderCredentialRepository, AiProviderCredentialRepository>();
         services.AddScoped<IUserGroupRepository, UserGroupRepository>();
         services.AddScoped<IGroupAiAccessRepository, GroupAiAccessRepository>();
 

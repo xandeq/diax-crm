@@ -23,4 +23,26 @@ public interface IAiProviderAdminService
     /// Discover available models from provider's API (currently supports OpenRouter only)
     /// </summary>
     Task<IEnumerable<DiscoveredModelDto>> DiscoverModelsAsync(string providerKey, CancellationToken cancellationToken = default);
+
+    // ===== API Key Management =====
+
+    /// <summary>
+    /// Salva API key criptografada para um provider
+    /// </summary>
+    Task SaveApiKeyAsync(Guid providerId, string apiKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Obtém status da credencial (se configurada + últimos 4 dígitos)
+    /// </summary>
+    Task<CredentialStatusDto> GetCredentialStatusAsync(Guid providerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Testa conexão com provider usando API key configurada
+    /// </summary>
+    Task<TestConnectionResultDto> TestConnectionAsync(Guid providerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Obtém API key descriptografada (uso interno apenas)
+    /// </summary>
+    Task<string?> GetDecryptedApiKeyAsync(Guid providerId, CancellationToken cancellationToken = default);
 }

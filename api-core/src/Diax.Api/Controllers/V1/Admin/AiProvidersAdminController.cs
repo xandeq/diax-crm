@@ -149,4 +149,63 @@ public class AiProvidersAdminController : ControllerBase
             return StatusCode(500, new { success = false, error = "Erro ao descobrir modelos", details = ex.Message });
         }
     }
+
+    // --- API Key Management ---
+
+    /// <summary>
+    /// Salva API key criptografada para um provider
+    /// </summary>
+    [HttpPost("{id}/credentials")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SaveApiKey(Guid id, [FromBody] SaveApiKeyRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.ApiKey))
+        {
+            return BadRequest(new { error = "API key cannot be empty" });
+        }
+
+        try
+        {
+            await _providerService.SaveApiKeyAsync(id, request.ApiKey, cancellationToken);
+            return Ok(new { success = true, message = "API key saved successfully" });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Provider not found" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to save API key", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtém status da credencial (se configurada + últimos 4 dígitos)
+    /// </summary>
+    [HttpGet("{id}/credentials/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCredentialStatus(Guid id, CancellationToken cancellationToken)
+    {
+        var status = await _providerService.GetCredentialStatusAsync(id, cancellationToken);
+        return Ok(status);
+    }
+
+    /// <summary>
+    /// Testa conexão com provider usando API key configurada
+    /// </summary>
+    [HttpPost("{id}/test-connection")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TestConnection(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _providerService.TestConnectionAsync(id, cancellationToken);
+        return Ok(result);
+    }
 }
+
+/// <summary>
+/// Request DTO para salvar API key
+/// </summary>
+public record SaveApiKeyRequest(string ApiKey);

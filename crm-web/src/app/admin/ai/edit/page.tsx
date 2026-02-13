@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -22,11 +22,12 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Eye, Loader2, Save, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Eye, Key, Loader2, Save, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { ApiKeyConfigForm } from '@/components/admin/ai/ApiKeyConfigForm';
 
 function EditAiProviderContent() {
   const searchParams = useSearchParams();
@@ -225,6 +226,25 @@ function EditAiProviderContent() {
             <div>
                 <span className="font-semibold">Base URL:</span> {provider.baseUrl || 'Default'}
             </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            API Key Configuration
+          </CardTitle>
+          <CardDescription>
+            Configure the API key for this provider. Keys are encrypted and stored securely.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ApiKeyConfigForm
+            providerId={id}
+            providerName={provider.name}
+            onSaved={() => toast.success('API key saved successfully')}
+          />
         </CardContent>
       </Card>
 

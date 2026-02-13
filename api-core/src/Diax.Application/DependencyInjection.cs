@@ -8,6 +8,7 @@ using Diax.Application.Household;
 using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using Diax.Application.AI;
+using Diax.Application.AI.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -56,6 +57,9 @@ public static class DependencyInjection
         // AI Model Validator com cache (fonte única de verdade = banco)
         services.AddScoped<IAiModelValidator, AiModelValidator>();
         services.AddScoped<IAiProviderManagementService, AiProviderManagementService>();
+
+        // API Key Encryption Service
+        services.AddSingleton<IApiKeyEncryptionService, ApiKeyEncryptionService>();
 
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();
