@@ -178,14 +178,10 @@ public class PromptGeneratorController : ControllerBase
         return Ok(prompt);
     }
 
-    [HttpGet("providers")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetProviders(CancellationToken cancellationToken)
-    {
-        var providers = await _aiCatalogService.GetCatalogAsync(cancellationToken);
-        return Ok(providers);
-    }
+    // ENDPOINT REMOVED: Use /api/v1/ai/catalog instead (filtered by group permissions)
+    // [HttpGet("providers")]
+    // [AllowAnonymous]
+    // public async Task<IActionResult> GetProviders(...) { ... }
 
     private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)
     {

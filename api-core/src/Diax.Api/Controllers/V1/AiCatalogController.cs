@@ -2,8 +2,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Asp.Versioning;
 using Diax.Application.AI;
+using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Diax.Api.Controllers.V1;
 
@@ -14,18 +16,45 @@ namespace Diax.Api.Controllers.V1;
 public class AiCatalogController : ControllerBase
 {
     private readonly IAiCatalogService _catalogService;
+    private readonly DiaxDbContext _db;
     private readonly ILogger<AiCatalogController> _logger;
 
     public AiCatalogController(
         IAiCatalogService catalogService,
+        DiaxDbContext db,
         ILogger<AiCatalogController> logger)
     {
         _catalogService = catalogService;
+        _db = db;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Get AI catalog filtered by user's group permissions
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetCatalog(CancellationToken cancellationToken)
+    {
+        // 1. Resolve userId from JWT
+        var userId = await ResolveUserIdAsync(cancellationToken);
+        if (userId == null)
+        {
+            _logger.LogWarning("[AiCatalog] Failed to resolve user from JWT");
+            return Unauthorized(new { error = "Invalid authentication token or user not found." });
+        }
+
+        _logger.LogInformation("[AiCatalog] Getting filtered catalog for user: {UserId}", userId);
+
+        // 2. Get user-specific catalog (filtered by group permissions)
+        var catalog = await _catalogService.GetUserCatalogAsync(userId.Value, cancellationToken);
+
+        _logger.LogInformation("[AiCatalog] Returning {Count} accessible providers for user {UserId}",
+            catalog.Count, userId);
+
+        return Ok(new { providers = catalog });
+    }
+
+    private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)
     {
         var email = User.FindFirstValue(ClaimTypes.Email)
                     ?? User.FindFirstValue(JwtRegisteredClaimNames.Email);
@@ -33,16 +62,19 @@ public class AiCatalogController : ControllerBase
         if (string.IsNullOrWhiteSpace(email))
         {
             _logger.LogWarning("[AiCatalog] No email claim found in token");
-            return Unauthorized(new { error = "Invalid authentication token." });
+            return null;
         }
 
-        _logger.LogInformation("[AiCatalog] Getting catalog for user: {Email}", email);
+        var user = await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Email == email, cancellationToken);
 
-        // Usar GetCatalogAsync que tem fallback para configuração
-        var catalog = await _catalogService.GetCatalogAsync(cancellationToken);
+        if (user == null)
+        {
+            _logger.LogWarning("[AiCatalog] User not found with email: {Email}", email);
+            return null;
+        }
 
-        _logger.LogInformation("[AiCatalog] Returning {Count} providers", catalog.Count);
-
-        return Ok(new { providers = catalog });
+        return user.Id;
     }
 }
