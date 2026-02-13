@@ -8,7 +8,7 @@ namespace Diax.Api.Controllers.V1.Admin;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/admin/groups/{groupId:guid}/ai-access")]
-// [Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin")]
 public class GroupAiAccessController : ControllerBase
 {
     private readonly IGroupAiAccessService _service;

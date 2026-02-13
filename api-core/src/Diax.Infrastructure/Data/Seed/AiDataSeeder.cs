@@ -4,89 +4,64 @@ using Microsoft.Extensions.Logging;
 
 namespace Diax.Infrastructure.Data.Seed;
 
+/// <summary>
+/// AI Data Seeder - Provides minimal fallback for empty databases
+/// IMPORTANT: All providers and models should be managed via Admin UI (/admin/ai)
+/// This seeder only ensures the database is not completely empty on first run
+/// </summary>
 public static class AiDataSeeder
 {
     public static void SeedAiProviders(DiaxDbContext db, ILogger? logger = null)
     {
-        logger?.LogInformation("Syncing AI Providers and Models seed data...");
+        logger?.LogInformation("Checking AI Providers database...");
 
-        var seedData = new[]
+        // Check if database already has providers
+        var existingProviders = db.AiProviders.Any();
+
+        if (existingProviders)
         {
-            new {
-                Key = "openai", Name = "OpenAI", ListModels = true, BaseUrl = "https://api.openai.com/v1",
-                Models = new[] { ("gpt-4o", "GPT-4o"), ("gpt-4o-mini", "GPT-4o Mini"), ("gpt-3.5-turbo", "GPT-3.5 Turbo") }
-            },
-            new {
-                Key = "gemini", Name = "Google Gemini", ListModels = true, BaseUrl = "https://generativelanguage.googleapis.com",
-                Models = new[] {
-                    ("gemini-2.5-flash", "Gemini 2.5 Flash"),
-                    ("gemini-2.0-flash", "Gemini 2.0 Flash"),
-                    ("gemini-flash-latest", "Gemini Flash Latest"),
-                    ("gemini-pro-latest", "Gemini Pro Latest"),
-                    ("gemma-3-4b-it", "Gemma 3 4B IT"),
-                    ("gemma-3-12b-it", "Gemma 3 12B IT"),
-                    ("gemini-1.5-flash", "Gemini 1.5 Flash")
-                }
-            },
-            new {
-                Key = "perplexity", Name = "Perplexity", ListModels = true, BaseUrl = "https://api.perplexity.ai",
-                Models = new[] { ("sonar-pro", "Sonar Pro"), ("sonar", "Sonar") }
-            },
-            new {
-                Key = "deepseek", Name = "DeepSeek", ListModels = true, BaseUrl = "https://api.deepseek.com",
-                Models = new[] { ("deepseek-chat", "DeepSeek Chat V3"), ("deepseek-reasoner", "DeepSeek R1 (Reasoner)") }
-            },
-            new {
-                Key = "openrouter", Name = "OpenRouter", ListModels = true, BaseUrl = "https://openrouter.ai/api/v1",
-                Models = new[] {
-                    ("google/gemini-2.0-flash-exp:free", "Gemini 2.0 Flash Exp (Free)"),
-                    ("deepseek/deepseek-r1:free", "DeepSeek R1 (Free)"),
-                    ("deepseek/deepseek-r1-distill-llama-70b:free", "DeepSeek R1 Llama 70B (Free)")
-                }
-            }
-        };
-
-        bool anyChanges = false;
-        foreach (var s in seedData)
-        {
-            var provider = db.AiProviders.Include(p => p.Models).FirstOrDefault(p => p.Key == s.Key);
-            if (provider == null)
-            {
-                provider = new AiProvider(s.Key, s.Name, s.ListModels, s.BaseUrl);
-                provider.Enable();
-                db.AiProviders.Add(provider);
-                anyChanges = true;
-                logger?.LogInformation("Seeding: Added missing AI Provider: {Provider}", s.Key);
-            }
-
-            foreach (var mData in s.Models)
-            {
-                if (!provider.Models.Any(m => m.ModelKey == mData.Item1))
-                {
-                    var model = new AiModel(provider.Id, mData.Item1, mData.Item2, false);
-                    model.Enable();
-                    provider.Models.Add(model);
-                    anyChanges = true;
-                    logger?.LogInformation("Seeding: Added missing AI Model: {Model} to {Provider}", mData.Item1, s.Key);
-                }
-            }
+            logger?.LogInformation("AI Providers already configured. Skipping seed (manage via /admin/ai).");
+            return;
         }
 
-        if (anyChanges)
-        {
-            db.SaveChanges();
-            logger?.LogInformation("AI Catalog sync completed.");
-        }
-    }
+        // ⚠️ WARNING: Database is empty - adding minimal fallback provider
+        logger?.LogWarning("WARNING: No AI providers found in database!");
+        logger?.LogWarning("Adding minimal OpenAI fallback. Configure providers via Admin UI: /admin/ai");
 
-    private static AiProvider CreateProvider(string key, string name, bool listModels, string baseUrl, (string key, string name)[] models)
-    {
-        // Keeping this for compatibility or if needed later, but the logic above replaces its main usage
-        var provider = new AiProvider(key, name, listModels, baseUrl);
-        foreach (var m in models)
-        {
-            provider.Models.Add(new AiModel(provider.Id, m.key, m.name, false));
-        }
-        return provider;
+        // Minimal fallback: Only OpenAI with 1 model
+        var fallbackProvider = new AiProvider(
+            key: "openai",
+            name: "OpenAI",
+            supportsListModels: true,
+            baseUrl: "https://api.openai.com/v1"
+        );
+
+        // DISABLED by default - admin must:
+        // 1. Configure API key via UI
+        // 2. Enable provider
+        // 3. Discover/add models
+        // 4. Assign permissions to groups
+        fallbackProvider.Disable();
+
+        var fallbackModel = new AiModel(
+            providerId: fallbackProvider.Id,
+            modelKey: "gpt-4o-mini",
+            displayName: "GPT-4o Mini",
+            isMultimodal: false
+        );
+        fallbackModel.Disable(); // Disabled by default
+
+        fallbackProvider.Models.Add(fallbackModel);
+
+        db.AiProviders.Add(fallbackProvider);
+        db.SaveChanges();
+
+        logger?.LogInformation("✅ Minimal fallback provider added (DISABLED)");
+        logger?.LogInformation("📋 Next steps:");
+        logger?.LogInformation("   1. Navigate to /admin/ai");
+        logger?.LogInformation("   2. Create providers (OpenAI, Gemini, DeepSeek, etc.)");
+        logger?.LogInformation("   3. Configure API keys for each provider");
+        logger?.LogInformation("   4. Discover and enable models");
+        logger?.LogInformation("   5. Assign provider/model access to user groups");
     }
 }
