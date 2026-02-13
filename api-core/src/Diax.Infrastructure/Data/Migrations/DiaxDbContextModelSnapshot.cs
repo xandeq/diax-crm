@@ -100,75 +100,6 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.ToTable("ai_models", (string)null);
                 });
 
-            modelBuilder.Entity("Diax.Domain.AI.AiUsageLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<decimal>("CostEstimated")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)")
-                        .HasColumnName("cost_estimated");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid>("ModelId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("model_id");
-
-                    b.Property<Guid>("ProviderId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("provider_id");
-
-                    b.Property<string>("RequestType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("request_type");
-
-                    b.Property<int>("TokensInput")
-                        .HasColumnType("int")
-                        .HasColumnName("tokens_input");
-
-                    b.Property<int>("TokensOutput")
-                        .HasColumnType("int")
-                        .HasColumnName("tokens_output");
-
-                    b.Property<int>("TotalTokens")
-                        .HasColumnType("int")
-                        .HasColumnName("total_tokens");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("IX_AiUsageLogs_CreatedAt");
-
-                    b.HasIndex("ModelId")
-                        .HasDatabaseName("IX_AiUsageLogs_ModelId");
-
-                    b.HasIndex("ProviderId")
-                        .HasDatabaseName("IX_AiUsageLogs_ProviderId");
-
-                    b.HasIndex(new[] { "ModelId", "CreatedAt" })
-                        .HasDatabaseName("IX_AiUsageLogs_ModelId_CreatedAt");
-
-                    b.HasIndex(new[] { "ProviderId", "CreatedAt" })
-                        .HasDatabaseName("IX_AiUsageLogs_ProviderId_CreatedAt");
-
-                    b.HasIndex(new[] { "UserId", "CreatedAt" })
-                        .HasDatabaseName("IX_AiUsageLogs_UserId_CreatedAt");
-
-                    b.ToTable("ai_usage_logs", (string)null);
-                });
-
             modelBuilder.Entity("Diax.Domain.AI.AiProvider", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1974,25 +1905,6 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasForeignKey("ProviderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Provider");
-                });
-
-            modelBuilder.Entity("Diax.Domain.AI.AiUsageLog", b =>
-                {
-                    b.HasOne("Diax.Domain.AI.AiModel", "Model")
-                        .WithMany()
-                        .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Diax.Domain.AI.AiProvider", "Provider")
-                        .WithMany()
-                        .HasForeignKey("ProviderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Model");
 
                     b.Navigation("Provider");
                 });
