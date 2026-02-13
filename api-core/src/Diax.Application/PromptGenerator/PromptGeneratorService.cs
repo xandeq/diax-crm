@@ -1,6 +1,8 @@
 using Diax.Application.Common;
 using Diax.Application.PromptGenerator.Dtos;
 using Diax.Application.AI;
+using Diax.Application.AI.Services;
+using Diax.Domain.AI;
 using Diax.Domain.Common;
 using Diax.Domain.PromptGenerator;
 using Microsoft.Extensions.Logging;
@@ -24,6 +26,9 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAiModelValidator _modelValidator;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IAiUsageTrackingService _usageTracking;
+    private readonly IAiProviderRepository _providerRepository;
+    private readonly IAiModelRepository _modelRepository;
 
     public PromptGeneratorService(
         ILogger<PromptGeneratorService> logger,
@@ -31,7 +36,10 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         IUserPromptRepository userPromptRepository,
         IUnitOfWork unitOfWork,
         IAiModelValidator modelValidator,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory,
+        IAiUsageTrackingService usageTracking,
+        IAiProviderRepository providerRepository,
+        IAiModelRepository modelRepository)
     {
         _logger = logger;
         _settings = settings;
@@ -39,6 +47,9 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         _unitOfWork = unitOfWork;
         _modelValidator = modelValidator;
         _httpClientFactory = httpClientFactory;
+        _usageTracking = usageTracking;
+        _providerRepository = providerRepository;
+        _modelRepository = modelRepository;
     }
 
     public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType, string? model = null)
@@ -1174,22 +1185,107 @@ Regras obrigatórias:
         string? model,
         Guid userId)
     {
-        // Gera o prompt usando o método existente
-        var generatedPrompt = await GenerateAsync(rawPrompt, provider, promptType, model);
+        var normalizedProvider = NormalizeProvider(provider);
+        var requestId = Guid.NewGuid().ToString();
+        var startTime = DateTime.UtcNow;
+        bool success = false;
+        string? errorMessage = null;
+        string? generatedPrompt = null;
 
-        // Salva no banco
-        var userPrompt = new UserPrompt(
-            userId,
-            rawPrompt,
-            generatedPrompt,
-            promptType,
-            provider,
-            model);
+        try
+        {
+            // Gera o prompt usando o método existente
+            generatedPrompt = await GenerateAsync(rawPrompt, provider, promptType, model);
+            success = true;
 
-        await _userPromptRepository.AddAsync(userPrompt);
-        await _unitOfWork.SaveChangesAsync();
+            // Salva no banco
+            var userPrompt = new UserPrompt(
+                userId,
+                rawPrompt,
+                generatedPrompt,
+                promptType,
+                normalizedProvider,
+                model);
 
-        return generatedPrompt;
+            await _userPromptRepository.AddAsync(userPrompt);
+            await _unitOfWork.SaveChangesAsync();
+
+            var duration = DateTime.UtcNow - startTime;
+
+            // Track usage (fire and forget)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var providerEntity = await _providerRepository.GetByKeyAsync(normalizedProvider, CancellationToken.None);
+                    if (providerEntity != null)
+                    {
+                        var modelKey = model ?? GetProviderSettings(normalizedProvider, model).Model;
+                        var modelEntity = await _modelRepository.GetByProviderAndModelKeyAsync(providerEntity.Id, modelKey, CancellationToken.None)
+                            ?? (await _modelRepository.GetByProviderIdAsync(providerEntity.Id, CancellationToken.None)).FirstOrDefault();
+
+                        if (modelEntity != null)
+                        {
+                            await _usageTracking.LogUsageAsync(
+                                userId: userId,
+                                providerId: providerEntity.Id,
+                                modelId: modelEntity.Id,
+                                featureType: "PromptGeneration",
+                                duration: duration,
+                                success: true,
+                                requestId: requestId,
+                                cancellationToken: CancellationToken.None
+                            );
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to track usage for prompt generation request {RequestId}", requestId);
+                }
+            }, CancellationToken.None);
+
+            return generatedPrompt;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            var duration = DateTime.UtcNow - startTime;
+
+            // Track failed usage
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var providerEntity = await _providerRepository.GetByKeyAsync(normalizedProvider, CancellationToken.None);
+                    if (providerEntity != null)
+                    {
+                        var models = await _modelRepository.GetByProviderIdAsync(providerEntity.Id, CancellationToken.None);
+                        var modelEntity = models.FirstOrDefault();
+                        if (modelEntity != null)
+                        {
+                            await _usageTracking.LogUsageAsync(
+                                userId: userId,
+                                providerId: providerEntity.Id,
+                                modelId: modelEntity.Id,
+                                featureType: "PromptGeneration",
+                                duration: duration,
+                                success: false,
+                                requestId: requestId,
+                                errorMessage: errorMessage,
+                                cancellationToken: CancellationToken.None
+                            );
+                        }
+                    }
+                }
+                catch (Exception trackEx)
+                {
+                    _logger.LogError(trackEx, "Failed to track failed usage for request {RequestId}", requestId);
+                }
+            }, CancellationToken.None);
+
+            throw;
+        }
     }
 
     public async Task<IEnumerable<UserPromptHistoryDto>> GetUserHistoryAsync(
