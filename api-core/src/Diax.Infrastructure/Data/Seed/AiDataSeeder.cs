@@ -47,7 +47,7 @@ public static class AiDataSeeder
             providerId: fallbackProvider.Id,
             modelKey: "gpt-4o-mini",
             displayName: "GPT-4o Mini",
-            isMultimodal: false
+            isDiscovered: false
         );
         fallbackModel.Disable(); // Disabled by default
 

@@ -73,6 +73,7 @@ public class DiaxDbContext : DbContext
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
     public DbSet<AiModel> AiModels => Set<AiModel>();
     public DbSet<AiProviderCredential> AiProviderCredentials => Set<AiProviderCredential>();
+    public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
     public DbSet<UserGroup> UserGroups => Set<UserGroup>();
     public DbSet<UserGroupMember> UserGroupMembers => Set<UserGroupMember>();
     public DbSet<GroupAiProviderAccess> GroupAiProviderAccesses => Set<GroupAiProviderAccess>();

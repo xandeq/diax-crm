@@ -1,8 +1,12 @@
 using Asp.Versioning;
 using Diax.Application.Ai.HumanizeText;
 using Diax.Application.AI;
+using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Diax.Api.Controllers.V1;
 
@@ -15,15 +19,18 @@ public class AiHumanizeTextController : BaseApiController
 {
     private readonly IHumanizeTextService _service;
     private readonly IAiCatalogService _catalogService;
+    private readonly DiaxDbContext _db;
     private readonly ILogger<AiHumanizeTextController> _logger;
 
     public AiHumanizeTextController(
         IHumanizeTextService service,
         IAiCatalogService catalogService,
+        DiaxDbContext db,
         ILogger<AiHumanizeTextController> logger)
     {
         _service = service;
         _catalogService = catalogService;
+        _db = db;
         _logger = logger;
     }
 
@@ -40,9 +47,14 @@ public class AiHumanizeTextController : BaseApiController
         try
         {
             // SECURITY: Validate user has access to provider and model
-            var userId = GetCurrentUserId();
+            var userId = await ResolveUserIdAsync(CancellationToken.None);
+            if (userId == null)
+            {
+                return Unauthorized(new { Message = "User not authenticated." });
+            }
+
             var hasAccess = await _catalogService.ValidateUserAccessAsync(
-                userId,
+                userId.Value,
                 request.Provider,
                 request.Model,
                 CancellationToken.None
@@ -80,5 +92,21 @@ public class AiHumanizeTextController : BaseApiController
             _logger.LogError(ex, "Unexpected error in HumanizeTextController.");
             return StatusCode(500, new { Message = "Erro inesperado ao processar sua solicitação." });
         }
+    }
+
+    private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+
+        var user = await _db.Users
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
+
+        return user?.Id;
     }
 }
