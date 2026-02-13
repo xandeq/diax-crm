@@ -61,6 +61,9 @@ public static class DependencyInjection
         // API Key Encryption Service
         services.AddSingleton<IApiKeyEncryptionService, ApiKeyEncryptionService>();
 
+        // AI Usage Tracking Service
+        services.AddScoped<IAiUsageTrackingService, AiUsageTrackingService>();
+
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();
 
