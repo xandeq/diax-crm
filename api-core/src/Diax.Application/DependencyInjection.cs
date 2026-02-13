@@ -4,7 +4,6 @@ using Diax.Application.Finance;
 using Diax.Application.HtmlExtraction;
 using Diax.Application.PromptGenerator;
 using Diax.Application.Ai.HumanizeText;
-using Diax.Application.Ai.Services;
 using Diax.Application.Household;
 using Diax.Application.Logs;
 using Diax.Application.Snippets;
@@ -57,10 +56,6 @@ public static class DependencyInjection
         // AI Model Validator com cache (fonte única de verdade = banco)
         services.AddScoped<IAiModelValidator, AiModelValidator>();
         services.AddScoped<IAiProviderManagementService, AiProviderManagementService>();
-
-        // AI Usage Logging
-        services.AddScoped<ITokenEstimator, TokenEstimator>();
-        services.AddScoped<IAiUsageLogService, AiUsageLogService>();
 
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();
