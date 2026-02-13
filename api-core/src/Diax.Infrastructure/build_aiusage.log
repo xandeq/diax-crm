@@ -1,0 +1,14 @@
+  Determinando os projetos a serem restaurados...
+  Todos os projetos estão atualizados para restauração.
+  Diax.Shared -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Shared\bin\Debug\net8.0\Diax.Shared.dll
+  Diax.Domain -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Domain\bin\Debug\net8.0\Diax.Domain.dll
+  Diax.Application -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\bin\Debug\net8.0\Diax.Application.dll
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Infrastructure\Data\Seed\AiDataSeeder.cs(50,13): error CS1739: A melhor sobrecarga de "AiModel" não tem um parâmetro chamado "isMultimodal" [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Infrastructure\Diax.Infrastructure.csproj]
+
+FALHA da compilação.
+
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Infrastructure\Data\Seed\AiDataSeeder.cs(50,13): error CS1739: A melhor sobrecarga de "AiModel" não tem um parâmetro chamado "isMultimodal" [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Infrastructure\Diax.Infrastructure.csproj]
+    0 Aviso(s)
+    1 Erro(s)
+
+Tempo Decorrido 00:00:02.29

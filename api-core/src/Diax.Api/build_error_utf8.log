@@ -1,0 +1,13 @@
+﻿  Determinando os projetos a serem restaurados...
+  Todos os projetos est├úo atualizados para restaura├º├úo.
+  Diax.Shared -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Shared\bin\Debug\net8.0\Diax.Shared.dll
+  Diax.Domain -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Domain\bin\Debug\net8.0\Diax.Domain.dll
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Finance\ExpenseService.cs(357,20): error CS1729: "ExpenseResponse" n├úo cont├®m um construtor que aceita 18 argumentos [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Diax.Application.csproj]
+
+FALHA da compila├º├úo.
+
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Finance\ExpenseService.cs(357,20): error CS1729: "ExpenseResponse" n├úo cont├®m um construtor que aceita 18 argumentos [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Diax.Application.csproj]
+    0 Aviso(s)
+    1 Erro(s)
+
+Tempo Decorrido 00:00:01.84

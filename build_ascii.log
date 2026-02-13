@@ -1,0 +1,15 @@
+  Determinando os projetos a serem restaurados...
+  Todos os projetos est??o atualizados para restaura????o.
+  Diax.Shared -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Shared\bin\Release\net8.0\Diax.Shared.dll
+  Diax.Domain -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Domain\bin\Release\net8.0\Diax.Domain.dll
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Ai\Services\AiUsageLogService.cs(69,20): error CS0266: N??o ?? poss??vel converter implicitamente tipo "Diax.Shared.Results.Result" em "Diax.Shared.Results.Result<Diax.Application.Ai.Dtos.AiUsageSummaryResponseDto>". Existe uma convers??o expl??cita (h?? uma convers??o ausente?) [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Diax.Application.csproj]
+
+FALHA da compila????o.
+
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Ai\Services\AiUsageLogService.cs(69,20): error CS0266: N??o ?? poss??vel converter implicitamente tipo "Diax.Shared.Results.Result" em "Diax.Shared.Results.Result<Diax.Application.Ai.Dtos.AiUsageSummaryResponseDto>". Existe uma convers??o expl??cita (h?? uma convers??o ausente?) [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Diax.Application.csproj]
+    0 Aviso(s)
+    1 Erro(s)
+
+Tempo Decorrido 00:00:05.17
+
+As atualiza????es de carga de trabalho est??o dispon??veis. Execute `dotnet workload list` para obter mais informa????es.

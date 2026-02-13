@@ -1,0 +1,7 @@
+  Determinando os projetos a serem restaurados...
+  Todos os projetos estão atualizados para restauração.
+  Diax.Shared -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Shared\bin\Release\net8.0\Diax.Shared.dll
+  Diax.Domain -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Domain\bin\Release\net8.0\Diax.Domain.dll
+  Diax.Application -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\bin\Release\net8.0\Diax.Application.dll
+  Diax.Infrastructure -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Infrastructure\bin\Release\net8.0\Diax.Infrastructure.dll
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Api\Controllers\V1\AiUsageController.cs(2,31): error CS0234: O nome de tipo ou namespace "Common" não existe no namespace "Diax.Api.Controllers.V1" (você está sem uma referência de assembly?) [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Api\Diax.Api.csproj]

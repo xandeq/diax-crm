@@ -1,4 +1,5 @@
 using Diax.Domain.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.AI.Services;
 

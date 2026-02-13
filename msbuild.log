@@ -1,0 +1,5 @@
+  Determinando os projetos a serem restaurados...
+  Todos os projetos estão atualizados para restauração.
+  Diax.Shared -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Shared\bin\Release\net8.0\Diax.Shared.dll
+  Diax.Domain -> C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Domain\bin\Release\net8.0\Diax.Domain.dll
+C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Ai\Services\AiUsageLogService.cs(69,20): error CS0266: Não é possível converter implicitamente tipo "Diax.Shared.Results.Result" em "Diax.Shared.Results.Result<Diax.Application.Ai.Dtos.AiUsageSummaryResponseDto>". Existe uma conversão explícita (há uma conversão ausente?) [C:\Users\acq20\Desktop\Trabalho\Alexandre Queiroz Marketing Digital\DIAX\CRM\api-core\src\Diax.Application\Diax.Application.csproj]
