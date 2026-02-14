@@ -9,6 +9,9 @@ using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using Diax.Application.AI;
 using Diax.Application.AI.Services;
+using Diax.Application.ApiKeys;
+using Diax.Application.Blog;
+using Diax.Application.Blog.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -66,6 +69,12 @@ public static class DependencyInjection
 
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();
+
+        // ===== BLOG & API KEYS SERVICES =====
+        services.AddScoped<ApiKeyService>();
+        services.AddScoped<BlogPostService>();
+        services.AddScoped<IHtmlSanitizerService, HtmlSanitizerService>();
+        services.AddScoped<ISlugGeneratorService, SlugGeneratorService>();
 
         return services;
     }

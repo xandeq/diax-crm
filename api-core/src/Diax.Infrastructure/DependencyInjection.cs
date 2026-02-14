@@ -14,6 +14,8 @@ using Diax.Infrastructure.Ai;
 using Diax.Shared.Ai;
 using Diax.Domain.AI;
 using Diax.Domain.UserGroups;
+using Diax.Domain.ApiKeys;
+using Diax.Domain.Blog;
 using Diax.Application.AI;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -180,6 +182,10 @@ public static class DependencyInjection
         services.AddScoped<IAiUsageLogRepository, AiUsageLogRepository>();
         services.AddScoped<IUserGroupRepository, UserGroupRepository>();
         services.AddScoped<IGroupAiAccessRepository, GroupAiAccessRepository>();
+
+        // ===== BLOG & API KEYS =====
+        services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
+        services.AddScoped<IBlogPostRepository, BlogPostRepository>();
 
         // ===== PARSERS =====
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();

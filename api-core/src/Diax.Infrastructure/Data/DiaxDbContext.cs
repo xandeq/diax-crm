@@ -8,6 +8,8 @@ using Diax.Domain.Snippets;
 using Diax.Domain.PromptGenerator;
 using Diax.Domain.AI;
 using Diax.Domain.UserGroups;
+using Diax.Domain.ApiKeys;
+using Diax.Domain.Blog;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -78,6 +80,10 @@ public class DiaxDbContext : DbContext
     public DbSet<UserGroupMember> UserGroupMembers => Set<UserGroupMember>();
     public DbSet<GroupAiProviderAccess> GroupAiProviderAccesses => Set<GroupAiProviderAccess>();
     public DbSet<GroupAiModelAccess> GroupAiModelAccesses => Set<GroupAiModelAccess>();
+
+    // Blog & API Keys
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
 
