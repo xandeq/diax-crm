@@ -110,12 +110,22 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000"
             };
 
-        // Garantir que a origem de produção esteja sempre permitida
-        var productionOrigin = "https://crm.alexandrequeiroz.com.br";
-        if (!allowedOrigins.Contains(productionOrigin))
+        // Garantir que as origens de produção estejam sempre permitidas
+        var productionOrigins = new[]
         {
-            allowedOrigins.Add(productionOrigin);
+            "https://crm.alexandrequeiroz.com.br",
+            "https://alexandrequeiroz.com.br"
+        };
+
+        foreach (var origin in productionOrigins)
+        {
+            if (!allowedOrigins.Contains(origin))
+            {
+                allowedOrigins.Add(origin);
+            }
         }
+
+        Log.Information("CORS configured with allowed origins: {Origins}", string.Join(", ", allowedOrigins));
 
         policy.WithOrigins(allowedOrigins.ToArray())
               .AllowAnyMethod()
