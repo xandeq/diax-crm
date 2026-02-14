@@ -132,9 +132,9 @@ function EditAiProviderContent() {
     }
   };
 
-  const processBatch = async <T,>(
-    items: T[],
-    action: (item: T) => Promise<any>,
+  const processBatch = async (
+    items: any[],
+    action: (item: any) => Promise<any>,
     actionName: string
   ) => {
     if (items.length === 0) return;
