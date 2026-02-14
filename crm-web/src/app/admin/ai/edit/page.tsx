@@ -7,20 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
@@ -334,24 +334,6 @@ function EditAiProviderContent() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            API Key Configuration
-          </CardTitle>
-          <CardDescription>
-            Configure the API key for this provider. Keys are encrypted and stored securely.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ApiKeyConfigForm
-            providerId={id}
-            providerName={provider.name}
-            onSaved={() => toast.success('API key saved successfully')}
-          />
-        </CardContent>
-      </Card>
-
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <CardTitle>Models</CardTitle>
