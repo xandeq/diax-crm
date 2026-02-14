@@ -19,6 +19,7 @@ public class AiProviderAdminService : IAiProviderAdminService
     private readonly IGeminiClient _geminiClient;
     private readonly IDeepSeekModelClient _deepSeekModelClient;
     private readonly IAnthropicClient _anthropicClient;
+    private readonly IGrokClient _grokClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AiProviderAdminService> _logger;
 
@@ -36,6 +37,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         IGeminiClient geminiClient,
         IDeepSeekModelClient deepSeekModelClient,
         IAnthropicClient anthropicClient,
+        IGrokClient grokClient,
         IMemoryCache cache,
         ILogger<AiProviderAdminService> logger)
     {
@@ -49,6 +51,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         _geminiClient = geminiClient;
         _deepSeekModelClient = deepSeekModelClient;
         _anthropicClient = anthropicClient;
+        _grokClient = grokClient;
         _cache = cache;
         _logger = logger;
     }
@@ -288,6 +291,7 @@ public class AiProviderAdminService : IAiProviderAdminService
                 "deepseek" => await DiscoverDeepSeekModelsAsync(cancellationToken),
                 "perplexity" => GetPerplexityModels(),
                 "anthropic" => await DiscoverAnthropicModelsAsync(cancellationToken),
+                "grok" => await DiscoverGrokModelsAsync(cancellationToken),
                 _ => throw new NotSupportedException(
                     $"Model discovery is not yet supported for provider '{providerKey}'.")
             };
@@ -412,6 +416,63 @@ public class AiProviderAdminService : IAiProviderAdminService
         return null;
     }
 
+    private async Task<List<DiscoveredModelDto>> DiscoverGrokModelsAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[AiProviderAdmin] Discovering Grok models");
+
+        try
+        {
+            var response = await _grokClient.GetModelsAsync(cancellationToken);
+
+            return response.Data
+                .Select(m => new DiscoveredModelDto(
+                    Id: m.Id,
+                    Name: FormatGrokModelName(m.Id),
+                    Provider: "grok",
+                    ContextLength: GetGrokContextLength(m.Id),
+                    InputCostHint: null,  // Grok doesn't expose pricing via API
+                    OutputCostHint: null
+                ))
+                .OrderByDescending(m => m.Id)  // Newest first (grok-4 before grok-3)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AiProviderAdmin] Failed to discover Grok models");
+            throw new InvalidOperationException(
+                "Failed to connect to Grok API. Please verify your API key is valid.", ex);
+        }
+    }
+
+    private static string FormatGrokModelName(string modelId)
+    {
+        // Convert "grok-4-1-fast-reasoning" → "Grok 4.1 Fast (Reasoning)"
+        return modelId switch
+        {
+            "grok-4-1-fast-reasoning" => "Grok 4.1 Fast (Reasoning)",
+            "grok-4-1-fast-non-reasoning" => "Grok 4.1 Fast (Non-Reasoning)",
+            "grok-4-1-fast" => "Grok 4.1 Fast",
+            "grok-4-1-fast-latest" => "Grok 4.1 Fast (Latest)",
+            "grok-code-fast-1" => "Grok Code Fast 1",
+            "grok-4" => "Grok 4",
+            "grok-4-fast" => "Grok 4 Fast",
+            "grok-3" => "Grok 3",
+            "grok-3-mini" => "Grok 3 Mini",
+            "grok-2-vision" => "Grok 2 Vision",
+            _ => modelId  // Fallback to original ID
+        };
+    }
+
+    private static int? GetGrokContextLength(string modelId)
+    {
+        // Context lengths based on xAI documentation
+        if (modelId.Contains("grok-4")) return 2_000_000;  // 2M tokens
+        if (modelId.Contains("grok-code")) return 256_000;  // 256K tokens
+        if (modelId.Contains("grok-3")) return 128_000;  // Estimate
+        if (modelId.Contains("grok-2")) return 128_000;  // Estimate
+        return null;
+    }
+
     private static List<DiscoveredModelDto> GetPerplexityModels()
     {
         return new List<DiscoveredModelDto>
@@ -500,6 +561,7 @@ public class AiProviderAdminService : IAiProviderAdminService
                 "gemini" => await TestGeminiConnectionAsync(apiKey, cancellationToken),
                 "deepseek" => await TestDeepSeekConnectionAsync(apiKey, cancellationToken),
                 "anthropic" => await TestAnthropicConnectionAsync(apiKey, cancellationToken),
+                "grok" => await TestGrokConnectionAsync(apiKey, cancellationToken),
                 "perplexity" => new TestConnectionResultDto(
                     Success: true,
                     Message: "Perplexity API key configured (validation not implemented)"
@@ -676,6 +738,58 @@ public class AiProviderAdminService : IAiProviderAdminService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[AiProviderAdmin] Anthropic connection test failed");
+
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "Connection test failed",
+                ErrorDetails: ex.Message
+            );
+        }
+    }
+
+    private async Task<TestConnectionResultDto> TestGrokConnectionAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Use temporary client with provided API key
+            using var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri("https://api.x.ai/v1/"),
+                Timeout = TimeSpan.FromSeconds(10)
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, "models");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+            _logger.LogInformation("[AiProviderAdmin] Testing Grok connection");
+
+            var response = await httpClient.SendAsync(request, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                var result = System.Text.Json.JsonSerializer.Deserialize<Dtos.GrokModelsResponse>(json,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                var modelCount = result?.Data?.Count ?? 0;
+
+                return new TestConnectionResultDto(
+                    Success: true,
+                    Message: $"Successfully connected to Grok API - {modelCount} models available"
+                );
+            }
+
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "Failed to connect to Grok API",
+                ErrorDetails: $"HTTP {response.StatusCode}: {errorBody}"
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AiProviderAdmin] Grok connection test failed");
 
             return new TestConnectionResultDto(
                 Success: false,

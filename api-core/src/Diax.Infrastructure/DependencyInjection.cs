@@ -210,6 +210,13 @@ public static class DependencyInjection
         services.AddHttpClient<AnthropicTextTransformClient>();
         services.AddScoped<IAiTextTransformClient, AnthropicTextTransformClient>();
 
+        // Register GrokClient as typed HttpClient
+        services.AddHttpClient<IGrokClient, GrokClient>();
+
+        // Register GrokTextTransformClient
+        services.AddHttpClient<GrokTextTransformClient>();
+        services.AddScoped<IAiTextTransformClient, GrokTextTransformClient>();
+
         return services;
     }
 }
