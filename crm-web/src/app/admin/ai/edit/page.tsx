@@ -337,7 +337,7 @@ function EditAiProviderContent() {
 
       {/* Dialog for viewing available models from API */}
       <Dialog open={showModelsDialog} onOpenChange={setShowModelsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Modelos Disponíveis (API) - {provider.name}</DialogTitle>
             <DialogDescription>
@@ -362,7 +362,7 @@ function EditAiProviderContent() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex-1 overflow-y-auto pr-2">
+              <div className="flex-1 overflow-y-auto pr-2 min-h-0">
                 <Table>
                   <TableHeader>
                     <TableRow>

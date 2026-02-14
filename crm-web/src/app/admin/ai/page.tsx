@@ -1,5 +1,6 @@
 'use client';
 
+import { CreateProviderDialog } from '@/components/admin/ai/CreateProviderDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,10 +22,9 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiProvider } from '@/services/aiCatalog';
-import { Eye, Layers, Loader2, RefreshCw, Save, Trash2 } from 'lucide-react';
+import { Layers, Loader2, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CreateProviderDialog } from '@/components/admin/ai/CreateProviderDialog';
 
 export default function AiAdminPage() {
   const [providers, setProviders] = useState<AiProvider[]>([]);
@@ -251,15 +251,7 @@ export default function AiAdminPage() {
                                 Sync
                               </Button>
 
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewModels(provider)}
-                                disabled={deleting === provider.id}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Ver Modelos
-                              </Button>
+
                             </>
                           )}
 
