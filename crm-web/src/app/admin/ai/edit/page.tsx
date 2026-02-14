@@ -47,6 +47,9 @@ function EditAiProviderContent() {
   const [savingBatch, setSavingBatch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Bulk actions state
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState('');
   // Computes which models should be shown based on search term
   const visibleModels = discoveredModels.filter(m =>
     !searchTerm ||
@@ -127,6 +130,83 @@ function EditAiProviderContent() {
     } finally {
       setSavingId(null);
     }
+  };
+
+  const processBatch = async <T,>(
+    items: T[],
+    action: (item: T) => Promise<any>,
+    actionName: string
+  ) => {
+    if (items.length === 0) return;
+
+    setBulkProcessing(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (let i = 0; i < items.length; i++) {
+        setBulkProgress(`${actionName}: ${i + 1}/${items.length}`);
+        try {
+          await action(items[i]);
+          successCount++;
+        } catch (e) {
+          console.error(e);
+          errorCount++;
+        }
+      }
+
+      toast.success(`${actionName} completed. Success: ${successCount}, Errors: ${errorCount}`);
+      // Refresh data
+      await fetchData(true);
+    } catch (error) {
+      toast.error(`Error during ${actionName}`);
+    } finally {
+      setBulkProcessing(false);
+      setBulkProgress('');
+    }
+  };
+
+  const handleEnableAll = async () => {
+    const toEnable = models.filter(m => !m.isEnabled);
+    if (toEnable.length === 0) {
+      toast.info('All models are already enabled.');
+      return;
+    }
+
+    await processBatch(
+      toEnable,
+      (m) => adminAiProvidersService.updateModel(m.id, { ...m, isEnabled: true }),
+      'Enabling models'
+    );
+  };
+
+  const handleDisableAll = async () => {
+    const toDisable = models.filter(m => m.isEnabled);
+    if (toDisable.length === 0) {
+      toast.info('All models are already disabled.');
+      return;
+    }
+
+    await processBatch(
+      toDisable,
+      (m) => adminAiProvidersService.updateModel(m.id, { ...m, isEnabled: false }),
+      'Disabling models'
+    );
+  };
+
+  const handleDeleteAll = async () => {
+    if (models.length === 0) return;
+
+    const confirmMessage = `CAUTION: You are about to DELETE ALL ${models.length} models for this provider.\n\nThis action cannot be undone.\n\nType "DELETE" to confirm.`;
+    const userConfirmation = prompt(confirmMessage);
+
+    if (userConfirmation !== 'DELETE') return;
+
+    await processBatch(
+      models,
+      (m) => adminAiProvidersService.deleteModel(m.id),
+      'Deleting models'
+    );
   };
 
   const handleViewModels = async () => {
@@ -272,9 +352,41 @@ function EditAiProviderContent() {
         </CardContent>
       </Card>
 
-      <Card>
         <CardHeader>
-          <CardTitle>Models</CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <CardTitle>Models</CardTitle>
+            <div className="flex items-center gap-2">
+                {bulkProcessing && (
+                    <span className="text-sm text-muted-foreground mr-2 flex items-center gap-2">
+                        <Loader2 className="h-3 w-3 animate-spin"/> {bulkProgress}
+                    </span>
+                )}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEnableAll}
+                    disabled={models.length === 0 || bulkProcessing}
+                >
+                    Enable All
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDisableAll}
+                    disabled={models.length === 0 || bulkProcessing}
+                >
+                    Disable All
+                </Button>
+                <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteAll}
+                    disabled={models.length === 0 || bulkProcessing}
+                >
+                    Delete All
+                </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
