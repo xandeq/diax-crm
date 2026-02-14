@@ -203,6 +203,13 @@ public static class DependencyInjection
         // Register DeepSeekModelClient as typed HttpClient
         services.AddHttpClient<IDeepSeekModelClient, DeepSeekModelClient>();
 
+        // Register AnthropicClient as typed HttpClient
+        services.AddHttpClient<IAnthropicClient, AnthropicClient>();
+
+        // Register AnthropicTextTransformClient
+        services.AddHttpClient<AnthropicTextTransformClient>();
+        services.AddScoped<IAiTextTransformClient, AnthropicTextTransformClient>();
+
         return services;
     }
 }

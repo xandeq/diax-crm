@@ -18,6 +18,7 @@ public class AiProviderAdminService : IAiProviderAdminService
     private readonly IOpenAiClient _openAiClient;
     private readonly IGeminiClient _geminiClient;
     private readonly IDeepSeekModelClient _deepSeekModelClient;
+    private readonly IAnthropicClient _anthropicClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AiProviderAdminService> _logger;
 
@@ -34,6 +35,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         IOpenAiClient openAiClient,
         IGeminiClient geminiClient,
         IDeepSeekModelClient deepSeekModelClient,
+        IAnthropicClient anthropicClient,
         IMemoryCache cache,
         ILogger<AiProviderAdminService> logger)
     {
@@ -46,6 +48,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         _openAiClient = openAiClient;
         _geminiClient = geminiClient;
         _deepSeekModelClient = deepSeekModelClient;
+        _anthropicClient = anthropicClient;
         _cache = cache;
         _logger = logger;
     }
@@ -284,6 +287,7 @@ public class AiProviderAdminService : IAiProviderAdminService
                 "gemini" => await DiscoverGeminiModelsAsync(cancellationToken),
                 "deepseek" => await DiscoverDeepSeekModelsAsync(cancellationToken),
                 "perplexity" => GetPerplexityModels(),
+                "anthropic" => await DiscoverAnthropicModelsAsync(cancellationToken),
                 _ => throw new NotSupportedException(
                     $"Model discovery is not yet supported for provider '{providerKey}'.")
             };
@@ -369,6 +373,43 @@ public class AiProviderAdminService : IAiProviderAdminService
             ))
             .OrderBy(m => m.Id)
             .ToList();
+    }
+
+    private async Task<List<DiscoveredModelDto>> DiscoverAnthropicModelsAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[AiProviderAdmin] Discovering Anthropic models");
+
+        try
+        {
+            var response = await _anthropicClient.GetModelsAsync(cancellationToken);
+
+            return response.Data
+                .Select(m => new DiscoveredModelDto(
+                    Id: m.Id,
+                    Name: m.DisplayName,
+                    Provider: "anthropic",
+                    ContextLength: GetAnthropicContextLength(m.Id),
+                    InputCostHint: null,  // Anthropic doesn't expose pricing via API
+                    OutputCostHint: null
+                ))
+                .OrderByDescending(m => m.Id)  // Newest first
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AiProviderAdmin] Failed to discover Anthropic models");
+            throw new InvalidOperationException(
+                "Failed to connect to Anthropic API. Please verify your API key is valid.", ex);
+        }
+    }
+
+    private static int? GetAnthropicContextLength(string modelId)
+    {
+        // Context lengths based on Anthropic documentation
+        if (modelId.Contains("claude-3-5")) return 200_000;
+        if (modelId.Contains("claude-3")) return 200_000;
+        if (modelId.Contains("claude-2.1")) return 100_000;
+        return null;
     }
 
     private static List<DiscoveredModelDto> GetPerplexityModels()
@@ -458,6 +499,7 @@ public class AiProviderAdminService : IAiProviderAdminService
                 "openai" => await TestOpenAiConnectionAsync(apiKey, cancellationToken),
                 "gemini" => await TestGeminiConnectionAsync(apiKey, cancellationToken),
                 "deepseek" => await TestDeepSeekConnectionAsync(apiKey, cancellationToken),
+                "anthropic" => await TestAnthropicConnectionAsync(apiKey, cancellationToken),
                 "perplexity" => new TestConnectionResultDto(
                     Success: true,
                     Message: "Perplexity API key configured (validation not implemented)"
@@ -585,6 +627,59 @@ public class AiProviderAdminService : IAiProviderAdminService
             return new TestConnectionResultDto(
                 Success: false,
                 Message: "DeepSeek connection failed",
+                ErrorDetails: ex.Message
+            );
+        }
+    }
+
+    private async Task<TestConnectionResultDto> TestAnthropicConnectionAsync(string apiKey, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Use temporary client with provided API key
+            using var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri("https://api.anthropic.com/v1/"),
+                Timeout = TimeSpan.FromSeconds(10)
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, "models");
+            request.Headers.Add("x-api-key", apiKey);
+            request.Headers.Add("anthropic-version", "2023-06-01");
+
+            _logger.LogInformation("[AiProviderAdmin] Testing Anthropic connection");
+
+            var response = await httpClient.SendAsync(request, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                var result = System.Text.Json.JsonSerializer.Deserialize<Dtos.AnthropicModelsResponse>(json,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                var modelCount = result?.Data?.Count ?? 0;
+
+                return new TestConnectionResultDto(
+                    Success: true,
+                    Message: $"Successfully connected to Anthropic API - {modelCount} models available"
+                );
+            }
+
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "Failed to connect to Anthropic API",
+                ErrorDetails: $"HTTP {response.StatusCode}: {errorBody}"
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AiProviderAdmin] Anthropic connection test failed");
+
+            return new TestConnectionResultDto(
+                Success: false,
+                Message: "Connection test failed",
                 ErrorDetails: ex.Message
             );
         }
