@@ -1,34 +1,34 @@
 'use client';
 
+import { ApiKeyConfigForm } from '@/components/admin/ai/ApiKeyConfigForm';
+import { EditProviderSettingsForm } from '@/components/admin/ai/EditProviderSettingsForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ArrowLeft, Eye, Loader2, Save, Search, Settings, Trash2, Key } from 'lucide-react';
+import { ArrowLeft, Eye, Key, Loader2, Save, Search, Settings, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ApiKeyConfigForm } from '@/components/admin/ai/ApiKeyConfigForm';
-import { EditProviderSettingsForm } from '@/components/admin/ai/EditProviderSettingsForm';
 
 function EditAiProviderContent() {
   const searchParams = useSearchParams();
@@ -419,21 +419,47 @@ function EditAiProviderContent() {
                 </Table>
               </div>
 
-              <div className="flex justify-between items-center pt-6 border-t mt-4 bg-background">
-                <div className="text-sm">
-                  <span className="font-semibold text-primary">{selectedModelKeys.length}</span> modelos selecionados
+              <div className="flex flex-col gap-4 pt-6 border-t mt-4 bg-background">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="text-sm">
+                    <span className="font-semibold text-primary">{selectedModelKeys.length}</span> modelos selecionados
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedModelKeys(discoveredModels.map(m => m.id))}
+                      disabled={discoveredModels.length === 0}
+                    >
+                      Selecionar Todos ({discoveredModels.length})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedModelKeys([])}
+                      disabled={selectedModelKeys.length === 0}
+                    >
+                      Deselecionar Todos
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAllVisible}
+                      disabled={visibleModels.length === 0}
+                    >
+                      {areAllVisibleSelected ? 'Deselecionar Filtrados' : `Selecionar Filtrados (${visibleModels.length})`}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={handleSelectAllVisible} disabled={visibleModels.length === 0}>
-                    {areAllVisibleSelected ? 'Deselect Visible' : 'Select Visible'}
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowModelsDialog(false)}>
+
+                <div className="flex justify-end gap-3">
+                  <Button variant="ghost" onClick={() => setShowModelsDialog(false)}>
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleSaveBatch}
                     disabled={selectedModelKeys.length === 0 || savingBatch}
-                    className="min-w-[180px]"
+                    className="min-w-[150px]"
                   >
                     {savingBatch ? (
                       <>
@@ -443,7 +469,7 @@ function EditAiProviderContent() {
                     ) : (
                       <>
                         <Save className="mr-2 h-4 w-4" />
-                        Adicionar/Atualizar Selecionados
+                        Salvar Selecionados
                       </>
                     )}
                   </Button>
