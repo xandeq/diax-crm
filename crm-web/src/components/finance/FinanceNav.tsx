@@ -9,7 +9,8 @@ import {
     FileInput,
     Landmark,
     LayoutDashboard,
-    Tags
+    Tags,
+    Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,6 +21,11 @@ const navItems = [
     href: '/finance',
     icon: LayoutDashboard,
     exact: true
+  },
+  {
+    name: 'Planejador',
+    href: '/finance/planner',
+    icon: Calendar
   },
   {
     name: 'Receitas',

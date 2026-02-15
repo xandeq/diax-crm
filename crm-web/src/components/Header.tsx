@@ -31,7 +31,35 @@ export function Header() {
 
         {isAuthenticated && (
           <>
-            <Link href="/finance" className="hover:text-slate-900">Financeiro</Link>
+            <div className="relative group">
+              <button
+                type="button"
+                className="hover:text-slate-900"
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                Financeiro
+              </button>
+              <div
+                role="menu"
+                className="absolute left-0 top-full min-w-[200px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
+              >
+                <Link
+                  href="/finance"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Dashboard Financeiro
+                </Link>
+                <Link
+                  href="/finance/planner"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Planejador Financeiro
+                </Link>
+              </div>
+            </div>
 
             <div className="relative group">
               <button
