@@ -166,6 +166,7 @@ export function Header() {
                   <div className="border-t border-slate-100 my-1"></div>
                   <Link href="/admin/groups" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Grupos & Permissões</Link>
                   <Link href="/admin/ai" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Provedores IA</Link>
+                  <Link href="/admin/blog" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Blog</Link>
                 </div>
               </div>
             )}
