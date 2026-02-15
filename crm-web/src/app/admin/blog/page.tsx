@@ -116,7 +116,7 @@ export default function BlogListPage() {
               onPageChange: (page) => setFilters({ ...filters, page }),
               onPageSizeChange: (pageSize) => setFilters({ ...filters, pageSize, page: 1 })
             }}
-            onEdit={(id) => router.push(`/admin/blog/${id}/edit`)}
+            onEdit={(id) => router.push(`/admin/blog/edit?id=${id}`)}
             onPublish={handlePublish}
             onArchive={handleArchive}
             onToggleFeatured={handleToggleFeatured}

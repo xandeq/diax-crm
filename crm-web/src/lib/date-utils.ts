@@ -12,6 +12,15 @@ export function formatDisplayDate(dateString: string): string {
 }
 
 /**
+ * Formata uma string de data ISO para exibição (alias para formatDisplayDate)
+ * @param dateString String de data (ex: 2026-01-02T00:00:00Z)
+ * @returns Data formatada (ex: 02/01/2026)
+ */
+export function formatDate(dateString: string): string {
+    return formatDisplayDate(dateString);
+}
+
+/**
  * Converte uma data para o formato aceito pelo input type="date" (yyyy-MM-dd)
  * de forma segura em relação ao fuso horário.
  */

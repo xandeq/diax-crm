@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { blogService } from '@/services/blogService';
 import { BlogPostForm } from '@/components/admin/blog/BlogPostForm';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -9,18 +9,21 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { BlogPost } from '@/types/blog';
 
-export default function EditBlogPostPage({ params }: { params: { id: string } }) {
+function EditBlogPostContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadPost();
-  }, [params.id]);
+  }, [id]);
 
   const loadPost = async () => {
+    if (!id) return;
     try {
-      const data = await blogService.getById(params.id);
+      const data = await blogService.getById(id);
       setPost(data);
     } catch (error) {
       toast.error('Erro ao carregar post');
@@ -31,8 +34,9 @@ export default function EditBlogPostPage({ params }: { params: { id: string } })
   };
 
   const handleSubmit = async (data: any) => {
+    if (!id) return;
     try {
-      await blogService.update(params.id, data);
+      await blogService.update(id, data);
       toast.success('Post atualizado com sucesso!');
       router.push('/admin/blog');
     } catch (error: any) {
@@ -68,5 +72,13 @@ export default function EditBlogPostPage({ params }: { params: { id: string } })
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function EditBlogPostPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <EditBlogPostContent />
+    </Suspense>
   );
 }

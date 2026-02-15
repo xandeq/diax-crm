@@ -140,8 +140,12 @@ export function BlogPostTable({
     <FinancialGrid
       columns={columns}
       data={data}
+      pageCount={Math.ceil(pagination.totalCount / pagination.pageSize)}
+      page={pagination.page}
+      pageSize={pagination.pageSize}
+      onPageChange={pagination.onPageChange}
+      onPageSizeChange={pagination.onPageSizeChange}
       loading={loading}
-      pagination={pagination}
       getRowId={(row) => row.id}
     />
   );
