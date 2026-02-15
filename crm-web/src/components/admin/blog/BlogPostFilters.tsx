@@ -36,12 +36,12 @@ export function BlogPostFilters({
         </div>
       </div>
 
-      <Select value={status?.toString() ?? ''} onValueChange={onStatusChange}>
+      <Select value={status !== undefined ? status.toString() : 'all'} onValueChange={onStatusChange}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
+          <SelectItem value="all">Todos</SelectItem>
           <SelectItem value="0">Rascunho</SelectItem>
           <SelectItem value="1">Publicado</SelectItem>
           <SelectItem value="2">Arquivado</SelectItem>

@@ -101,7 +101,7 @@ export default function BlogListPage() {
             status={filters.status}
             category={filters.category || ''}
             onSearchChange={(search) => setFilters({ ...filters, search, page: 1 })}
-            onStatusChange={(status) => setFilters({ ...filters, status: status ? Number(status) : undefined, page: 1 })}
+            onStatusChange={(status) => setFilters({ ...filters, status: status === 'all' ? undefined : Number(status), page: 1 })}
             onCategoryChange={(category) => setFilters({ ...filters, category, page: 1 })}
             onClearFilters={() => setFilters({ page: 1, pageSize: 10, search: '', category: '' })}
           />
