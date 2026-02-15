@@ -16,11 +16,16 @@ namespace Diax.Api.Controllers.V1;
 public class CustomersController : BaseApiController
 {
     private readonly CustomerService _customerService;
+    private readonly CustomerImportService _importService;
     private readonly ILogger<CustomersController> _logger;
 
-    public CustomersController(CustomerService customerService, ILogger<CustomersController> logger)
+    public CustomersController(
+        CustomerService customerService,
+        CustomerImportService importService,
+        ILogger<CustomersController> logger)
     {
         _customerService = customerService;
+        _importService = importService;
         _logger = logger;
     }
 
@@ -184,5 +189,46 @@ public class CustomersController : BaseApiController
         var result = await _customerService.DeleteAsync(id, cancellationToken);
 
         return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Importa customers/leads em lote.
+    /// </summary>
+    /// <param name="request">Request com lista de customers a importar</param>
+    /// <param name="cancellationToken">Token de cancelamento</param>
+    /// <returns>Resultado da importação com contadores e erros</returns>
+    [HttpPost("import")]
+    [ProducesResponseType(typeof(BulkImportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkImport(
+        [FromBody] BulkImportRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Importando {Count} customers", request.Customers.Count);
+
+        var result = await _importService.ImportAsync(request, "manual-import.json", cancellationToken);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Obtém o histórico de importações.
+    /// </summary>
+    /// <param name="page">Número da página (padrão: 1)</param>
+    /// <param name="pageSize">Tamanho da página (padrão: 20)</param>
+    /// <param name="cancellationToken">Token de cancelamento</param>
+    /// <returns>Lista paginada de importações</returns>
+    [HttpGet("imports")]
+    [ProducesResponseType(typeof(PagedResponse<ImportHistoryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetImportHistory(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Buscando histórico de importações - Page: {Page}, PageSize: {PageSize}", page, pageSize);
+
+        var result = await _importService.GetImportHistoryAsync(page, pageSize, cancellationToken);
+
+        return Ok(result);
     }
 }

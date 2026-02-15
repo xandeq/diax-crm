@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IUserGroupService, UserGroupService>();
         services.AddScoped<CustomerService>();
+        services.AddScoped<CustomerImportService>();
         services.AddScoped<IncomeService>();
         services.AddScoped<IncomeCategoryService>();
         services.AddScoped<ExpenseService>();
@@ -75,6 +76,12 @@ public static class DependencyInjection
         services.AddScoped<BlogPostService>();
         services.AddScoped<IHtmlSanitizerService, HtmlSanitizerService>();
         services.AddScoped<ISlugGeneratorService, SlugGeneratorService>();
+
+        // ===== FINANCIAL PLANNER SERVICES =====
+        services.AddScoped<Diax.Application.Finance.Planner.FinancialGoalService>();
+        services.AddScoped<Diax.Application.Finance.Planner.RecurringTransactionService>();
+        services.AddScoped<Diax.Application.Finance.Planner.CashFlowProjectionService>();
+        services.AddScoped<Diax.Application.Finance.Planner.MonthlySimulationService>();
 
         return services;
     }

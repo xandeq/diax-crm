@@ -160,6 +160,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<Diax.Application.Auth.IPermissionService, Diax.Infrastructure.Auth.PermissionService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<ICustomerImportRepository, CustomerImportRepository>();
         services.AddScoped<IIncomeRepository, IncomeRepository>();
         services.AddScoped<IIncomeCategoryRepository, IncomeCategoryRepository>();
         services.AddScoped<IExpenseRepository, ExpenseRepository>();
@@ -186,6 +187,12 @@ public static class DependencyInjection
         // ===== BLOG & API KEYS =====
         services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
         services.AddScoped<IBlogPostRepository, BlogPostRepository>();
+
+        // ===== FINANCIAL PLANNER =====
+        services.AddScoped<Diax.Domain.Finance.Planner.Repositories.IFinancialGoalRepository, Diax.Infrastructure.Finance.Planner.FinancialGoalRepository>();
+        services.AddScoped<Diax.Domain.Finance.Planner.Repositories.IRecurringTransactionRepository, Diax.Infrastructure.Finance.Planner.RecurringTransactionRepository>();
+        services.AddScoped<Diax.Domain.Finance.Planner.Repositories.IMonthlySimulationRepository, Diax.Infrastructure.Finance.Planner.MonthlySimulationRepository>();
+        services.AddScoped<Diax.Domain.Finance.Planner.Repositories.ICreditCardStrategyRepository, Diax.Infrastructure.Finance.Planner.CreditCardStrategyRepository>();
 
         // ===== PARSERS =====
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();

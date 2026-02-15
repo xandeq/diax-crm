@@ -16,6 +16,7 @@ export interface Lead {
   name: string;
   email: string;
   phone?: string;
+  whatsApp?: string;
   companyName?: string;
   status: CustomerStatus;
   createdAt: string;

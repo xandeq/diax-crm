@@ -8,16 +8,22 @@ import {
     Lead,
     updateLead
 } from '@/services/leads';
+import { apiFetch } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+    CheckCircle,
     ChevronLeft,
     ChevronRight,
     Edit2,
     Loader2,
+    Mail,
+    MessageCircle,
     Plus,
     Search,
-    Trash2
+    Trash2,
+    Upload
 } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -140,6 +146,45 @@ export default function LeadsPage() {
     }
   };
 
+  const handleConvert = async (lead: Lead) => {
+    if (!confirm(`Converter "${lead.name}" para Cliente?`)) return;
+
+    try {
+      await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
+      alert(`${lead.name} convertido para cliente com sucesso!`);
+      fetchLeads();
+    } catch (err: any) {
+      alert(`Erro ao converter: ${err.message}`);
+    }
+  };
+
+  const handleWhatsApp = async (lead: Lead) => {
+    if (!lead.phone && !lead.whatsApp) {
+      alert('Este lead não possui número de telefone/WhatsApp cadastrado.');
+      return;
+    }
+
+    const phone = (lead.whatsApp || lead.phone || '').replace(/\D/g, '');
+    const message = encodeURIComponent(`Olá ${lead.name}, tudo bem?`);
+
+    // Abre WhatsApp Web
+    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+
+    // Registra o contato
+    try {
+      await apiFetch(`/customers/${lead.id}/contact`, { method: 'POST' });
+      fetchLeads();
+    } catch (err) {
+      console.error('Erro ao registrar contato:', err);
+    }
+  };
+
+  const handleEmail = (lead: Lead) => {
+    const subject = encodeURIComponent('Contato via CRM');
+    const body = encodeURIComponent(`Olá ${lead.name},\n\n`);
+    window.location.href = `mailto:${lead.email}?subject=${subject}&body=${body}`;
+  };
+
   const onSubmit = async (data: LeadFormValues) => {
     setSubmitting(true);
     setError(null);
@@ -184,9 +229,16 @@ export default function LeadsPage() {
           <h1 className="text-3xl font-bold tracking-tight font-display text-slate-900">Gerenciamento de Leads</h1>
           <p className="text-slate-500">Visualize e gerencie seus potenciais clientes.</p>
         </div>
-        <Button onClick={handleOpenCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Lead
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/leads/import">
+            <Button variant="outline">
+              <Upload className="mr-2 h-4 w-4" /> Importar
+            </Button>
+          </Link>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Lead
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -258,7 +310,7 @@ export default function LeadsPage() {
                     {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -266,6 +318,36 @@ export default function LeadsPage() {
                         title="Editar"
                       >
                         <Edit2 className="h-4 w-4" />
+                      </Button>
+                      {lead.status !== CustomerStatus.Customer && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleConvert(lead)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title="Converter para Cliente"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleWhatsApp(lead)}
+                        disabled={!lead.phone && !lead.whatsApp}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Enviar WhatsApp"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEmail(lead)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Enviar Email"
+                      >
+                        <Mail className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"

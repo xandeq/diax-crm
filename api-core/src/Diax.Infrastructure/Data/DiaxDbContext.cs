@@ -2,6 +2,7 @@ using Diax.Domain.Common;
 using Diax.Domain.Auth;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
+using Diax.Domain.Finance.Planner;
 using Diax.Domain.Household;
 using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
@@ -53,6 +54,7 @@ public class DiaxDbContext : DbContext
 
     // ===== DbSets =====
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<CustomerImport> CustomerImports => Set<CustomerImport>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Income> Incomes => Set<Income>();
     public DbSet<IncomeCategory> IncomeCategories => Set<IncomeCategory>();
@@ -86,6 +88,15 @@ public class DiaxDbContext : DbContext
     public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
+
+    // Financial Planner
+    public DbSet<FinancialGoal> FinancialGoals => Set<FinancialGoal>();
+    public DbSet<RecurringTransaction> RecurringTransactions => Set<RecurringTransaction>();
+    public DbSet<MonthlySimulation> MonthlySimulations => Set<MonthlySimulation>();
+    public DbSet<ProjectedTransaction> ProjectedTransactions => Set<ProjectedTransaction>();
+    public DbSet<DailyBalanceProjection> DailyBalanceProjections => Set<DailyBalanceProjection>();
+    public DbSet<SimulationRecommendation> SimulationRecommendations => Set<SimulationRecommendation>();
+    public DbSet<CreditCardStrategy> CreditCardStrategies => Set<CreditCardStrategy>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
