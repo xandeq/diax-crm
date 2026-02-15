@@ -69,7 +69,7 @@ export function FinanceNav() {
 
   return (
     <div className="border-b border-gray-100 bg-white mb-6">
-      <div className="flex items-center gap-1 p-2 overflow-x-auto">
+      <div className="flex flex-wrap items-center justify-center gap-2 p-2">
         {navItems.map((item) => {
           const isActive = item.exact
             ? pathname === item.href
