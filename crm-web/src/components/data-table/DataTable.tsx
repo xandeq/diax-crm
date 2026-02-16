@@ -13,7 +13,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -105,10 +105,12 @@ export function DataTable<TData, TValue>({
   });
 
   // Notify parent of selection changes
-  if (onSelectionChange && selectable) {
-    const selectedRows = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
-    onSelectionChange(selectedRows);
-  }
+  useEffect(() => {
+    if (onSelectionChange && selectable) {
+      const selectedRows = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
+      onSelectionChange(selectedRows);
+    }
+  }, [rowSelection, table, onSelectionChange, selectable]);
 
   return (
     <div className="space-y-4">
