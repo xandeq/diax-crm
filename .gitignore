@@ -27,3 +27,5 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+api-core/nul
+nul

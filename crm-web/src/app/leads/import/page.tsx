@@ -45,9 +45,51 @@ export default function LeadsImportPage() {
 
   const parseCSV = (text: string): ImportCustomerRow[] => {
     const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length === 0) return [];
 
-    // Remove header if exists
-    const hasHeader = lines[0]?.toLowerCase().includes('nome') || lines[0]?.toLowerCase().includes('name') || lines[0]?.toLowerCase().includes('email');
+    // Get header and data
+    const header = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+
+    // Detect Google Contacts format
+    const isGoogleContacts = header.includes('First Name') && header.includes('E-mail 1 - Value');
+
+    if (isGoogleContacts) {
+      // Map Google Contacts columns
+      const firstNameIdx = header.indexOf('First Name');
+      const middleNameIdx = header.indexOf('Middle Name');
+      const lastNameIdx = header.indexOf('Last Name');
+      const emailIdx = header.indexOf('E-mail 1 - Value');
+      const phoneIdx = header.findIndex(h => h.includes('Phone') && h.includes('Value'));
+      const orgNameIdx = header.indexOf('Organization Name');
+      const notesIdx = header.indexOf('Notes');
+
+      return lines.slice(1).map(line => {
+        const parts = line.split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
+
+        // Build full name
+        const firstName = parts[firstNameIdx] || '';
+        const middleName = parts[middleNameIdx] || '';
+        const lastName = parts[lastNameIdx] || '';
+        const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
+
+        const email = parts[emailIdx] || '';
+        const phone = phoneIdx >= 0 ? parts[phoneIdx] || '' : '';
+        const companyName = orgNameIdx >= 0 ? parts[orgNameIdx] || '' : '';
+        const notes = notesIdx >= 0 ? parts[notesIdx] || '' : '';
+
+        return {
+          name: fullName || 'Nome não especificado',
+          email: email.trim(),
+          phone: phone || undefined,
+          whatsApp: phone || undefined,
+          companyName: companyName || undefined,
+          notes: notes || undefined,
+        };
+      });
+    }
+
+    // Simple CSV format (name, email, phone, ...)
+    const hasHeader = header[0]?.toLowerCase().includes('nome') || header[0]?.toLowerCase().includes('name') || header[0]?.toLowerCase().includes('email');
     const dataLines = hasHeader ? lines.slice(1) : lines;
 
     return dataLines.map(line => {

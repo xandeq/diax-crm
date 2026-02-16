@@ -52,40 +52,48 @@ public class CustomerImportService : IApplicationService
 
             try
             {
-                // Valida campos obrigatórios
-                if (string.IsNullOrWhiteSpace(row.Name) || string.IsNullOrWhiteSpace(row.Email))
+                // Valida campo obrigatório: Nome
+                if (string.IsNullOrWhiteSpace(row.Name))
                 {
                     errors.Add(new ImportError(
                         i + 1,
-                        row.Email ?? "",
-                        "Nome e Email são obrigatórios"));
+                        row.Email ?? row.Name ?? "",
+                        "Nome é obrigatório"));
                     continue;
                 }
 
-                // Valida formato de email
-                if (!IsValidEmail(row.Email))
+                // Email é opcional, mas se fornecido deve ser válido
+                var hasEmail = !string.IsNullOrWhiteSpace(row.Email);
+
+                if (hasEmail)
                 {
-                    errors.Add(new ImportError(
-                        i + 1,
-                        row.Email,
-                        "Formato de email inválido"));
-                    continue;
+                    // Valida formato de email
+                    if (!IsValidEmail(row.Email))
+                    {
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Name,
+                            $"Formato de email inválido: '{row.Email}'"));
+                        continue;
+                    }
+
+                    // Verifica se email já existe
+                    if (await _customerRepository.EmailExistsAsync(row.Email, null, cancellationToken))
+                    {
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Email,
+                            "Email já existe no sistema"));
+                        continue;
+                    }
                 }
 
-                // Verifica se email já existe
-                if (await _customerRepository.EmailExistsAsync(row.Email, null, cancellationToken))
-                {
-                    errors.Add(new ImportError(
-                        i + 1,
-                        row.Email,
-                        "Email já existe no sistema"));
-                    continue;
-                }
+                // Cria o customer (usa email genérico se não fornecido)
+                var emailToUse = hasEmail ? row.Email : $"sem-email-{Guid.NewGuid():N}@placeholder.local";
 
-                // Cria o customer
                 var customer = new Customer(
                     row.Name,
-                    row.Email,
+                    emailToUse,
                     PersonType.Individual,
                     request.Source);
 
