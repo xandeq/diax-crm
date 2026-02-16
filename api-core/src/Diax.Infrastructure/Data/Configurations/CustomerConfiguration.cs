@@ -42,10 +42,10 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasMaxLength(255);
 
         builder.Property(c => c.Phone)
-            .HasMaxLength(20);
+            .HasMaxLength(50); // Aumentado para suportar formatos internacionais
 
         builder.Property(c => c.WhatsApp)
-            .HasMaxLength(20);
+            .HasMaxLength(50); // Aumentado para suportar formatos internacionais
 
         builder.Property(c => c.Website)
             .HasMaxLength(500);
@@ -91,9 +91,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         // ===== ÍNDICES =====
 
-        // Índice único no e-mail (cada cliente tem e-mail único)
+        // Índice no e-mail (não único para permitir placeholders)
+        // A validação de duplicatas é feita na aplicação para emails reais
         builder.HasIndex(c => c.Email)
-            .IsUnique()
             .HasDatabaseName("IX_Customers_Email");
 
         // Índice no documento (para buscas por CPF/CNPJ)

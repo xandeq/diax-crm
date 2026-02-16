@@ -97,8 +97,10 @@ public class CustomerImportService : IApplicationService
                     PersonType.Individual,
                     request.Source);
 
-                // Atualiza informações de contato
-                customer.UpdateContactInfo(row.Phone, row.WhatsApp);
+                // Limpa e atualiza informações de contato
+                var cleanedPhone = CleanPhone(row.Phone);
+                var cleanedWhatsApp = CleanPhone(row.WhatsApp);
+                customer.UpdateContactInfo(cleanedPhone, cleanedWhatsApp);
 
                 // Se tem CompanyName, assume que é Pessoa Jurídica
                 if (!string.IsNullOrWhiteSpace(row.CompanyName))
@@ -195,5 +197,26 @@ public class CustomerImportService : IApplicationService
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Limpa e normaliza número de telefone, removendo caracteres extras.
+    /// </summary>
+    private static string? CleanPhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+            return null;
+
+        // Remove espaços duplos, :: e outros caracteres estranhos
+        phone = phone.Trim()
+            .Replace("::", "")
+            .Replace("  ", " ")
+            .Trim();
+
+        // Limita a 50 caracteres (tamanho máximo da coluna)
+        if (phone.Length > 50)
+            phone = phone.Substring(0, 50).Trim();
+
+        return string.IsNullOrWhiteSpace(phone) ? null : phone;
     }
 }

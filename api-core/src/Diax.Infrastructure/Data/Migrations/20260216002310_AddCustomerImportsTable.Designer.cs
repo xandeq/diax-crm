@@ -4,6 +4,7 @@ using Diax.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Diax.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(DiaxDbContext))]
-    partial class DiaxDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260216002310_AddCustomerImportsTable")]
+    partial class AddCustomerImportsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -675,8 +678,8 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnName("person_type");
 
                     b.Property<string>("Phone")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("phone");
 
                     b.Property<string>("SecondaryEmail")
@@ -717,8 +720,8 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnName("website");
 
                     b.Property<string>("WhatsApp")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("whats_app");
 
                     b.HasKey("Id");
@@ -728,6 +731,7 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasFilter("[document] IS NOT NULL");
 
                     b.HasIndex("Email")
+                        .IsUnique()
                         .HasDatabaseName("IX_Customers_Email");
 
                     b.HasIndex("Name")
