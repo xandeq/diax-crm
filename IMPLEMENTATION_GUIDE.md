@@ -411,24 +411,26 @@ Similar ao /customers, mas com ações extras:
 ## ✅ Checklist de Implementação
 
 ### /customers
-- [ ] Criar definição de colunas
-- [ ] Substituir tabela HTML por DataTable
-- [ ] Adicionar TableActions
-- [ ] Implementar handleBulkDelete
-- [ ] Implementar handleExport
-- [ ] Testar ordenação
-- [ ] Testar seleção múltipla
-- [ ] Testar export CSV
+- [x] Criar definição de colunas
+- [x] Substituir tabela HTML por DataTable
+- [x] Adicionar TableActions
+- [x] Implementar handleBulkDelete
+- [x] Implementar handleExport
+- [x] Adicionar ícones (Building2/User) por tipo de pessoa
+- [x] Adicionar badges com ícones de status
+- [x] Adicionar indicador visual WhatsApp (green dot)
+- [x] Testar no navegador
 
 ### /leads
-- [ ] Aplicar mesmas mudanças
-- [ ] Manter ações específicas (WhatsApp, Email, Converter)
-- [ ] Adicionar ação em massa de conversão
-- [ ] Testar integração
+- [x] Aplicar mesmas mudanças
+- [x] Manter ações específicas (WhatsApp, Email, Converter)
+- [x] Adicionar ação em massa de conversão
+- [x] Adicionar ícones e badges
+- [x] Testar no navegador
 
-### Backend
-- [ ] Endpoint DELETE bulk
-- [ ] Endpoint PATCH bulk status
+### Backend (Pendente)
+- [ ] Endpoint DELETE /api/v1/customers/bulk
+- [ ] Endpoint PATCH /api/v1/customers/bulk/status
 - [ ] Testes unitários
 - [ ] Deploy
 
@@ -444,14 +446,53 @@ Similar ao /customers, mas com ações extras:
 
 **Depois:**
 - ✅ Ordenação em todas as colunas
-- ✅ Seleção múltipla
+- ✅ Seleção múltipla com checkboxes
 - ✅ Deletar vários de uma vez
-- ✅ Export CSV/JSON
-- ✅ Mostrar/ocultar colunas
-- ✅ Ícones e badges melhorados
-- ✅ Componentes reutilizáveis
+- ✅ Export CSV com dados selecionados ou todos
+- ✅ Mostrar/ocultar colunas (via ColumnVisibility)
+- ✅ Ícones e badges melhorados com indicadores visuais
+- ✅ Componentes reutilizáveis (@tanstack/react-table)
+- ✅ Ação em massa "Converter Selecionados" (leads)
+- ✅ Loading states e empty states
+- ✅ Paginação client-side
 
 ---
 
-**Status:** ⏳ Componentes base prontos, aguardando integração
-**Próximo passo:** Implementar em /customers
+## ✅ Implementação Concluída
+
+**Status:** ✅ **CONCLUÍDO**
+
+### O que foi feito:
+
+1. **Componentes Base Criados:**
+   - ✅ `DataTable.tsx` - Tabela reutilizável com sorting, selection, pagination
+   - ✅ `TableActions.tsx` - Barra de ações em massa
+   - ✅ `ColumnVisibility.tsx` - Toggle de visibilidade de colunas
+   - ✅ `export.ts` - Funções de export CSV/JSON
+
+2. **Páginas Migradas:**
+   - ✅ `/customers` - Integrada com DataTable + ações em massa
+   - ✅ `/leads` - Integrada com DataTable + ações específicas (WhatsApp, Email, Converter)
+
+3. **Melhorias Visuais:**
+   - ✅ Ícones Building2/User para tipo de pessoa
+   - ✅ Badges com ícones de status (Clock, CheckCircle, XCircle)
+   - ✅ Indicador verde (dot) para WhatsApp
+   - ✅ Cores consistentes e semânticas
+
+4. **Funcionalidades:**
+   - ✅ Seleção múltipla
+   - ✅ Bulk delete (temporário via loop, aguardando endpoint backend)
+   - ✅ Export CSV
+   - ✅ Bulk convert (leads → customers)
+   - ✅ Ordenação em todas as colunas
+   - ✅ Paginação client-side
+
+### Servidor em Execução:
+```
+✓ Next.js 14.2.18
+✓ Local: http://localhost:3000
+✓ Ready in 4.3s
+```
+
+**Próximo passo:** Adicionar endpoints bulk no backend (.NET) para otimizar operações em massa

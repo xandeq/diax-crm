@@ -9,18 +9,28 @@ import {
     updateCustomer
 } from '@/services/customers';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef } from '@tanstack/react-table';
 import {
-    ChevronLeft,
-    ChevronRight,
+    CheckCircle,
+    Clock,
     Edit2,
     Loader2,
     Plus,
     Search,
-    Trash2
+    Trash2,
+    XCircle,
+    Download,
+    Building2,
+    User
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+
+import { DataTable } from '@/components/data-table/DataTable';
+import { TableActions } from '@/components/data-table/TableActions';
+import { Badge } from '@/components/ui/badge';
+import { exportToCSV } from '@/lib/export';
 
 // Schema de validação
 const customerSchema = z.object({
@@ -41,6 +51,7 @@ type CustomerFormValues = z.infer<typeof customerSchema>;
 export default function CustomersPage() {
   // Estados da Lista
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -141,6 +152,40 @@ export default function CustomersPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!confirm(`Deletar ${selectedRows.length} cliente(s)?`)) return;
+
+    try {
+      // TODO: Implementar endpoint bulk delete no backend
+      for (const customer of selectedRows) {
+        await deleteCustomer(customer.id);
+      }
+      fetchCustomers();
+      setSelectedRows([]);
+    } catch (err) {
+      alert('Erro ao deletar clientes.');
+    }
+  };
+
+  const handleExport = () => {
+    const dataToExport = selectedRows.length > 0 ? selectedRows : customers;
+
+    exportToCSV(
+      dataToExport.map(c => ({
+        Nome: c.name,
+        Email: c.email,
+        Telefone: c.phone || '',
+        WhatsApp: c.whatsApp || '',
+        Empresa: c.companyName || '',
+        Documento: c.document || '',
+        Status: CustomerStatus[c.status],
+        'Tipo Pessoa': c.personType === 0 ? 'Física' : 'Jurídica',
+        'Criado em': new Date(c.createdAt).toLocaleDateString('pt-BR'),
+      })),
+      `clientes-${new Date().toISOString().split('T')[0]}`
+    );
+  };
+
   const onSubmit = async (data: CustomerFormValues) => {
     setSubmitting(true);
     setError(null);
@@ -164,27 +209,152 @@ export default function CustomersPage() {
     }
   };
 
-  // Status Badge Helper
+  // Status Badge Helper com ícones
   const getStatusBadge = (status: CustomerStatus) => {
-    const styles: Record<number, string> = {
-      [CustomerStatus.Lead]: 'bg-blue-100 text-blue-800',
-      [CustomerStatus.Contacted]: 'bg-yellow-100 text-yellow-800',
-      [CustomerStatus.Qualified]: 'bg-indigo-100 text-indigo-800',
-      [CustomerStatus.ProposalSent]: 'bg-purple-100 text-purple-800',
-      [CustomerStatus.Negotiation]: 'bg-orange-100 text-orange-800',
-      [CustomerStatus.Customer]: 'bg-green-100 text-green-800',
-      [CustomerStatus.Churned]: 'bg-gray-100 text-gray-800',
-      [CustomerStatus.Lost]: 'bg-red-100 text-red-800',
+    const configs: Record<number, { style: string; icon: React.ReactNode; label: string }> = {
+      [CustomerStatus.Lead]: {
+        style: 'bg-blue-100 text-blue-800',
+        icon: <Clock className="h-3 w-3" />,
+        label: 'Lead'
+      },
+      [CustomerStatus.Contacted]: {
+        style: 'bg-yellow-100 text-yellow-800',
+        icon: <Clock className="h-3 w-3" />,
+        label: 'Contatado'
+      },
+      [CustomerStatus.Qualified]: {
+        style: 'bg-indigo-100 text-indigo-800',
+        icon: <CheckCircle className="h-3 w-3" />,
+        label: 'Qualificado'
+      },
+      [CustomerStatus.ProposalSent]: {
+        style: 'bg-purple-100 text-purple-800',
+        icon: <Clock className="h-3 w-3" />,
+        label: 'Proposta Enviada'
+      },
+      [CustomerStatus.Negotiation]: {
+        style: 'bg-orange-100 text-orange-800',
+        icon: <Clock className="h-3 w-3" />,
+        label: 'Negociação'
+      },
+      [CustomerStatus.Customer]: {
+        style: 'bg-green-100 text-green-800',
+        icon: <CheckCircle className="h-3 w-3" />,
+        label: 'Cliente'
+      },
+      [CustomerStatus.Churned]: {
+        style: 'bg-gray-100 text-gray-800',
+        icon: <XCircle className="h-3 w-3" />,
+        label: 'Churn'
+      },
+      [CustomerStatus.Lost]: {
+        style: 'bg-red-100 text-red-800',
+        icon: <XCircle className="h-3 w-3" />,
+        label: 'Perdido'
+      },
     };
-    const label = CustomerStatus[status] || 'Desconhecido';
-    const style = styles[status] || 'bg-gray-100 text-gray-800';
+
+    const config = configs[status] || {
+      style: 'bg-gray-100 text-gray-800',
+      icon: null,
+      label: 'Desconhecido'
+    };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${style}`}>
-        {label}
-      </span>
+      <Badge className={`flex items-center gap-1 ${config.style}`}>
+        {config.icon}
+        <span>{config.label}</span>
+      </Badge>
     );
   };
+
+  // Definição das colunas
+  const columns: ColumnDef<Customer>[] = [
+    {
+      accessorKey: 'name',
+      header: 'Nome',
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium text-slate-900 flex items-center gap-2">
+            {row.original.personType === 1 ? (
+              <Building2 className="h-3.5 w-3.5 text-slate-400" />
+            ) : (
+              <User className="h-3.5 w-3.5 text-slate-400" />
+            )}
+            {row.original.name}
+          </div>
+          {row.original.document && (
+            <span className="block text-xs text-slate-500">{row.original.document}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }) => (
+        <span className="text-slate-600">{row.original.email}</span>
+      ),
+    },
+    {
+      accessorKey: 'phone',
+      header: 'Telefone',
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="text-slate-600">{row.original.phone || '-'}</span>
+          {row.original.whatsApp && (
+            <span className="text-xs text-green-600 flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              WA: {row.original.whatsApp}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'companyName',
+      header: 'Empresa',
+      cell: ({ row }) => (
+        <span className="text-slate-600">{row.original.companyName || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => getStatusBadge(row.original.status),
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Criado em',
+      cell: ({ row }) => (
+        <span className="text-slate-600">
+          {new Date(row.original.createdAt).toLocaleDateString('pt-BR')}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Ações',
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => handleOpenEdit(row.original)}
+            className="p-1 hover:bg-slate-200 rounded-md text-slate-600 transition-colors"
+            title="Editar"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleDelete(row.original.id)}
+            className="p-1 hover:bg-red-100 rounded-md text-red-600 transition-colors"
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -214,110 +384,32 @@ export default function CustomersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <button
+          onClick={handleExport}
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white hover:bg-slate-50 h-10 px-4 py-2"
+        >
+          <Download className="mr-2 h-4 w-4" /> Exportar
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-700 font-medium border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3">Nome</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Telefone / WhatsApp</th>
-                <th className="px-4 py-3">Empresa</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Criado em</th>
-                <th className="px-4 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    Carregando clientes...
-                  </td>
-                </tr>
-              ) : customers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                    Nenhum cliente encontrado.
-                  </td>
-                </tr>
-              ) : (
-                customers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {customer.name}
-                      {customer.document && (
-                        <span className="block text-xs text-slate-500">{customer.document}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{customer.email}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <div className="flex flex-col">
-                        <span>{customer.phone || '-'}</span>
-                        {customer.whatsApp && (
-                          <span className="text-xs text-green-600 flex items-center gap-1">
-                            WA: {customer.whatsApp}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{customer.companyName || '-'}</td>
-                    <td className="px-4 py-3">{getStatusBadge(customer.status)}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {new Date(customer.createdAt).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenEdit(customer)}
-                          className="p-1 hover:bg-slate-200 rounded-md text-slate-600 transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(customer.id)}
-                          className="p-1 hover:bg-red-100 rounded-md text-red-600 transition-colors"
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Bulk Actions */}
+      <TableActions
+        selectedCount={selectedRows.length}
+        selectedRows={selectedRows}
+        onDelete={handleBulkDelete}
+        onExport={handleExport}
+        onClearSelection={() => setSelectedRows([])}
+      />
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
-          <div className="text-sm text-slate-500">
-            Página {page} de {totalPages}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="p-1 rounded-md border border-slate-300 bg-white disabled:opacity-50 hover:bg-slate-50"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="p-1 rounded-md border border-slate-300 bg-white disabled:opacity-50 hover:bg-slate-50"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* DataTable */}
+      <DataTable
+        columns={columns}
+        data={customers}
+        loading={loading}
+        selectable={true}
+        onSelectionChange={setSelectedRows}
+        pageSize={10}
+      />
 
       {/* Modal */}
       {isModalOpen && (

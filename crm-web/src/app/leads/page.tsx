@@ -10,10 +10,10 @@ import {
 } from '@/services/leads';
 import { apiFetch } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnDef } from '@tanstack/react-table';
 import {
     CheckCircle,
-    ChevronLeft,
-    ChevronRight,
+    Clock,
     Edit2,
     Loader2,
     Mail,
@@ -21,13 +21,18 @@ import {
     Plus,
     Search,
     Trash2,
-    Upload
+    Upload,
+    XCircle,
+    Building2,
+    User
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
+import { DataTable } from '@/components/data-table/DataTable';
+import { TableActions } from '@/components/data-table/TableActions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,14 +51,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { exportToCSV } from '@/lib/export';
 
 // Schema de validação
 const leadSchema = z.object({
@@ -69,6 +67,7 @@ type LeadFormValues = z.infer<typeof leadSchema>;
 export default function LeadsPage() {
   // Estados da Lista
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [selectedRows, setSelectedRows] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -146,6 +145,21 @@ export default function LeadsPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!confirm(`Deletar ${selectedRows.length} lead(s)?`)) return;
+
+    try {
+      // TODO: Implementar endpoint bulk delete no backend
+      for (const lead of selectedRows) {
+        await deleteLead(lead.id);
+      }
+      fetchLeads();
+      setSelectedRows([]);
+    } catch (err) {
+      alert('Erro ao deletar leads.');
+    }
+  };
+
   const handleConvert = async (lead: Lead) => {
     if (!confirm(`Converter "${lead.name}" para Cliente?`)) return;
 
@@ -155,6 +169,27 @@ export default function LeadsPage() {
       fetchLeads();
     } catch (err: any) {
       alert(`Erro ao converter: ${err.message}`);
+    }
+  };
+
+  const handleBulkConvert = async () => {
+    if (!confirm(`Converter ${selectedRows.length} lead(s) para Cliente?`)) return;
+
+    try {
+      let converted = 0;
+      for (const lead of selectedRows) {
+        try {
+          await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
+          converted++;
+        } catch (err) {
+          console.error(`Erro ao converter ${lead.name}:`, err);
+        }
+      }
+      alert(`${converted} de ${selectedRows.length} leads convertidos com sucesso!`);
+      fetchLeads();
+      setSelectedRows([]);
+    } catch (err) {
+      alert('Erro ao converter leads.');
     }
   };
 
@@ -185,6 +220,24 @@ export default function LeadsPage() {
     window.location.href = `mailto:${lead.email}?subject=${subject}&body=${body}`;
   };
 
+  const handleExport = () => {
+    const dataToExport = selectedRows.length > 0 ? selectedRows : leads;
+
+    exportToCSV(
+      dataToExport.map(l => ({
+        Nome: l.name,
+        Email: l.email,
+        Telefone: l.phone || '',
+        WhatsApp: l.whatsApp || '',
+        Empresa: l.companyName || '',
+        Status: CustomerStatus[l.status],
+        'Tipo Pessoa': l.personType === 0 ? 'Física' : 'Jurídica',
+        'Criado em': new Date(l.createdAt).toLocaleDateString('pt-BR'),
+      })),
+      `leads-${new Date().toISOString().split('T')[0]}`
+    );
+  };
+
   const onSubmit = async (data: LeadFormValues) => {
     setSubmitting(true);
     setError(null);
@@ -203,23 +256,153 @@ export default function LeadsPage() {
     }
   };
 
-  // Status Badge Helper
+  // Status Badge Helper com ícones
   const getStatusBadge = (status: CustomerStatus) => {
-    const styles = {
-      [CustomerStatus.Lead]: 'bg-blue-100 text-blue-800 hover:bg-blue-100/80',
-      [CustomerStatus.Contacted]: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80',
-      [CustomerStatus.Qualified]: 'bg-green-100 text-green-800 hover:bg-green-100/80',
-      [CustomerStatus.Lost]: 'bg-red-100 text-red-800 hover:bg-red-100/80',
+    const configs: Record<number, { style: string; icon: React.ReactNode; label: string }> = {
+      [CustomerStatus.Lead]: {
+        style: 'bg-blue-100 text-blue-800',
+        icon: <Clock className="h-3 w-3" />,
+        label: 'Lead'
+      },
+      [CustomerStatus.Contacted]: {
+        style: 'bg-yellow-100 text-yellow-800',
+        icon: <Clock className="h-3 w-3" />,
+        label: 'Contatado'
+      },
+      [CustomerStatus.Qualified]: {
+        style: 'bg-green-100 text-green-800',
+        icon: <CheckCircle className="h-3 w-3" />,
+        label: 'Qualificado'
+      },
+      [CustomerStatus.Lost]: {
+        style: 'bg-red-100 text-red-800',
+        icon: <XCircle className="h-3 w-3" />,
+        label: 'Perdido'
+      },
     };
-    const label = CustomerStatus[status] || 'Desconhecido';
-    const style = styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800';
+
+    const config = configs[status] || {
+      style: 'bg-gray-100 text-gray-800',
+      icon: null,
+      label: 'Desconhecido'
+    };
 
     return (
-      <Badge variant="secondary" className={style}>
-        {label}
+      <Badge className={`flex items-center gap-1 ${config.style}`}>
+        {config.icon}
+        <span>{config.label}</span>
       </Badge>
     );
   };
+
+  // Definição das colunas
+  const columns: ColumnDef<Lead>[] = [
+    {
+      accessorKey: 'name',
+      header: 'Nome',
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium text-slate-900 flex items-center gap-2">
+            {row.original.personType === 1 ? (
+              <Building2 className="h-3.5 w-3.5 text-slate-400" />
+            ) : (
+              <User className="h-3.5 w-3.5 text-slate-400" />
+            )}
+            {row.original.name}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }) => (
+        <span className="text-slate-600">{row.original.email}</span>
+      ),
+    },
+    {
+      accessorKey: 'phone',
+      header: 'Telefone',
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="text-slate-600">{row.original.phone || '-'}</span>
+          {row.original.whatsApp && (
+            <span className="text-xs text-green-600 flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+              WA: {row.original.whatsApp}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'companyName',
+      header: 'Empresa',
+      cell: ({ row }) => (
+        <span className="text-slate-600">{row.original.companyName || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => getStatusBadge(row.original.status),
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Criado em',
+      cell: ({ row }) => (
+        <span className="text-slate-600">
+          {new Date(row.original.createdAt).toLocaleDateString('pt-BR')}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Ações',
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <button
+            onClick={() => handleOpenEdit(row.original)}
+            className="p-1 hover:bg-slate-200 rounded-md text-slate-600 transition-colors"
+            title="Editar"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          {row.original.status !== CustomerStatus.Customer && (
+            <button
+              onClick={() => handleConvert(row.original)}
+              className="p-1 hover:bg-green-100 rounded-md text-green-600 transition-colors"
+              title="Converter para Cliente"
+            >
+              <CheckCircle className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            onClick={() => handleWhatsApp(row.original)}
+            disabled={!row.original.phone && !row.original.whatsApp}
+            className="p-1 hover:bg-green-100 rounded-md text-green-600 transition-colors disabled:opacity-30"
+            title="Enviar WhatsApp"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleEmail(row.original)}
+            className="p-1 hover:bg-blue-100 rounded-md text-blue-600 transition-colors"
+            title="Enviar Email"
+          >
+            <Mail className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleDelete(row.original.id)}
+            className="p-1 hover:bg-red-100 rounded-md text-red-600 transition-colors"
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 p-8 pt-6">
@@ -271,126 +454,34 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Criado em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                </TableCell>
-              </TableRow>
-            ) : leads.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  Nenhum lead encontrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              leads.map((lead) => (
-                <TableRow key={lead.id}>
-                  <TableCell className="font-medium">{lead.name}</TableCell>
-                  <TableCell>{lead.email}</TableCell>
-                  <TableCell>{lead.phone || '-'}</TableCell>
-                  <TableCell>{lead.companyName || '-'}</TableCell>
-                  <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                  <TableCell>
-                    {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenEdit(lead)}
-                        title="Editar"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      {lead.status !== CustomerStatus.Customer && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleConvert(lead)}
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          title="Converter para Cliente"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleWhatsApp(lead)}
-                        disabled={!lead.phone && !lead.whatsApp}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Enviar WhatsApp"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEmail(lead)}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        title="Enviar Email"
-                      >
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(lead.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {/* Bulk Actions */}
+      <TableActions
+        selectedCount={selectedRows.length}
+        selectedRows={selectedRows}
+        onDelete={handleBulkDelete}
+        onExport={handleExport}
+        onClearSelection={() => setSelectedRows([])}
+        customActions={
+          <Button
+            size="sm"
+            onClick={handleBulkConvert}
+            className="h-8 bg-green-600 hover:bg-green-700 text-white"
+          >
+            <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+            Converter Selecionados
+          </Button>
+        }
+      />
 
-      {/* Pagination */}
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="text-sm text-slate-500 mr-4">
-            Página {page} de {totalPages}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
-        >
-          Próximo
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* DataTable */}
+      <DataTable
+        columns={columns}
+        data={leads}
+        loading={loading}
+        selectable={true}
+        onSelectionChange={setSelectedRows}
+        pageSize={10}
+      />
 
       {/* Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
