@@ -61,6 +61,47 @@ export enum ImportedTransactionStatus {
     Failed = 5
 }
 
+// =====================================================
+// UNIFIED TRANSACTION ENUMS & TYPES
+// =====================================================
+
+export enum TransactionType {
+    Income = 1,
+    Expense = 2,
+    Transfer = 3,
+    Ignored = 4
+}
+
+export enum TransactionStatus {
+    Pending = 1,
+    Paid = 2
+}
+
+export enum RawBankType {
+    Unknown = 0,
+    PixReceived = 1,
+    PixSent = 2,
+    Ted = 3,
+    Doc = 4,
+    BoletoPayment = 5,
+    DebitPurchase = 6,
+    CreditPurchase = 7,
+    Salary = 8,
+    BankTransfer = 9,
+    AtmWithdrawal = 10,
+    Deposit = 11,
+    BankFee = 12,
+    Interest = 13,
+    Refund = 14,
+    Other = 99
+}
+
+export enum CategoryApplicableTo {
+    Income = 1,
+    Expense = 2,
+    Both = 3
+}
+
 export interface IncomeCategory {
     id: string;
     name: string;
@@ -376,6 +417,7 @@ export interface ImportedTransaction {
     matchedExpenseId?: string;
     createdExpenseId?: string;
     createdIncomeId?: string;
+    createdTransactionId?: string;
     errorMessage?: string;
 }
 
@@ -383,6 +425,7 @@ export interface StatementImportPostPreview {
     total: number;
     expensesToCreate: number;
     incomesToCreate: number;
+    transactionsToCreate: number;
     alreadyCreated: number;
     toIgnore: number;
     failed: number;
@@ -391,6 +434,7 @@ export interface StatementImportPostPreview {
 export interface StatementImportPostResponse {
     createdExpenses: number;
     createdIncomes: number;
+    createdTransactions: number;
     skipped: number;
     failed: number;
 }
@@ -439,6 +483,94 @@ export interface BulkDeleteResponse {
     deletedCount: number;
     failedCount: number;
     errors: string[];
+}
+
+// =====================================================
+// UNIFIED TRANSACTION INTERFACES
+// =====================================================
+
+export interface Transaction {
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+    type: TransactionType;
+    rawBankType?: RawBankType;
+    rawDescription?: string;
+    paymentMethod: PaymentMethod;
+    categoryId?: string;
+    categoryName?: string;
+    isRecurring: boolean;
+    financialAccountId?: string;
+    financialAccountName?: string;
+    creditCardId?: string;
+    creditCardName?: string;
+    creditCardInvoiceId?: string;
+    status: TransactionStatus;
+    paidDate?: string;
+    transferGroupId?: string;
+    accountTransferId?: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface CreateTransactionRequest {
+    description: string;
+    amount: number;
+    date: string;
+    type: TransactionType;
+    paymentMethod: PaymentMethod;
+    categoryId?: string;
+    isRecurring: boolean;
+    financialAccountId?: string;
+    creditCardId?: string;
+    creditCardInvoiceId?: string;
+    status?: TransactionStatus;
+    paidDate?: string;
+}
+
+export interface UpdateTransactionRequest {
+    description: string;
+    amount: number;
+    date: string;
+    paymentMethod: PaymentMethod;
+    categoryId?: string;
+    isRecurring: boolean;
+    financialAccountId?: string;
+    creditCardId?: string;
+    creditCardInvoiceId?: string;
+    status?: TransactionStatus;
+    paidDate?: string;
+}
+
+export interface ReclassifyTransactionRequest {
+    newType: TransactionType;
+    transferGroupId?: string;
+}
+
+export interface TransactionCategory {
+    id: string;
+    name: string;
+    isActive: boolean;
+    applicableTo: CategoryApplicableTo;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface CreateTransactionCategoryRequest {
+    name: string;
+    applicableTo: CategoryApplicableTo;
+    isActive?: boolean;
+}
+
+export interface UpdateTransactionCategoryRequest {
+    name: string;
+    applicableTo: CategoryApplicableTo;
+    isActive: boolean;
+}
+
+export interface TransactionFilters extends FinancialFilters {
+    type?: TransactionType;
 }
 
 export const financeService = {
@@ -826,6 +958,114 @@ export const financeService = {
     },
     deleteStatementImport: async (id: string) => {
         return apiFetch<void>(`/StatementImports/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // =====================================================
+    // UNIFIED TRANSACTIONS API
+    // =====================================================
+
+    getTransactions: async (filters?: TransactionFilters) => {
+        const params = new URLSearchParams();
+        if (filters) {
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    params.append(key, value.toString());
+                }
+            });
+        }
+        const query = params.toString();
+        return apiFetch<PagedResponse<Transaction>>(`/transactions${query ? `?${query}` : ''}`);
+    },
+    getTransactionById: async (id: string) => {
+        return apiFetch<Transaction>(`/transactions/${id}`);
+    },
+    getTransactionsByType: async (type: TransactionType) => {
+        return apiFetch<Transaction[]>(`/transactions/type/${type}`);
+    },
+    getTransactionsByMonth: async (year: number, month: number) => {
+        return apiFetch<Transaction[]>(`/transactions/month/${year}/${month}`);
+    },
+    getTransactionsByStatus: async (status: TransactionStatus) => {
+        return apiFetch<Transaction[]>(`/transactions/status/${status}`);
+    },
+    createTransaction: async (data: CreateTransactionRequest) => {
+        return apiFetch<string>('/transactions', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateTransaction: async (id: string, data: UpdateTransactionRequest) => {
+        return apiFetch<void>(`/transactions/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteTransaction: async (id: string) => {
+        return apiFetch<void>(`/transactions/${id}`, {
+            method: 'DELETE',
+        });
+    },
+    deleteTransactionsBulk: async (ids: string[]) => {
+        const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const validIds = ids.filter(id => guidRegex.test(id));
+        if (validIds.length === 0) {
+            throw new Error('Nenhum ID válido foi fornecido para exclusão');
+        }
+        return apiFetch<BulkDeleteResponse>('/transactions/bulk-delete', {
+            method: 'POST',
+            body: JSON.stringify({ ids: validIds }),
+        });
+    },
+    reclassifyTransaction: async (id: string, data: ReclassifyTransactionRequest) => {
+        return apiFetch<void>(`/transactions/${id}/reclassify`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+    markTransactionAsPaid: async (id: string, paidDate?: string) => {
+        return apiFetch<void>(`/transactions/${id}/mark-paid`, {
+            method: 'PATCH',
+            body: JSON.stringify({ paidDate }),
+        });
+    },
+    markTransactionAsPending: async (id: string) => {
+        return apiFetch<void>(`/transactions/${id}/mark-pending`, {
+            method: 'PATCH',
+        });
+    },
+
+    // =====================================================
+    // UNIFIED TRANSACTION CATEGORIES API
+    // =====================================================
+
+    getTransactionCategories: async () => {
+        return apiFetch<TransactionCategory[]>('/transaction-categories');
+    },
+    getAllTransactionCategories: async () => {
+        return apiFetch<TransactionCategory[]>('/transaction-categories/all');
+    },
+    getTransactionCategoriesByType: async (applicableTo: CategoryApplicableTo) => {
+        return apiFetch<TransactionCategory[]>(`/transaction-categories/by-type/${applicableTo}`);
+    },
+    getTransactionCategoryById: async (id: string) => {
+        return apiFetch<TransactionCategory>(`/transaction-categories/${id}`);
+    },
+    createTransactionCategory: async (data: CreateTransactionCategoryRequest) => {
+        return apiFetch<string>('/transaction-categories', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateTransactionCategory: async (id: string, data: UpdateTransactionCategoryRequest) => {
+        return apiFetch<void>(`/transaction-categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteTransactionCategory: async (id: string) => {
+        return apiFetch<void>(`/transaction-categories/${id}`, {
             method: 'DELETE',
         });
     },

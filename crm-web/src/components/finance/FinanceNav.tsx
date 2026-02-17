@@ -5,12 +5,13 @@ import {
     ArrowDownCircle,
     ArrowRightLeft,
     ArrowUpCircle,
+    Calendar,
     CreditCard,
     FileInput,
     Landmark,
     LayoutDashboard,
-    Tags,
-    Calendar
+    List,
+    Tags
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -26,6 +27,11 @@ const navItems = [
     name: 'Planejador',
     href: '/finance/planner',
     icon: Calendar
+  },
+  {
+    name: 'Transações',
+    href: '/finance/transactions',
+    icon: List
   },
   {
     name: 'Receitas',

@@ -170,6 +170,8 @@ public static class DependencyInjection
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
         services.AddScoped<IAccountTransferRepository, AccountTransferRepository>();
+        services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<ITransactionCategoryRepository, TransactionCategoryRepository>();
         services.AddScoped<IStatementImportRepository, StatementImportRepository>();
         services.AddScoped<IImportedTransactionRepository, ImportedTransactionRepository>();
         services.AddScoped<IAppLogRepository, AppLogRepository>();

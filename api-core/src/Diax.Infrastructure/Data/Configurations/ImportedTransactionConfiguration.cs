@@ -22,15 +22,27 @@ public class ImportedTransactionConfiguration : IEntityTypeConfiguration<Importe
         builder.Property(x => x.ErrorMessage)
             .HasMaxLength(1000);
 
+        // Novos relacionamentos unificados (Transaction)
+        builder.HasOne(x => x.CreatedTransaction)
+            .WithMany()
+            .HasForeignKey(x => x.CreatedTransactionId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(x => x.MatchedTransaction)
+            .WithMany()
+            .HasForeignKey(x => x.MatchedTransactionId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Legacy relationships (mantidas para período de migração)
         builder.HasOne(x => x.MatchedExpense)
             .WithMany()
             .HasForeignKey(x => x.MatchedExpenseId)
-            .OnDelete(DeleteBehavior.NoAction); // Restricted by SQL Server to avoid multiple cascade paths
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne(x => x.CreatedExpense)
             .WithMany()
             .HasForeignKey(x => x.CreatedExpenseId)
-            .OnDelete(DeleteBehavior.NoAction); // Restricted by SQL Server to avoid multiple cascade paths
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne(x => x.CreatedIncome)
             .WithMany()

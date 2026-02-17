@@ -6,31 +6,33 @@ using Diax.Shared.Results;
 
 namespace Diax.Application.Finance;
 
+/// <summary>
+/// Serviço de importação de extratos.
+/// Agora cria Transactions unificadas (via Transaction.CreateFromImport)
+/// em vez de entidades legadas Income/Expense.
+/// </summary>
 public class StatementImportService
 {
     private readonly IStatementImportRepository _importRepository;
-    private readonly IImportedTransactionRepository _transactionRepository;
-    private readonly IExpenseRepository _expenseRepository;
-    private readonly IIncomeRepository _incomeRepository;
+    private readonly IImportedTransactionRepository _importedTxRepository;
+    private readonly ITransactionRepository _transactionRepository;
     private readonly IFinancialAccountRepository _accountRepository;
-    private readonly ICreditCardRepository _creditCardRepository; // New dependency
+    private readonly ICreditCardRepository _creditCardRepository;
     private readonly IEnumerable<IFileParser> _parsers;
     private readonly IUnitOfWork _unitOfWork;
 
     public StatementImportService(
         IStatementImportRepository importRepository,
-        IImportedTransactionRepository transactionRepository,
-        IExpenseRepository expenseRepository,
-        IIncomeRepository incomeRepository,
+        IImportedTransactionRepository importedTxRepository,
+        ITransactionRepository transactionRepository,
         IFinancialAccountRepository accountRepository,
-        ICreditCardRepository creditCardRepository, // New dependency
+        ICreditCardRepository creditCardRepository,
         IEnumerable<IFileParser> parsers,
         IUnitOfWork unitOfWork)
     {
         _importRepository = importRepository;
+        _importedTxRepository = importedTxRepository;
         _transactionRepository = transactionRepository;
-        _expenseRepository = expenseRepository;
-        _incomeRepository = incomeRepository;
         _accountRepository = accountRepository;
         _creditCardRepository = creditCardRepository;
         _parsers = parsers;
@@ -101,7 +103,7 @@ public class StatementImportService
                 return Result.Failure<Guid>(new Error("Import.Empty", "Nenhuma transação encontrada no arquivo."));
             }
 
-            await _transactionRepository.AddRangeAsync(transactions, ct);
+            await _importedTxRepository.AddRangeAsync(transactions, ct);
 
             import.Complete(transactions.Count, 0, 0); // Still 0 processed since it's just uploaded
             await _unitOfWork.SaveChangesAsync(ct);
@@ -148,7 +150,7 @@ public class StatementImportService
             return Result.Failure<StatementImportDetailResponse>(new Error("Import.NotFound", "Importação não encontrada."));
         }
 
-        var transactions = await _transactionRepository.GetByImportIdAsync(id, ct);
+        var transactions = await _importedTxRepository.GetByImportIdAsync(id, ct);
 
         var response = new StatementImportDetailResponse(
             new StatementImportResponse(
@@ -176,6 +178,7 @@ public class StatementImportService
                 t.MatchedExpenseId,
                 t.CreatedExpenseId,
                 t.CreatedIncomeId,
+                t.CreatedTransactionId,
                 t.ErrorMessage
             ))
         );
@@ -187,17 +190,20 @@ public class StatementImportService
     {
         var import = await _importRepository.GetByIdAndUserAsync(id, userId, ct);
         if (import == null)
-        {
             return Result.Failure<StatementImportPostPreviewResponse>(new Error("Import.NotFound", "Importação não encontrada."));
-        }
 
-        var transactions = await _transactionRepository.GetByImportIdAsync(id, ct);
+        var transactions = await _importedTxRepository.GetByImportIdAsync(id, ct);
+
+        var alreadyCreated = transactions.Count(t => t.CreatedTransactionId != null || t.CreatedExpenseId != null || t.CreatedIncomeId != null);
 
         var response = new StatementImportPostPreviewResponse(
             Total: transactions.Count(),
-            ExpensesToCreate: transactions.Count(t => t.Amount < 0 && t.CreatedExpenseId == null && t.Status != ImportTransactionStatus.Skipped),
-            IncomesToCreate: transactions.Count(t => t.Amount > 0 && t.CreatedIncomeId == null && t.Status != ImportTransactionStatus.Skipped),
-            AlreadyCreated: transactions.Count(t => t.CreatedExpenseId != null || t.CreatedIncomeId != null),
+            ExpensesToCreate: 0, // Legacy — mantido para compatibilidade
+            IncomesToCreate: 0,  // Legacy — mantido para compatibilidade
+            TransactionsToCreate: transactions.Count(t =>
+                t.CreatedTransactionId == null && t.CreatedExpenseId == null && t.CreatedIncomeId == null
+                && t.Status != ImportTransactionStatus.Skipped && t.Amount != 0),
+            AlreadyCreated: alreadyCreated,
             ToIgnore: transactions.Count(t => t.Amount == 0 || t.Status == ImportTransactionStatus.Skipped),
             Failed: transactions.Count(t => t.Status == ImportTransactionStatus.Error)
         );
@@ -205,195 +211,157 @@ public class StatementImportService
         return Result<StatementImportPostPreviewResponse>.Success(response);
     }
 
+    /// <summary>
+    /// Posta as transações importadas, criando entidades Transaction unificadas.
+    /// Detecta tipo (Income/Expense) pelo sinal do Amount.
+    /// Transferências podem ser reclassificadas depois pelo usuário.
+    /// </summary>
     public async Task<Result<StatementImportPostResponse>> PostAsync(Guid id, StatementImportPostRequest request, Guid userId, CancellationToken ct = default)
     {
         var import = await _importRepository.GetByIdAndUserAsync(id, userId, ct);
         if (import == null)
-        {
             return Result.Failure<StatementImportPostResponse>(new Error("Import.NotFound", "Importação não encontrada."));
-        }
 
         if (import.Status != ImportStatus.Completed)
-        {
             return Result.Failure<StatementImportPostResponse>(new Error("Import.InvalidStatus", "Apenas importações concluídas podem ser postadas."));
-        }
 
         if (import.ImportType == StatementImportType.FinancialAccount && !import.FinancialAccountId.HasValue)
-        {
             return Result.Failure<StatementImportPostResponse>(new Error("Import.MissingAccount", "Conta financeira não vinculada à importação."));
-        }
 
         if (import.ImportType == StatementImportType.CreditCard && !import.CreditCardId.HasValue)
-        {
-             return Result.Failure<StatementImportPostResponse>(new Error("Import.MissingCard", "Cartão de crédito não vinculado à importação."));
-        }
+            return Result.Failure<StatementImportPostResponse>(new Error("Import.MissingCard", "Cartão de crédito não vinculado à importação."));
 
         FinancialAccount? financialAccount = null;
         if (import.FinancialAccountId.HasValue)
         {
             financialAccount = await _accountRepository.GetByIdAndUserAsync(import.FinancialAccountId.Value, userId, ct);
             if (financialAccount == null)
-            {
                 return Result.Failure<StatementImportPostResponse>(new Error("Import.AccountNotFound", "Conta financeira não encontrada."));
-            }
         }
 
-        var transactions = (await _transactionRepository.GetByImportIdAsync(id, ct)).ToList();
+        var importedTransactions = (await _importedTxRepository.GetByImportIdAsync(id, ct)).ToList();
 
-        int createdExpenses = 0;
-        int createdIncomes = 0;
-        int skipped = 0;
-        int failed = 0;
-
-        // Default categories from seed data
+        // Default categories (seed data)
         var defaultExpenseCategoryId = Guid.Parse("20000000-0000-0000-0000-000000000014"); // Não Categorizado
-        var defaultIncomeCategoryId = Guid.Parse("10000000-0000-0000-0000-000000000008"); // Outros
+        var defaultIncomeCategoryId = Guid.Parse("10000000-0000-0000-0000-000000000008");  // Outros
 
-        // Fetch relevant records for idempotency check
-        var existingIncomesAll = await _incomeRepository.GetAllByUserIdAsync(userId, ct);
-        var existingExpensesAll = await _expenseRepository.GetAllByUserIdAsync(userId, ct);
+        // Fetch existing transactions for duplicate detection
+        var existingTransactions = await _transactionRepository.GetAllByUserIdAsync(userId, ct);
 
-        foreach (var transaction in transactions)
+        int createdTransactions = 0, skipped = 0, failed = 0;
+
+        foreach (var importedTx in importedTransactions)
         {
-            // Idempotency check (already processed in this import)
-            if (transaction.CreatedExpenseId != null || transaction.CreatedIncomeId != null)
+            // Idempotency: already processed
+            if (importedTx.CreatedTransactionId != null || importedTx.CreatedExpenseId != null || importedTx.CreatedIncomeId != null)
+            { skipped++; continue; }
+
+            if (importedTx.Status == ImportTransactionStatus.Skipped || importedTx.Amount == 0)
             {
-                skipped++;
-                continue;
+                if (importedTx.Amount == 0 && importedTx.Status != ImportTransactionStatus.Skipped)
+                    importedTx.MarkAsSkipped("Valor zero");
+                skipped++; continue;
             }
 
-            if (transaction.Status == ImportTransactionStatus.Skipped || transaction.Amount == 0)
-            {
-                if (transaction.Amount == 0 && transaction.Status != ImportTransactionStatus.Skipped)
-                {
-                    transaction.MarkAsSkipped("Valor zero");
-                }
-                skipped++;
-                continue;
-            }
-
-            if (transaction.Status == ImportTransactionStatus.Error && !request.Force)
-            {
-                failed++;
-                continue;
-            }
+            if (importedTx.Status == ImportTransactionStatus.Error && !request.Force)
+            { failed++; continue; }
 
             try
             {
-                if (transaction.Amount < 0)
+                var amount = Math.Abs(importedTx.Amount);
+                var isExpense = importedTx.Amount < 0;
+                var isCreditCard = import.ImportType == StatementImportType.CreditCard;
+
+                // Determine transaction type
+                var txType = isExpense ? TransactionType.Expense : TransactionType.Income;
+
+                // Determine raw bank type
+                var rawBankType = isExpense
+                    ? (isCreditCard ? RawBankType.CreditPurchase : RawBankType.DebitPurchase)
+                    : (isCreditCard ? RawBankType.Refund : RawBankType.Deposit);
+
+                // Determine payment method
+                var paymentMethod = isCreditCard ? PaymentMethod.CreditCard : PaymentMethod.BankTransfer;
+
+                // Determine category
+                var categoryId = isExpense ? defaultExpenseCategoryId : defaultIncomeCategoryId;
+
+                // Determine status
+                var status = isExpense
+                    ? (isCreditCard ? TransactionStatus.Pending : TransactionStatus.Paid)
+                    : TransactionStatus.Paid;
+
+                // Credit card income (refund) — skip if CC
+                if (!isExpense && isCreditCard)
                 {
-                    var amount = Math.Abs(transaction.Amount);
+                    importedTx.MarkAsSkipped("Receitas em cartão de crédito não suportadas automaticamente ainda.");
+                    skipped++; continue;
+                }
 
-                    // Check for duplicate expense
-                    var isDuplicate = existingExpensesAll.Any(e =>
-                        e.Amount == amount &&
-                        e.Date.Date == transaction.TransactionDate.Date &&
-                        e.Description == transaction.RawDescription &&
-                        (
-                            (import.ImportType == StatementImportType.FinancialAccount && e.FinancialAccountId == import.FinancialAccountId) ||
-                            (import.ImportType == StatementImportType.CreditCard && e.CreditCardId == import.CreditCardId)
-                        ));
+                // Duplicate detection
+                var isDuplicate = existingTransactions.Any(t =>
+                    t.Amount == amount &&
+                    t.Date.Date == importedTx.TransactionDate.Date &&
+                    t.Description == importedTx.RawDescription &&
+                    t.Type == txType &&
+                    ((!isCreditCard && t.FinancialAccountId == import.FinancialAccountId) ||
+                     (isCreditCard && t.CreditCardId == import.CreditCardId)));
 
-                    if (isDuplicate)
-                    {
-                        transaction.MarkAsSkipped("Já existe uma despesa idêntica registrada");
-                        skipped++;
-                        continue;
-                    }
+                if (isDuplicate)
+                {
+                    importedTx.MarkAsSkipped(isExpense
+                        ? "Já existe uma despesa idêntica registrada"
+                        : "Já existe uma receita idêntica registrada");
+                    skipped++; continue;
+                }
 
-                    // Create Expense
-                    var expense = new Expense(
-                        description: transaction.RawDescription,
-                        amount: amount,
-                        date: transaction.TransactionDate,
-                        paymentMethod: import.ImportType == StatementImportType.CreditCard ? PaymentMethod.CreditCard : PaymentMethod.BankTransfer,
-                        expenseCategoryId: defaultExpenseCategoryId,
-                        isRecurring: false,
-                        userId: userId,
-                        financialAccountId: import.ImportType == StatementImportType.FinancialAccount ? import.FinancialAccountId : null,
-                        creditCardId: import.ImportType == StatementImportType.CreditCard ? import.CreditCardId : null,
-                        status: import.ImportType == StatementImportType.CreditCard ? ExpenseStatus.Pending : ExpenseStatus.Paid, // Credit Card expenses are pending invoice payment
-                        paidDate: import.ImportType == StatementImportType.CreditCard ? null : transaction.TransactionDate
-                    );
+                // Create unified Transaction
+                var transaction = Transaction.CreateFromImport(
+                    description: importedTx.RawDescription,
+                    amount: amount,
+                    date: importedTx.TransactionDate,
+                    type: txType,
+                    paymentMethod: paymentMethod,
+                    categoryId: categoryId,
+                    financialAccountId: isCreditCard ? null : import.FinancialAccountId,
+                    creditCardId: isCreditCard ? import.CreditCardId : null,
+                    creditCardInvoiceId: null,
+                    userId: userId,
+                    rawDescription: importedTx.RawDescription,
+                    rawBankType: rawBankType,
+                    status: status);
 
-                    if (financialAccount != null)
-                    {
+                // Apply balance impact (only non-CC expenses debit the account)
+                if (financialAccount != null)
+                {
+                    if (txType == TransactionType.Income)
+                        financialAccount.Credit(amount);
+                    else if (txType == TransactionType.Expense && !isCreditCard)
                         financialAccount.Debit(amount);
-                    }
-
-                    await _expenseRepository.AddAsync(expense, ct);
-                    transaction.MarkAsCreated(expenseId: expense.Id);
-                    createdExpenses++;
                 }
-                else
-                {
-                    // Income on Credit Card? Usually a refund or payment.
-                    // For now, let's treat it as Income but loosely.
-                    // However, Income entities usually require FinancialAccountId.
-                    // If it's a Credit Card, we might not be able to create an Income easily unless we support CreditCard Incomes (refunds).
-                    // Current Income entity: financialAccountId is required? Let's check.
-                    // Checking Income.cs...
-                    // For now, if it's Credit Card, we might skip Incomes or handle them differently.
-                    // Let's assume for now we only support Expenses for Credit Cards or block Incomes if no Financial Account.
 
-                    if (import.ImportType == StatementImportType.CreditCard)
-                    {
-                         transaction.MarkAsSkipped("Receitas em cartão de crédito não suportadas automaticamente ainda.");
-                         skipped++;
-                         continue;
-                    }
-
-                    // Check for duplicate income
-                    var isDuplicate = existingIncomesAll.Any(i =>
-                        i.Amount == transaction.Amount &&
-                        i.Date.Date == transaction.TransactionDate.Date &&
-                        i.Description == transaction.RawDescription &&
-                        i.FinancialAccountId == financialAccount!.Id);
-
-                    if (isDuplicate)
-                    {
-                        transaction.MarkAsSkipped("Já existe uma receita idêntica registrada");
-                        skipped++;
-                        continue;
-                    }
-
-                    // Create Income
-                    var income = new Income(
-                        description: transaction.RawDescription,
-                        amount: transaction.Amount,
-                        date: transaction.TransactionDate,
-                        paymentMethod: PaymentMethod.Pix,
-                        incomeCategoryId: defaultIncomeCategoryId,
-                        isRecurring: false,
-                        financialAccountId: financialAccount!.Id,
-                        userId: userId
-                    );
-
-                    financialAccount!.Credit(transaction.Amount);
-                    await _incomeRepository.AddAsync(income, ct);
-                    transaction.MarkAsCreated(incomeId: income.Id);
-                    createdIncomes++;
-                }
+                await _transactionRepository.AddAsync(transaction, ct);
+                importedTx.MarkAsCreated(transaction.Id);
+                createdTransactions++;
             }
             catch (Exception ex)
             {
-                transaction.MarkAsError(ex.Message);
+                importedTx.MarkAsError(ex.Message);
                 failed++;
             }
         }
 
         // Update import stats
-        import.Complete(import.TotalRecords, import.ProcessedRecords + createdExpenses + createdIncomes, import.FailedRecords + failed);
+        import.Complete(import.TotalRecords, import.ProcessedRecords + createdTransactions, import.FailedRecords + failed);
 
         if (financialAccount != null)
-        {
             await _accountRepository.UpdateAsync(financialAccount, ct);
-        }
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<StatementImportPostResponse>.Success(new StatementImportPostResponse(
-            CreatedExpenses: createdExpenses,
-            CreatedIncomes: createdIncomes,
+            CreatedExpenses: 0,       // Legacy — mantido para compatibilidade
+            CreatedIncomes: 0,        // Legacy — mantido para compatibilidade
+            CreatedTransactions: createdTransactions,
             Skipped: skipped,
             Failed: failed
         ));
@@ -403,16 +371,12 @@ public class StatementImportService
     {
         var import = await _importRepository.GetByIdAndUserAsync(id, userId, ct);
         if (import == null)
-        {
             return Result.Failure(new Error("Import.NotFound", "Importação não encontrada."));
-        }
 
-        var transactions = await _transactionRepository.GetByImportIdAsync(id, ct);
+        var transactions = await _importedTxRepository.GetByImportIdAsync(id, ct);
 
-        if (transactions.Any(t => t.CreatedExpenseId != null || t.CreatedIncomeId != null))
-        {
+        if (transactions.Any(t => t.CreatedTransactionId != null || t.CreatedExpenseId != null || t.CreatedIncomeId != null))
             return Result.Failure(new Error("Import.AlreadyPosted", "Não é possível excluir uma importação que já possui lançamentos postados."));
-        }
 
         await _importRepository.DeleteAsync(import, ct);
         await _unitOfWork.SaveChangesAsync(ct);

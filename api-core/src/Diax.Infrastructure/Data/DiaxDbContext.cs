@@ -65,6 +65,8 @@ public class DiaxDbContext : DbContext
     public DbSet<FinancialAccount> FinancialAccounts => Set<FinancialAccount>();
     public DbSet<CreditCardInvoice> CreditCardInvoices => Set<CreditCardInvoice>();
     public DbSet<AccountTransfer> AccountTransfers => Set<AccountTransfer>();
+    public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<TransactionCategory> TransactionCategories => Set<TransactionCategory>();
     public DbSet<StatementImport> StatementImports => Set<StatementImport>();
     public DbSet<ImportedTransaction> ImportedTransactions => Set<ImportedTransaction>();
     public DbSet<AppLog> AppLogs => Set<AppLog>();
@@ -166,6 +168,8 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<CreditCardGroup>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<CreditCardInvoice>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<AccountTransfer>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<Transaction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<TransactionCategory>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<StatementImport>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<ImportedTransaction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 

@@ -7,6 +7,9 @@ using Diax.Domain.Finance.Planner.Repositories;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
 
+// Alias to avoid ambiguity with Diax.Domain.Finance.TransactionType (unified)
+using PlannerTransactionType = Diax.Domain.Finance.Planner.TransactionType;
+
 namespace Diax.Application.Finance.Planner;
 
 /// <summary>
@@ -113,11 +116,11 @@ public class MonthlySimulationService : IApplicationService
 
             // 4. Calcular totais
             simulation.TotalProjectedIncome = projectedTransactions
-                .Where(t => t.Type == TransactionType.Income)
+                .Where(t => t.Type == PlannerTransactionType.Income)
                 .Sum(t => t.Amount);
 
             simulation.TotalProjectedExpenses = projectedTransactions
-                .Where(t => t.Type == TransactionType.Expense)
+                .Where(t => t.Type == PlannerTransactionType.Expense)
                 .Sum(t => t.Amount);
 
             // 5. Projetar saldos diários

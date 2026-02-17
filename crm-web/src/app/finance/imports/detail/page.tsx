@@ -35,7 +35,7 @@ function ImportDetailContent() {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isPostingLoading, setIsPostingLoading] = useState(false);
   const [preview, setPreview] = useState<StatementImportPostPreview | null>(null);
-  const [postResult, setPostResult] = useState<{ createdExpenses: number, createdIncomes: number, skipped: number, failed: number } | null>(null);
+  const [postResult, setPostResult] = useState<{ createdExpenses: number, createdIncomes: number, createdTransactions: number, skipped: number, failed: number } | null>(null);
 
   const loadDetail = async () => {
     if (!id) return;
@@ -210,12 +210,8 @@ function ImportDetailContent() {
               <div className="space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="bg-background p-3 rounded-lg border text-center">
-                    <div className="text-xl font-bold">{preview.expensesToCreate}</div>
-                    <div className="text-xs text-muted-foreground">Despesas</div>
-                  </div>
-                  <div className="bg-background p-3 rounded-lg border text-center">
-                    <div className="text-xl font-bold">{preview.incomesToCreate}</div>
-                    <div className="text-xs text-muted-foreground">Receitas</div>
+                    <div className="text-xl font-bold">{preview.transactionsToCreate}</div>
+                    <div className="text-xs text-muted-foreground">Transações</div>
                   </div>
                   <div className="bg-background p-3 rounded-lg border text-center">
                     <div className="text-xl font-bold">{preview.alreadyCreated}</div>
@@ -243,7 +239,7 @@ function ImportDetailContent() {
                   <Button variant="outline" onClick={() => setPreview(null)} disabled={isPostingLoading}>
                     Cancelar
                   </Button>
-                  <Button onClick={handlePost} disabled={isPostingLoading || (preview.expensesToCreate === 0 && preview.incomesToCreate === 0)}>
+                  <Button onClick={handlePost} disabled={isPostingLoading || (preview.transactionsToCreate === 0 && preview.expensesToCreate === 0 && preview.incomesToCreate === 0)}>
                     {isPostingLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -267,8 +263,7 @@ function ImportDetailContent() {
                 <AlertDescription className="text-green-700 space-y-2">
                   <p>Lançamentos processados com sucesso:</p>
                   <ul className="list-disc list-inside text-sm">
-                    <li>{postResult.createdExpenses} despesas criadas</li>
-                    <li>{postResult.createdIncomes} receitas criadas</li>
+                    <li>{postResult.createdTransactions} transações criadas</li>
                     {postResult.skipped > 0 && <li>{postResult.skipped} já existentes/pulados</li>}
                     {postResult.failed > 0 && <li className="text-destructive font-bold">{postResult.failed} falhas</li>}
                   </ul>

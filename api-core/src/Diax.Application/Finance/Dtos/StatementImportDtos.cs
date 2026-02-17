@@ -35,6 +35,7 @@ public record ImportedTransactionResponse(
     Guid? MatchedExpenseId,
     Guid? CreatedExpenseId,
     Guid? CreatedIncomeId,
+    Guid? CreatedTransactionId,
     string? ErrorMessage
 );
 
@@ -47,6 +48,7 @@ public record StatementImportPostPreviewResponse(
     int Total,
     int ExpensesToCreate,
     int IncomesToCreate,
+    int TransactionsToCreate,
     int AlreadyCreated,
     int ToIgnore,
     int Failed
@@ -59,6 +61,7 @@ public record StatementImportPostRequest(
 public record StatementImportPostResponse(
     int CreatedExpenses,
     int CreatedIncomes,
+    int CreatedTransactions,
     int Skipped,
     int Failed
 );

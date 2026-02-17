@@ -12,6 +12,7 @@ namespace Diax.Api.Controllers.V1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
 [Produces("application/json")]
+[Obsolete("Use TransactionsController instead. This controller will be removed in a future version.")]
 public class ExpensesController : BaseApiController
 {
     private readonly ExpenseService _service;

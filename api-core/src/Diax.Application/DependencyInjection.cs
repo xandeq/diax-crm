@@ -45,6 +45,11 @@ public static class DependencyInjection
         services.AddScoped<FinancialSummaryService>();
         services.AddScoped<AccountTransferService>();
         services.AddScoped<StatementImportService>();
+
+        // ===== TRANSACTION (UNIFIED) SERVICES =====
+        services.AddScoped<TransactionService>();
+        services.AddScoped<TransactionCategoryService>();
+
         services.AddScoped<AppLogService>();
         services.AddScoped<IAppLogService, AppLogService>();
         services.AddScoped<HtmlExtractionService>();

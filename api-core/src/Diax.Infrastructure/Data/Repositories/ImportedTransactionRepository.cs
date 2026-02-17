@@ -34,6 +34,13 @@ public class ImportedTransactionRepository(DiaxDbContext context) : IImportedTra
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<ImportedTransaction>> GetByTransactionIdAsync(Guid transactionId, CancellationToken cancellationToken = default)
+    {
+        return await context.ImportedTransactions
+            .Where(x => x.CreatedTransactionId == transactionId || x.MatchedTransactionId == transactionId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddRangeAsync(IEnumerable<ImportedTransaction> transactions, CancellationToken cancellationToken = default)
     {
         await context.ImportedTransactions.AddRangeAsync(transactions, cancellationToken);

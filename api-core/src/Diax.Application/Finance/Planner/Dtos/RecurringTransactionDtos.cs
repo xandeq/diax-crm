@@ -3,11 +3,14 @@ using Diax.Domain.Finance.Planner;
 
 namespace Diax.Application.Finance.Planner.Dtos;
 
+// Alias to avoid ambiguity with Diax.Domain.Finance.TransactionType (unified)
+using PlannerTransactionType = Diax.Domain.Finance.Planner.TransactionType;
+
 public class RecurringTransactionResponse
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
-    public TransactionType Type { get; set; }
+    public PlannerTransactionType Type { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public Guid CategoryId { get; set; }
@@ -26,7 +29,7 @@ public class RecurringTransactionResponse
 
 public class CreateRecurringTransactionRequest
 {
-    public TransactionType Type { get; set; }
+    public PlannerTransactionType Type { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public Guid CategoryId { get; set; }

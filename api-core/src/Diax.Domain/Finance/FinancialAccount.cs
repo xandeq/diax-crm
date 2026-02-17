@@ -16,7 +16,12 @@ public class FinancialAccount : AuditableEntity, IUserOwnedEntity
     public bool IsActive { get; private set; }
 
     // Navigation properties
+    public virtual ICollection<Transaction> Transactions { get; private set; } = new List<Transaction>();
+
+    // Legacy navigation properties (mantidas para período de migração)
+    [Obsolete("Use Transactions instead")]
     public virtual ICollection<Income> Incomes { get; private set; } = new List<Income>();
+    [Obsolete("Use Transactions instead")]
     public virtual ICollection<Expense> Expenses { get; private set; } = new List<Expense>();
 
     protected FinancialAccount() { }

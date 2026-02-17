@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 
 namespace Diax.Application.Finance;
 
+[Obsolete("Use TransactionService instead. This service will be removed in a future version.")]
 public class IncomeService : IApplicationService
 {
     private readonly IIncomeRepository _repository;

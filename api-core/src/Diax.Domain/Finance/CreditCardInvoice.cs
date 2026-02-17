@@ -23,6 +23,9 @@ public class CreditCardInvoice : AuditableEntity, IUserOwnedEntity
     public virtual FinancialAccount? PaidFromAccount { get; private set; }
 
     // Navigation properties
+    public virtual ICollection<Transaction> Transactions { get; private set; } = new List<Transaction>();
+
+    [Obsolete("Use Transactions instead")]
     public virtual ICollection<Expense> Expenses { get; private set; } = new List<Expense>();
 
     protected CreditCardInvoice() { }

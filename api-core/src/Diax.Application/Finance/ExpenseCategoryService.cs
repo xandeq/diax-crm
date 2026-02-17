@@ -6,6 +6,7 @@ using Diax.Shared.Results;
 
 namespace Diax.Application.Finance;
 
+[Obsolete("Use TransactionCategoryService instead. This service will be removed in a future version.")]
 public class ExpenseCategoryService : IApplicationService
 {
     private readonly IExpenseCategoryRepository _repository;
