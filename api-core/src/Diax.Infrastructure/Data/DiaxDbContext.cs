@@ -11,6 +11,7 @@ using Diax.Domain.AI;
 using Diax.Domain.UserGroups;
 using Diax.Domain.ApiKeys;
 using Diax.Domain.Blog;
+using Diax.Domain.EmailMarketing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -90,6 +91,8 @@ public class DiaxDbContext : DbContext
     public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
+    public DbSet<EmailQueueItem> EmailQueueItems => Set<EmailQueueItem>();
+    public DbSet<EmailCampaign> EmailCampaigns => Set<EmailCampaign>();
 
     // Financial Planner
     public DbSet<FinancialGoal> FinancialGoals => Set<FinancialGoal>();

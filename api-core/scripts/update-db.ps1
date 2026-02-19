@@ -1,13 +1,6 @@
 <#
 .SYNOPSIS
-    Aplica EF Core Migrations no banco de dados de PRODUÇÃO (SmarterASP).
-
-.DESCRIPTION
-    ⚠️  Este script SEMPRE executa contra o banco de PRODUÇÃO.
-    Nunca contra LocalDB ou qualquer outro ambiente.
-
-    Banco de Dados: sql1002.site4now.net (SmarterASP)
-    Connection String: appsettings.Production.json (local, não-commitado)
+    Applies EF Core migrations to the PRODUCTION database (SmarterASP).
 
 .EXAMPLE
     .\scripts\update-db.ps1
@@ -15,39 +8,54 @@
 
 $ErrorActionPreference = 'Stop'
 
-# Entrar na raiz do projeto (api-core)
 Set-Location (Split-Path $PSScriptRoot -Parent)
-
-# ══════════════════════════════════════════════════════════════
-# ⚠️  ATENÇÃO: Este script SEMPRE aponta para PRODUÇÃO.
-# ══════════════════════════════════════════════════════════════
 $env:ASPNETCORE_ENVIRONMENT = "Production"
 
-# Tentar obter a connection string dos User Secrets
-Write-Host "Buscando credenciais em .NET User Secrets..." -ForegroundColor Cyan
-$connString = dotnet user-secrets list --project src/Diax.Api | Where-Object { $_ -match "ConnectionStrings:DefaultConnection =" } | ForEach-Object { ($_ -split "=")[1].Trim() }
+Write-Host "Loading connection string from .NET User Secrets..." -ForegroundColor Cyan
 
-if (-not $connString) {
-    Write-Host "✗ ERRO: Connection string não encontrada nos User Secrets!" -ForegroundColor Red
-    Write-Host "Execute scripts\set-local-db-secret.ps1 primeiro." -ForegroundColor Yellow
+$secretLine = dotnet user-secrets list --project src/Diax.Api |
+    Where-Object { $_ -like "ConnectionStrings:DefaultConnection*" } |
+    Select-Object -First 1
+
+if (-not $secretLine) {
+    Write-Host "ERROR: Connection string not found in User Secrets." -ForegroundColor Red
+    Write-Host "Run scripts\set-local-db-secret.ps1 first." -ForegroundColor Yellow
+    Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue
     exit 1
 }
 
-Write-Host "`n══════════════════════════════════════════════════════════" -ForegroundColor Red
-Write-Host "  EF CORE MIGRATIONS — PRODUÇÃO (SmarterASP)" -ForegroundColor Red
-Write-Host "══════════════════════════════════════════════════════════" -ForegroundColor Red
-Write-Host "  Ambiente: Production" -ForegroundColor Yellow
-Write-Host "  Servidor: sql1002.site4now.net" -ForegroundColor Yellow
+$connString = $secretLine.Substring($secretLine.IndexOf('=') + 1).Trim()
+
+if ($connString.StartsWith('"') -and $connString.EndsWith('"')) {
+    $connString = $connString.Trim('"')
+}
+
+if ($connString -notmatch ';') {
+    Write-Host "ERROR: Invalid connection string format in User Secrets." -ForegroundColor Red
+    Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue
+    exit 1
+}
+
+Write-Host ""
+Write-Host "EF CORE MIGRATIONS - PRODUCTION (SmarterASP)" -ForegroundColor Red
+Write-Host "Environment: Production" -ForegroundColor Yellow
+Write-Host "Server: sql1002.site4now.net" -ForegroundColor Yellow
 Write-Host ""
 
-# Executar atualização
-dotnet ef database update --project "src\Diax.Infrastructure\Diax.Infrastructure.csproj" --startup-project "src\Diax.Api\Diax.Api.csproj" --context Diax.Infrastructure.Data.DiaxDbContext --connection "$connString" --verbose
+dotnet ef database update `
+    --project "src\Diax.Infrastructure\Diax.Infrastructure.csproj" `
+    --startup-project "src\Diax.Api\Diax.Api.csproj" `
+    --context Diax.Infrastructure.Data.DiaxDbContext `
+    --connection "$connString"
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n✓ Migrations aplicadas com sucesso em PRODUÇÃO!" -ForegroundColor Green
-} else {
-    Write-Host "`n✗ Erro ao aplicar migrations" -ForegroundColor Red
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "Error applying migrations." -ForegroundColor Red
+    Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue
     exit 1
 }
+
+Write-Host ""
+Write-Host "Migrations applied successfully in PRODUCTION." -ForegroundColor Green
 
 Remove-Item Env:ASPNETCORE_ENVIRONMENT -ErrorAction SilentlyContinue

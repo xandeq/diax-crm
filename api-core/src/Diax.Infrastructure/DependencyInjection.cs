@@ -16,6 +16,9 @@ using Diax.Domain.AI;
 using Diax.Domain.UserGroups;
 using Diax.Domain.ApiKeys;
 using Diax.Domain.Blog;
+using Diax.Domain.EmailMarketing;
+using Diax.Application.EmailMarketing;
+using Diax.Infrastructure.Email;
 using Diax.Application.AI;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -185,6 +188,8 @@ public static class DependencyInjection
         services.AddScoped<IAiUsageLogRepository, AiUsageLogRepository>();
         services.AddScoped<IUserGroupRepository, UserGroupRepository>();
         services.AddScoped<IGroupAiAccessRepository, GroupAiAccessRepository>();
+        services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
+        services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
 
         // ===== BLOG & API KEYS =====
         services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
@@ -231,6 +236,11 @@ public static class DependencyInjection
         // Register GrokTextTransformClient
         services.AddHttpClient<GrokTextTransformClient>();
         services.AddScoped<IAiTextTransformClient, GrokTextTransformClient>();
+
+        // ===== EMAIL MARKETING =====
+        services.Configure<EmailSettings>(configuration.GetSection("Email"));
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddHostedService<EmailQueueProcessorWorker>();
 
         return services;
     }

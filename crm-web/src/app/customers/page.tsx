@@ -11,17 +11,18 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
 import {
+    Building2,
     CheckCircle,
     Clock,
+    Download,
     Edit2,
     Loader2,
+    Mail,
     Plus,
     Search,
     Trash2,
-    XCircle,
-    Download,
-    Building2,
-    User
+    User,
+    XCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -29,6 +30,7 @@ import * as z from 'zod';
 
 import { DataTable } from '@/components/data-table/DataTable';
 import { TableActions } from '@/components/data-table/TableActions';
+import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
 import { Badge } from '@/components/ui/badge';
 import { exportToCSV } from '@/lib/export';
 
@@ -60,6 +62,8 @@ export default function CustomersPage() {
 
   // Estados do Modal/Form
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [composerRecipients, setComposerRecipients] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +188,27 @@ export default function CustomersPage() {
       })),
       `clientes-${new Date().toISOString().split('T')[0]}`
     );
+  };
+
+  const handleEmail = (customer: Customer) => {
+    setComposerRecipients([{ id: customer.id, name: customer.name, email: customer.email }]);
+    setIsComposerOpen(true);
+  };
+
+  const handleBulkEmail = () => {
+    if (selectedRows.length === 0) {
+      alert('Selecione ao menos um cliente.');
+      return;
+    }
+
+    setComposerRecipients(
+      selectedRows.map(customer => ({
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+      }))
+    );
+    setIsComposerOpen(true);
   };
 
   const onSubmit = async (data: CustomerFormValues) => {
@@ -345,6 +370,13 @@ export default function CustomersPage() {
             <Edit2 className="h-4 w-4" />
           </button>
           <button
+            onClick={() => handleEmail(row.original)}
+            className="p-1 hover:bg-blue-100 rounded-md text-blue-600 transition-colors"
+            title="Enviar Email"
+          >
+            <Mail className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => handleDelete(row.original.id)}
             className="p-1 hover:bg-red-100 rounded-md text-red-600 transition-colors"
             title="Excluir"
@@ -399,6 +431,15 @@ export default function CustomersPage() {
         onDelete={handleBulkDelete}
         onExport={handleExport}
         onClearSelection={() => setSelectedRows([])}
+        customActions={
+          <button
+            onClick={handleBulkEmail}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-3 bg-blue-600 text-white hover:bg-blue-700"
+          >
+            <Mail className="mr-1.5 h-3.5 w-3.5" />
+            Enviar E-mail
+          </button>
+        }
       />
 
       {/* DataTable */}
@@ -566,6 +607,17 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
+
+      <EmailCampaignComposerModal
+        open={isComposerOpen}
+        onOpenChange={setIsComposerOpen}
+        recipients={composerRecipients}
+        title="Composer Profissional - Clientes"
+        onQueued={(queuedCount) => {
+          alert(`Campanha enfileirada com sucesso para ${queuedCount} cliente(s).`);
+          setSelectedRows([]);
+        }}
+      />
     </div>
   );
 }

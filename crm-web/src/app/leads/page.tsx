@@ -1,5 +1,7 @@
 'use client';
 
+import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
+import { apiFetch } from '@/services/api';
 import {
     createLead,
     CustomerStatus,
@@ -8,10 +10,10 @@ import {
     Lead,
     updateLead
 } from '@/services/leads';
-import { apiFetch } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
 import {
+    Building2,
     CheckCircle,
     Clock,
     Edit2,
@@ -22,9 +24,8 @@ import {
     Search,
     Trash2,
     Upload,
-    XCircle,
-    Building2,
-    User
+    User,
+    XCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -76,6 +77,8 @@ export default function LeadsPage() {
 
   // Estados do Modal/Form
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [composerRecipients, setComposerRecipients] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,9 +218,24 @@ export default function LeadsPage() {
   };
 
   const handleEmail = (lead: Lead) => {
-    const subject = encodeURIComponent('Contato via CRM');
-    const body = encodeURIComponent(`Olá ${lead.name},\n\n`);
-    window.location.href = `mailto:${lead.email}?subject=${subject}&body=${body}`;
+    setComposerRecipients([{ id: lead.id, name: lead.name, email: lead.email }]);
+    setIsComposerOpen(true);
+  };
+
+  const handleBulkEmail = () => {
+    if (selectedRows.length === 0) {
+      alert('Selecione ao menos um lead.');
+      return;
+    }
+
+    setComposerRecipients(
+      selectedRows.map(lead => ({
+        id: lead.id,
+        name: lead.name,
+        email: lead.email,
+      }))
+    );
+    setIsComposerOpen(true);
   };
 
   const handleExport = () => {
@@ -462,14 +480,24 @@ export default function LeadsPage() {
         onExport={handleExport}
         onClearSelection={() => setSelectedRows([])}
         customActions={
-          <Button
-            size="sm"
-            onClick={handleBulkConvert}
-            className="h-8 bg-green-600 hover:bg-green-700 text-white"
-          >
-            <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-            Converter Selecionados
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handleBulkEmail}
+              className="h-8 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Mail className="h-3.5 w-3.5 mr-1.5" />
+              Enviar E-mail
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleBulkConvert}
+              className="h-8 bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+              Converter Selecionados
+            </Button>
+          </div>
         }
       />
 
@@ -557,6 +585,17 @@ export default function LeadsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <EmailCampaignComposerModal
+        open={isComposerOpen}
+        onOpenChange={setIsComposerOpen}
+        recipients={composerRecipients}
+        title="Composer Profissional - Leads"
+        onQueued={(queuedCount) => {
+          alert(`Campanha enfileirada com sucesso para ${queuedCount} lead(s).`);
+          setSelectedRows([]);
+        }}
+      />
     </div>
   );
 }
