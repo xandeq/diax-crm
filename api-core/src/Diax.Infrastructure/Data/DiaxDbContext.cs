@@ -1,3 +1,4 @@
+using Diax.Domain.Audit;
 using Diax.Domain.Common;
 using Diax.Domain.Auth;
 using Diax.Domain.Customers;
@@ -93,6 +94,9 @@ public class DiaxDbContext : DbContext
     public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
     public DbSet<EmailQueueItem> EmailQueueItems => Set<EmailQueueItem>();
     public DbSet<EmailCampaign> EmailCampaigns => Set<EmailCampaign>();
+
+    // Audit
+    public DbSet<AuditLogEntry> AuditLogs => Set<AuditLogEntry>();
 
     // Financial Planner
     public DbSet<FinancialGoal> FinancialGoals => Set<FinancialGoal>();
@@ -218,15 +222,17 @@ public class DiaxDbContext : DbContext
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         // Atualiza automaticamente os campos de auditoria
+        var currentUserId = _currentUserService?.UserId?.ToString() ?? "system";
+
         foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.SetCreatedBy("system"); // TODO: Obter do contexto de usuário autenticado
+                    entry.Entity.SetCreatedBy(currentUserId);
                     break;
                 case EntityState.Modified:
-                    entry.Entity.SetUpdated("system"); // TODO: Obter do contexto de usuário autenticado
+                    entry.Entity.SetUpdated(currentUserId);
                     break;
             }
         }
@@ -237,15 +243,17 @@ public class DiaxDbContext : DbContext
     public override int SaveChanges()
     {
         // Atualiza automaticamente os campos de auditoria (versão síncrona)
+        var currentUserId = _currentUserService?.UserId?.ToString() ?? "system";
+
         foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.SetCreatedBy("system");
+                    entry.Entity.SetCreatedBy(currentUserId);
                     break;
                 case EntityState.Modified:
-                    entry.Entity.SetUpdated("system");
+                    entry.Entity.SetUpdated(currentUserId);
                     break;
             }
         }

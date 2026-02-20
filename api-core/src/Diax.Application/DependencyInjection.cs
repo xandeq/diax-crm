@@ -1,3 +1,4 @@
+using Diax.Application.Audit;
 using Diax.Application.Auth;
 using Diax.Application.Customers;
 using Diax.Application.Finance;
@@ -29,6 +30,8 @@ public static class DependencyInjection
 
         // Registra todos os validators do FluentValidation
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<IAuditLogService, AuditLogService>();
 
         // Registra os serviços de aplicação
         services.AddScoped<IUserManagementService, UserManagementService>();

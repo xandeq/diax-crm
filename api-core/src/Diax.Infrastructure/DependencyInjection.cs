@@ -1,5 +1,8 @@
+using Diax.Domain.Audit;
 using Diax.Domain.Auth;
 using Diax.Domain.Common;
+using Diax.Infrastructure.Data.Interceptors;
+using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Identity;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
@@ -102,6 +105,10 @@ public static class DependencyInjection
         // Evita reutilizar a string original, usa a normalizada.
         connectionString = csb.ConnectionString;
 
+        // ===== AUDIT INTERCEPTOR =====
+        // Deve ser registrado antes do DbContext para ser resolvido dentro da factory
+        services.AddScoped<AuditSaveChangesInterceptor>();
+
         // ===== DBCONTEXT - SQL SERVER 2022 =====
         services.AddDbContext<DiaxDbContext>((serviceProvider, options) =>
         {
@@ -126,6 +133,10 @@ public static class DependencyInjection
                 // Não falhar startup/migrations por logging.
             }
             #endif
+
+            // Registra o interceptor de auditoria na mesma scope do DbContext
+            var auditInterceptor = serviceProvider.GetRequiredService<AuditSaveChangesInterceptor>();
+            options.AddInterceptors(auditInterceptor);
 
             options.UseSqlServer(connectionString, sqlOptions =>
             {
@@ -190,6 +201,9 @@ public static class DependencyInjection
         services.AddScoped<IGroupAiAccessRepository, GroupAiAccessRepository>();
         services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
         services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
+
+        // ===== AUDIT LOG =====
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
         // ===== BLOG & API KEYS =====
         services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
