@@ -57,6 +57,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<CustomerStatus | undefined>(undefined);
 
@@ -100,6 +101,7 @@ export default function CustomersPage() {
       const data = await getCustomers(page, 10, search, statusFilter);
       setCustomers(data.items);
       setTotalPages(data.totalPages);
+      setTotalCount(data.totalCount);
     } catch (err) {
       console.error(err);
       setError('Erro ao carregar clientes.');
@@ -111,6 +113,11 @@ export default function CustomersPage() {
   useEffect(() => {
     fetchCustomers();
   }, [page, search, statusFilter]);
+
+  // Reset para página 1 quando filtros mudam
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
 
   // Handlers
   const handleOpenCreate = () => {
@@ -451,6 +458,60 @@ export default function CustomersPage() {
         onSelectionChange={setSelectedRows}
         pageSize={10}
       />
+
+      {/* Paginação */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm">
+        <p className="text-sm text-slate-600">
+          {totalCount === 0 ? 'Nenhum registro encontrado' : (
+            <>Exibindo <span className="font-semibold">{((page - 1) * 10) + 1}</span> a{' '}<span className="font-semibold">{Math.min(page * 10, totalCount)}</span> de{' '}<span className="font-semibold">{totalCount}</span> clientes</>
+          )}
+        </p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-3 transition-colors"
+            >
+              ← Anterior
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 7) {
+                  pageNum = i + 1;
+                } else if (page <= 4) {
+                  pageNum = i + 1;
+                } else if (page >= totalPages - 3) {
+                  pageNum = totalPages - 6 + i;
+                } else {
+                  pageNum = page - 3 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 transition-colors ${
+                      pageNum === page
+                        ? 'bg-slate-900 text-white'
+                        : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-3 transition-colors"
+            >
+              Próximo →
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Modal */}
       {isModalOpen && (
