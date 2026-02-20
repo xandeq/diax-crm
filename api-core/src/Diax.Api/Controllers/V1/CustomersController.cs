@@ -212,6 +212,24 @@ public class CustomersController : BaseApiController
     }
 
     /// <summary>
+    /// Retorna a timeline de atividades de um customer/lead.
+    /// </summary>
+    /// <param name="id">ID do customer</param>
+    /// <param name="cancellationToken">Token de cancelamento</param>
+    /// <returns>Lista de eventos da timeline</returns>
+    [HttpGet("{id:guid}/activities")]
+    [ProducesResponseType(typeof(IEnumerable<LeadActivityDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetActivities(Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Buscando atividades do customer: {Id}", id);
+
+        var result = await _customerService.GetActivitiesAsync(id, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Obtém o histórico de importações.
     /// </summary>
     /// <param name="page">Número da página (padrão: 1)</param>

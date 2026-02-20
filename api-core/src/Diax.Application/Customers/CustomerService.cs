@@ -3,6 +3,8 @@ using Diax.Application.Customers.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
+using Diax.Domain.EmailMarketing;
+using Diax.Domain.EmailMarketing.Enums;
 using Diax.Shared.Results;
 
 namespace Diax.Application.Customers;
@@ -14,11 +16,16 @@ public class CustomerService : IApplicationService
 {
     private readonly ICustomerRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IEmailQueueRepository _emailQueueRepository;
 
-    public CustomerService(ICustomerRepository repository, IUnitOfWork unitOfWork)
+    public CustomerService(
+        ICustomerRepository repository,
+        IUnitOfWork unitOfWork,
+        IEmailQueueRepository emailQueueRepository)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _emailQueueRepository = emailQueueRepository;
     }
 
     /// <summary>
@@ -243,5 +250,84 @@ public class CustomerService : IApplicationService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Retorna a timeline de atividades de um customer/lead.
+    /// </summary>
+    public async Task<Result<IEnumerable<LeadActivityDto>>> GetActivitiesAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await _repository.GetByIdAsync(id, cancellationToken);
+
+        if (customer is null)
+            return Result.Failure<IEnumerable<LeadActivityDto>>(Error.NotFound("Customer", id));
+
+        var activities = new List<LeadActivityDto>();
+
+        // Evento de criação
+        activities.Add(new LeadActivityDto
+        {
+            Type = "created",
+            Title = "Lead cadastrado",
+            Detail = $"Origem: {customer.Source}",
+            Date = customer.CreatedAt,
+            Status = "info"
+        });
+
+        // Último contato registrado
+        if (customer.LastContactAt.HasValue)
+        {
+            activities.Add(new LeadActivityDto
+            {
+                Type = "contact_registered",
+                Title = "Contato registrado",
+                Detail = null,
+                Date = customer.LastContactAt.Value,
+                Status = "info"
+            });
+        }
+
+        // Conversão para cliente
+        if (customer.ConvertedAt.HasValue)
+        {
+            activities.Add(new LeadActivityDto
+            {
+                Type = "converted",
+                Title = "Convertido em cliente",
+                Detail = null,
+                Date = customer.ConvertedAt.Value,
+                Status = "success"
+            });
+        }
+
+        // Emails enviados / na fila
+        var emailItems = await _emailQueueRepository.GetByCustomerIdAsync(id, cancellationToken);
+
+        foreach (var email in emailItems)
+        {
+            var (type, title, status, date) = email.Status switch
+            {
+                EmailQueueStatus.Sent => ("email_sent", "E-mail enviado", "success", email.SentAt ?? email.CreatedAt),
+                EmailQueueStatus.Failed => ("email_failed", "Falha no envio do e-mail", "error", email.UpdatedAt ?? email.CreatedAt),
+                EmailQueueStatus.Processing => ("email_queued", "E-mail em processamento", "info", email.ProcessingStartedAt ?? email.CreatedAt),
+                _ => ("email_queued", "E-mail agendado", "info", email.ScheduledAt)
+            };
+
+            activities.Add(new LeadActivityDto
+            {
+                Type = type,
+                Title = title,
+                Detail = email.Status == EmailQueueStatus.Failed
+                    ? (email.LastError ?? email.Subject)
+                    : email.Subject,
+                Date = date,
+                Status = status
+            });
+        }
+
+        return Result.Success<IEnumerable<LeadActivityDto>>(
+            activities.OrderByDescending(a => a.Date).ToList());
     }
 }

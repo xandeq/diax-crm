@@ -11,6 +11,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
 import {
+    Activity,
     Building2,
     CheckCircle,
     Clock,
@@ -28,10 +29,17 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
+import { LeadTimeline } from '@/components/customers/LeadTimeline';
 import { DataTable } from '@/components/data-table/DataTable';
 import { TableActions } from '@/components/data-table/TableActions';
 import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
 import { Badge } from '@/components/ui/badge';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { exportToCSV } from '@/lib/export';
 
 // Schema de validação
@@ -69,7 +77,8 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  // Estado do painel de timeline
+  const [timelineCustomer, setTimelineCustomer] = useState<Customer | null>(null);
   const {
     register,
     handleSubmit,
@@ -260,30 +269,25 @@ export default function CustomersPage() {
         icon: <CheckCircle className="h-3 w-3" />,
         label: 'Qualificado'
       },
-      [CustomerStatus.ProposalSent]: {
-        style: 'bg-purple-100 text-purple-800',
-        icon: <Clock className="h-3 w-3" />,
-        label: 'Proposta Enviada'
-      },
-      [CustomerStatus.Negotiation]: {
+      [CustomerStatus.Negotiating]: {
         style: 'bg-orange-100 text-orange-800',
         icon: <Clock className="h-3 w-3" />,
-        label: 'Negociação'
+        label: 'Negociando'
       },
       [CustomerStatus.Customer]: {
         style: 'bg-green-100 text-green-800',
         icon: <CheckCircle className="h-3 w-3" />,
         label: 'Cliente'
       },
+      [CustomerStatus.Inactive]: {
+        style: 'bg-slate-100 text-slate-600',
+        icon: <XCircle className="h-3 w-3" />,
+        label: 'Inativo'
+      },
       [CustomerStatus.Churned]: {
         style: 'bg-gray-100 text-gray-800',
         icon: <XCircle className="h-3 w-3" />,
         label: 'Churn'
-      },
-      [CustomerStatus.Lost]: {
-        style: 'bg-red-100 text-red-800',
-        icon: <XCircle className="h-3 w-3" />,
-        label: 'Perdido'
       },
     };
 
@@ -376,6 +380,13 @@ export default function CustomersPage() {
             title="Editar"
           >
             <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setTimelineCustomer(row.original)}
+            className="p-1 hover:bg-indigo-100 rounded-md text-indigo-600 transition-colors"
+            title="Histórico de atividades"
+          >
+            <Activity className="h-4 w-4" />
           </button>
           <button
             onClick={() => handleEmail(row.original)}
@@ -714,6 +725,26 @@ export default function CustomersPage() {
           setSelectedRows([]);
         }}
       />
+
+      {/* Painel lateral de Timeline de Atividades */}
+      <Sheet
+        open={!!timelineCustomer}
+        onOpenChange={(open) => { if (!open) setTimelineCustomer(null); }}
+      >
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>
+              Histórico de Atividades
+            </SheetTitle>
+            {timelineCustomer && (
+              <p className="text-sm text-slate-500">{timelineCustomer.name}</p>
+            )}
+          </SheetHeader>
+          {timelineCustomer && (
+            <LeadTimeline customerId={timelineCustomer.id} />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -12,4 +12,8 @@ public interface IEmailQueueRepository : IRepository<EmailQueueItem>
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<EmailQueueItem>> GetByCustomerIdAsync(
+        Guid customerId,
+        CancellationToken cancellationToken = default);
 }

@@ -13,6 +13,7 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
 import {
+    Activity,
     Building2,
     CheckCircle,
     Clock,
@@ -32,6 +33,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
+import { LeadTimeline } from '@/components/customers/LeadTimeline';
 import { DataTable } from '@/components/data-table/DataTable';
 import { TableActions } from '@/components/data-table/TableActions';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +54,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { exportToCSV } from '@/lib/export';
 
 // Schema de validação
@@ -84,7 +92,8 @@ export default function LeadsPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  // Estado do painel de timeline
+  const [timelineLead, setTimelineLead] = useState<Lead | null>(null);
   const {
     register,
     handleSubmit,
@@ -300,10 +309,25 @@ export default function LeadsPage() {
         icon: <CheckCircle className="h-3 w-3" />,
         label: 'Qualificado'
       },
-      [CustomerStatus.Lost]: {
-        style: 'bg-red-100 text-red-800',
+      [CustomerStatus.Negotiating]: {
+        style: 'bg-orange-100 text-orange-800',
+        icon: <Clock className="h-3 w-3" />,
+        label: 'Negociando'
+      },
+      [CustomerStatus.Customer]: {
+        style: 'bg-emerald-100 text-emerald-800',
+        icon: <CheckCircle className="h-3 w-3" />,
+        label: 'Cliente'
+      },
+      [CustomerStatus.Inactive]: {
+        style: 'bg-slate-100 text-slate-600',
         icon: <XCircle className="h-3 w-3" />,
-        label: 'Perdido'
+        label: 'Inativo'
+      },
+      [CustomerStatus.Churned]: {
+        style: 'bg-gray-100 text-gray-800',
+        icon: <XCircle className="h-3 w-3" />,
+        label: 'Churn'
       },
     };
 
@@ -419,6 +443,13 @@ export default function LeadsPage() {
             <Mail className="h-4 w-4" />
           </button>
           <button
+            onClick={() => setTimelineLead(row.original)}
+            className="p-1 hover:bg-indigo-100 rounded-md text-indigo-600 transition-colors"
+            title="Histórico de atividades"
+          >
+            <Activity className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => handleDelete(row.original.id)}
             className="p-1 hover:bg-red-100 rounded-md text-red-600 transition-colors"
             title="Excluir"
@@ -472,9 +503,9 @@ export default function LeadsPage() {
             <SelectContent>
               <SelectItem value="all">Todos os Status</SelectItem>
               <SelectItem value={String(CustomerStatus.Lead)}>Lead</SelectItem>
-              <SelectItem value={String(CustomerStatus.Contacted)}>Contacted</SelectItem>
-              <SelectItem value={String(CustomerStatus.Qualified)}>Qualified</SelectItem>
-              <SelectItem value={String(CustomerStatus.Lost)}>Lost</SelectItem>
+              <SelectItem value={String(CustomerStatus.Contacted)}>Contatado</SelectItem>
+              <SelectItem value={String(CustomerStatus.Qualified)}>Qualificado</SelectItem>
+              <SelectItem value={String(CustomerStatus.Negotiating)}>Negociando</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -692,6 +723,24 @@ export default function LeadsPage() {
           setSelectedRows([]);
         }}
       />
+
+      {/* Painel lateral de Timeline de Atividades */}
+      <Sheet
+        open={!!timelineLead}
+        onOpenChange={(open) => { if (!open) setTimelineLead(null); }}
+      >
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Histórico de Atividades</SheetTitle>
+            {timelineLead && (
+              <p className="text-sm text-slate-500">{timelineLead.name}</p>
+            )}
+          </SheetHeader>
+          {timelineLead && (
+            <LeadTimeline customerId={timelineLead.id} />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

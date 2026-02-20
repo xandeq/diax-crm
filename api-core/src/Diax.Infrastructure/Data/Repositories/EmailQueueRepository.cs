@@ -60,4 +60,14 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
 
         return (items, totalCount);
     }
+
+    public async Task<IReadOnlyList<EmailQueueItem>> GetByCustomerIdAsync(
+        Guid customerId,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(item => item.CustomerId == customerId)
+            .OrderByDescending(item => item.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
 }

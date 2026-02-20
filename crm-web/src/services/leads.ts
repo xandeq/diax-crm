@@ -4,11 +4,10 @@ export enum CustomerStatus {
   Lead = 0,
   Contacted = 1,
   Qualified = 2,
-  ProposalSent = 3,
-  Negotiation = 4,
-  Customer = 5,
-  Churned = 6,
-  Lost = 7
+  Negotiating = 3,
+  Customer = 4,
+  Inactive = 5,
+  Churned = 6
 }
 
 export interface Lead {
