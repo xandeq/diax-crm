@@ -73,6 +73,7 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -106,7 +107,7 @@ export default function LeadsPage() {
     setLoading(true);
     try {
       const status = statusFilter === 'all' ? undefined : Number(statusFilter);
-      const data = await getLeads(page, 10, search, status as CustomerStatus);
+      const data = await getLeads(page, pageSize, search, status as CustomerStatus);
       setLeads(data.items);
       setTotalPages(data.totalPages);
       setTotalCount(data.totalCount);
@@ -120,7 +121,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchLeads();
-  }, [page, search, statusFilter]);
+  }, [page, pageSize, search, statusFilter]);
 
   // Reset para página 1 quando filtros mudam
   useEffect(() => {
@@ -515,18 +516,44 @@ export default function LeadsPage() {
         loading={loading}
         selectable={true}
         onSelectionChange={setSelectedRows}
-        pageSize={10}
+        pageSize={pageSize}
       />
 
       {/* Paginação */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm">
-        <p className="text-sm text-slate-600">
-          {totalCount === 0 ? 'Nenhum registro encontrado' : (
-            <>Exibindo <span className="font-semibold">{((page - 1) * 10) + 1}</span> a{' '}<span className="font-semibold">{Math.min(page * 10, totalCount)}</span> de{' '}<span className="font-semibold">{totalCount}</span> leads</>
-          )}
-        </p>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm">
+        {/* Esquerda: contagem + dropdown de itens por página */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <p className="text-sm text-slate-600">
+            {totalCount === 0 ? 'Nenhum registro encontrado' : (
+              <>Exibindo <span className="font-semibold">{((page - 1) * pageSize) + 1}</span> a{' '}<span className="font-semibold">{Math.min(page * pageSize, totalCount)}</span> de{' '}<span className="font-semibold">{totalCount}</span> leads</>
+            )}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm text-slate-500">Exibir</span>
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-sm text-slate-500">por página</span>
+          </div>
+        </div>
+        {/* Direita: botões de navegação */}
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-2.5 transition-colors"
+              title="Primeira página"
+            >
+              «
+            </button>
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
@@ -567,6 +594,14 @@ export default function LeadsPage() {
               className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-3 transition-colors"
             >
               Próximo →
+            </button>
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page === totalPages}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-2.5 transition-colors"
+              title="Última página"
+            >
+              »
             </button>
           </div>
         )}
