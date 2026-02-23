@@ -66,14 +66,10 @@ public class GrokClient : IGrokClient
                 return GetFallbackModels();
             }
 
-            // Filter out image generation models
-            var textModels = result.Data
-                .Where(m => !m.Id.Contains("image") && !m.Id.Contains("vision"))
-                .ToList();
+            // Return all models (text + image) — capability filtering is done via AiModel.CapabilitiesJson
+            _logger.LogInformation("[Grok] Fetched {Count} models from API", result.Data.Count);
 
-            _logger.LogInformation("[Grok] Fetched {Count} text models from API", textModels.Count);
-
-            return new GrokModelsResponse(result.Object, textModels);
+            return new GrokModelsResponse(result.Object, result.Data);
         }
         catch (Exception ex)
         {

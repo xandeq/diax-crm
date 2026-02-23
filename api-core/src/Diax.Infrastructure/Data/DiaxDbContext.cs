@@ -13,6 +13,7 @@ using Diax.Domain.UserGroups;
 using Diax.Domain.ApiKeys;
 using Diax.Domain.Blog;
 using Diax.Domain.EmailMarketing;
+using Diax.Domain.ImageGeneration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -94,6 +95,11 @@ public class DiaxDbContext : DbContext
     public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
     public DbSet<EmailQueueItem> EmailQueueItems => Set<EmailQueueItem>();
     public DbSet<EmailCampaign> EmailCampaigns => Set<EmailCampaign>();
+
+    // Image Generation
+    public DbSet<ImageTemplate> ImageTemplates => Set<ImageTemplate>();
+    public DbSet<ImageGenerationProject> ImageGenerationProjects => Set<ImageGenerationProject>();
+    public DbSet<GeneratedImage> GeneratedImages => Set<GeneratedImage>();
 
     // Audit
     public DbSet<AuditLogEntry> AuditLogs => Set<AuditLogEntry>();

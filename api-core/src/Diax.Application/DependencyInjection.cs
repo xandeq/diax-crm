@@ -9,6 +9,7 @@ using Diax.Application.Household;
 using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using Diax.Application.AI;
+using Diax.Application.AI.ImageGeneration;
 using Diax.Application.AI.Services;
 using Diax.Application.ApiKeys;
 using Diax.Application.Blog;
@@ -78,6 +79,9 @@ public static class DependencyInjection
 
         // AI Usage Tracking Service
         services.AddScoped<IAiUsageTrackingService, AiUsageTrackingService>();
+
+        // AI Image Generation Service
+        services.AddScoped<IImageGenerationService, ImageGenerationService>();
 
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();

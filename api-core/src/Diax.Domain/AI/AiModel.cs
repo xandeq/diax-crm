@@ -37,4 +37,12 @@ public class AiModel : AuditableEntity
 
     public void Enable() => IsEnabled = true;
     public void Disable() => IsEnabled = false;
+
+    public bool SupportsImageGeneration() =>
+        !string.IsNullOrEmpty(CapabilitiesJson) &&
+        CapabilitiesJson.Contains("\"supportsImage\":true", StringComparison.OrdinalIgnoreCase);
+
+    public bool SupportsTextGeneration() =>
+        string.IsNullOrEmpty(CapabilitiesJson) ||
+        CapabilitiesJson.Contains("\"supportsText\":true", StringComparison.OrdinalIgnoreCase);
 }

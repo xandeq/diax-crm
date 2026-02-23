@@ -20,6 +20,7 @@ using Diax.Domain.UserGroups;
 using Diax.Domain.ApiKeys;
 using Diax.Domain.Blog;
 using Diax.Domain.EmailMarketing;
+using Diax.Domain.ImageGeneration;
 using Diax.Application.EmailMarketing;
 using Diax.Infrastructure.Email;
 using Diax.Application.AI;
@@ -202,6 +203,11 @@ public static class DependencyInjection
         services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
         services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
 
+        // ===== IMAGE GENERATION =====
+        services.AddScoped<IImageTemplateRepository, ImageTemplateRepository>();
+        services.AddScoped<IImageGenerationProjectRepository, ImageGenerationProjectRepository>();
+        services.AddScoped<IGeneratedImageRepository, GeneratedImageRepository>();
+
         // ===== AUDIT LOG =====
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
@@ -250,6 +256,10 @@ public static class DependencyInjection
         // Register GrokTextTransformClient
         services.AddHttpClient<GrokTextTransformClient>();
         services.AddScoped<IAiTextTransformClient, GrokTextTransformClient>();
+
+        // ===== AI IMAGE GENERATION CLIENTS =====
+        services.AddHttpClient<OpenAiImageClient>();
+        services.AddScoped<IAiImageGenerationClient, OpenAiImageClient>();
 
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));

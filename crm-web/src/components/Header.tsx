@@ -132,6 +132,14 @@ export function Header() {
                 >
                   Snippets
                 </Link>
+                <div className="border-t border-slate-100 my-1"></div>
+                <Link
+                  href="/utilities/image-generation"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  Geração de Imagens IA
+                </Link>
               </div>
             </div>
           </>
