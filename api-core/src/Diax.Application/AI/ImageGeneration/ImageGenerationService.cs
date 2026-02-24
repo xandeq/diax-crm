@@ -1,6 +1,7 @@
 using Diax.Application.AI.ImageGeneration.Dtos;
 using Diax.Application.AI.Services;
 using Diax.Application.Common;
+using Diax.Application.PromptGenerator;
 using Diax.Domain.AI;
 using Diax.Domain.ImageGeneration;
 using Diax.Shared.Ai;
@@ -20,6 +21,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
     private readonly IGeneratedImageRepository _generatedImageRepository;
     private readonly IImageTemplateRepository _templateRepository;
     private readonly IApiKeyEncryptionService _encryptionService;
+    private readonly PromptGeneratorSettings _promptSettings;
     private readonly ILogger<ImageGenerationService> _logger;
 
     public ImageGenerationService(
@@ -33,6 +35,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         IGeneratedImageRepository generatedImageRepository,
         IImageTemplateRepository templateRepository,
         IApiKeyEncryptionService encryptionService,
+        PromptGeneratorSettings promptSettings,
         ILogger<ImageGenerationService> logger)
     {
         _imageClients = imageClients;
@@ -45,6 +48,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         _generatedImageRepository = generatedImageRepository;
         _templateRepository = templateRepository;
         _encryptionService = encryptionService;
+        _promptSettings = promptSettings;
         _logger = logger;
     }
 
@@ -84,14 +88,28 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 $"Modelo '{request.Model}' não suporta geração de imagens. " +
                 "Verifique se o CapabilitiesJson do modelo está configurado corretamente.");
 
-        // 4. Get API key from encrypted credentials
+        // 4. Get API key — DB credentials first, fallback to appsettings (PromptGeneratorSettings)
+        string apiKey;
         var credential = await _credentialRepository.GetByProviderIdAsync(provider.Id, ct);
-        if (credential == null || !credential.IsConfigured())
-            throw new InvalidOperationException(
-                $"API Key não configurada para o provider '{providerKey}'. " +
-                "Configure a chave em Administração > AI > Providers.");
+        if (credential != null && credential.IsConfigured())
+        {
+            _logger.LogDebug(
+                "ImageGeneration: using DB credential for provider '{Provider}'", providerKey);
+            apiKey = _encryptionService.Decrypt(credential.ApiKeyEncrypted);
+        }
+        else
+        {
+            // Fallback: read from appsettings / environment variables (same source as text services)
+            var providerConfig = _promptSettings.GetProviderConfig(providerKey);
+            if (providerConfig == null || string.IsNullOrWhiteSpace(providerConfig.ApiKey))
+                throw new InvalidOperationException(
+                    $"API Key não configurada para o provider '{providerKey}'. " +
+                    "Configure a chave em Administração > AI > Providers ou nas variáveis de ambiente.");
 
-        var apiKey = _encryptionService.Decrypt(credential.ApiKeyEncrypted);
+            _logger.LogDebug(
+                "ImageGeneration: DB credential not found for '{Provider}', using appsettings fallback", providerKey);
+            apiKey = providerConfig.ApiKey;
+        }
 
         // 5. Find the matching image generation client
         var client = _imageClients.FirstOrDefault(c => c.ProviderName == providerKey)
