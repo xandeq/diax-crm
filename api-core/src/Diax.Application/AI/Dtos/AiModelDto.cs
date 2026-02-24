@@ -8,5 +8,7 @@ public record AiModelDto(
     bool IsDiscovered,
     decimal? InputCostHint,
     decimal? OutputCostHint,
-    int? MaxTokensHint
+    int? MaxTokensHint,
+    bool SupportsImage,
+    bool SupportsText
 );

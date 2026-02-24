@@ -65,12 +65,15 @@ export default function ImageGenerationPage() {
   // Prompt textarea auto-resize
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  // Derived state
-  const currentProvider = providers.find(p => p.key === selectedProvider);
-  const currentModels = (currentProvider?.models || []).filter(m => m.isEnabled);
+  // Derived state — filter to only image-capable models
+  const imageProviders = providers
+    .filter(p => p.models.some(m => m.isEnabled && m.supportsImage))
+    .map(p => ({ ...p, models: p.models.filter(m => m.isEnabled && m.supportsImage) }));
+  const currentProvider = imageProviders.find(p => p.key === selectedProvider);
+  const currentModels = currentProvider?.models || [];
   const sizeOption = imageSizeOptions.find(s => s.value === selectedSize);
 
-  // Load providers
+  // Load providers — auto-select first image-capable provider/model
   useEffect(() => {
     async function loadProviders() {
       try {
@@ -79,11 +82,19 @@ export default function ImageGenerationPage() {
         setProviders(enabledProviders);
 
         if (enabledProviders.length > 0 && !selectedProvider) {
-          const firstProv = enabledProviders[0];
-          setSelectedProvider(firstProv.key);
-          const enabledModels = firstProv.models.filter(m => m.isEnabled);
-          if (enabledModels.length > 0) {
-            setSelectedModel(enabledModels[0].modelKey);
+          // Find first provider that has at least one image-capable model
+          const imageProvider = enabledProviders.find(p =>
+            p.models.some(m => m.isEnabled && m.supportsImage)
+          );
+          if (imageProvider) {
+            setSelectedProvider(imageProvider.key);
+            const imageModel = imageProvider.models.find(m => m.isEnabled && m.supportsImage);
+            if (imageModel) {
+              setSelectedModel(imageModel.modelKey);
+            }
+          } else {
+            // Fallback: select first provider even if no image models
+            setSelectedProvider(enabledProviders[0].key);
           }
         }
       } catch {
@@ -189,19 +200,18 @@ export default function ImageGenerationPage() {
                   value={selectedProvider}
                   onValueChange={(val) => {
                     setSelectedProvider(val);
-                    const prov = providers.find(p => p.key === val);
+                    const prov = imageProviders.find(p => p.key === val);
                     if (prov) {
-                      const enabled = prov.models.filter(m => m.isEnabled);
-                      setSelectedModel(enabled.length > 0 ? enabled[0].modelKey : '');
+                      setSelectedModel(prov.models.length > 0 ? prov.models[0].modelKey : '');
                     }
                   }}
-                  disabled={providers.length === 0}
+                  disabled={imageProviders.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o provedor" />
+                    <SelectValue placeholder={imageProviders.length === 0 ? 'Nenhum provedor com modelo de imagem' : 'Selecione o provedor'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {providers.map(p => (
+                    {imageProviders.map(p => (
                       <SelectItem key={p.key} value={p.key}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>

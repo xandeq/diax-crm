@@ -38,9 +38,16 @@ public class AiModel : AuditableEntity
     public void Enable() => IsEnabled = true;
     public void Disable() => IsEnabled = false;
 
+    // Well-known image generation model keys (fallback when CapabilitiesJson is not configured)
+    private static readonly HashSet<string> KnownImageModelKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "dall-e-3", "dall-e-2", "gpt-image-1"
+    };
+
     public bool SupportsImageGeneration() =>
-        !string.IsNullOrEmpty(CapabilitiesJson) &&
-        CapabilitiesJson.Contains("\"supportsImage\":true", StringComparison.OrdinalIgnoreCase);
+        KnownImageModelKeys.Contains(ModelKey) ||
+        (!string.IsNullOrEmpty(CapabilitiesJson) &&
+         CapabilitiesJson.Contains("\"supportsImage\":true", StringComparison.OrdinalIgnoreCase));
 
     public bool SupportsTextGeneration() =>
         string.IsNullOrEmpty(CapabilitiesJson) ||

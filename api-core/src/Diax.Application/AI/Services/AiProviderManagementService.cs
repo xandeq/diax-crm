@@ -47,7 +47,9 @@ public class AiProviderManagementService : IAiProviderManagementService
                 m.IsDiscovered,
                 m.InputCostHint,
                 m.OutputCostHint,
-                m.MaxTokensHint
+                m.MaxTokensHint,
+                m.SupportsImageGeneration(),
+                m.SupportsTextGeneration()
             )).OrderBy(m => m.DisplayName).ToList()
         )).OrderBy(p => p.Name).ToList();
 

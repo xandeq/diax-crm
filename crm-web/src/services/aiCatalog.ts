@@ -9,6 +9,8 @@ export interface AiModel {
   inputCostHint?: number;
   outputCostHint?: number;
   maxTokensHint?: number;
+  supportsImage: boolean;
+  supportsText: boolean;
 }
 
 export interface AiProvider {
