@@ -58,6 +58,28 @@ public class OutreachConfigConfiguration : IEntityTypeConfiguration<OutreachConf
         builder.Property(c => c.ColdTemplateBody)
             .HasMaxLength(8000);
 
+        // ===== WHATSAPP =====
+        builder.Property(c => c.WhatsAppSendEnabled)
+            .HasDefaultValue(false);
+
+        builder.Property(c => c.DailyWhatsAppLimit)
+            .HasDefaultValue(100);
+
+        builder.Property(c => c.WhatsAppCooldownDays)
+            .HasDefaultValue(3);
+
+        builder.Property(c => c.WhatsAppHotTemplate)
+            .HasMaxLength(4000);
+
+        builder.Property(c => c.WhatsAppWarmTemplate)
+            .HasMaxLength(4000);
+
+        builder.Property(c => c.WhatsAppColdTemplate)
+            .HasMaxLength(4000);
+
+        builder.Property(c => c.WhatsAppFollowUpTemplate)
+            .HasMaxLength(4000);
+
         // ===== AUDITORIA =====
         builder.Property(c => c.CreatedAt).IsRequired();
         builder.Property(c => c.CreatedBy).HasMaxLength(100);

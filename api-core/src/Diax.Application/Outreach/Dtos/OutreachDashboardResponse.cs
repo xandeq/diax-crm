@@ -19,4 +19,11 @@ public class OutreachDashboardResponse
     public bool ImportEnabled { get; set; }
     public bool SegmentationEnabled { get; set; }
     public bool SendEnabled { get; set; }
+
+    // ===== WHATSAPP =====
+    public bool WhatsAppSendEnabled { get; set; }
+    public int WhatsAppSentToday { get; set; }
+    public int WhatsAppSentThisWeek { get; set; }
+    public int WhatsAppReadyCount { get; set; }
+    public string WhatsAppConnectionStatus { get; set; } = "unknown";
 }

@@ -131,8 +131,21 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.HasIndex(c => c.Name)
             .HasDatabaseName("IX_Customers_Name");
 
+        // ===== WHATSAPP (Outreach) =====
+        builder.Property(c => c.WhatsAppOptOut)
+            .HasDefaultValue(false);
+
+        builder.Property(c => c.LastWhatsAppSentAt);
+
+        builder.Property(c => c.WhatsAppSentCount)
+            .HasDefaultValue(0);
+
         // Índice para outreach: leads segmentados prontos para envio
         builder.HasIndex(c => new { c.Segment, c.Status, c.EmailOptOut })
             .HasDatabaseName("IX_Customers_Segment_Status_OptOut");
+
+        // Índice para outreach WhatsApp: leads prontos para envio WhatsApp
+        builder.HasIndex(c => new { c.Segment, c.Status, c.WhatsAppOptOut })
+            .HasDatabaseName("IX_Customers_Segment_Status_WhatsAppOptOut");
     }
 }

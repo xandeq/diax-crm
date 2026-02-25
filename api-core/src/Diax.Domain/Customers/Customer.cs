@@ -137,6 +137,23 @@ public class Customer : AuditableEntity
     /// </summary>
     public int EmailSentCount { get; private set; }
 
+    // ===== WHATSAPP (Outreach) =====
+
+    /// <summary>
+    /// Indica se o lead optou por não receber mensagens WhatsApp.
+    /// </summary>
+    public bool WhatsAppOptOut { get; private set; }
+
+    /// <summary>
+    /// Data da última mensagem WhatsApp enviada para este contato.
+    /// </summary>
+    public DateTime? LastWhatsAppSentAt { get; private set; }
+
+    /// <summary>
+    /// Total de mensagens WhatsApp enviadas para este contato.
+    /// </summary>
+    public int WhatsAppSentCount { get; private set; }
+
     // ===== CONSTRUTORES =====
 
     /// <summary>
@@ -310,5 +327,32 @@ public class Customer : AuditableEntity
     public void OptInEmail()
     {
         EmailOptOut = false;
+    }
+
+    // ===== MÉTODOS DE WHATSAPP =====
+
+    /// <summary>
+    /// Registra que uma mensagem WhatsApp foi enviada para este contato.
+    /// </summary>
+    public void RegisterWhatsAppSent()
+    {
+        LastWhatsAppSentAt = DateTime.UtcNow;
+        WhatsAppSentCount++;
+    }
+
+    /// <summary>
+    /// Marca o lead como opt-out de WhatsApp.
+    /// </summary>
+    public void OptOutWhatsApp()
+    {
+        WhatsAppOptOut = true;
+    }
+
+    /// <summary>
+    /// Reativa o recebimento de mensagens WhatsApp.
+    /// </summary>
+    public void OptInWhatsApp()
+    {
+        WhatsAppOptOut = false;
     }
 }

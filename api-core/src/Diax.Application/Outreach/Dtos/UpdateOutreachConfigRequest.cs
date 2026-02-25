@@ -18,4 +18,13 @@ public class UpdateOutreachConfigRequest
     public string? WarmTemplateBody { get; set; }
     public string? ColdTemplateSubject { get; set; }
     public string? ColdTemplateBody { get; set; }
+
+    // ===== WHATSAPP =====
+    public bool WhatsAppSendEnabled { get; set; }
+    public int DailyWhatsAppLimit { get; set; } = 100;
+    public int WhatsAppCooldownDays { get; set; } = 3;
+    public string? WhatsAppHotTemplate { get; set; }
+    public string? WhatsAppWarmTemplate { get; set; }
+    public string? WhatsAppColdTemplate { get; set; }
+    public string? WhatsAppFollowUpTemplate { get; set; }
 }

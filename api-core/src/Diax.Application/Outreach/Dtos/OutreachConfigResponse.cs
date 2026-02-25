@@ -22,6 +22,15 @@ public class OutreachConfigResponse
     public string? ColdTemplateSubject { get; set; }
     public string? ColdTemplateBody { get; set; }
 
+    // ===== WHATSAPP =====
+    public bool WhatsAppSendEnabled { get; set; }
+    public int DailyWhatsAppLimit { get; set; }
+    public int WhatsAppCooldownDays { get; set; }
+    public string? WhatsAppHotTemplate { get; set; }
+    public string? WhatsAppWarmTemplate { get; set; }
+    public string? WhatsAppColdTemplate { get; set; }
+    public string? WhatsAppFollowUpTemplate { get; set; }
+
     /// <summary>
     /// Mapeia a entidade OutreachConfig para o DTO de resposta.
     /// </summary>
@@ -42,7 +51,14 @@ public class OutreachConfigResponse
             WarmTemplateSubject = config.WarmTemplateSubject,
             WarmTemplateBody = config.WarmTemplateBody,
             ColdTemplateSubject = config.ColdTemplateSubject,
-            ColdTemplateBody = config.ColdTemplateBody
+            ColdTemplateBody = config.ColdTemplateBody,
+            WhatsAppSendEnabled = config.WhatsAppSendEnabled,
+            DailyWhatsAppLimit = config.DailyWhatsAppLimit,
+            WhatsAppCooldownDays = config.WhatsAppCooldownDays,
+            WhatsAppHotTemplate = config.WhatsAppHotTemplate,
+            WhatsAppWarmTemplate = config.WhatsAppWarmTemplate,
+            WhatsAppColdTemplate = config.WhatsAppColdTemplate,
+            WhatsAppFollowUpTemplate = config.WhatsAppFollowUpTemplate
         };
     }
 }

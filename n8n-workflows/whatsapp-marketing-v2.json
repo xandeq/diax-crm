@@ -1,0 +1,277 @@
+{
+  "name": "WhatsApp Marketing 2026 - CRM API",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WhatsApp Marketing 2026 - CRM API\n\n**Envia mensagens WhatsApp via CRM DIAX (Evolution API).**\n\n### Módulos:\n- **Módulo 1 - Campanha**: Schedule 10h, 15h → POST /whatsapp/send-campaign\n- **Módulo 2 - Follow-up**: Schedule 11h → POST /whatsapp/send-followup\n- **Error Handler**: Captura erros globais\n\n### Autenticação:\nUse a credencial **Header Auth** do n8n com nome `CRM API Key`.\n- Header: `Authorization`\n- Value: `Bearer <api_key>`\n\n**API Base:** `https://api.alexandrequeiroz.com.br/api/v1`",
+        "height": 280,
+        "width": 460,
+        "color": 5
+      },
+      "id": "sticky-readme",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Módulo 1: Campanha WhatsApp\nTrigger: 10h e 15h\nEnvia mensagens para leads segmentados\nvia POST /whatsapp/send-campaign",
+        "height": 140,
+        "width": 280,
+        "color": 4
+      },
+      "id": "sticky-mod1",
+      "name": "Nota - Módulo 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Módulo 2: Follow-up\nTrigger: 11h\nEnvia follow-up para leads que não\nabriram emails via POST /whatsapp/send-followup",
+        "height": 140,
+        "width": 280,
+        "color": 3
+      },
+      "id": "sticky-mod2",
+      "name": "Nota - Módulo 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10,15 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-campaign",
+      "name": "Schedule - Campanha (10h, 15h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.alexandrequeiroz.com.br/api/v1/whatsapp/send-campaign",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Length",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-post-campaign",
+      "name": "POST /whatsapp/send-campaign",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WxZNgpJrynwNC0hh",
+          "name": "CRM API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst sent = result.sentCount ?? 0;\nconst skipped = result.skippedCount ?? 0;\nconst failed = result.failedCount ?? 0;\nconsole.log(`[WhatsApp Campanha] Enviados: ${sent} | Pulados: ${skipped} | Falhas: ${failed}`);\nif (result.skippedReasons && result.skippedReasons.length > 0) {\n  console.log(`[WhatsApp Campanha] Motivos pulados: ${result.skippedReasons.join('; ')}`);\n}\nif (result.failedReasons && result.failedReasons.length > 0) {\n  console.log(`[WhatsApp Campanha] Motivos falhas: ${result.failedReasons.join('; ')}`);\n}\nreturn [{ json: { success: true, sent, skipped, failed, result } }];"
+      },
+      "id": "code-log-campaign",
+      "name": "Log Campanha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-followup",
+      "name": "Schedule - Follow-up (11h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.alexandrequeiroz.com.br/api/v1/whatsapp/send-followup",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Length",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-post-followup",
+      "name": "POST /whatsapp/send-followup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        440
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WxZNgpJrynwNC0hh",
+          "name": "CRM API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst sent = result.sentCount ?? 0;\nconst skipped = result.skippedCount ?? 0;\nconst failed = result.failedCount ?? 0;\nconsole.log(`[WhatsApp Follow-up] Enviados: ${sent} | Pulados: ${skipped} | Falhas: ${failed}`);\nreturn [{ json: { success: true, sent, skipped, failed, result } }];"
+      },
+      "id": "code-log-followup",
+      "name": "Log Follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        440
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "trigger-error",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        60,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconst workflow = error.workflow?.name || 'Desconhecido';\nconst node = error.execution?.lastNodeExecuted || 'Desconhecido';\nconst errorMsg = error.execution?.error?.message || JSON.stringify(error);\nconst execId = error.execution?.id || 'N/A';\n\nconsole.error(`[ERRO] Workflow: ${workflow}`);\nconsole.error(`[ERRO] Nó: ${node}`);\nconsole.error(`[ERRO] Execução ID: ${execId}`);\nconsole.error(`[ERRO] Mensagem: ${errorMsg}`);\n\nreturn [{\n  json: {\n    alertType: 'workflow_error',\n    workflow,\n    node,\n    execId,\n    errorMsg,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-error-handler",
+      "name": "Tratar Erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        640
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule - Campanha (10h, 15h)": {
+      "main": [
+        [
+          {
+            "node": "POST /whatsapp/send-campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /whatsapp/send-campaign": {
+      "main": [
+        [
+          {
+            "node": "Log Campanha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule - Follow-up (11h)": {
+      "main": [
+        [
+          {
+            "node": "POST /whatsapp/send-followup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /whatsapp/send-followup": {
+      "main": [
+        [
+          {
+            "node": "Log Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Tratar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": ""
+  }
+}

@@ -15,6 +15,13 @@ export interface OutreachConfigResponse {
   warmTemplateBody: string | null;
   coldTemplateSubject: string | null;
   coldTemplateBody: string | null;
+  whatsAppSendEnabled: boolean;
+  dailyWhatsAppLimit: number;
+  whatsAppCooldownDays: number;
+  whatsAppHotTemplate: string | null;
+  whatsAppWarmTemplate: string | null;
+  whatsAppColdTemplate: string | null;
+  whatsAppFollowUpTemplate: string | null;
 }
 
 export interface UpdateOutreachConfigRequest {
@@ -31,6 +38,13 @@ export interface UpdateOutreachConfigRequest {
   warmTemplateBody?: string;
   coldTemplateSubject?: string;
   coldTemplateBody?: string;
+  whatsAppSendEnabled?: boolean;
+  dailyWhatsAppLimit?: number;
+  whatsAppCooldownDays?: number;
+  whatsAppHotTemplate?: string;
+  whatsAppWarmTemplate?: string;
+  whatsAppColdTemplate?: string;
+  whatsAppFollowUpTemplate?: string;
 }
 
 export interface OutreachDashboardResponse {
@@ -47,6 +61,11 @@ export interface OutreachDashboardResponse {
   importEnabled: boolean;
   segmentationEnabled: boolean;
   sendEnabled: boolean;
+  whatsAppSendEnabled: boolean;
+  whatsAppSentToday: number;
+  whatsAppSentThisWeek: number;
+  whatsAppReadyCount: number;
+  whatsAppConnectionStatus: string;
 }
 
 export interface SegmentationResultResponse {
@@ -71,6 +90,44 @@ export interface ReadyLeadResponse {
   leadScore: number;
   companyName: string | null;
   lastEmailSentAt: string | null;
+}
+
+export interface WhatsAppReadyLeadResponse {
+  id: string;
+  name: string;
+  whatsApp: string | null;
+  phone: string | null;
+  email: string | null;
+  segmentLabel: string;
+  leadScore: number | null;
+  whatsAppSentCount: number;
+  lastWhatsAppSentAt: string | null;
+}
+
+export interface WhatsAppSendResultResponse {
+  sentCount: number;
+  skippedCount: number;
+  failedCount: number;
+  skippedReasons: string[];
+  failedReasons: string[];
+}
+
+export interface WhatsAppSendRequest {
+  customerId?: string;
+  phoneNumber?: string;
+  message: string;
+}
+
+export interface WhatsAppConnectionStatus {
+  isConnected: boolean;
+  state: string;
+  instanceName: string | null;
+}
+
+export interface WhatsAppSendResult {
+  success: boolean;
+  messageId: string | null;
+  error: string | null;
 }
 
 export async function getOutreachConfig() {
@@ -107,5 +164,32 @@ export async function getOutreachDashboard() {
 export async function getReadyLeads(limit = 50) {
   return apiFetch<ReadyLeadResponse[]>(`/outreach/ready-leads?limit=${limit}`, {
     method: 'GET',
+  });
+}
+
+export async function getWhatsAppStatus(): Promise<WhatsAppConnectionStatus> {
+  return apiFetch('/whatsapp/status');
+}
+
+export async function getWhatsAppReadyLeads(): Promise<WhatsAppReadyLeadResponse[]> {
+  return apiFetch('/whatsapp/ready-leads');
+}
+
+export async function sendWhatsApp(request: WhatsAppSendRequest): Promise<WhatsAppSendResult> {
+  return apiFetch('/whatsapp/send', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export async function sendWhatsAppCampaign(): Promise<WhatsAppSendResultResponse> {
+  return apiFetch('/whatsapp/send-campaign', {
+    method: 'POST',
+  });
+}
+
+export async function sendWhatsAppFollowUp(): Promise<WhatsAppSendResultResponse> {
+  return apiFetch('/whatsapp/send-followup', {
+    method: 'POST',
   });
 }

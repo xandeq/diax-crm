@@ -23,7 +23,9 @@ using Diax.Domain.EmailMarketing;
 using Diax.Domain.ImageGeneration;
 using Diax.Domain.Outreach;
 using Diax.Application.EmailMarketing;
+using Diax.Application.WhatsApp;
 using Diax.Infrastructure.Email;
+using Diax.Infrastructure.WhatsApp;
 using Diax.Application.AI;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -291,6 +293,10 @@ public static class DependencyInjection
         }
 
         services.AddHostedService<EmailQueueProcessorWorker>();
+
+        // ===== WHATSAPP (EVOLUTION API) =====
+        services.Configure<EvolutionApiSettings>(configuration.GetSection("EvolutionApi"));
+        services.AddHttpClient<IWhatsAppSender, EvolutionApiClient>();
 
         return services;
     }

@@ -72,6 +72,44 @@ public class OutreachConfig : AuditableEntity, IUserOwnedEntity
     public string? ColdTemplateSubject { get; private set; }
     public string? ColdTemplateBody { get; private set; }
 
+    // ===== WHATSAPP =====
+
+    /// <summary>
+    /// Habilita envio automático de mensagens WhatsApp.
+    /// </summary>
+    public bool WhatsAppSendEnabled { get; private set; }
+
+    /// <summary>
+    /// Limite diário de mensagens WhatsApp.
+    /// </summary>
+    public int DailyWhatsAppLimit { get; private set; } = 100;
+
+    /// <summary>
+    /// Dias mínimos entre mensagens WhatsApp para o mesmo lead.
+    /// </summary>
+    public int WhatsAppCooldownDays { get; private set; } = 3;
+
+    /// <summary>
+    /// Template de mensagem WhatsApp para leads HOT.
+    /// Suporta placeholders: {{nome}}, {{empresa}}
+    /// </summary>
+    public string? WhatsAppHotTemplate { get; private set; }
+
+    /// <summary>
+    /// Template de mensagem WhatsApp para leads WARM.
+    /// </summary>
+    public string? WhatsAppWarmTemplate { get; private set; }
+
+    /// <summary>
+    /// Template de mensagem WhatsApp para leads COLD.
+    /// </summary>
+    public string? WhatsAppColdTemplate { get; private set; }
+
+    /// <summary>
+    /// Template de mensagem WhatsApp para follow-up (leads que não abriram email).
+    /// </summary>
+    public string? WhatsAppFollowUpTemplate { get; private set; }
+
     // ===== CONSTRUTORES =====
 
     protected OutreachConfig() { }
@@ -118,5 +156,24 @@ public class OutreachConfig : AuditableEntity, IUserOwnedEntity
     {
         ColdTemplateSubject = subject;
         ColdTemplateBody = body;
+    }
+
+    public void UpdateWhatsAppFlags(bool sendEnabled)
+    {
+        WhatsAppSendEnabled = sendEnabled;
+    }
+
+    public void UpdateWhatsAppLimits(int dailyLimit, int cooldownDays)
+    {
+        DailyWhatsAppLimit = dailyLimit > 0 ? dailyLimit : 100;
+        WhatsAppCooldownDays = cooldownDays > 0 ? cooldownDays : 3;
+    }
+
+    public void UpdateWhatsAppTemplates(string? hot, string? warm, string? cold, string? followUp)
+    {
+        WhatsAppHotTemplate = hot;
+        WhatsAppWarmTemplate = warm;
+        WhatsAppColdTemplate = cold;
+        WhatsAppFollowUpTemplate = followUp;
     }
 }

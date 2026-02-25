@@ -21,6 +21,7 @@ import {
   Flame,
   Loader2,
   Mail,
+  MessageSquare,
   RefreshCw,
   Send,
   Settings,
@@ -36,20 +37,27 @@ import {
   getOutreachConfig,
   getOutreachDashboard,
   getReadyLeads,
+  getWhatsAppReadyLeads,
+  getWhatsAppStatus,
   OutreachConfigResponse,
   OutreachDashboardResponse,
   ReadyLeadResponse,
   runSegmentation,
   sendOutreachCampaign,
+  sendWhatsApp,
+  sendWhatsAppCampaign,
+  sendWhatsAppFollowUp,
   updateOutreachConfig,
   UpdateOutreachConfigRequest,
+  WhatsAppConnectionStatus,
+  WhatsAppReadyLeadResponse,
 } from '@/services/outreach';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type ActiveTab = 'dashboard' | 'configuracao' | 'templates' | 'leads';
+type ActiveTab = 'dashboard' | 'configuracao' | 'templates' | 'leads' | 'whatsapp';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -178,6 +186,7 @@ const TABS: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
   { id: 'configuracao', label: 'Configuração', icon: <Settings className="h-4 w-4" /> },
   { id: 'templates', label: 'Templates', icon: <Mail className="h-4 w-4" /> },
   { id: 'leads', label: 'Leads Prontos', icon: <Users className="h-4 w-4" /> },
+  { id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare className="h-4 w-4" /> },
 ];
 
 function TabBar({ active, onChange }: TabBarProps) {
@@ -291,6 +300,7 @@ function DashboardTab({
           <StatusIndicator enabled={dashboard.importEnabled} label="Importação" />
           <StatusIndicator enabled={dashboard.segmentationEnabled} label="Segmentação" />
           <StatusIndicator enabled={dashboard.sendEnabled} label="Envio" />
+          <StatusIndicator enabled={dashboard.whatsAppSendEnabled} label="WhatsApp" />
         </CardContent>
       </Card>
 
@@ -360,6 +370,31 @@ function DashboardTab({
         </div>
       </div>
 
+      {/* WhatsApp Stats */}
+      <div>
+        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">WhatsApp</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            title="Enviados Hoje"
+            value={dashboard.whatsAppSentToday}
+            icon={<MessageSquare className="h-4 w-4 text-green-600" />}
+            accent="bg-green-50"
+          />
+          <StatCard
+            title="Enviados Esta Semana"
+            value={dashboard.whatsAppSentThisWeek}
+            icon={<MessageSquare className="h-4 w-4 text-green-600" />}
+            accent="bg-green-50"
+          />
+          <StatCard
+            title="Leads Prontos (WhatsApp)"
+            value={dashboard.whatsAppReadyCount}
+            icon={<MessageSquare className="h-4 w-4 text-green-600" />}
+            accent="bg-green-50"
+          />
+        </div>
+      </div>
+
       {/* Queue Stats */}
       <div>
         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Fila de Envio</h2>
@@ -401,6 +436,9 @@ function ConfigTab({ config, loading, onSave, saving }: ConfigTabProps) {
   const [sendEnabled, setSendEnabled] = useState(false);
   const [dailyEmailLimit, setDailyEmailLimit] = useState(50);
   const [emailCooldownDays, setEmailCooldownDays] = useState(7);
+  const [whatsAppSendEnabled, setWhatsAppSendEnabled] = useState(false);
+  const [dailyWhatsAppLimit, setDailyWhatsAppLimit] = useState(50);
+  const [whatsAppCooldownDays, setWhatsAppCooldownDays] = useState(7);
 
   // Sync local state when config loads
   useEffect(() => {
@@ -412,6 +450,9 @@ function ConfigTab({ config, loading, onSave, saving }: ConfigTabProps) {
     setSendEnabled(config.sendEnabled);
     setDailyEmailLimit(config.dailyEmailLimit);
     setEmailCooldownDays(config.emailCooldownDays);
+    setWhatsAppSendEnabled(config.whatsAppSendEnabled);
+    setDailyWhatsAppLimit(config.dailyWhatsAppLimit);
+    setWhatsAppCooldownDays(config.whatsAppCooldownDays);
   }, [config]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -424,6 +465,9 @@ function ConfigTab({ config, loading, onSave, saving }: ConfigTabProps) {
       sendEnabled,
       dailyEmailLimit,
       emailCooldownDays,
+      whatsAppSendEnabled,
+      dailyWhatsAppLimit,
+      whatsAppCooldownDays,
     });
   };
 
@@ -526,6 +570,22 @@ function ConfigTab({ config, loading, onSave, saving }: ConfigTabProps) {
               onCheckedChange={setSendEnabled}
             />
           </div>
+          <div className="border-t border-slate-100" />
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="whatsAppSendEnabled" className="text-sm font-medium text-slate-700">
+                Envio de WhatsApp
+              </Label>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Habilitar o disparo de mensagens via WhatsApp para os leads.
+              </p>
+            </div>
+            <ToggleSwitch
+              id="whatsAppSendEnabled"
+              checked={whatsAppSendEnabled}
+              onCheckedChange={setWhatsAppSendEnabled}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -549,7 +609,7 @@ function ConfigTab({ config, loading, onSave, saving }: ConfigTabProps) {
               <p className="text-xs text-slate-500">Máximo de emails enviados por dia.</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="emailCooldownDays">Cooldown (dias)</Label>
+              <Label htmlFor="emailCooldownDays">Cooldown Email (dias)</Label>
               <Input
                 id="emailCooldownDays"
                 type="number"
@@ -560,6 +620,34 @@ function ConfigTab({ config, loading, onSave, saving }: ConfigTabProps) {
               />
               <p className="text-xs text-slate-500">
                 Dias mínimos entre emails para o mesmo lead.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dailyWhatsAppLimit">Limite Diário de WhatsApp</Label>
+              <Input
+                id="dailyWhatsAppLimit"
+                type="number"
+                min={1}
+                max={10000}
+                value={dailyWhatsAppLimit}
+                onChange={(e) => setDailyWhatsAppLimit(Number(e.target.value))}
+              />
+              <p className="text-xs text-slate-500">Máximo de mensagens WhatsApp enviadas por dia.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="whatsAppCooldownDays">Cooldown WhatsApp (dias)</Label>
+              <Input
+                id="whatsAppCooldownDays"
+                type="number"
+                min={0}
+                max={365}
+                value={whatsAppCooldownDays}
+                onChange={(e) => setWhatsAppCooldownDays(Number(e.target.value))}
+              />
+              <p className="text-xs text-slate-500">
+                Dias mínimos entre mensagens WhatsApp para o mesmo lead.
               </p>
             </div>
           </div>
@@ -650,6 +738,57 @@ function TemplateEditor({
   );
 }
 
+interface WhatsAppTemplateEditorProps {
+  title: string;
+  colorClass: string;
+  icon: React.ReactNode;
+  body: string;
+  onBodyChange: (v: string) => void;
+}
+
+function WhatsAppTemplateEditor({
+  title,
+  colorClass,
+  icon,
+  body,
+  onBodyChange,
+}: WhatsAppTemplateEditorProps) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className={`text-base flex items-center gap-2 ${colorClass}`}>
+          {icon}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Mensagem WhatsApp</Label>
+            <div className="flex flex-wrap gap-1">
+              {PLACEHOLDERS.map((p) => (
+                <code
+                  key={p}
+                  className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono cursor-help"
+                  title="Variável disponível"
+                >
+                  {p}
+                </code>
+              ))}
+            </div>
+          </div>
+          <Textarea
+            value={body}
+            onChange={(e) => onBodyChange(e.target.value)}
+            placeholder="Olá {{nome}}, ..."
+            className="min-h-[150px] text-sm"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function TemplatesTab({ config, loading, onSave, saving }: TemplatesTabProps) {
   const [hotSubject, setHotSubject] = useState('');
   const [hotBody, setHotBody] = useState('');
@@ -657,6 +796,10 @@ function TemplatesTab({ config, loading, onSave, saving }: TemplatesTabProps) {
   const [warmBody, setWarmBody] = useState('');
   const [coldSubject, setColdSubject] = useState('');
   const [coldBody, setColdBody] = useState('');
+  const [whatsAppHotTemplate, setWhatsAppHotTemplate] = useState('');
+  const [whatsAppWarmTemplate, setWhatsAppWarmTemplate] = useState('');
+  const [whatsAppColdTemplate, setWhatsAppColdTemplate] = useState('');
+  const [whatsAppFollowUpTemplate, setWhatsAppFollowUpTemplate] = useState('');
 
   useEffect(() => {
     if (!config) return;
@@ -666,6 +809,10 @@ function TemplatesTab({ config, loading, onSave, saving }: TemplatesTabProps) {
     setWarmBody(config.warmTemplateBody ?? '');
     setColdSubject(config.coldTemplateSubject ?? '');
     setColdBody(config.coldTemplateBody ?? '');
+    setWhatsAppHotTemplate(config.whatsAppHotTemplate ?? '');
+    setWhatsAppWarmTemplate(config.whatsAppWarmTemplate ?? '');
+    setWhatsAppColdTemplate(config.whatsAppColdTemplate ?? '');
+    setWhatsAppFollowUpTemplate(config.whatsAppFollowUpTemplate ?? '');
   }, [config]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -677,6 +824,10 @@ function TemplatesTab({ config, loading, onSave, saving }: TemplatesTabProps) {
       warmTemplateBody: warmBody || undefined,
       coldTemplateSubject: coldSubject || undefined,
       coldTemplateBody: coldBody || undefined,
+      whatsAppHotTemplate: whatsAppHotTemplate || undefined,
+      whatsAppWarmTemplate: whatsAppWarmTemplate || undefined,
+      whatsAppColdTemplate: whatsAppColdTemplate || undefined,
+      whatsAppFollowUpTemplate: whatsAppFollowUpTemplate || undefined,
     });
   };
 
@@ -692,6 +843,8 @@ function TemplatesTab({ config, loading, onSave, saving }: TemplatesTabProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Email Templates */}
+      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Templates de Email</h2>
       <TemplateEditor
         title="Quente"
         colorClass="text-red-600"
@@ -718,6 +871,37 @@ function TemplatesTab({ config, loading, onSave, saving }: TemplatesTabProps) {
         body={coldBody}
         onSubjectChange={setColdSubject}
         onBodyChange={setColdBody}
+      />
+
+      {/* WhatsApp Templates */}
+      <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide pt-4">Templates de WhatsApp</h2>
+      <WhatsAppTemplateEditor
+        title="WhatsApp Quente"
+        colorClass="text-red-600"
+        icon={<Flame className="h-4 w-4" />}
+        body={whatsAppHotTemplate}
+        onBodyChange={setWhatsAppHotTemplate}
+      />
+      <WhatsAppTemplateEditor
+        title="WhatsApp Morno"
+        colorClass="text-orange-600"
+        icon={<Thermometer className="h-4 w-4" />}
+        body={whatsAppWarmTemplate}
+        onBodyChange={setWhatsAppWarmTemplate}
+      />
+      <WhatsAppTemplateEditor
+        title="WhatsApp Frio"
+        colorClass="text-blue-600"
+        icon={<Snowflake className="h-4 w-4" />}
+        body={whatsAppColdTemplate}
+        onBodyChange={setWhatsAppColdTemplate}
+      />
+      <WhatsAppTemplateEditor
+        title="WhatsApp Follow-Up"
+        colorClass="text-purple-600"
+        icon={<MessageSquare className="h-4 w-4" />}
+        body={whatsAppFollowUpTemplate}
+        onBodyChange={setWhatsAppFollowUpTemplate}
       />
 
       <div className="flex justify-end">
@@ -816,6 +1000,258 @@ function LeadsTab({ leads, loading, onRefresh }: LeadsTabProps) {
   );
 }
 
+// ─── WhatsApp Tab ─────────────────────────────────────────────────────────────
+
+interface WhatsAppTabProps {
+  dashboard: OutreachDashboardResponse | null;
+  connectionStatus: WhatsAppConnectionStatus | null;
+  whatsAppLeads: WhatsAppReadyLeadResponse[];
+  loading: boolean;
+  onRefresh: () => void;
+  onSendManual: (customerId: string, message: string) => void;
+  onSendCampaign: () => void;
+  onSendFollowUp: () => void;
+  sendingManual: boolean;
+  sendingCampaign: boolean;
+  sendingFollowUp: boolean;
+}
+
+function WhatsAppTab({
+  dashboard,
+  connectionStatus,
+  whatsAppLeads,
+  loading,
+  onRefresh,
+  onSendManual,
+  onSendCampaign,
+  onSendFollowUp,
+  sendingManual,
+  sendingCampaign,
+  sendingFollowUp,
+}: WhatsAppTabProps) {
+  const [manualCustomerId, setManualCustomerId] = useState('');
+  const [manualMessage, setManualMessage] = useState('');
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
+
+  const handleManualSend = () => {
+    if (!manualMessage.trim()) {
+      toast.error('Digite uma mensagem antes de enviar.');
+      return;
+    }
+    onSendManual(manualCustomerId, manualMessage);
+    setManualMessage('');
+    setManualCustomerId('');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Connection Status */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Status da Conexão WhatsApp
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {connectionStatus ? (
+            <div className="flex items-center gap-4">
+              <Badge
+                className={
+                  connectionStatus.isConnected
+                    ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                    : 'bg-red-100 text-red-700 hover:bg-red-100'
+                }
+              >
+                {connectionStatus.isConnected ? 'Conectado' : 'Desconectado'}
+              </Badge>
+              <span className="text-sm text-slate-600">
+                Estado: <span className="font-medium">{connectionStatus.state}</span>
+              </span>
+              {connectionStatus.instanceName && (
+                <span className="text-sm text-slate-600">
+                  Instância: <span className="font-medium">{connectionStatus.instanceName}</span>
+                </span>
+              )}
+              <Button variant="ghost" size="sm" onClick={onRefresh} className="ml-auto">
+                <RefreshCw className="mr-2 h-4 w-4" /> Atualizar
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Não foi possível obter o status da conexão.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      {dashboard && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            title="Enviados Hoje"
+            value={dashboard.whatsAppSentToday}
+            icon={<MessageSquare className="h-4 w-4 text-green-600" />}
+            accent="bg-green-50"
+          />
+          <StatCard
+            title="Enviados Esta Semana"
+            value={dashboard.whatsAppSentThisWeek}
+            icon={<MessageSquare className="h-4 w-4 text-green-600" />}
+            accent="bg-green-50"
+          />
+          <StatCard
+            title="Leads Prontos"
+            value={dashboard.whatsAppReadyCount}
+            icon={<Users className="h-4 w-4 text-green-600" />}
+            accent="bg-green-50"
+          />
+        </div>
+      )}
+
+      {/* Manual Send */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Envio Manual</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="manualCustomerId">ID do Cliente (opcional)</Label>
+            <Input
+              id="manualCustomerId"
+              value={manualCustomerId}
+              onChange={(e) => setManualCustomerId(e.target.value)}
+              placeholder="ID do cliente no sistema..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="manualMessage">Mensagem</Label>
+            <Textarea
+              id="manualMessage"
+              value={manualMessage}
+              onChange={(e) => setManualMessage(e.target.value)}
+              placeholder="Digite a mensagem para enviar via WhatsApp..."
+              className="min-h-[120px]"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={handleManualSend} disabled={sendingManual}>
+              {sendingManual ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {sendingManual ? 'Enviando...' : 'Enviar WhatsApp'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Ações Rápidas</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button onClick={onSendCampaign} disabled={sendingCampaign} variant="outline">
+            {sendingCampaign ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="mr-2 h-4 w-4" />
+            )}
+            {sendingCampaign ? 'Enviando...' : 'Enviar Campanha WhatsApp'}
+          </Button>
+          <Button onClick={onSendFollowUp} disabled={sendingFollowUp} variant="outline">
+            {sendingFollowUp ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <MessageSquare className="mr-2 h-4 w-4" />
+            )}
+            {sendingFollowUp ? 'Enviando...' : 'Enviar Follow-up WhatsApp'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Ready Leads Table */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+            Leads Prontos para WhatsApp
+          </h2>
+          <Button variant="outline" size="sm" onClick={onRefresh}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Atualizar
+          </Button>
+        </div>
+
+        {whatsAppLeads.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <MessageSquare className="h-10 w-10 mb-3" />
+              <p className="font-medium text-slate-500">Nenhum lead pronto para WhatsApp</p>
+              <p className="text-sm mt-1">
+                Leads com número de WhatsApp disponível aparecerão aqui.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>WhatsApp</TableHead>
+                    <TableHead>Segmento</TableHead>
+                    <TableHead className="text-right">Score</TableHead>
+                    <TableHead className="text-right">Enviados</TableHead>
+                    <TableHead>Último Envio</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {whatsAppLeads.map((lead) => (
+                    <TableRow key={lead.id}>
+                      <TableCell className="font-medium text-slate-900">
+                        {lead.name}
+                      </TableCell>
+                      <TableCell className="text-slate-600 text-sm">
+                        {lead.whatsApp ?? lead.phone ?? '–'}
+                      </TableCell>
+                      <TableCell>{getSegmentBadge(lead.segmentLabel)}</TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-semibold text-slate-700">
+                          {lead.leadScore ?? '–'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-semibold text-slate-700">
+                          {lead.whatsAppSentCount}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-slate-500 text-xs">
+                        {formatDateShort(lead.lastWhatsAppSentAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OutreachPage() {
@@ -833,10 +1269,18 @@ export default function OutreachPage() {
   const [leads, setLeads] = useState<ReadyLeadResponse[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
 
+  // WhatsApp data
+  const [whatsAppStatus, setWhatsAppStatus] = useState<WhatsAppConnectionStatus | null>(null);
+  const [whatsAppLeads, setWhatsAppLeads] = useState<WhatsAppReadyLeadResponse[]>([]);
+  const [whatsAppLoading, setWhatsAppLoading] = useState(false);
+
   // Action states
   const [segmenting, setSegmenting] = useState(false);
   const [sending, setSending] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [sendingManualWhatsApp, setSendingManualWhatsApp] = useState(false);
+  const [sendingWhatsAppCampaign, setSendingWhatsAppCampaign] = useState(false);
+  const [sendingWhatsAppFollowUp, setSendingWhatsAppFollowUp] = useState(false);
 
   // ── Initial loads ──────────────────────────────────────────────────────────
 
@@ -876,6 +1320,22 @@ export default function OutreachPage() {
     }
   };
 
+  const loadWhatsAppData = async () => {
+    setWhatsAppLoading(true);
+    try {
+      const [status, readyLeads] = await Promise.all([
+        getWhatsAppStatus(),
+        getWhatsAppReadyLeads(),
+      ]);
+      setWhatsAppStatus(status);
+      setWhatsAppLeads(readyLeads);
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Erro ao carregar dados do WhatsApp.');
+    } finally {
+      setWhatsAppLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadDashboard();
     loadConfig();
@@ -885,6 +1345,13 @@ export default function OutreachPage() {
   useEffect(() => {
     if (activeTab === 'leads' && leads.length === 0 && !leadsLoading) {
       loadLeads();
+    }
+  }, [activeTab]);
+
+  // Load WhatsApp data lazily when tab is first opened
+  useEffect(() => {
+    if (activeTab === 'whatsapp' && !whatsAppStatus && !whatsAppLoading) {
+      loadWhatsAppData();
     }
   }, [activeTab]);
 
@@ -930,6 +1397,57 @@ export default function OutreachPage() {
       toast.error(err?.message ?? 'Erro ao salvar as configurações.');
     } finally {
       setSavingConfig(false);
+    }
+  };
+
+  const handleSendManualWhatsApp = async (customerId: string, message: string) => {
+    setSendingManualWhatsApp(true);
+    try {
+      const result = await sendWhatsApp({
+        customerId: customerId || undefined,
+        message,
+      });
+      if (result.success) {
+        toast.success('Mensagem WhatsApp enviada com sucesso.');
+      } else {
+        toast.error(result.error ?? 'Erro ao enviar mensagem WhatsApp.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Erro ao enviar mensagem WhatsApp.');
+    } finally {
+      setSendingManualWhatsApp(false);
+    }
+  };
+
+  const handleSendWhatsAppCampaign = async () => {
+    setSendingWhatsAppCampaign(true);
+    try {
+      const result = await sendWhatsAppCampaign();
+      toast.success(
+        `Campanha WhatsApp: ${result.sentCount} enviados, ${result.skippedCount} ignorados, ${result.failedCount} falhas.`
+      );
+      await loadDashboard();
+      await loadWhatsAppData();
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Erro ao enviar campanha WhatsApp.');
+    } finally {
+      setSendingWhatsAppCampaign(false);
+    }
+  };
+
+  const handleSendWhatsAppFollowUp = async () => {
+    setSendingWhatsAppFollowUp(true);
+    try {
+      const result = await sendWhatsAppFollowUp();
+      toast.success(
+        `Follow-up WhatsApp: ${result.sentCount} enviados, ${result.skippedCount} ignorados, ${result.failedCount} falhas.`
+      );
+      await loadDashboard();
+      await loadWhatsAppData();
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Erro ao enviar follow-up WhatsApp.');
+    } finally {
+      setSendingWhatsAppFollowUp(false);
     }
   };
 
@@ -988,6 +1506,22 @@ export default function OutreachPage() {
           leads={leads}
           loading={leadsLoading}
           onRefresh={loadLeads}
+        />
+      )}
+
+      {activeTab === 'whatsapp' && (
+        <WhatsAppTab
+          dashboard={dashboard}
+          connectionStatus={whatsAppStatus}
+          whatsAppLeads={whatsAppLeads}
+          loading={whatsAppLoading}
+          onRefresh={loadWhatsAppData}
+          onSendManual={handleSendManualWhatsApp}
+          onSendCampaign={handleSendWhatsAppCampaign}
+          onSendFollowUp={handleSendWhatsAppFollowUp}
+          sendingManual={sendingManualWhatsApp}
+          sendingCampaign={sendingWhatsAppCampaign}
+          sendingFollowUp={sendingWhatsAppFollowUp}
         />
       )}
     </div>

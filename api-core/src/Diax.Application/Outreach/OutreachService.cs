@@ -1,5 +1,6 @@
 using Diax.Application.Common;
 using Diax.Application.Outreach.Dtos;
+using Diax.Application.WhatsApp;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
@@ -22,6 +23,7 @@ public class OutreachService : IApplicationService
     private readonly IEmailCampaignRepository _emailCampaignRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IWhatsAppSender _whatsAppSender;
 
     /// <summary>
     /// Cidades brasileiras prioritárias para pontuação de leads.
@@ -41,7 +43,8 @@ public class OutreachService : IApplicationService
         IEmailQueueRepository emailQueueRepository,
         IEmailCampaignRepository emailCampaignRepository,
         ICurrentUserService currentUserService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IWhatsAppSender whatsAppSender)
     {
         _configRepository = configRepository;
         _customerRepository = customerRepository;
@@ -49,6 +52,7 @@ public class OutreachService : IApplicationService
         _emailCampaignRepository = emailCampaignRepository;
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
+        _whatsAppSender = whatsAppSender;
     }
 
     // ===== CONFIGURAÇÃO =====
@@ -105,6 +109,15 @@ public class OutreachService : IApplicationService
 
         if (request.ColdTemplateSubject is not null || request.ColdTemplateBody is not null)
             config.UpdateColdTemplate(request.ColdTemplateSubject ?? string.Empty, request.ColdTemplateBody ?? string.Empty);
+
+        // WhatsApp config
+        config.UpdateWhatsAppFlags(request.WhatsAppSendEnabled);
+        config.UpdateWhatsAppLimits(request.DailyWhatsAppLimit, request.WhatsAppCooldownDays);
+        config.UpdateWhatsAppTemplates(
+            request.WhatsAppHotTemplate,
+            request.WhatsAppWarmTemplate,
+            request.WhatsAppColdTemplate,
+            request.WhatsAppFollowUpTemplate);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -235,6 +248,29 @@ public class OutreachService : IApplicationService
         var pendingCount = queueList.Count(q => q.Status == EmailQueueStatus.Queued);
         var failedCount = queueList.Count(q => q.Status == EmailQueueStatus.Failed);
 
+        // WhatsApp stats
+        var whatsAppCooldownDays = config?.WhatsAppCooldownDays ?? 3;
+        var whatsAppCooldownDate = DateTime.UtcNow.AddDays(-whatsAppCooldownDays);
+
+        var whatsAppSentToday = allLeads.Count(c => c.LastWhatsAppSentAt >= todayStart);
+        var whatsAppSentThisWeek = allLeads.Count(c => c.LastWhatsAppSentAt >= weekStart);
+        var whatsAppReadyCount = allLeads.Count(c =>
+            c.Segment != null
+            && (c.WhatsApp != null || c.Phone != null)
+            && !c.WhatsAppOptOut
+            && (c.LastWhatsAppSentAt == null || c.LastWhatsAppSentAt < whatsAppCooldownDate));
+
+        var whatsAppConnectionStatus = "unknown";
+        try
+        {
+            var waStatus = await _whatsAppSender.GetConnectionStatusAsync(cancellationToken);
+            whatsAppConnectionStatus = waStatus.IsConnected ? "connected" : waStatus.State;
+        }
+        catch
+        {
+            whatsAppConnectionStatus = "error";
+        }
+
         return Result.Success(new OutreachDashboardResponse
         {
             TotalLeads = allLeads.Count,
@@ -249,7 +285,12 @@ public class OutreachService : IApplicationService
             FailedInQueue = failedCount,
             ImportEnabled = config?.ImportEnabled ?? false,
             SegmentationEnabled = config?.SegmentationEnabled ?? false,
-            SendEnabled = config?.SendEnabled ?? false
+            SendEnabled = config?.SendEnabled ?? false,
+            WhatsAppSendEnabled = config?.WhatsAppSendEnabled ?? false,
+            WhatsAppSentToday = whatsAppSentToday,
+            WhatsAppSentThisWeek = whatsAppSentThisWeek,
+            WhatsAppReadyCount = whatsAppReadyCount,
+            WhatsAppConnectionStatus = whatsAppConnectionStatus
         });
     }
 
@@ -419,6 +460,272 @@ public class OutreachService : IApplicationService
         return Result.Success(result);
     }
 
+    // ===== WHATSAPP =====
+
+    /// <summary>
+    /// Verifica o status de conexão da instância WhatsApp.
+    /// </summary>
+    public async Task<Result<WhatsAppConnectionStatus>> GetWhatsAppStatusAsync(CancellationToken cancellationToken = default)
+    {
+        var status = await _whatsAppSender.GetConnectionStatusAsync(cancellationToken);
+        return Result.Success(status);
+    }
+
+    /// <summary>
+    /// Obtém leads prontos para envio de WhatsApp.
+    /// Filtra por: WhatsApp ou Phone válido, não opt-out, respeita cooldown.
+    /// </summary>
+    public async Task<Result<List<WhatsAppReadyLeadResponse>>> GetWhatsAppReadyLeadsAsync(
+        int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId is null)
+            return Result.Failure<List<WhatsAppReadyLeadResponse>>(Error.Unauthorized());
+
+        var config = await _configRepository.GetByUserIdAsync(userId.Value, cancellationToken);
+        var cooldownDays = config?.WhatsAppCooldownDays ?? 3;
+        var cooldownDate = DateTime.UtcNow.AddDays(-cooldownDays);
+
+        var candidates = await _customerRepository.FindAsync(
+            c => c.Status == CustomerStatus.Lead
+                 && c.Segment != null
+                 && (c.WhatsApp != null || c.Phone != null)
+                 && !c.WhatsAppOptOut
+                 && (c.LastWhatsAppSentAt == null || c.LastWhatsAppSentAt < cooldownDate),
+            cancellationToken);
+
+        var readyLeads = candidates
+            .OrderByDescending(c => (int)(c.Segment ?? LeadSegment.Cold))
+            .ThenBy(c => c.CreatedAt)
+            .Take(limit)
+            .Select(WhatsAppReadyLeadResponse.FromEntity)
+            .ToList();
+
+        return Result.Success(readyLeads);
+    }
+
+    /// <summary>
+    /// Envia WhatsApp individual para um cliente/lead.
+    /// </summary>
+    public async Task<Result<WhatsAppSendResult>> SendWhatsAppToCustomerAsync(
+        WhatsAppSendRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId is null)
+            return Result.Failure<WhatsAppSendResult>(Error.Unauthorized());
+
+        string? whatsappNumber = request.PhoneNumber;
+        Customer? customer = null;
+
+        if (request.CustomerId.HasValue)
+        {
+            var customers = await _customerRepository.FindAsync(
+                c => c.Id == request.CustomerId.Value,
+                cancellationToken);
+            customer = customers.FirstOrDefault();
+
+            if (customer is null)
+                return Result.Failure<WhatsAppSendResult>(
+                    Error.NotFound("Customer", request.CustomerId.Value));
+
+            whatsappNumber = customer.WhatsApp ?? customer.Phone;
+        }
+
+        if (string.IsNullOrWhiteSpace(whatsappNumber))
+            return Result.Failure<WhatsAppSendResult>(
+                Error.Validation("WhatsApp.NoNumber", "Nenhum número de WhatsApp disponível."));
+
+        if (string.IsNullOrWhiteSpace(request.Message))
+            return Result.Failure<WhatsAppSendResult>(
+                Error.Validation("WhatsApp.NoMessage", "A mensagem não pode estar vazia."));
+
+        // Personalizar mensagem se tiver dados do customer
+        var message = customer != null ? PersonalizeTemplate(request.Message, customer) : request.Message;
+
+        var result = await _whatsAppSender.SendTextAsync(whatsappNumber, message, cancellationToken);
+
+        if (result.Success && customer != null)
+        {
+            customer.RegisterWhatsAppSent();
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        return Result.Success(result);
+    }
+
+    /// <summary>
+    /// Envia campanha WhatsApp em massa para leads segmentados.
+    /// Respeita limites diários e cooldown entre envios.
+    /// </summary>
+    public async Task<Result<WhatsAppSendResultResponse>> SendWhatsAppCampaignAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId is null)
+            return Result.Failure<WhatsAppSendResultResponse>(Error.Unauthorized());
+
+        var config = await _configRepository.GetByUserIdAsync(userId.Value, cancellationToken);
+        if (config is null)
+            return Result.Failure<WhatsAppSendResultResponse>(
+                Error.Validation("Outreach.NoConfig", "Configure o outreach antes de enviar campanhas WhatsApp."));
+
+        if (!config.WhatsAppSendEnabled)
+            return Result.Failure<WhatsAppSendResultResponse>(
+                Error.Validation("WhatsApp.SendDisabled", "O envio de WhatsApp está desabilitado nas configurações."));
+
+        // Buscar leads prontos
+        var readyResult = await GetWhatsAppReadyLeadsAsync(config.DailyWhatsAppLimit, cancellationToken);
+        if (readyResult.IsFailure)
+            return Result.Failure<WhatsAppSendResultResponse>(readyResult.Error);
+
+        var readyLeadDtos = readyResult.Value;
+        if (readyLeadDtos.Count == 0)
+            return Result.Success(new WhatsAppSendResultResponse
+            {
+                SkippedReasons = new List<string> { "Nenhum lead pronto para envio de WhatsApp." }
+            });
+
+        // Buscar entidades reais
+        var readyIds = readyLeadDtos.Select(r => r.Id).ToHashSet();
+        var leadEntities = (await _customerRepository.FindAsync(
+            c => readyIds.Contains(c.Id),
+            cancellationToken)).ToList();
+
+        var result = new WhatsAppSendResultResponse();
+
+        // Agrupar por segmento e enviar
+        var segmentGroups = leadEntities
+            .Where(c => c.Segment.HasValue)
+            .GroupBy(c => c.Segment!.Value)
+            .OrderByDescending(g => (int)g.Key);
+
+        foreach (var group in segmentGroups)
+        {
+            var segment = group.Key;
+            var template = GetWhatsAppTemplateForSegment(config, segment);
+
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                result.SkippedReasons.Add($"Template WhatsApp não configurado para segmento {segment}. {group.Count()} leads ignorados.");
+                result.SkippedCount += group.Count();
+                continue;
+            }
+
+            foreach (var lead in group)
+            {
+                var number = lead.WhatsApp ?? lead.Phone;
+                if (string.IsNullOrWhiteSpace(number))
+                {
+                    result.SkippedReasons.Add($"Lead '{lead.Name}' sem número de WhatsApp.");
+                    result.SkippedCount++;
+                    continue;
+                }
+
+                var personalizedMessage = PersonalizeTemplate(template, lead);
+                var sendResult = await _whatsAppSender.SendTextAsync(number, personalizedMessage, cancellationToken);
+
+                if (sendResult.Success)
+                {
+                    lead.RegisterWhatsAppSent();
+                    result.SentCount++;
+                }
+                else
+                {
+                    result.FailedReasons.Add($"Falha para '{lead.Name}': {sendResult.Error}");
+                    result.FailedCount++;
+                }
+
+                // Delay entre envios para evitar bloqueio (2 segundos)
+                await Task.Delay(2000, cancellationToken);
+            }
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(result);
+    }
+
+    /// <summary>
+    /// Envia WhatsApp de follow-up para leads que receberam email mas não abriram.
+    /// </summary>
+    public async Task<Result<WhatsAppSendResultResponse>> SendWhatsAppFollowUpAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId is null)
+            return Result.Failure<WhatsAppSendResultResponse>(Error.Unauthorized());
+
+        var config = await _configRepository.GetByUserIdAsync(userId.Value, cancellationToken);
+        if (config is null || !config.WhatsAppSendEnabled)
+            return Result.Failure<WhatsAppSendResultResponse>(
+                Error.Validation("WhatsApp.SendDisabled", "O envio de WhatsApp está desabilitado."));
+
+        if (string.IsNullOrWhiteSpace(config.WhatsAppFollowUpTemplate))
+            return Result.Failure<WhatsAppSendResultResponse>(
+                Error.Validation("WhatsApp.NoFollowUpTemplate", "Template de follow-up WhatsApp não configurado."));
+
+        // Buscar emails enviados que não foram abertos (status = Sent, não Opened)
+        var sentEmails = await _emailQueueRepository.FindAsync(
+            q => q.UserId == userId.Value
+                 && q.Status == EmailQueueStatus.Sent
+                 && q.CustomerId.HasValue,
+            cancellationToken);
+
+        var customerIds = sentEmails
+            .Select(q => q.CustomerId!.Value)
+            .Distinct()
+            .ToHashSet();
+
+        if (customerIds.Count == 0)
+            return Result.Success(new WhatsAppSendResultResponse
+            {
+                SkippedReasons = new List<string> { "Nenhum lead com email enviado sem abertura encontrado." }
+            });
+
+        // Buscar leads que não deram opt-out de WhatsApp e têm número
+        var cooldownDate = DateTime.UtcNow.AddDays(-(config.WhatsAppCooldownDays));
+        var candidates = await _customerRepository.FindAsync(
+            c => customerIds.Contains(c.Id)
+                 && (c.WhatsApp != null || c.Phone != null)
+                 && !c.WhatsAppOptOut
+                 && (c.LastWhatsAppSentAt == null || c.LastWhatsAppSentAt < cooldownDate),
+            cancellationToken);
+
+        var leads = candidates.Take(config.DailyWhatsAppLimit).ToList();
+        var result = new WhatsAppSendResultResponse();
+
+        foreach (var lead in leads)
+        {
+            var number = lead.WhatsApp ?? lead.Phone;
+            if (string.IsNullOrWhiteSpace(number))
+            {
+                result.SkippedCount++;
+                continue;
+            }
+
+            var message = PersonalizeTemplate(config.WhatsAppFollowUpTemplate, lead);
+            var sendResult = await _whatsAppSender.SendTextAsync(number, message, cancellationToken);
+
+            if (sendResult.Success)
+            {
+                lead.RegisterWhatsAppSent();
+                result.SentCount++;
+            }
+            else
+            {
+                result.FailedReasons.Add($"Falha para '{lead.Name}': {sendResult.Error}");
+                result.FailedCount++;
+            }
+
+            await Task.Delay(2000, cancellationToken);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success(result);
+    }
+
     // ===== MÉTODOS AUXILIARES =====
 
     /// <summary>
@@ -432,6 +739,20 @@ public class OutreachService : IApplicationService
             LeadSegment.Warm => (config.WarmTemplateSubject, config.WarmTemplateBody),
             LeadSegment.Cold => (config.ColdTemplateSubject, config.ColdTemplateBody),
             _ => (null, null)
+        };
+    }
+
+    /// <summary>
+    /// Obtém o template de WhatsApp para o segmento informado.
+    /// </summary>
+    private static string? GetWhatsAppTemplateForSegment(OutreachConfig config, LeadSegment segment)
+    {
+        return segment switch
+        {
+            LeadSegment.Hot => config.WhatsAppHotTemplate,
+            LeadSegment.Warm => config.WhatsAppWarmTemplate,
+            LeadSegment.Cold => config.WhatsAppColdTemplate,
+            _ => null
         };
     }
 
