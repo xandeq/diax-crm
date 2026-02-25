@@ -278,6 +278,7 @@ public class OutreachService : IApplicationService
                  && c.Segment != null
                  && c.Email != null
                  && c.Email != string.Empty
+                 && !c.Email.Contains("@placeholder.local")
                  && !c.EmailOptOut
                  && (c.LastEmailSentAt == null || c.LastEmailSentAt < cooldownDate),
             cancellationToken);
@@ -379,7 +380,7 @@ public class OutreachService : IApplicationService
 
             foreach (var lead in leads)
             {
-                if (string.IsNullOrWhiteSpace(lead.Email))
+                if (string.IsNullOrWhiteSpace(lead.Email) || lead.Email.Contains("@placeholder.local"))
                 {
                     skippedReasons.Add($"Lead '{lead.Name}' sem email válido.");
                     result.SkippedCount++;
