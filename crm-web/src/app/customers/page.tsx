@@ -33,7 +33,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { exportToCSV } from '@/lib/export';
-import { navigateToWhatsAppSend } from '@/lib/whatsapp-navigation';
+import { navigateToWhatsAppSend, normalizePhoneBR } from '@/lib/whatsapp-navigation';
 import {
   createCustomer,
   Customer,
@@ -401,11 +401,11 @@ export default function CustomersPage() {
         header: 'Telefone',
         cell: (row) => (
           <div>
-            <span className="text-sm text-slate-600">{row.phone || '–'}</span>
+            <span className="text-sm text-slate-600">{normalizePhoneBR(row.phone) || '–'}</span>
             {row.whatsApp && (
               <span className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
                 <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full" />
-                WA: {row.whatsApp}
+                WA: {normalizePhoneBR(row.whatsApp)}
               </span>
             )}
           </div>

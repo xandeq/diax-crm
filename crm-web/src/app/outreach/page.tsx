@@ -64,6 +64,7 @@ import {
 } from '@/services/outreach';
 import { EmailMarketingComposerModal } from '@/components/email/EmailMarketingComposerModal';
 import { searchContacts, Customer } from '@/services/customers';
+import { normalizePhoneBR } from '@/lib/whatsapp-navigation';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1335,7 +1336,7 @@ function ContactSearchInput({
             <span className="text-xs text-slate-400 ml-2">({selectedContact.companyName})</span>
           )}
           <span className="text-sm text-green-600 ml-2 font-mono">
-            {selectedContact.whatsApp ?? selectedContact.phone ?? selectedContact.email}
+            {normalizePhoneBR(selectedContact.whatsApp ?? selectedContact.phone) || selectedContact.email}
           </span>
         </div>
         <button
@@ -1388,7 +1389,7 @@ function ContactSearchInput({
                 )}
               </div>
               <span className="text-sm text-green-600 ml-3 font-mono shrink-0">
-                {contact.whatsApp ?? contact.phone ?? '–'}
+                {normalizePhoneBR(contact.whatsApp ?? contact.phone) || '–'}
               </span>
             </button>
           ))}
@@ -1625,7 +1626,7 @@ function WhatsAppTab({
               <Phone className="h-3.5 w-3.5 text-green-600" />
               <span>Número:</span>
               <span className="font-mono font-medium text-green-700">
-                {selectedContact.whatsApp ?? selectedContact.phone ?? 'Sem número'}
+                {normalizePhoneBR(selectedContact.whatsApp ?? selectedContact.phone) || 'Sem número'}
               </span>
             </div>
           )}
@@ -1728,7 +1729,7 @@ function WhatsAppTab({
                         {lead.name}
                       </TableCell>
                       <TableCell className="text-slate-600 text-sm font-mono">
-                        {lead.whatsApp ?? lead.phone ?? '–'}
+                        {normalizePhoneBR(lead.whatsApp ?? lead.phone) || '–'}
                       </TableCell>
                       <TableCell>{getSegmentBadge(lead.segmentLabel)}</TableCell>
                       <TableCell className="text-right">
