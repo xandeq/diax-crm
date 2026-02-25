@@ -18,6 +18,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   AlertTriangle,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   Flame,
   Loader2,
   Mail,
@@ -54,6 +56,10 @@ import {
   UpdateOutreachConfigRequest,
   WhatsAppConnectionStatus,
   WhatsAppReadyLeadResponse,
+  getEmailQueue,
+  EmailQueueItemResponse,
+  EmailQueueStatus,
+  PagedEmailQueueResponse,
 } from '@/services/outreach';
 import { searchContacts, Customer } from '@/services/customers';
 import { format, parseISO } from 'date-fns';
@@ -1004,6 +1010,207 @@ function LeadsTab({ leads, loading, onRefresh }: LeadsTabProps) {
   );
 }
 
+// ─── Email Queue Section ──────────────────────────────────────────────────────
+
+const emailQueueStatusConfig: Record<
+  EmailQueueStatus,
+  { label: string; className: string }
+> = {
+  [EmailQueueStatus.Queued]: {
+    label: 'Na fila',
+    className: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
+  },
+  [EmailQueueStatus.Processing]: {
+    label: 'Processando',
+    className: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
+  },
+  [EmailQueueStatus.Sent]: {
+    label: 'Enviado',
+    className: 'bg-green-100 text-green-700 hover:bg-green-100',
+  },
+  [EmailQueueStatus.Failed]: {
+    label: 'Falhou',
+    className: 'bg-red-100 text-red-700 hover:bg-red-100',
+  },
+};
+
+function EmailQueueSection() {
+  const [queue, setQueue] = useState<PagedEmailQueueResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const loadQueue = useCallback(async (p = 1) => {
+    setLoading(true);
+    try {
+      const data = await getEmailQueue(p, 15);
+      setQueue(data);
+      setPage(p);
+    } catch {
+      toast.error('Erro ao carregar fila de emails.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadQueue();
+  }, [loadQueue]);
+
+  if (loading && !queue) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Histórico de Envios
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!queue || queue.totalCount === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Histórico de Envios
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-500">Nenhum email na fila de envio.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Histórico de Envios
+            <Badge variant="secondary" className="ml-1 font-normal">
+              {queue.totalCount}
+            </Badge>
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => loadQueue(page)}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Destinatário</TableHead>
+                <TableHead>Assunto</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Agendado</TableHead>
+                <TableHead>Enviado</TableHead>
+                <TableHead className="text-right">Tentativas</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {queue.items.map((item) => {
+                const statusCfg =
+                  emailQueueStatusConfig[item.status] ??
+                  emailQueueStatusConfig[EmailQueueStatus.Queued];
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="min-w-0">
+                        <div className="font-medium text-slate-900 truncate max-w-[180px]">
+                          {item.recipientName}
+                        </div>
+                        <div className="text-xs text-slate-500 truncate max-w-[180px]">
+                          {item.recipientEmail}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-slate-700 truncate block max-w-[220px]">
+                        {item.subject}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={statusCfg.className}>
+                        {statusCfg.label}
+                      </Badge>
+                      {item.status === EmailQueueStatus.Failed && item.lastError && (
+                        <p className="text-xs text-red-500 mt-1 max-w-[160px] truncate" title={item.lastError}>
+                          {item.lastError}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500 whitespace-nowrap">
+                      {formatDateShort(item.scheduledAt)}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500 whitespace-nowrap">
+                      {item.sentAt ? formatDateShort(item.sentAt) : '–'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-sm font-medium text-slate-700">
+                        {item.attemptCount}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
+        {queue.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-slate-500">
+              Página {queue.page} de {queue.totalPages} ({queue.totalCount} emails)
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadQueue(page - 1)}
+                disabled={!queue.hasPreviousPage || loading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadQueue(page + 1)}
+                disabled={!queue.hasNextPage || loading}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Contact Search Autocomplete ──────────────────────────────────────────────
 
 interface ContactOption {
@@ -1709,15 +1916,18 @@ export default function OutreachPage() {
 
       {/* Tab Content */}
       {activeTab === 'dashboard' && (
-        <DashboardTab
-          dashboard={dashboard}
-          loading={dashboardLoading}
-          onSegment={handleSegment}
-          onSend={handleSend}
-          segmenting={segmenting}
-          sending={sending}
-          onRefresh={loadDashboard}
-        />
+        <>
+          <DashboardTab
+            dashboard={dashboard}
+            loading={dashboardLoading}
+            onSegment={handleSegment}
+            onSend={handleSend}
+            segmenting={segmenting}
+            sending={sending}
+            onRefresh={loadDashboard}
+          />
+          <EmailQueueSection />
+        </>
       )}
 
       {activeTab === 'configuracao' && (

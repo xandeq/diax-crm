@@ -193,3 +193,41 @@ export async function sendWhatsAppFollowUp(): Promise<WhatsAppSendResultResponse
     method: 'POST',
   });
 }
+
+// ===== Email Queue =====
+
+export enum EmailQueueStatus {
+  Queued = 0,
+  Processing = 1,
+  Sent = 2,
+  Failed = 3,
+}
+
+export interface EmailQueueItemResponse {
+  id: string;
+  campaignId: string | null;
+  customerId: string | null;
+  recipientName: string;
+  recipientEmail: string;
+  subject: string;
+  status: EmailQueueStatus;
+  scheduledAt: string;
+  sentAt: string | null;
+  attemptCount: number;
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface PagedEmailQueueResponse {
+  items: EmailQueueItemResponse[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export async function getEmailQueue(page = 1, pageSize = 15): Promise<PagedEmailQueueResponse> {
+  return apiFetch(`/email-campaigns/queue?page=${page}&pageSize=${pageSize}`);
+}
