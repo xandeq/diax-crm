@@ -1,4 +1,5 @@
 import { apiFetch } from './api';
+import { EmailAttachmentRequest } from './emailMarketing';
 
 export interface OutreachConfigResponse {
   id: string;
@@ -230,4 +231,35 @@ export interface PagedEmailQueueResponse {
 
 export async function getEmailQueue(page = 1, pageSize = 15): Promise<PagedEmailQueueResponse> {
   return apiFetch(`/email-campaigns/queue?page=${page}&pageSize=${pageSize}`);
+}
+
+// ===== Email Marketing =====
+
+export interface ValidEmailCountResponse {
+  count: number;
+}
+
+export interface SendEmailMarketingRequest {
+  subject: string;
+  bodyHtml: string;
+  attachments?: EmailAttachmentRequest[];
+}
+
+export interface SendEmailMarketingResponse {
+  campaignId: string;
+  totalValidContacts: number;
+  queuedCount: number;
+  skippedCount: number;
+  skippedReasons: string[];
+}
+
+export async function getValidEmailCount(): Promise<ValidEmailCountResponse> {
+  return apiFetch('/outreach/valid-email-count');
+}
+
+export async function sendEmailMarketing(data: SendEmailMarketingRequest): Promise<SendEmailMarketingResponse> {
+  return apiFetch('/outreach/send-email-marketing', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }

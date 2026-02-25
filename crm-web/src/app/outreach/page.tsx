@@ -60,7 +60,9 @@ import {
   EmailQueueItemResponse,
   EmailQueueStatus,
   PagedEmailQueueResponse,
+  getValidEmailCount,
 } from '@/services/outreach';
+import { EmailMarketingComposerModal } from '@/components/email/EmailMarketingComposerModal';
 import { searchContacts, Customer } from '@/services/customers';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -1010,6 +1012,44 @@ function LeadsTab({ leads, loading, onRefresh }: LeadsTabProps) {
   );
 }
 
+// ─── Email Marketing Section ──────────────────────────────────────────────────
+
+function EmailMarketingSection({
+  validEmailCount,
+  onComposeClick,
+}: {
+  validEmailCount: number | null;
+  onComposeClick: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Email Marketing
+            {validEmailCount !== null && (
+              <Badge variant="secondary" className="ml-1 font-normal">
+                {validEmailCount} contatos com email
+              </Badge>
+            )}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-slate-500">
+          Envie um email personalizado com imagens para todos os contatos com email válido.
+          Suporta variáveis como {'{{nome}}'}, {'{{empresa}}'}, {'{{email}}'}, {'{{website}}'}.
+        </p>
+        <Button onClick={onComposeClick} disabled={validEmailCount === 0}>
+          <Mail className="mr-2 h-4 w-4" />
+          Compor Email Marketing
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Email Queue Section ──────────────────────────────────────────────────────
 
 const emailQueueStatusConfig: Record<
@@ -1729,6 +1769,10 @@ export default function OutreachPage() {
   const [sendingWhatsAppCampaign, setSendingWhatsAppCampaign] = useState(false);
   const [sendingWhatsAppFollowUp, setSendingWhatsAppFollowUp] = useState(false);
 
+  // Email Marketing
+  const [validEmailCount, setValidEmailCount] = useState<number | null>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+
   // ── Initial loads ──────────────────────────────────────────────────────────
 
   const loadDashboard = async () => {
@@ -1783,9 +1827,19 @@ export default function OutreachPage() {
     }
   };
 
+  const loadValidEmailCount = async () => {
+    try {
+      const data = await getValidEmailCount();
+      setValidEmailCount(data.count);
+    } catch {
+      // Silently fail – non-critical
+    }
+  };
+
   useEffect(() => {
     loadDashboard();
     loadConfig();
+    loadValidEmailCount();
   }, []);
 
   // Load leads lazily when tab is first opened
@@ -1917,6 +1971,10 @@ export default function OutreachPage() {
       {/* Tab Content */}
       {activeTab === 'dashboard' && (
         <>
+          <EmailMarketingSection
+            validEmailCount={validEmailCount}
+            onComposeClick={() => setComposerOpen(true)}
+          />
           <DashboardTab
             dashboard={dashboard}
             loading={dashboardLoading}
@@ -1927,6 +1985,16 @@ export default function OutreachPage() {
             onRefresh={loadDashboard}
           />
           <EmailQueueSection />
+          <EmailMarketingComposerModal
+            open={composerOpen}
+            onOpenChange={setComposerOpen}
+            validEmailCount={validEmailCount ?? 0}
+            onSent={(count) => {
+              toast.success(`Email marketing enfileirado para ${count} contatos.`);
+              loadDashboard();
+              loadValidEmailCount();
+            }}
+          />
         </>
       )}
 

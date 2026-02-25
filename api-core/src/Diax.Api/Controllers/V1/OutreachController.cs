@@ -83,4 +83,29 @@ public class OutreachController : BaseApiController
         var result = await _outreachService.GetReadyLeadsAsync(limit, cancellationToken);
         return HandleResult(result);
     }
+
+    /// <summary>
+    /// Retorna a contagem de contatos com email válido.
+    /// </summary>
+    [HttpGet("valid-email-count")]
+    [ProducesResponseType(typeof(ValidEmailCountResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetValidEmailCount(CancellationToken cancellationToken)
+    {
+        var result = await _outreachService.GetValidEmailCountAsync(cancellationToken);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Envia email marketing personalizado com anexos para todos os contatos com email válido.
+    /// </summary>
+    [HttpPost("send-email-marketing")]
+    [ProducesResponseType(typeof(SendEmailMarketingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SendEmailMarketing(
+        [FromBody] SendEmailMarketingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _outreachService.SendEmailMarketingAsync(request, cancellationToken);
+        return HandleResult(result);
+    }
 }

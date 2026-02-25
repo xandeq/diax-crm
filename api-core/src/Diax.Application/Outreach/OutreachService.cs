@@ -1,4 +1,5 @@
 using Diax.Application.Common;
+using Diax.Application.EmailMarketing;
 using Diax.Application.Outreach.Dtos;
 using Diax.Application.WhatsApp;
 using Diax.Domain.Common;
@@ -724,6 +725,137 @@ public class OutreachService : IApplicationService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success(result);
+    }
+
+    // ===== EMAIL MARKETING =====
+
+    /// <summary>
+    /// Retorna a contagem de contatos com email válido (não nulo, não placeholder, não opt-out).
+    /// </summary>
+    public async Task<Result<ValidEmailCountResponse>> GetValidEmailCountAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId is null)
+            return Result.Failure<ValidEmailCountResponse>(Error.Unauthorized());
+
+        var validEmailContacts = await _customerRepository.FindAsync(
+            c => c.Email != null
+                 && c.Email != string.Empty
+                 && !c.Email.Contains("@placeholder.local")
+                 && !c.EmailOptOut,
+            cancellationToken);
+
+        return Result.Success(new ValidEmailCountResponse
+        {
+            Count = validEmailContacts.Count()
+        });
+    }
+
+    /// <summary>
+    /// Envia email marketing personalizado com anexos para TODOS os contatos com email válido.
+    /// Diferente do outreach por templates, este aceita HTML e anexos customizados.
+    /// </summary>
+    public async Task<Result<SendEmailMarketingResponse>> SendEmailMarketingAsync(
+        SendEmailMarketingRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId is null)
+            return Result.Failure<SendEmailMarketingResponse>(Error.Unauthorized());
+
+        if (string.IsNullOrWhiteSpace(request.Subject))
+            return Result.Failure<SendEmailMarketingResponse>(
+                Error.Validation("Subject", "O assunto é obrigatório."));
+
+        if (string.IsNullOrWhiteSpace(request.BodyHtml))
+            return Result.Failure<SendEmailMarketingResponse>(
+                Error.Validation("BodyHtml", "O corpo do email é obrigatório."));
+
+        // Validar anexos reutilizando lógica existente
+        var attachmentsJsonResult = EmailMarketingService.BuildAttachmentsJson(request.Attachments);
+        if (attachmentsJsonResult.IsFailure)
+            return Result.Failure<SendEmailMarketingResponse>(attachmentsJsonResult.Error);
+
+        // Buscar TODOS os contatos com email válido (qualquer status)
+        var validContacts = (await _customerRepository.FindAsync(
+            c => c.Email != null
+                 && c.Email != string.Empty
+                 && !c.Email.Contains("@placeholder.local")
+                 && !c.EmailOptOut,
+            cancellationToken)).ToList();
+
+        if (validContacts.Count == 0)
+            return Result.Failure<SendEmailMarketingResponse>(
+                Error.Validation("Recipients", "Nenhum contato com email válido encontrado."));
+
+        // Criar campanha
+        var campaignName = $"Email Marketing - {DateTime.UtcNow:yyyy-MM-dd HH:mm}";
+        var campaign = new EmailCampaign(userId.Value, campaignName, request.Subject, request.BodyHtml);
+        campaign.SetTotalRecipients(validContacts.Count);
+        campaign.Schedule(DateTime.UtcNow);
+        campaign.StartProcessing();
+        await _emailCampaignRepository.AddAsync(campaign, cancellationToken);
+
+        // Criar itens de fila
+        var queueItems = new List<EmailQueueItem>();
+        var skipped = new List<string>();
+
+        foreach (var contact in validContacts)
+        {
+            if (!IsValidEmailAddress(contact.Email))
+            {
+                skipped.Add($"{contact.Name} <{contact.Email}> (email inválido)");
+                continue;
+            }
+
+            var personalizedSubject = PersonalizeTemplate(request.Subject, contact);
+            var personalizedBody = PersonalizeTemplate(request.BodyHtml, contact);
+
+            var queueItem = new EmailQueueItem(
+                userId: userId.Value,
+                recipientName: contact.Name,
+                recipientEmail: contact.Email!,
+                subject: personalizedSubject,
+                htmlBody: personalizedBody,
+                scheduledAt: DateTime.UtcNow,
+                customerId: contact.Id,
+                attachmentsJson: attachmentsJsonResult.Value,
+                campaignId: campaign.Id);
+
+            queueItems.Add(queueItem);
+        }
+
+        if (queueItems.Count > 0)
+            await _emailQueueRepository.AddRangeAsync(queueItems, cancellationToken);
+
+        campaign.SetTotalRecipients(queueItems.Count);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(new SendEmailMarketingResponse
+        {
+            CampaignId = campaign.Id,
+            TotalValidContacts = validContacts.Count,
+            QueuedCount = queueItems.Count,
+            SkippedCount = skipped.Count,
+            SkippedReasons = skipped
+        });
+    }
+
+    /// <summary>
+    /// Valida se o formato do email é válido.
+    /// </summary>
+    private static bool IsValidEmailAddress(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        try
+        {
+            _ = new System.Net.Mail.MailAddress(email);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     // ===== MÉTODOS AUXILIARES =====

@@ -20,12 +20,13 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import {
     createEmailCampaign,
+    EmailAttachmentRequest,
     previewEmailCampaign,
     queueCampaignRecipients,
     updateEmailCampaign,
 } from '@/services/emailMarketing';
 import { SnippetResponse, snippetService } from '@/services/snippetService';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Paperclip, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export interface EmailComposerRecipient {
@@ -63,7 +64,47 @@ export function EmailCampaignComposerModal({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<EmailAttachmentRequest[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10MB
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    files.forEach(file => {
+      if (!allowedTypes.includes(file.type)) {
+        setError(`Tipo não permitido: ${file.name}. Use JPG, PNG, GIF ou WebP.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        setAttachments(prev => {
+          const currentTotal = prev.reduce((sum, a) => sum + atob(a.base64Content).length, 0);
+          if (currentTotal + file.size > MAX_TOTAL_BYTES) {
+            setError('Tamanho total dos anexos excede 10MB.');
+            return prev;
+          }
+          return [...prev, {
+            fileName: file.name,
+            contentType: file.type,
+            base64Content: base64,
+          }];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   const canSubmit = recipients.length > 0 && subject.trim().length > 0 && bodyHtml.trim().length > 0;
 
@@ -85,6 +126,7 @@ export function EmailCampaignComposerModal({
     setSubject('');
     setBodyHtml('<p>Olá {{FirstName}},</p><p>Sua mensagem aqui.</p>');
     setSelectedSnippetId('none');
+    setAttachments([]);
 
     setIsLoadingSnippets(true);
     snippetService.getSnippets()
@@ -204,6 +246,7 @@ export function EmailCampaignComposerModal({
       const response = await queueCampaignRecipients(id, {
         customerIds: recipients.map(r => r.id),
         bodyHtmlOverride: bodyHtml,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
 
       onQueued?.(response.queuedCount);
@@ -272,6 +315,44 @@ export function EmailCampaignComposerModal({
                 className="min-h-[280px] font-mono text-xs"
                 placeholder="Insira seu HTML aqui..."
               />
+            </div>
+
+            {/* Attachment Upload */}
+            <div className="space-y-2">
+              <Label>Anexos (imagens)</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Paperclip className="h-4 w-4 mr-1" />
+                Adicionar imagem
+              </Button>
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {attachments.map((att, idx) => (
+                    <div key={idx} className="relative group border rounded-md p-1">
+                      <img
+                        src={`data:${att.contentType};base64,${att.base64Content}`}
+                        alt={att.fileName}
+                        className="h-16 w-16 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(idx)}
+                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                      <p className="text-[10px] text-slate-500 truncate max-w-[64px] text-center">{att.fileName}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <p className="text-xs text-slate-500">

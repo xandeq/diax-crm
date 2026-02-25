@@ -656,7 +656,7 @@ public class EmailMarketingService : IApplicationService
         }
     }
 
-    private static Result<string?> BuildAttachmentsJson(List<EmailAttachmentRequestDto>? attachments)
+    public static Result<string?> BuildAttachmentsJson(List<EmailAttachmentRequestDto>? attachments)
     {
         if (attachments is null || attachments.Count == 0)
         {
