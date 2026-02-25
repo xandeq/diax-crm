@@ -1,48 +1,59 @@
 'use client';
 
+import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
 import {
-    createCustomer,
-    Customer,
-    CustomerStatus,
-    deleteCustomer,
-    getCustomers,
-    updateCustomer
+  Avatar,
+  FilterChip,
+  GridColumn,
+  PerfectGrid,
+  StatusBadge,
+  useDebounce,
+} from '@/components/data-table/PerfectGrid';
+import { TableActions } from '@/components/data-table/TableActions';
+import { LeadTimeline } from '@/components/customers/LeadTimeline';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { exportToCSV } from '@/lib/export';
+import {
+  createCustomer,
+  Customer,
+  CustomerStatus,
+  deleteCustomer,
+  getCustomers,
+  updateCustomer,
 } from '@/services/customers';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef } from '@tanstack/react-table';
 import {
-    Activity,
-    Building2,
-    CheckCircle,
-    Clock,
-    Download,
-    Edit2,
-    Loader2,
-    Mail,
-    Plus,
-    Search,
-    Trash2,
-    User,
-    XCircle
+  Activity,
+  Download,
+  Edit2,
+  Loader2,
+  Mail,
+  Plus,
+  Search,
+  Trash2,
+  X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-import { LeadTimeline } from '@/components/customers/LeadTimeline';
-import { DataTable } from '@/components/data-table/DataTable';
-import { TableActions } from '@/components/data-table/TableActions';
-import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
-import { Badge } from '@/components/ui/badge';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
-import { exportToCSV } from '@/lib/export';
+// ── Schema ───────────────────────────────────────────────────────────────────
 
-// Schema de validação
 const customerSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
   email: z.string().email('Email inválido'),
@@ -58,8 +69,19 @@ const customerSchema = z.object({
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
+// ── Status Chips Config ──────────────────────────────────────────────────────
+
+const CUSTOMER_STATUS_CHIPS = [
+  { value: 'all', label: 'Todos' },
+  { value: '4', label: 'Cliente' },
+  { value: '5', label: 'Inativo' },
+  { value: '6', label: 'Churn' },
+];
+
+// ── Page Component ───────────────────────────────────────────────────────────
+
 export default function CustomersPage() {
-  // Estados da Lista
+  // List state
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedRows, setSelectedRows] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,18 +89,25 @@ export default function CustomersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<CustomerStatus | undefined>(undefined);
 
-  // Estados do Modal/Form
+  // Filters
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Modal / Form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [composerRecipients, setComposerRecipients] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [composerRecipients, setComposerRecipients] = useState<
+    Array<{ id: string; name: string; email: string }>
+  >([]);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Estado do painel de timeline
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Timeline panel
   const [timelineCustomer, setTimelineCustomer] = useState<Customer | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -98,23 +127,25 @@ export default function CustomersPage() {
       whatsApp: '',
       website: '',
       notes: '',
-      tags: ''
-    }
+      tags: '',
+    },
   });
 
   const personTypeWatch = watch('personType');
 
-  // Carregar Clientes
+  // ── Data Fetching ────────────────────────────────────────────────────────
+
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const data = await getCustomers(page, pageSize, search, statusFilter);
+      const status =
+        statusFilter === 'all' ? undefined : (Number(statusFilter) as CustomerStatus);
+      const data = await getCustomers(page, pageSize, debouncedSearch, status);
       setCustomers(data.items);
       setTotalPages(data.totalPages);
       setTotalCount(data.totalCount);
-    } catch (err) {
-      console.error(err);
-      setError('Erro ao carregar clientes.');
+    } catch {
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
@@ -122,14 +153,27 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers();
-  }, [page, pageSize, search, statusFilter]);
+  }, [page, pageSize, debouncedSearch, statusFilter]);
 
-  // Reset para página 1 quando filtros mudam
+  // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
-  // Handlers
+  // Clear selection on page change
+  useEffect(() => {
+    setSelectedRows([]);
+  }, [page, pageSize]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
+
+  const clearFilters = () => {
+    setSearchInput('');
+    setStatusFilter('all');
+  };
+
+  const filtersActive = searchInput !== '' || statusFilter !== 'all';
+
   const handleOpenCreate = () => {
     setEditingCustomer(null);
     reset({
@@ -142,15 +186,16 @@ export default function CustomersPage() {
       whatsApp: '',
       website: '',
       notes: '',
-      tags: ''
+      tags: '',
     });
+    setFormError(null);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setValue('name', customer.name);
-    setValue('email', customer.email);
+    setValue('email', customer.email || '');
     setValue('phone', customer.phone || '');
     setValue('companyName', customer.companyName || '');
     setValue('personType', customer.personType);
@@ -159,42 +204,54 @@ export default function CustomersPage() {
     setValue('website', customer.website || '');
     setValue('notes', customer.notes || '');
     setValue('tags', customer.tags || '');
+    setFormError(null);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
-
     try {
       await deleteCustomer(id);
       fetchCustomers();
-    } catch (err) {
+    } catch {
       alert('Erro ao excluir cliente.');
     }
   };
 
   const handleBulkDelete = async () => {
     if (!confirm(`Deletar ${selectedRows.length} cliente(s)?`)) return;
-
     try {
-      // TODO: Implementar endpoint bulk delete no backend
       for (const customer of selectedRows) {
         await deleteCustomer(customer.id);
       }
       fetchCustomers();
       setSelectedRows([]);
-    } catch (err) {
+    } catch {
       alert('Erro ao deletar clientes.');
     }
   };
 
+  const handleEmail = (customer: Customer) => {
+    setComposerRecipients([
+      { id: customer.id, name: customer.name, email: customer.email },
+    ]);
+    setIsComposerOpen(true);
+  };
+
+  const handleBulkEmail = () => {
+    if (selectedRows.length === 0) return;
+    setComposerRecipients(
+      selectedRows.map((c) => ({ id: c.id, name: c.name, email: c.email }))
+    );
+    setIsComposerOpen(true);
+  };
+
   const handleExport = () => {
     const dataToExport = selectedRows.length > 0 ? selectedRows : customers;
-
     exportToCSV(
-      dataToExport.map(c => ({
+      dataToExport.map((c) => ({
         Nome: c.name,
-        Email: c.email,
+        Email: c.email || '',
         Telefone: c.phone || '',
         WhatsApp: c.whatsApp || '',
         Empresa: c.companyName || '',
@@ -207,30 +264,9 @@ export default function CustomersPage() {
     );
   };
 
-  const handleEmail = (customer: Customer) => {
-    setComposerRecipients([{ id: customer.id, name: customer.name, email: customer.email }]);
-    setIsComposerOpen(true);
-  };
-
-  const handleBulkEmail = () => {
-    if (selectedRows.length === 0) {
-      alert('Selecione ao menos um cliente.');
-      return;
-    }
-
-    setComposerRecipients(
-      selectedRows.map(customer => ({
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-      }))
-    );
-    setIsComposerOpen(true);
-  };
-
   const onSubmit = async (data: CustomerFormValues) => {
     setSubmitting(true);
-    setError(null);
+    setFormError(null);
     try {
       const payload = { ...data, personType: Number(data.personType) };
       if (editingCustomer) {
@@ -242,205 +278,181 @@ export default function CustomersPage() {
       fetchCustomers();
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);
+        setFormError(err.message);
       } else {
-        setError('Erro ao salvar cliente. Verifique os dados.');
+        setFormError('Erro ao salvar cliente. Verifique os dados.');
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Status Badge Helper com ícones
-  const getStatusBadge = (status: CustomerStatus) => {
-    const configs: Record<number, { style: string; icon: React.ReactNode; label: string }> = {
-      [CustomerStatus.Lead]: {
-        style: 'bg-blue-100 text-blue-800',
-        icon: <Clock className="h-3 w-3" />,
-        label: 'Lead'
-      },
-      [CustomerStatus.Contacted]: {
-        style: 'bg-yellow-100 text-yellow-800',
-        icon: <Clock className="h-3 w-3" />,
-        label: 'Contatado'
-      },
-      [CustomerStatus.Qualified]: {
-        style: 'bg-indigo-100 text-indigo-800',
-        icon: <CheckCircle className="h-3 w-3" />,
-        label: 'Qualificado'
-      },
-      [CustomerStatus.Negotiating]: {
-        style: 'bg-orange-100 text-orange-800',
-        icon: <Clock className="h-3 w-3" />,
-        label: 'Negociando'
-      },
-      [CustomerStatus.Customer]: {
-        style: 'bg-green-100 text-green-800',
-        icon: <CheckCircle className="h-3 w-3" />,
-        label: 'Cliente'
-      },
-      [CustomerStatus.Inactive]: {
-        style: 'bg-slate-100 text-slate-600',
-        icon: <XCircle className="h-3 w-3" />,
-        label: 'Inativo'
-      },
-      [CustomerStatus.Churned]: {
-        style: 'bg-gray-100 text-gray-800',
-        icon: <XCircle className="h-3 w-3" />,
-        label: 'Churn'
-      },
-    };
+  // ── Column Definitions ───────────────────────────────────────────────────
 
-    const config = configs[status] || {
-      style: 'bg-gray-100 text-gray-800',
-      icon: null,
-      label: 'Desconhecido'
-    };
-
-    return (
-      <Badge className={`flex items-center gap-1 ${config.style}`}>
-        {config.icon}
-        <span>{config.label}</span>
-      </Badge>
-    );
-  };
-
-  // Definição das colunas
-  const columns: ColumnDef<Customer>[] = [
-    {
-      accessorKey: 'name',
-      header: 'Nome',
-      cell: ({ row }) => (
-        <div>
-          <div className="font-medium text-slate-900 flex items-center gap-2">
-            {row.original.personType === 1 ? (
-              <Building2 className="h-3.5 w-3.5 text-slate-400" />
-            ) : (
-              <User className="h-3.5 w-3.5 text-slate-400" />
-            )}
-            {row.original.name}
+  const columns: GridColumn<Customer>[] = useMemo(
+    () => [
+      {
+        id: 'name',
+        header: 'Cliente',
+        sortable: true,
+        cell: (row) => (
+          <div className="flex items-center gap-3">
+            <Avatar name={row.name} />
+            <div className="min-w-0">
+              <p className="font-medium text-slate-900 truncate">{row.name}</p>
+              {row.document && (
+                <p className="text-xs text-slate-500 truncate">{row.document}</p>
+              )}
+            </div>
           </div>
-          {row.original.document && (
-            <span className="block text-xs text-slate-500">{row.original.document}</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'email',
-      header: 'Email',
-      cell: ({ row }) => (
-        <span className="text-slate-600">{row.original.email}</span>
-      ),
-    },
-    {
-      accessorKey: 'phone',
-      header: 'Telefone',
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="text-slate-600">{row.original.phone || '-'}</span>
-          {row.original.whatsApp && (
-            <span className="text-xs text-green-600 flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              WA: {row.original.whatsApp}
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'companyName',
-      header: 'Empresa',
-      cell: ({ row }) => (
-        <span className="text-slate-600">{row.original.companyName || '-'}</span>
-      ),
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => getStatusBadge(row.original.status),
-    },
-    {
-      accessorKey: 'createdAt',
-      header: 'Criado em',
-      cell: ({ row }) => (
-        <span className="text-slate-600">
-          {new Date(row.original.createdAt).toLocaleDateString('pt-BR')}
-        </span>
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Ações',
-      cell: ({ row }) => (
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={() => handleOpenEdit(row.original)}
-            className="p-1 hover:bg-slate-200 rounded-md text-slate-600 transition-colors"
-            title="Editar"
-          >
-            <Edit2 className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setTimelineCustomer(row.original)}
-            className="p-1 hover:bg-indigo-100 rounded-md text-indigo-600 transition-colors"
-            title="Histórico de atividades"
-          >
-            <Activity className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleEmail(row.original)}
-            className="p-1 hover:bg-blue-100 rounded-md text-blue-600 transition-colors"
-            title="Enviar Email"
-          >
-            <Mail className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleDelete(row.original.id)}
-            className="p-1 hover:bg-red-100 rounded-md text-red-600 transition-colors"
-            title="Excluir"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        id: 'email',
+        header: 'Email',
+        cell: (row) => (
+          <span className="text-sm text-slate-600 truncate block max-w-[200px]">
+            {row.email || <span className="text-slate-400 italic">Sem email</span>}
+          </span>
+        ),
+      },
+      {
+        id: 'phone',
+        header: 'Telefone',
+        cell: (row) => (
+          <div>
+            <span className="text-sm text-slate-600">{row.phone || '–'}</span>
+            {row.whatsApp && (
+              <span className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
+                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full" />
+                WA: {row.whatsApp}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'companyName',
+        header: 'Empresa',
+        cell: (row) => (
+          <span className="text-sm text-slate-600">
+            {row.companyName || '–'}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        sortable: true,
+        cell: (row) => <StatusBadge status={row.status} />,
+      },
+      {
+        id: 'createdAt',
+        header: 'Criado em',
+        sortable: true,
+        cell: (row) => (
+          <span className="text-sm text-slate-500">
+            {new Date(row.createdAt).toLocaleDateString('pt-BR')}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        headerClassName: 'w-[1%]',
+        className: 'w-[1%] whitespace-nowrap',
+        cell: (row) => (
+          <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => handleOpenEdit(row)}
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-700 transition-colors"
+              title="Editar"
+            >
+              <Edit2 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleEmail(row)}
+              className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 hover:text-blue-700 transition-colors"
+              title="Enviar Email"
+            >
+              <Mail className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setTimelineCustomer(row)}
+              className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-600 hover:text-indigo-700 transition-colors"
+              title="Histórico"
+            >
+              <Activity className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleDelete(row.id)}
+              className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 hover:text-red-700 transition-colors"
+              title="Excluir"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 p-8 pt-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Gerenciamento de Clientes</h1>
-          <p className="text-slate-500">Visualize e gerencie sua base de clientes.</p>
+          <h1 className="text-3xl font-bold tracking-tight font-display text-slate-900">
+            Clientes
+          </h1>
+          <p className="text-slate-500">Gerencie sua base de clientes.</p>
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 h-10 px-4 py-2"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-        </button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" /> Exportar
+          </Button>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Buscar por nome, email ou documento..."
-            className="pl-9 flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="space-y-3">
+        <div className="flex gap-3 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar por nome, email ou documento..."
+              className="pl-10 h-11"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </div>
+          {filtersActive && (
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="text-slate-500 hover:text-slate-700 shrink-0"
+            >
+              <X className="h-4 w-4 mr-1.5" />
+              Limpar Filtros
+            </Button>
+          )}
         </div>
-        <button
-          onClick={handleExport}
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white hover:bg-slate-50 h-10 px-4 py-2"
-        >
-          <Download className="mr-2 h-4 w-4" /> Exportar
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          {CUSTOMER_STATUS_CHIPS.map((chip) => (
+            <FilterChip
+              key={chip.value}
+              label={chip.label}
+              active={statusFilter === chip.value}
+              onClick={() => setStatusFilter(chip.value)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Bulk Actions */}
@@ -451,298 +463,233 @@ export default function CustomersPage() {
         onExport={handleExport}
         onClearSelection={() => setSelectedRows([])}
         customActions={
-          <button
+          <Button
+            size="sm"
             onClick={handleBulkEmail}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-3 bg-blue-600 text-white hover:bg-blue-700"
+            className="h-8 bg-blue-600 hover:bg-blue-700 text-white"
           >
-            <Mail className="mr-1.5 h-3.5 w-3.5" />
+            <Mail className="h-3.5 w-3.5 mr-1.5" />
             Enviar E-mail
-          </button>
+          </Button>
         }
       />
 
-      {/* DataTable */}
-      <DataTable
+      {/* Grid */}
+      <PerfectGrid
         columns={columns}
         data={customers}
         loading={loading}
-        selectable={true}
-        onSelectionChange={setSelectedRows}
+        page={page}
         pageSize={pageSize}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        selectable
+        selectedRows={selectedRows}
+        onSelectionChange={setSelectedRows}
+        onRowClick={(customer) => setTimelineCustomer(customer)}
+        getRowId={(c) => c.id}
+        itemLabel="clientes"
+        emptyTitle="Nenhum cliente encontrado"
+        emptyDescription="Tente limpar os filtros ou buscar por outro termo."
       />
 
-      {/* Paginação */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white px-4 py-3 rounded-lg border border-slate-200 shadow-sm">
-        {/* Esquerda: contagem + dropdown de itens por página */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <p className="text-sm text-slate-600">
-            {totalCount === 0 ? 'Nenhum registro encontrado' : (
-              <>Exibindo <span className="font-semibold">{((page - 1) * pageSize) + 1}</span> a{' '}<span className="font-semibold">{Math.min(page * pageSize, totalCount)}</span> de{' '}<span className="font-semibold">{totalCount}</span> clientes</>
-            )}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm text-slate-500">Exibir</span>
-            <select
-              value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="h-8 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span className="text-sm text-slate-500">por página</span>
-          </div>
-        </div>
-        {/* Direita: botões de navegação */}
-        {totalPages > 1 && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-2.5 transition-colors"
-              title="Primeira página"
-            >
-              «
-            </button>
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-3 transition-colors"
-            >
-              ← Anterior
-            </button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                let pageNum: number;
-                if (totalPages <= 7) {
-                  pageNum = i + 1;
-                } else if (page <= 4) {
-                  pageNum = i + 1;
-                } else if (page >= totalPages - 3) {
-                  pageNum = totalPages - 6 + i;
-                } else {
-                  pageNum = page - 3 + i;
-                }
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`inline-flex items-center justify-center rounded-md text-sm font-medium h-9 w-9 transition-colors ${
-                      pageNum === page
-                        ? 'bg-slate-900 text-white'
-                        : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-3 transition-colors"
-            >
-              Próximo →
-            </button>
-            <button
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed h-9 px-2.5 transition-colors"
-              title="Última página"
-            >
-              »
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h2 className="text-lg font-semibold text-slate-900">
-                {editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Tipo de Pessoa */}
-                <div className="sm:col-span-2">
-                  <label className="text-sm font-medium text-slate-700 block mb-2">Tipo de Pessoa</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        value="0"
-                        {...register('personType')}
-                        className="text-slate-900 focus:ring-slate-900"
-                      />
-                      <span className="text-sm text-slate-700">Pessoa Física</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        value="1"
-                        {...register('personType')}
-                        className="text-slate-900 focus:ring-slate-900"
-                      />
-                      <span className="text-sm text-slate-700">Pessoa Jurídica</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Nome Completo *</label>
-                  <input
-                    {...register('name')}
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="Nome do cliente"
-                  />
-                  {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Email *</label>
-                  <input
-                    {...register('email')}
-                    type="email"
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="email@exemplo.com"
-                  />
-                  {errors.email && <span className="text-xs text-red-500">{errors.email.message}</span>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">
-                    {Number(personTypeWatch) === 1 ? 'CNPJ' : 'CPF'}
+      {/* Customer Form Dialog */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Tipo de Pessoa */}
+              <div className="sm:col-span-2">
+                <Label className="mb-2 block">Tipo de Pessoa</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="0"
+                      {...register('personType')}
+                      className="text-slate-900 focus:ring-slate-900"
+                    />
+                    <span className="text-sm text-slate-700">Pessoa Física</span>
                   </label>
-                  <input
-                    {...register('document')}
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder={Number(personTypeWatch) === 1 ? '00.000.000/0000-00' : '000.000.000-00'}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Empresa</label>
-                  <input
-                    {...register('companyName')}
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="Nome da empresa"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Telefone</label>
-                  <input
-                    {...register('phone')}
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="(00) 0000-0000"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">WhatsApp</label>
-                  <input
-                    {...register('whatsApp')}
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="(00) 00000-0000"
-                  />
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-medium text-slate-700">Website</label>
-                  <input
-                    {...register('website')}
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="https://www.exemplo.com"
-                  />
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-medium text-slate-700">Tags (separadas por vírgula)</label>
-                  <input
-                    {...register('tags')}
-                    className="flex h-10 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="vip, recorrente, indicação"
-                  />
-                </div>
-
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-medium text-slate-700">Observações</label>
-                  <textarea
-                    {...register('notes')}
-                    className="flex min-h-[80px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                    placeholder="Observações gerais sobre o cliente..."
-                  />
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="1"
+                      {...register('personType')}
+                      className="text-slate-900 focus:ring-slate-900"
+                    />
+                    <span className="text-sm text-slate-700">Pessoa Jurídica</span>
+                  </label>
                 </div>
               </div>
 
-              {error && (
-                <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50"
-                  disabled={submitting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-md hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"
-                  disabled={submitting}
-                >
-                  {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {editingCustomer ? 'Salvar Alterações' : 'Criar Cliente'}
-                </button>
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome Completo *</Label>
+                <Input
+                  id="name"
+                  {...register('name')}
+                  placeholder="Nome do cliente"
+                />
+                {errors.name && (
+                  <span className="text-xs text-red-500">{errors.name.message}</span>
+                )}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="email@exemplo.com"
+                />
+                {errors.email && (
+                  <span className="text-xs text-red-500">{errors.email.message}</span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="document">
+                  {Number(personTypeWatch) === 1 ? 'CNPJ' : 'CPF'}
+                </Label>
+                <Input
+                  id="document"
+                  {...register('document')}
+                  placeholder={
+                    Number(personTypeWatch) === 1
+                      ? '00.000.000/0000-00'
+                      : '000.000.000-00'
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Empresa</Label>
+                <Input
+                  id="companyName"
+                  {...register('companyName')}
+                  placeholder="Nome da empresa"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  {...register('phone')}
+                  placeholder="(00) 0000-0000"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whatsApp">WhatsApp</Label>
+                <Input
+                  id="whatsApp"
+                  {...register('whatsApp')}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  {...register('website')}
+                  placeholder="https://www.exemplo.com"
+                />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
+                <Input
+                  id="tags"
+                  {...register('tags')}
+                  placeholder="vip, recorrente, indicação"
+                />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="notes">Observações</Label>
+                <textarea
+                  id="notes"
+                  {...register('notes')}
+                  className="flex min-h-[80px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                  placeholder="Observações gerais sobre o cliente..."
+                />
+              </div>
+            </div>
+
+            {formError && (
+              <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm">
+                {formError}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                disabled={submitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {editingCustomer ? 'Salvar' : 'Criar Cliente'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Composer */}
       <EmailCampaignComposerModal
         open={isComposerOpen}
         onOpenChange={setIsComposerOpen}
         recipients={composerRecipients}
         title="Composer Profissional - Clientes"
-        onQueued={(queuedCount) => {
-          alert(`Campanha enfileirada com sucesso para ${queuedCount} cliente(s).`);
+        onQueued={(count) => {
+          alert(`Campanha enfileirada com sucesso para ${count} cliente(s).`);
           setSelectedRows([]);
         }}
       />
 
-      {/* Painel lateral de Timeline de Atividades */}
+      {/* Timeline Sheet */}
       <Sheet
         open={!!timelineCustomer}
-        onOpenChange={(open) => { if (!open) setTimelineCustomer(null); }}
+        onOpenChange={(open) => {
+          if (!open) setTimelineCustomer(null);
+        }}
       >
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader className="mb-4">
-            <SheetTitle>
-              Histórico de Atividades
-            </SheetTitle>
+            <SheetTitle>Histórico de Atividades</SheetTitle>
             {timelineCustomer && (
-              <p className="text-sm text-slate-500">{timelineCustomer.name}</p>
+              <div className="flex items-center gap-3 mt-2">
+                <Avatar name={timelineCustomer.name} size="sm" />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">
+                    {timelineCustomer.name}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {timelineCustomer.email || timelineCustomer.companyName || ''}
+                  </p>
+                </div>
+              </div>
             )}
           </SheetHeader>
-          {timelineCustomer && (
-            <LeadTimeline customerId={timelineCustomer.id} />
-          )}
+          {timelineCustomer && <LeadTimeline customerId={timelineCustomer.id} />}
         </SheetContent>
       </Sheet>
     </div>
