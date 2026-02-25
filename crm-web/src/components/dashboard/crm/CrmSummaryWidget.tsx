@@ -17,8 +17,8 @@ export function CrmSummaryWidget() {
     async function fetchData() {
       try {
         const [leadsRes, customersRes] = await Promise.all([
-            getLeads(1, 1),
-            getCustomers(1, 1)
+            getLeads({ page: 1, pageSize: 1 }),
+            getCustomers({ page: 1, pageSize: 1 })
         ]);
 
         setCounts({

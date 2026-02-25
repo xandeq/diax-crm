@@ -72,17 +72,46 @@ export interface UpdateCustomerRequest {
   source?: number;
 }
 
-export async function getCustomers(page = 1, pageSize = 10, search = '', status?: CustomerStatus) {
-  const params = new URLSearchParams({
+export interface CustomerListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: CustomerStatus;
+  sortBy?: string;
+  sortDescending?: boolean;
+  hasEmail?: boolean;
+  hasWhatsApp?: boolean;
+  personType?: number;
+}
+
+export async function getCustomers(params: CustomerListParams = {}) {
+  const {
+    page = 1,
+    pageSize = 10,
+    search,
+    status,
+    sortBy,
+    sortDescending,
+    hasEmail,
+    hasWhatsApp,
+    personType,
+  } = params;
+
+  const qs = new URLSearchParams({
     page: page.toString(),
     pageSize: pageSize.toString(),
     onlyCustomers: 'true'
   });
 
-  if (search) params.append('search', search);
-  if (status !== undefined) params.append('status', status.toString());
+  if (search) qs.append('search', search);
+  if (status !== undefined) qs.append('status', status.toString());
+  if (sortBy) qs.append('sortBy', sortBy);
+  if (sortDescending) qs.append('sortDescending', 'true');
+  if (hasEmail !== undefined) qs.append('hasEmail', hasEmail.toString());
+  if (hasWhatsApp !== undefined) qs.append('hasWhatsApp', hasWhatsApp.toString());
+  if (personType !== undefined) qs.append('personType', personType.toString());
 
-  return apiFetch<PagedResponse<Customer>>(`/customers?${params.toString()}`, {
+  return apiFetch<PagedResponse<Customer>>(`/customers?${qs.toString()}`, {
     method: 'GET'
   });
 }

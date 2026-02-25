@@ -64,6 +64,11 @@ public class CustomerService : IApplicationService
             request.Search,
             statusFilter,
             request.Source,
+            request.SortBy,
+            request.SortDescending,
+            request.HasEmail,
+            request.HasWhatsApp,
+            request.PersonType,
             cancellationToken);
 
         // Se OnlyLeads, filtra adicionalmente

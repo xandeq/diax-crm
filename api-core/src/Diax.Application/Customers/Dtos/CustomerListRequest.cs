@@ -32,4 +32,19 @@ public class CustomerListRequest : PagedRequest
     /// Se true, retorna apenas clientes ativos.
     /// </summary>
     public bool? OnlyCustomers { get; set; }
+
+    /// <summary>
+    /// Filtro: possui e-mail (true = com email, false = sem email, null = todos).
+    /// </summary>
+    public bool? HasEmail { get; set; }
+
+    /// <summary>
+    /// Filtro: possui WhatsApp (true = com whatsapp, false = sem whatsapp, null = todos).
+    /// </summary>
+    public bool? HasWhatsApp { get; set; }
+
+    /// <summary>
+    /// Filtro por tipo de pessoa.
+    /// </summary>
+    public PersonType? PersonType { get; set; }
 }

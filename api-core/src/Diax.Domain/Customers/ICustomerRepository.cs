@@ -44,7 +44,7 @@ public interface ICustomerRepository : IRepository<Customer>
     Task<bool> EmailExistsAsync(string email, Guid? excludeId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Busca paginada com filtros.
+    /// Busca paginada com filtros e sorting.
     /// </summary>
     Task<(IEnumerable<Customer> Items, int TotalCount)> GetPagedAsync(
         int page,
@@ -52,5 +52,10 @@ public interface ICustomerRepository : IRepository<Customer>
         string? search = null,
         CustomerStatus? status = null,
         LeadSource? source = null,
+        string? sortBy = null,
+        bool sortDescending = false,
+        bool? hasEmail = null,
+        bool? hasWhatsApp = null,
+        PersonType? personType = null,
         CancellationToken cancellationToken = default);
 }

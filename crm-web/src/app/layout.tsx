@@ -44,7 +44,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-background text-foreground min-h-screen flex flex-col">
         <AuthProvider>
           <AuthGuard>
-            <div className="w-full max-w-6xl mx-auto px-6 flex-1 flex flex-col">
+            <div className="w-full max-w-[1400px] mx-auto px-6 flex-1 flex flex-col">
               <Header />
               <main className="flex-1">
                 {children}

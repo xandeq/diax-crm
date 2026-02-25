@@ -26,7 +26,12 @@ public class LeadsController : BaseApiController
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         [FromQuery] string? search = null,
-        [FromQuery] CustomerStatus? status = null)
+        [FromQuery] CustomerStatus? status = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] bool? hasEmail = null,
+        [FromQuery] bool? hasWhatsApp = null,
+        [FromQuery] PersonType? personType = null)
     {
         var request = new CustomerListRequest
         {
@@ -34,7 +39,12 @@ public class LeadsController : BaseApiController
             PageSize = pageSize,
             Search = search,
             Status = status,
-            OnlyLeads = true
+            OnlyLeads = true,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            HasEmail = hasEmail,
+            HasWhatsApp = hasWhatsApp,
+            PersonType = personType
         };
 
         var result = await _service.GetPagedAsync(request);

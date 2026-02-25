@@ -41,7 +41,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Activity,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Edit2,
+  Filter,
   Loader2,
   Mail,
   MessageCircle,
@@ -95,6 +98,16 @@ export default function LeadsPage() {
   const debouncedSearch = useDebounce(searchInput, 300);
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Advanced Filters
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [hasEmailFilter, setHasEmailFilter] = useState<boolean | undefined>(undefined);
+  const [hasWhatsAppFilter, setHasWhatsAppFilter] = useState<boolean | undefined>(undefined);
+  const [personTypeFilter, setPersonTypeFilter] = useState<number | undefined>(undefined);
+
+  // Sorting (server-side)
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   // Modal / Form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -126,7 +139,17 @@ export default function LeadsPage() {
     try {
       const status =
         statusFilter === 'all' ? undefined : (Number(statusFilter) as CustomerStatus);
-      const data = await getLeads(page, pageSize, debouncedSearch, status);
+      const data = await getLeads({
+        page,
+        pageSize,
+        search: debouncedSearch || undefined,
+        status,
+        sortBy: sortBy || undefined,
+        sortDescending: sortDirection === 'desc',
+        hasEmail: hasEmailFilter,
+        hasWhatsApp: hasWhatsAppFilter,
+        personType: personTypeFilter,
+      });
       setLeads(data.items);
       setTotalPages(data.totalPages);
       setTotalCount(data.totalCount);
@@ -139,12 +162,12 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchLeads();
-  }, [page, pageSize, debouncedSearch, statusFilter]);
+  }, [page, pageSize, debouncedSearch, statusFilter, sortBy, sortDirection, hasEmailFilter, hasWhatsAppFilter, personTypeFilter]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter]);
+  }, [debouncedSearch, statusFilter, hasEmailFilter, hasWhatsAppFilter, personTypeFilter]);
 
   // Clear selection on page change
   useEffect(() => {
@@ -153,12 +176,34 @@ export default function LeadsPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
+  const advancedFilterCount =
+    (hasEmailFilter !== undefined ? 1 : 0) +
+    (hasWhatsAppFilter !== undefined ? 1 : 0) +
+    (personTypeFilter !== undefined ? 1 : 0);
+
   const clearFilters = () => {
     setSearchInput('');
     setStatusFilter('all');
+    setSortBy(null);
+    setSortDirection('asc');
+    setHasEmailFilter(undefined);
+    setHasWhatsAppFilter(undefined);
+    setPersonTypeFilter(undefined);
   };
 
-  const filtersActive = searchInput !== '' || statusFilter !== 'all';
+  const filtersActive =
+    searchInput !== '' ||
+    statusFilter !== 'all' ||
+    sortBy !== null ||
+    hasEmailFilter !== undefined ||
+    hasWhatsAppFilter !== undefined ||
+    personTypeFilter !== undefined;
+
+  const handleSort = (columnId: string, direction: 'asc' | 'desc') => {
+    setSortBy(columnId);
+    setSortDirection(direction);
+    setPage(1);
+  };
 
   const handleOpenCreate = () => {
     setEditingLead(null);
@@ -319,8 +364,9 @@ export default function LeadsPage() {
       {
         id: 'email',
         header: 'Email',
+        sortable: true,
         cell: (row) => (
-          <span className="text-sm text-slate-600 truncate block max-w-[200px]">
+          <span className="text-sm text-slate-600 truncate block max-w-[220px]">
             {row.email || <span className="text-slate-400 italic">Sem email</span>}
           </span>
         ),
@@ -418,7 +464,7 @@ export default function LeadsPage() {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 p-8 pt-6">
+    <div className="space-y-4 px-4 py-5 sm:px-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -446,11 +492,29 @@ export default function LeadsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Buscar por nome, email ou empresa..."
-              className="pl-10 h-11"
+              className="pl-10 h-10"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowAdvancedFilters((v) => !v)}
+            className={`shrink-0 ${advancedFilterCount > 0 ? 'border-slate-900 text-slate-900' : ''}`}
+          >
+            <Filter className="h-4 w-4 mr-1.5" />
+            Filtros
+            {advancedFilterCount > 0 && (
+              <span className="ml-1.5 bg-slate-900 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {advancedFilterCount}
+              </span>
+            )}
+            {showAdvancedFilters ? (
+              <ChevronUp className="h-4 w-4 ml-1" />
+            ) : (
+              <ChevronDown className="h-4 w-4 ml-1" />
+            )}
+          </Button>
           {filtersActive && (
             <Button
               variant="ghost"
@@ -458,10 +522,12 @@ export default function LeadsPage() {
               className="text-slate-500 hover:text-slate-700 shrink-0"
             >
               <X className="h-4 w-4 mr-1.5" />
-              Limpar Filtros
+              Limpar
             </Button>
           )}
         </div>
+
+        {/* Status Chips */}
         <div className="flex gap-2 flex-wrap">
           {LEAD_STATUS_CHIPS.map((chip) => (
             <FilterChip
@@ -472,6 +538,79 @@ export default function LeadsPage() {
             />
           ))}
         </div>
+
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Has Email */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Possui Email</label>
+                <div className="flex gap-2">
+                  <FilterChip
+                    label="Qualquer"
+                    active={hasEmailFilter === undefined}
+                    onClick={() => setHasEmailFilter(undefined)}
+                  />
+                  <FilterChip
+                    label="Sim"
+                    active={hasEmailFilter === true}
+                    onClick={() => setHasEmailFilter(true)}
+                  />
+                  <FilterChip
+                    label="Não"
+                    active={hasEmailFilter === false}
+                    onClick={() => setHasEmailFilter(false)}
+                  />
+                </div>
+              </div>
+
+              {/* Has WhatsApp */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Possui WhatsApp</label>
+                <div className="flex gap-2">
+                  <FilterChip
+                    label="Qualquer"
+                    active={hasWhatsAppFilter === undefined}
+                    onClick={() => setHasWhatsAppFilter(undefined)}
+                  />
+                  <FilterChip
+                    label="Sim"
+                    active={hasWhatsAppFilter === true}
+                    onClick={() => setHasWhatsAppFilter(true)}
+                  />
+                  <FilterChip
+                    label="Não"
+                    active={hasWhatsAppFilter === false}
+                    onClick={() => setHasWhatsAppFilter(false)}
+                  />
+                </div>
+              </div>
+
+              {/* Person Type */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Tipo Pessoa</label>
+                <div className="flex gap-2">
+                  <FilterChip
+                    label="Todos"
+                    active={personTypeFilter === undefined}
+                    onClick={() => setPersonTypeFilter(undefined)}
+                  />
+                  <FilterChip
+                    label="Física"
+                    active={personTypeFilter === 0}
+                    onClick={() => setPersonTypeFilter(0)}
+                  />
+                  <FilterChip
+                    label="Jurídica"
+                    active={personTypeFilter === 1}
+                    onClick={() => setPersonTypeFilter(1)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bulk Actions */}
@@ -517,6 +656,9 @@ export default function LeadsPage() {
           setPageSize(size);
           setPage(1);
         }}
+        sortColumn={sortBy}
+        sortDirection={sortDirection}
+        onSort={handleSort}
         selectable
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}

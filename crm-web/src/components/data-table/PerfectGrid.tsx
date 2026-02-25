@@ -36,6 +36,11 @@ export interface PerfectGridProps<T> {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
 
+  // Server-side sorting (controlled)
+  sortColumn?: string | null;
+  sortDirection?: 'asc' | 'desc';
+  onSort?: (columnId: string, direction: 'asc' | 'desc') => void;
+
   // Selection (controlled)
   selectable?: boolean;
   selectedRows?: T[];
@@ -307,6 +312,9 @@ export function PerfectGrid<T>({
   totalPages,
   onPageChange,
   onPageSizeChange,
+  sortColumn,
+  sortDirection = 'asc',
+  onSort,
   selectable = false,
   selectedRows,
   onSelectionChange,
@@ -317,22 +325,19 @@ export function PerfectGrid<T>({
   emptyDescription,
   itemLabel = 'registros',
 }: PerfectGridProps<T>) {
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
   // Compute selectedIds from controlled prop
   const selectedIds = useMemo(() => {
     if (!selectedRows) return new Set<string>();
     return new Set(selectedRows.map(getRowId));
   }, [selectedRows, getRowId]);
 
-  // Handle sort toggle
+  // Handle sort toggle — calls parent callback for server-side sorting
   const handleSort = (columnId: string) => {
+    if (!onSort) return;
     if (sortColumn === columnId) {
-      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+      onSort(columnId, sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortColumn(columnId);
-      setSortDirection('asc');
+      onSort(columnId, 'asc');
     }
   };
 

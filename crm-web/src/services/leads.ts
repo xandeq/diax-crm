@@ -49,16 +49,45 @@ export interface UpdateLeadRequest {
   personType: number;
 }
 
-export async function getLeads(page = 1, pageSize = 10, search = '', status?: CustomerStatus) {
-  const params = new URLSearchParams({
+export interface LeadListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: CustomerStatus;
+  sortBy?: string;
+  sortDescending?: boolean;
+  hasEmail?: boolean;
+  hasWhatsApp?: boolean;
+  personType?: number;
+}
+
+export async function getLeads(params: LeadListParams = {}) {
+  const {
+    page = 1,
+    pageSize = 10,
+    search,
+    status,
+    sortBy,
+    sortDescending,
+    hasEmail,
+    hasWhatsApp,
+    personType,
+  } = params;
+
+  const qs = new URLSearchParams({
     page: page.toString(),
     pageSize: pageSize.toString(),
   });
 
-  if (search) params.append('search', search);
-  if (status !== undefined) params.append('status', status.toString());
+  if (search) qs.append('search', search);
+  if (status !== undefined) qs.append('status', status.toString());
+  if (sortBy) qs.append('sortBy', sortBy);
+  if (sortDescending) qs.append('sortDescending', 'true');
+  if (hasEmail !== undefined) qs.append('hasEmail', hasEmail.toString());
+  if (hasWhatsApp !== undefined) qs.append('hasWhatsApp', hasWhatsApp.toString());
+  if (personType !== undefined) qs.append('personType', personType.toString());
 
-  return apiFetch<PagedResponse<Lead>>(`/leads?${params.toString()}`, {
+  return apiFetch<PagedResponse<Lead>>(`/leads?${qs.toString()}`, {
     method: 'GET'
   });
 }
