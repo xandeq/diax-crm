@@ -94,7 +94,8 @@ public class EvolutionApiClient : IWhatsAppSender
             _logger.LogError("Falha ao enviar WhatsApp para {Number}. Status: {Status}. Response: {Response}",
                 formattedNumber, response.StatusCode, responseBody);
 
-            return new WhatsAppSendResult(false, null, $"HTTP {(int)response.StatusCode}: {responseBody}");
+            var friendlyError = ParseEvolutionApiError(responseBody, (int)response.StatusCode);
+            return new WhatsAppSendResult(false, null, friendlyError);
         }
         catch (Exception ex)
         {
@@ -145,6 +146,58 @@ public class EvolutionApiClient : IWhatsAppSender
             _logger.LogError(ex, "Erro ao verificar conexão WhatsApp");
             return new WhatsAppConnectionStatus(false, "error", _settings.InstanceName);
         }
+    }
+
+    /// <summary>
+    /// Extrai uma mensagem de erro amigável a partir da resposta da Evolution API.
+    /// </summary>
+    private static string ParseEvolutionApiError(string responseBody, int statusCode)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+
+            // Formato: { "response": { "message": ["Error: Connection Closed"] } }
+            if (doc.RootElement.TryGetProperty("response", out var responseElement) &&
+                responseElement.TryGetProperty("message", out var messageElement))
+            {
+                string? msg = null;
+
+                if (messageElement.ValueKind == JsonValueKind.Array && messageElement.GetArrayLength() > 0)
+                    msg = messageElement[0].GetString();
+                else if (messageElement.ValueKind == JsonValueKind.String)
+                    msg = messageElement.GetString();
+
+                if (!string.IsNullOrWhiteSpace(msg))
+                {
+                    // Mensagens amigáveis para erros conhecidos
+                    if (msg.Contains("Connection Closed", StringComparison.OrdinalIgnoreCase))
+                        return "Conexão WhatsApp fechada. Reconecte a instância no painel da Evolution API escaneando o QR Code novamente.";
+
+                    if (msg.Contains("not ready", StringComparison.OrdinalIgnoreCase))
+                        return "Instância WhatsApp não está pronta. Verifique a conexão no painel da Evolution API.";
+
+                    if (msg.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                        return "Instância WhatsApp não encontrada. Verifique o nome da instância nas configurações.";
+
+                    return msg;
+                }
+            }
+
+            // Formato: { "error": "Bad Request" }
+            if (doc.RootElement.TryGetProperty("error", out var errorElement))
+            {
+                var error = errorElement.GetString();
+                if (!string.IsNullOrWhiteSpace(error))
+                    return $"Erro da Evolution API: {error}";
+            }
+        }
+        catch
+        {
+            // Se não conseguir parsear, retorna mensagem genérica
+        }
+
+        return $"Erro ao enviar WhatsApp (HTTP {statusCode}). Verifique a conexão da instância.";
     }
 
     /// <summary>
