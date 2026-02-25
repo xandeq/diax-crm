@@ -87,6 +87,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         bool? hasEmail = null,
         bool? hasWhatsApp = null,
         PersonType? personType = null,
+        LeadSegment? segment = null,
         CancellationToken cancellationToken = default)
     {
         var query = DbSet.AsQueryable();
@@ -135,6 +136,12 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             query = query.Where(c => c.PersonType == personType.Value);
         }
 
+        // Filtro: segmento
+        if (segment.HasValue)
+        {
+            query = query.Where(c => c.Segment == segment.Value);
+        }
+
         // Contagem total
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -148,6 +155,8 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             "createdat" => sortDescending ? query.OrderByDescending(c => c.CreatedAt) : query.OrderBy(c => c.CreatedAt),
             "leadscore" => sortDescending ? query.OrderByDescending(c => c.LeadScore) : query.OrderBy(c => c.LeadScore),
             "phone" => sortDescending ? query.OrderByDescending(c => c.Phone) : query.OrderBy(c => c.Phone),
+            "segment" => sortDescending ? query.OrderByDescending(c => c.Segment) : query.OrderBy(c => c.Segment),
+            "source" => sortDescending ? query.OrderByDescending(c => c.Source) : query.OrderBy(c => c.Source),
             _ => query.OrderByDescending(c => c.CreatedAt) // Default: mais recentes primeiro
         };
 

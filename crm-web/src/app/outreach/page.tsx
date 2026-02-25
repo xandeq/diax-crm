@@ -66,6 +66,7 @@ import { EmailMarketingComposerModal } from '@/components/email/EmailMarketingCo
 import { searchContacts, Customer } from '@/services/customers';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -935,6 +936,7 @@ interface LeadsTabProps {
 }
 
 function LeadsTab({ leads, loading, onRefresh }: LeadsTabProps) {
+  const router = useRouter();
   if (loading) {
     return (
       <div className="space-y-2">
@@ -984,8 +986,12 @@ function LeadsTab({ leads, loading, onRefresh }: LeadsTabProps) {
               </TableHeader>
               <TableBody>
                 {leads.map((lead) => (
-                  <TableRow key={lead.id}>
-                    <TableCell className="font-medium text-slate-900">
+                  <TableRow
+                    key={lead.id}
+                    className="cursor-pointer hover:bg-slate-50 transition-colors"
+                    onClick={() => router.push(`/leads?search=${encodeURIComponent(lead.name)}`)}
+                  >
+                    <TableCell className="font-medium text-blue-700 hover:text-blue-900 hover:underline">
                       {lead.name}
                     </TableCell>
                     <TableCell className="text-slate-600 text-sm">
@@ -1426,6 +1432,7 @@ function WhatsAppTab({
   sendingCampaign,
   sendingFollowUp,
 }: WhatsAppTabProps) {
+  const router = useRouter();
   const [selectedContact, setSelectedContact] = useState<ContactOption | null>(null);
   const [manualPhoneNumber, setManualPhoneNumber] = useState('');
   const [manualMessage, setManualMessage] = useState('');
@@ -1695,8 +1702,12 @@ function WhatsAppTab({
                 </TableHeader>
                 <TableBody>
                   {whatsAppLeads.map((lead) => (
-                    <TableRow key={lead.id}>
-                      <TableCell className="font-medium text-slate-900">
+                    <TableRow
+                      key={lead.id}
+                      className="cursor-pointer hover:bg-slate-50 transition-colors"
+                      onClick={() => router.push(`/leads?search=${encodeURIComponent(lead.name)}`)}
+                    >
+                      <TableCell className="font-medium text-blue-700 hover:text-blue-900 hover:underline">
                         {lead.name}
                       </TableCell>
                       <TableCell className="text-slate-600 text-sm font-mono">
@@ -1716,7 +1727,7 @@ function WhatsAppTab({
                       <TableCell className="text-slate-500 text-xs">
                         {formatDateShort(lead.lastWhatsAppSentAt)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="sm"

@@ -31,7 +31,9 @@ public class LeadsController : BaseApiController
         [FromQuery] bool sortDescending = false,
         [FromQuery] bool? hasEmail = null,
         [FromQuery] bool? hasWhatsApp = null,
-        [FromQuery] PersonType? personType = null)
+        [FromQuery] PersonType? personType = null,
+        [FromQuery] LeadSource? source = null,
+        [FromQuery] LeadSegment? segment = null)
     {
         var request = new CustomerListRequest
         {
@@ -44,7 +46,9 @@ public class LeadsController : BaseApiController
             SortDescending = sortDescending,
             HasEmail = hasEmail,
             HasWhatsApp = hasWhatsApp,
-            PersonType = personType
+            PersonType = personType,
+            Source = source,
+            Segment = segment
         };
 
         var result = await _service.GetPagedAsync(request);

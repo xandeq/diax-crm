@@ -30,6 +30,22 @@ export interface Customer {
   createdAt: string;
   notes?: string;
   tags?: string;
+
+  // Origem
+  source?: number;
+  sourceDescription?: string;
+  sourceDetails?: string;
+
+  // Segmentação / Outreach
+  segment?: number;
+  segmentDescription?: string;
+  leadScore?: number;
+  emailSentCount?: number;
+  whatsAppSentCount?: number;
+  lastEmailSentAt?: string;
+  lastWhatsAppSentAt?: string;
+  emailOptOut?: boolean;
+  whatsAppOptOut?: boolean;
 }
 
 export interface PagedResponse<T> {
@@ -82,6 +98,8 @@ export interface CustomerListParams {
   hasEmail?: boolean;
   hasWhatsApp?: boolean;
   personType?: number;
+  source?: number;
+  segment?: number;
 }
 
 export async function getCustomers(params: CustomerListParams = {}) {
@@ -95,6 +113,8 @@ export async function getCustomers(params: CustomerListParams = {}) {
     hasEmail,
     hasWhatsApp,
     personType,
+    source,
+    segment,
   } = params;
 
   const qs = new URLSearchParams({
@@ -110,6 +130,8 @@ export async function getCustomers(params: CustomerListParams = {}) {
   if (hasEmail !== undefined) qs.append('hasEmail', hasEmail.toString());
   if (hasWhatsApp !== undefined) qs.append('hasWhatsApp', hasWhatsApp.toString());
   if (personType !== undefined) qs.append('personType', personType.toString());
+  if (source !== undefined) qs.append('source', source.toString());
+  if (segment !== undefined) qs.append('segment', segment.toString());
 
   return apiFetch<PagedResponse<Customer>>(`/customers?${qs.toString()}`, {
     method: 'GET'

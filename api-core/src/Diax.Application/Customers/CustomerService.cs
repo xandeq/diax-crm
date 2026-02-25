@@ -69,6 +69,7 @@ public class CustomerService : IApplicationService
             request.HasEmail,
             request.HasWhatsApp,
             request.PersonType,
+            request.Segment,
             cancellationToken);
 
         // Se OnlyLeads, filtra adicionalmente

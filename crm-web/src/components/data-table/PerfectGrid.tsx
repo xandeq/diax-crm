@@ -8,6 +8,8 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  Mail,
+  MessageCircle,
   SearchX,
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -172,6 +174,127 @@ export function FilterChip({
     </button>
   );
 }
+
+// ── Segment Badge ────────────────────────────────────────────────────────────
+
+const SEGMENT_CONFIGS: Record<number, { bg: string; text: string; dot: string; label: string }> = {
+  2: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500', label: 'Hot' },
+  1: { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500', label: 'Warm' },
+  0: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Cold' },
+};
+
+export function SegmentBadge({ segment }: { segment?: number | null }) {
+  if (segment === undefined || segment === null) {
+    return <span className="text-xs text-slate-400 italic">Não segmentado</span>;
+  }
+  const config = SEGMENT_CONFIGS[segment];
+  if (!config) return <span className="text-xs text-slate-400">–</span>;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+      {config.label}
+    </span>
+  );
+}
+
+// ── Channel Icons ────────────────────────────────────────────────────────────
+
+export function ChannelIcons({
+  hasEmail,
+  hasWhatsApp,
+  emailOptOut,
+  whatsAppOptOut,
+}: {
+  hasEmail?: boolean;
+  hasWhatsApp?: boolean;
+  emailOptOut?: boolean;
+  whatsAppOptOut?: boolean;
+}) {
+  const showEmail = hasEmail && !emailOptOut;
+  const showWhatsApp = hasWhatsApp && !whatsAppOptOut;
+
+  if (!showEmail && !showWhatsApp) {
+    return <span className="text-xs text-slate-400 italic">Nenhum</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {showEmail && (
+        <span
+          className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-50 text-blue-600"
+          title={emailOptOut ? 'Email (opt-out)' : 'Email disponível'}
+        >
+          <Mail className="h-3.5 w-3.5" />
+        </span>
+      )}
+      {showWhatsApp && (
+        <span
+          className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-50 text-green-600"
+          title={whatsAppOptOut ? 'WhatsApp (opt-out)' : 'WhatsApp disponível'}
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Source Label ──────────────────────────────────────────────────────────────
+
+const SOURCE_LABELS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Não especificado', color: 'text-slate-400' },
+  1: { label: 'Manual', color: 'text-slate-600' },
+  2: { label: 'Website', color: 'text-indigo-600' },
+  3: { label: 'Indicação', color: 'text-emerald-600' },
+  4: { label: 'Scraping', color: 'text-amber-600' },
+  5: { label: 'Redes Sociais', color: 'text-pink-600' },
+  6: { label: 'E-mail Marketing', color: 'text-blue-600' },
+  7: { label: 'Anúncios Pagos', color: 'text-purple-600' },
+  8: { label: 'Evento', color: 'text-cyan-600' },
+  9: { label: 'Parceria', color: 'text-teal-600' },
+  10: { label: 'Importação', color: 'text-orange-600' },
+  11: { label: 'Google Maps', color: 'text-red-600' },
+};
+
+export function SourceLabel({ source, sourceDescription }: { source?: number; sourceDescription?: string }) {
+  if (source === undefined || source === null) {
+    return <span className="text-xs text-slate-400">–</span>;
+  }
+  const config = SOURCE_LABELS[source];
+  const label = sourceDescription || config?.label || 'Desconhecido';
+  const color = config?.color || 'text-slate-500';
+  return (
+    <span className={`text-sm font-medium ${color}`}>
+      {label}
+    </span>
+  );
+}
+
+// ── Source / Segment Filter Configs (for pages to use) ───────────────────────
+
+export const SOURCE_FILTER_OPTIONS = [
+  { value: undefined as number | undefined, label: 'Todas' },
+  { value: 1, label: 'Manual' },
+  { value: 2, label: 'Website' },
+  { value: 3, label: 'Indicação' },
+  { value: 4, label: 'Scraping' },
+  { value: 5, label: 'Redes Sociais' },
+  { value: 6, label: 'E-mail Mktg' },
+  { value: 7, label: 'Anúncios' },
+  { value: 8, label: 'Evento' },
+  { value: 9, label: 'Parceria' },
+  { value: 10, label: 'Importação' },
+  { value: 11, label: 'Google Maps' },
+];
+
+export const SEGMENT_FILTER_OPTIONS = [
+  { value: undefined as number | undefined, label: 'Todos' },
+  { value: 2, label: 'Hot' },
+  { value: 1, label: 'Warm' },
+  { value: 0, label: 'Cold' },
+];
 
 // ── Skeleton Row ─────────────────────────────────────────────────────────────
 

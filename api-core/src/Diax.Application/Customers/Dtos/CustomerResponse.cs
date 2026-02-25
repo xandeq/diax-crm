@@ -42,6 +42,17 @@ public class CustomerResponse
     public DateTime? ConvertedAt { get; set; }
     public DateTime? LastContactAt { get; set; }
 
+    // Segmentação / Outreach
+    public LeadSegment? Segment { get; set; }
+    public string? SegmentDescription { get; set; }
+    public int? LeadScore { get; set; }
+    public int EmailSentCount { get; set; }
+    public int WhatsAppSentCount { get; set; }
+    public DateTime? LastEmailSentAt { get; set; }
+    public DateTime? LastWhatsAppSentAt { get; set; }
+    public bool EmailOptOut { get; set; }
+    public bool WhatsAppOptOut { get; set; }
+
     // Auditoria
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
@@ -76,6 +87,15 @@ public class CustomerResponse
             IsActiveCustomer = customer.IsActiveCustomer,
             ConvertedAt = customer.ConvertedAt,
             LastContactAt = customer.LastContactAt,
+            Segment = customer.Segment,
+            SegmentDescription = GetSegmentDescription(customer.Segment),
+            LeadScore = customer.LeadScore,
+            EmailSentCount = customer.EmailSentCount,
+            WhatsAppSentCount = customer.WhatsAppSentCount,
+            LastEmailSentAt = customer.LastEmailSentAt,
+            LastWhatsAppSentAt = customer.LastWhatsAppSentAt,
+            EmailOptOut = customer.EmailOptOut,
+            WhatsAppOptOut = customer.WhatsAppOptOut,
             CreatedAt = customer.CreatedAt,
             CreatedBy = customer.CreatedBy,
             UpdatedAt = customer.UpdatedAt,
@@ -108,6 +128,15 @@ public class CustomerResponse
         LeadSource.Event => "Evento",
         LeadSource.Partnership => "Parceria",
         LeadSource.Import => "Importação",
+        LeadSource.GoogleMaps => "Google Maps",
         _ => "Desconhecido"
+    };
+
+    private static string? GetSegmentDescription(LeadSegment? segment) => segment switch
+    {
+        LeadSegment.Hot => "Hot",
+        LeadSegment.Warm => "Warm",
+        LeadSegment.Cold => "Cold",
+        _ => null
     };
 }

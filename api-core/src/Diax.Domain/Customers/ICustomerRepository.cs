@@ -57,5 +57,6 @@ public interface ICustomerRepository : IRepository<Customer>
         bool? hasEmail = null,
         bool? hasWhatsApp = null,
         PersonType? personType = null,
+        LeadSegment? segment = null,
         CancellationToken cancellationToken = default);
 }

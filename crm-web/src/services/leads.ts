@@ -20,6 +20,22 @@ export interface Lead {
   status: CustomerStatus;
   createdAt: string;
   personType: number; // 0 = Individual, 1 = Company
+
+  // Origem
+  source?: number;
+  sourceDescription?: string;
+  sourceDetails?: string;
+
+  // Segmentação / Outreach
+  segment?: number;
+  segmentDescription?: string;
+  leadScore?: number;
+  emailSentCount?: number;
+  whatsAppSentCount?: number;
+  lastEmailSentAt?: string;
+  lastWhatsAppSentAt?: string;
+  emailOptOut?: boolean;
+  whatsAppOptOut?: boolean;
 }
 
 export interface PagedResponse<T> {
@@ -59,6 +75,8 @@ export interface LeadListParams {
   hasEmail?: boolean;
   hasWhatsApp?: boolean;
   personType?: number;
+  source?: number;
+  segment?: number;
 }
 
 export async function getLeads(params: LeadListParams = {}) {
@@ -72,6 +90,8 @@ export async function getLeads(params: LeadListParams = {}) {
     hasEmail,
     hasWhatsApp,
     personType,
+    source,
+    segment,
   } = params;
 
   const qs = new URLSearchParams({
@@ -86,6 +106,8 @@ export async function getLeads(params: LeadListParams = {}) {
   if (hasEmail !== undefined) qs.append('hasEmail', hasEmail.toString());
   if (hasWhatsApp !== undefined) qs.append('hasWhatsApp', hasWhatsApp.toString());
   if (personType !== undefined) qs.append('personType', personType.toString());
+  if (source !== undefined) qs.append('source', source.toString());
+  if (segment !== undefined) qs.append('segment', segment.toString());
 
   return apiFetch<PagedResponse<Lead>>(`/leads?${qs.toString()}`, {
     method: 'GET'

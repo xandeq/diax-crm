@@ -47,4 +47,9 @@ public class CustomerListRequest : PagedRequest
     /// Filtro por tipo de pessoa.
     /// </summary>
     public PersonType? PersonType { get; set; }
+
+    /// <summary>
+    /// Filtro por segmento de outreach (Hot, Warm, Cold).
+    /// </summary>
+    public LeadSegment? Segment { get; set; }
 }

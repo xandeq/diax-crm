@@ -3,9 +3,14 @@
 import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
 import {
   Avatar,
+  ChannelIcons,
   FilterChip,
   GridColumn,
   PerfectGrid,
+  SEGMENT_FILTER_OPTIONS,
+  SegmentBadge,
+  SOURCE_FILTER_OPTIONS,
+  SourceLabel,
   StatusBadge,
   useDebounce,
 } from '@/components/data-table/PerfectGrid';
@@ -103,6 +108,8 @@ export default function CustomersPage() {
   const [hasEmailFilter, setHasEmailFilter] = useState<boolean | undefined>(undefined);
   const [hasWhatsAppFilter, setHasWhatsAppFilter] = useState<boolean | undefined>(undefined);
   const [personTypeFilter, setPersonTypeFilter] = useState<number | undefined>(undefined);
+  const [sourceFilter, setSourceFilter] = useState<number | undefined>(undefined);
+  const [segmentFilter, setSegmentFilter] = useState<number | undefined>(undefined);
 
   // Sorting (server-side)
   const [sortBy, setSortBy] = useState<string | null>(null);
@@ -163,6 +170,8 @@ export default function CustomersPage() {
         hasEmail: hasEmailFilter,
         hasWhatsApp: hasWhatsAppFilter,
         personType: personTypeFilter,
+        source: sourceFilter,
+        segment: segmentFilter,
       });
       setCustomers(data.items);
       setTotalPages(data.totalPages);
@@ -176,12 +185,12 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers();
-  }, [page, pageSize, debouncedSearch, statusFilter, sortBy, sortDirection, hasEmailFilter, hasWhatsAppFilter, personTypeFilter]);
+  }, [page, pageSize, debouncedSearch, statusFilter, sortBy, sortDirection, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, hasEmailFilter, hasWhatsAppFilter, personTypeFilter]);
+  }, [debouncedSearch, statusFilter, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter]);
 
   // Clear selection on page change
   useEffect(() => {
@@ -193,7 +202,9 @@ export default function CustomersPage() {
   const advancedFilterCount =
     (hasEmailFilter !== undefined ? 1 : 0) +
     (hasWhatsAppFilter !== undefined ? 1 : 0) +
-    (personTypeFilter !== undefined ? 1 : 0);
+    (personTypeFilter !== undefined ? 1 : 0) +
+    (sourceFilter !== undefined ? 1 : 0) +
+    (segmentFilter !== undefined ? 1 : 0);
 
   const clearFilters = () => {
     setSearchInput('');
@@ -203,6 +214,8 @@ export default function CustomersPage() {
     setHasEmailFilter(undefined);
     setHasWhatsAppFilter(undefined);
     setPersonTypeFilter(undefined);
+    setSourceFilter(undefined);
+    setSegmentFilter(undefined);
   };
 
   const filtersActive =
@@ -211,7 +224,9 @@ export default function CustomersPage() {
     sortBy !== null ||
     hasEmailFilter !== undefined ||
     hasWhatsAppFilter !== undefined ||
-    personTypeFilter !== undefined;
+    personTypeFilter !== undefined ||
+    sourceFilter !== undefined ||
+    segmentFilter !== undefined;
 
   const handleSort = (columnId: string, direction: 'asc' | 'desc') => {
     setSortBy(columnId);
@@ -386,6 +401,30 @@ export default function CustomersPage() {
             {row.companyName || '–'}
           </span>
         ),
+      },
+      {
+        id: 'segment',
+        header: 'Segmento',
+        sortable: true,
+        cell: (row) => <SegmentBadge segment={row.segment} />,
+      },
+      {
+        id: 'channels',
+        header: 'Canais',
+        cell: (row) => (
+          <ChannelIcons
+            hasEmail={!!row.email}
+            hasWhatsApp={!!(row.whatsApp || row.phone)}
+            emailOptOut={row.emailOptOut}
+            whatsAppOptOut={row.whatsAppOptOut}
+          />
+        ),
+      },
+      {
+        id: 'source',
+        header: 'Origem',
+        sortable: true,
+        cell: (row) => <SourceLabel source={row.source} sourceDescription={row.sourceDescription} />,
       },
       {
         id: 'status',
@@ -588,6 +627,39 @@ export default function CustomersPage() {
                     active={personTypeFilter === 1}
                     onClick={() => setPersonTypeFilter(1)}
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Origem + Segmento filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+              {/* Origem */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Origem</label>
+                <div className="flex gap-2 flex-wrap">
+                  {SOURCE_FILTER_OPTIONS.map((opt) => (
+                    <FilterChip
+                      key={opt.label}
+                      label={opt.label}
+                      active={sourceFilter === opt.value}
+                      onClick={() => setSourceFilter(opt.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Segmento */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Segmento</label>
+                <div className="flex gap-2 flex-wrap">
+                  {SEGMENT_FILTER_OPTIONS.map((opt) => (
+                    <FilterChip
+                      key={opt.label}
+                      label={opt.label}
+                      active={segmentFilter === opt.value}
+                      onClick={() => setSegmentFilter(opt.value)}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
