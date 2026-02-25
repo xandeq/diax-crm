@@ -5,32 +5,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAiCatalog, type AiProvider } from '@/services/aiCatalog';
 import {
-  generateImage,
-  imageSizeOptions,
-  imageStyleOptions,
-  imageQualityOptions,
-  type ImageGenerationResponse,
+    generateImage,
+    imageQualityOptions,
+    imageSizeOptions,
+    imageStyleOptions,
+    type ImageGenerationResponse,
 } from '@/services/imageGeneration';
 import {
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  Download,
-  Image as ImageIcon,
-  Loader2,
-  Sparkles,
-  Wand2,
-  X,
-  ZoomIn,
+    AlertCircle,
+    ChevronDown,
+    ChevronUp,
+    Download,
+    Image as ImageIcon,
+    Loader2,
+    Sparkles,
+    Upload,
+    Wand2,
+    X,
+    ZoomIn,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -61,6 +62,11 @@ export default function ImageGenerationPage() {
 
   // Lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // Reference image (img2img)
+  const [referenceImageBase64, setReferenceImageBase64] = useState<string | null>(null);
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Prompt textarea auto-resize
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -119,6 +125,41 @@ export default function ImageGenerationPage() {
     setPageReady(true);
   }, [isAuthenticated, authLoading, router]);
 
+  const handleImageUpload = useCallback((file: File) => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Formato inválido. Use PNG, JPEG ou WEBP.');
+      return;
+    }
+    const maxBytes = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxBytes) {
+      setError('A imagem deve ter no máximo 10MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      // dataUrl = "data:image/png;base64,XXXX"
+      const base64 = dataUrl.split(',')[1];
+      setReferenceImageBase64(base64);
+      setReferenceImagePreview(dataUrl);
+      setError(null);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleRemoveImage = useCallback(() => {
+    setReferenceImageBase64(null);
+    setReferenceImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageUpload(file);
+  }, [handleImageUpload]);
+
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
       setError('Digite um prompt descrevendo a imagem que deseja gerar.');
@@ -141,6 +182,7 @@ export default function ImageGenerationPage() {
         numberOfImages: 1,
         style,
         quality,
+        referenceImageBase64: referenceImageBase64 ?? undefined,
       });
       setResult(response);
     } catch (err) {
@@ -148,7 +190,7 @@ export default function ImageGenerationPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, negativePrompt, selectedProvider, selectedModel, selectedSize, style, quality]);
+  }, [prompt, negativePrompt, selectedProvider, selectedModel, selectedSize, style, quality, referenceImageBase64]);
 
   // Keyboard shortcut: Ctrl+Enter to generate
   const handleKeyDown = useCallback(
@@ -247,15 +289,67 @@ export default function ImageGenerationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Reference Image Upload */}
               <div className="space-y-2">
-                <Label>Descreva a imagem</Label>
+                <Label>Imagem de Referência <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImageUpload(file);
+                  }}
+                />
+                {referenceImagePreview ? (
+                  <div className="relative group w-full rounded-xl border border-border overflow-hidden bg-muted/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={referenceImagePreview}
+                      alt="Imagem de referência"
+                      className="w-full h-40 object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
+                      title="Remover imagem"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-black/50 text-[11px] text-white/80 text-center">
+                      Imagem carregada — modo edição ativo
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={e => e.preventDefault()}
+                    className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-border hover:border-accent hover:bg-accent/5 cursor-pointer transition-all text-muted-foreground hover:text-accent"
+                  >
+                    <Upload className="h-6 w-6" />
+                    <span className="text-xs">Clique ou arraste uma imagem aqui</span>
+                    <span className="text-[10px] opacity-60">PNG, JPEG, WEBP — máx. 10MB</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>{referenceImageBase64 ? 'Como transformar a imagem' : 'Descreva a imagem'}</Label>
                 <textarea
                   ref={promptRef}
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ex: Uma paisagem de montanha ao pôr do sol com névoa suave nos vales, estilo fotorrealista, iluminação dourada..."
-                  className="w-full min-h-[140px] p-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y leading-relaxed placeholder:text-muted-foreground/60"
+                  placeholder={referenceImageBase64
+                    ? 'Ex: Transforme em estilo aquarela, com cores vibrantes e traços suaves...'
+                    : 'Ex: Uma paisagem de montanha ao pôr do sol com névoa suave nos vales, estilo fotorrealista, iluminação dourada...'}
+                  className="w-full min-h-[120px] p-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y leading-relaxed placeholder:text-muted-foreground/60"
                 />
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                   <span>{prompt.length} caracteres</span>
@@ -339,7 +433,12 @@ export default function ImageGenerationPage() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Gerando imagem...
+                    {referenceImageBase64 ? 'Processando imagem...' : 'Gerando imagem...'}
+                  </>
+                ) : referenceImageBase64 ? (
+                  <>
+                    <Wand2 className="mr-2 h-5 w-5" />
+                    Processar Imagem
                   </>
                 ) : (
                   <>

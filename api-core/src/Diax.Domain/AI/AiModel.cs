@@ -41,7 +41,31 @@ public class AiModel : AuditableEntity
     // Well-known image generation model keys (fallback when CapabilitiesJson is not configured)
     private static readonly HashSet<string> KnownImageModelKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "dall-e-3", "dall-e-2", "gpt-image-1"
+        // OpenAI
+        "dall-e-3", "dall-e-2", "gpt-image-1",
+
+        // Google Gemini / Imagen
+        "imagen-3.0-generate-002",
+        "imagen-3.0-fast-generate-001",
+        "gemini-2.0-flash-exp-image-generation",
+        "gemini-2.0-flash-preview-image-generation",
+
+        // OpenRouter — FLUX family
+        "black-forest-labs/flux-1.1-pro",
+        "black-forest-labs/flux-kontext-pro",
+        "black-forest-labs/flux-dev",
+        "black-forest-labs/flux-schnell",
+        "stability-ai/stable-diffusion-3.5-large",
+
+        // Fal.ai — popular models
+        "fal-ai/flux/dev",
+        "fal-ai/flux/schnell",
+        "fal-ai/flux-pro",
+        "fal-ai/flux-realism",
+        "fal-ai/flux/dev/image-to-image",
+        "fal-ai/stable-diffusion-v35-large",
+        "fal-ai/ideogram/v2",
+        "fal-ai/ideogram/v2/remix",
     };
 
     public bool SupportsImageGeneration() =>

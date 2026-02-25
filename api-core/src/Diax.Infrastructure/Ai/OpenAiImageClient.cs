@@ -22,7 +22,7 @@ public class OpenAiImageClient : IAiImageGenerationClient
     }
 
     public async Task<List<ImageGenerationResult>> GenerateAsync(
-        string prompt,
+        string? prompt,
         ImageGenerationOptions options,
         string? referenceImageBase64 = null,
         CancellationToken ct = default)
@@ -34,13 +34,20 @@ public class OpenAiImageClient : IAiImageGenerationClient
             ? "https://api.openai.com/v1"
             : options.BaseUrl.TrimEnd('/');
 
-        // Use /images/edits for img2img, /images/generations for text-to-image
-        if (!string.IsNullOrWhiteSpace(referenceImageBase64))
+        // 1. Variations (Image only, no prompt)
+        if (!string.IsNullOrWhiteSpace(referenceImageBase64) && string.IsNullOrWhiteSpace(prompt))
         {
-            return await GenerateWithReferenceAsync(prompt, options, referenceImageBase64, baseUrl, ct);
+            return await GenerateVariationAsync(options, referenceImageBase64, baseUrl, ct);
         }
 
-        return await GenerateFromTextAsync(prompt, options, baseUrl, ct);
+        // 2. Edits (Image + Prompt)
+        if (!string.IsNullOrWhiteSpace(referenceImageBase64))
+        {
+            return await GenerateWithReferenceAsync(prompt!, options, referenceImageBase64, baseUrl, ct);
+        }
+
+        // 3. Generations (Text only)
+        return await GenerateFromTextAsync(prompt!, options, baseUrl, ct);
     }
 
     private async Task<List<ImageGenerationResult>> GenerateFromTextAsync(
@@ -126,6 +133,44 @@ public class OpenAiImageClient : IAiImageGenerationClient
                 (int)response.StatusCode, responseBody);
             throw new InvalidOperationException(
                 $"Falha na edição de imagem via OpenAI. Status: {(int)response.StatusCode}");
+        }
+
+        return ParseResponse(responseBody);
+    }
+
+    private async Task<List<ImageGenerationResult>> GenerateVariationAsync(
+        ImageGenerationOptions options,
+        string referenceImageBase64,
+        string baseUrl,
+        CancellationToken ct)
+    {
+        var endpoint = $"{baseUrl}/images/variations";
+
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent(options.Model), "model");
+        content.Add(new StringContent(options.NumberOfImages.ToString()), "n");
+        content.Add(new StringContent($"{options.Width}x{options.Height}"), "size");
+
+        // Convert base64 to byte array for the image field
+        var imageBytes = Convert.FromBase64String(referenceImageBase64);
+        var imageContent = new ByteArrayContent(imageBytes);
+        imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(imageContent, "image", "reference.png");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint) { Content = content };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+
+        _logger.LogInformation("[OpenAI Image] Generating variations with model {Model}", options.Model);
+
+        using var response = await _httpClient.SendAsync(request, ct);
+        var responseBody = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("[OpenAI Image] variations error {StatusCode}: {Body}",
+                (int)response.StatusCode, responseBody);
+            throw new InvalidOperationException(
+                $"Falha na variação de imagem via OpenAI. Status: {(int)response.StatusCode}");
         }
 
         return ParseResponse(responseBody);

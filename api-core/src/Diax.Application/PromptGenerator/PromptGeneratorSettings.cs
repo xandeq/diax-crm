@@ -8,6 +8,7 @@ public class PromptGeneratorSettings
     public ProviderConfig DeepSeek { get; set; } = new();
     public ProviderConfig Gemini { get; set; } = new();
     public ProviderConfig OpenRouter { get; set; } = new();
+    public ProviderConfig FAL { get; set; } = new();
 
     /// <summary>
     /// Obtém a configuração do provider pelo key do banco de dados.
@@ -22,6 +23,7 @@ public class PromptGeneratorSettings
             "deepseek" => DeepSeek,
             "gemini" => Gemini,
             "openrouter" => OpenRouter,
+            "fal" or "falai" => FAL,
             _ => null
         };
     }

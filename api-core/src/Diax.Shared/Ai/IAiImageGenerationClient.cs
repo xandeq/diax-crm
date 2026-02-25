@@ -26,7 +26,7 @@ public interface IAiImageGenerationClient
     bool SupportsImageToImage { get; }
 
     Task<List<ImageGenerationResult>> GenerateAsync(
-        string prompt,
+        string? prompt,
         ImageGenerationOptions options,
         string? referenceImageBase64 = null,
         CancellationToken ct = default);
