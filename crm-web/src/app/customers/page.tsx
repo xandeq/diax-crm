@@ -33,6 +33,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { exportToCSV } from '@/lib/export';
+import { navigateToWhatsAppSend } from '@/lib/whatsapp-navigation';
 import {
   createCustomer,
   Customer,
@@ -51,11 +52,13 @@ import {
   Filter,
   Loader2,
   Mail,
+  MessageCircle,
   Plus,
   Search,
   Trash2,
   X,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -89,6 +92,8 @@ const CUSTOMER_STATUS_CHIPS = [
 // ── Page Component ───────────────────────────────────────────────────────────
 
 export default function CustomersPage() {
+  const router = useRouter();
+
   // List state
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedRows, setSelectedRows] = useState<Customer[]>([]);
@@ -291,6 +296,20 @@ export default function CustomersPage() {
     }
   };
 
+  const handleWhatsApp = (customer: Customer) => {
+    if (!customer.phone && !customer.whatsApp) {
+      alert('Este cliente nao possui numero de telefone/WhatsApp cadastrado.');
+      return;
+    }
+    navigateToWhatsAppSend(router, {
+      contactId: customer.id,
+      contactName: customer.name,
+      contactPhone: customer.whatsApp || customer.phone || '',
+      contactEmail: customer.email,
+      contactCompany: customer.companyName,
+    });
+  };
+
   const handleEmail = (customer: Customer) => {
     setComposerRecipients([
       { id: customer.id, name: customer.name, email: customer.email },
@@ -455,6 +474,14 @@ export default function CustomersPage() {
               title="Editar"
             >
               <Edit2 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleWhatsApp(row)}
+              disabled={!row.phone && !row.whatsApp}
+              className="p-1.5 hover:bg-green-50 rounded-lg text-green-600 hover:text-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Enviar WhatsApp"
+            >
+              <MessageCircle className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleEmail(row)}

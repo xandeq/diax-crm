@@ -66,7 +66,7 @@ import { EmailMarketingComposerModal } from '@/components/email/EmailMarketingCo
 import { searchContacts, Customer } from '@/services/customers';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -1417,6 +1417,8 @@ interface WhatsAppTabProps {
   sendingManual: boolean;
   sendingCampaign: boolean;
   sendingFollowUp: boolean;
+  initialContact?: ContactOption | null;
+  onInitialContactConsumed?: () => void;
 }
 
 function WhatsAppTab({
@@ -1431,12 +1433,27 @@ function WhatsAppTab({
   sendingManual,
   sendingCampaign,
   sendingFollowUp,
+  initialContact,
+  onInitialContactConsumed,
 }: WhatsAppTabProps) {
   const router = useRouter();
   const [selectedContact, setSelectedContact] = useState<ContactOption | null>(null);
   const [manualPhoneNumber, setManualPhoneNumber] = useState('');
   const [manualMessage, setManualMessage] = useState('');
   const formRef = useRef<HTMLDivElement>(null);
+
+  // Pre-fill from deep link (Customers/Leads page → outreach WhatsApp tab)
+  useEffect(() => {
+    if (initialContact) {
+      setSelectedContact(initialContact);
+      setManualPhoneNumber('');
+      onInitialContactConsumed?.();
+      // Scroll to form after brief render delay
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [initialContact]);
 
   if (loading) {
     return (
@@ -1753,7 +1770,40 @@ function WhatsAppTab({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OutreachPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Deep link params (e.g., from Customers/Leads page)
+  const urlTab = searchParams.get('tab') as ActiveTab | null;
+  const urlContactId = searchParams.get('contactId');
+  const urlContactName = searchParams.get('contactName');
+  const urlContactPhone = searchParams.get('contactPhone');
+  const urlContactEmail = searchParams.get('contactEmail');
+  const urlContactCompany = searchParams.get('contactCompany');
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>(urlTab || 'dashboard');
+
+  // Initial contact for WhatsApp pre-fill (from URL deep link)
+  const [initialContact, setInitialContact] = useState<ContactOption | null>(() => {
+    if (urlContactId && urlContactName && urlContactPhone) {
+      return {
+        id: urlContactId,
+        name: urlContactName,
+        whatsApp: urlContactPhone,
+        phone: urlContactPhone,
+        email: urlContactEmail || '',
+        companyName: urlContactCompany || null,
+      };
+    }
+    return null;
+  });
+
+  // Clean URL after consuming params (prevent re-fill on refresh)
+  useEffect(() => {
+    if (urlContactId) {
+      router.replace('/outreach', { scroll: false });
+    }
+  }, []);
 
   // Dashboard data
   const [dashboard, setDashboard] = useState<OutreachDashboardResponse | null>(null);
@@ -2048,6 +2098,8 @@ export default function OutreachPage() {
           sendingManual={sendingManualWhatsApp}
           sendingCampaign={sendingWhatsAppCampaign}
           sendingFollowUp={sendingWhatsAppFollowUp}
+          initialContact={initialContact}
+          onInitialContactConsumed={() => setInitialContact(null)}
         />
       )}
     </div>

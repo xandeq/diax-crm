@@ -33,6 +33,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { exportToCSV } from '@/lib/export';
+import { navigateToWhatsAppSend } from '@/lib/whatsapp-navigation';
 import { apiFetch } from '@/services/api';
 import {
   createLead,
@@ -60,7 +61,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -91,6 +92,7 @@ const LEAD_STATUS_CHIPS = [
 
 export default function LeadsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialSearch = searchParams.get('search') || '';
 
   // List state
@@ -296,20 +298,18 @@ export default function LeadsPage() {
     }
   };
 
-  const handleWhatsApp = async (lead: Lead) => {
+  const handleWhatsApp = (lead: Lead) => {
     if (!lead.phone && !lead.whatsApp) {
-      alert('Este lead não possui número de telefone/WhatsApp cadastrado.');
+      alert('Este lead nao possui numero de telefone/WhatsApp cadastrado.');
       return;
     }
-    const phone = (lead.whatsApp || lead.phone || '').replace(/\D/g, '');
-    const message = encodeURIComponent(`Olá ${lead.name}, tudo bem?`);
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-    try {
-      await apiFetch(`/customers/${lead.id}/contact`, { method: 'POST' });
-      fetchLeads();
-    } catch {
-      // silent
-    }
+    navigateToWhatsAppSend(router, {
+      contactId: lead.id,
+      contactName: lead.name,
+      contactPhone: lead.whatsApp || lead.phone || '',
+      contactEmail: lead.email,
+      contactCompany: lead.companyName,
+    });
   };
 
   const handleEmail = (lead: Lead) => {
