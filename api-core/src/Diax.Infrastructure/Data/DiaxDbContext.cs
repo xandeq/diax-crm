@@ -14,6 +14,7 @@ using Diax.Domain.ApiKeys;
 using Diax.Domain.Blog;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.ImageGeneration;
+using Diax.Domain.Outreach;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -103,6 +104,9 @@ public class DiaxDbContext : DbContext
 
     // Audit
     public DbSet<AuditLogEntry> AuditLogs => Set<AuditLogEntry>();
+
+    // Outreach
+    public DbSet<OutreachConfig> OutreachConfigs => Set<OutreachConfig>();
 
     // Financial Planner
     public DbSet<FinancialGoal> FinancialGoals => Set<FinancialGoal>();

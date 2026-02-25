@@ -2,6 +2,7 @@ using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Diax.Infrastructure.Data.Configurations;
 
@@ -35,7 +36,6 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         // ===== CONTATO =====
         builder.Property(c => c.Email)
-            .IsRequired()
             .HasMaxLength(255);
 
         builder.Property(c => c.SecondaryEmail)
@@ -77,6 +77,20 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         builder.Property(c => c.LastContactAt);
 
+        // ===== SEGMENTAÇÃO (Outreach) =====
+        builder.Property(c => c.LeadScore);
+
+        builder.Property(c => c.Segment)
+            .HasConversion<int?>();
+
+        builder.Property(c => c.EmailOptOut)
+            .HasDefaultValue(false);
+
+        builder.Property(c => c.LastEmailSentAt);
+
+        builder.Property(c => c.EmailSentCount)
+            .HasDefaultValue(0);
+
         // ===== AUDITORIA =====
         builder.Property(c => c.CreatedAt)
             .IsRequired();
@@ -116,5 +130,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         // Índice para busca por nome
         builder.HasIndex(c => c.Name)
             .HasDatabaseName("IX_Customers_Name");
+
+        // Índice para outreach: leads segmentados prontos para envio
+        builder.HasIndex(c => new { c.Segment, c.Status, c.EmailOptOut })
+            .HasDatabaseName("IX_Customers_Segment_Status_OptOut");
     }
 }

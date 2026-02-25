@@ -1,0 +1,444 @@
+{
+  "name": "CRM Outreach Engine v2 (API-Based)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## CRM Outreach Engine v2\n\n**Substitui o workflow MySQL legado por chamadas à API do CRM.**\n\n### Módulos:\n- **Módulo 1 - Importação**: Schedule 8h + Manual → Apify → POST /customers/import\n- **Módulo 2 - Segmentação**: Schedule a cada 2h → POST /outreach/segment\n- **Módulo 3 - Envio**: Schedule 9h, 14h, 18h → POST /outreach/send\n- **Error Handler**: Captura erros globais\n\n### Autenticação:\nUse a credencial **Header Auth** do n8n com nome `CRM API Key`.\n- Header: `Authorization`\n- Value: `Bearer <seu_api_key>`\n\n**API Base:** `https://api.alexandrequeiroz.com.br/api/v1`",
+        "height": 320,
+        "width": 460,
+        "color": 5
+      },
+      "id": "sticky-readme",
+      "name": "Leia-me",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Módulo 1: Importação\nTrigger: Diário às 8h + Manual\n1. Busca config (URL do Apify dataset)\n2. Baixa dados do Apify\n3. Normaliza para BulkImportRequest\n4. POST /customers/import",
+        "height": 180,
+        "width": 280,
+        "color": 6
+      },
+      "id": "sticky-mod1",
+      "name": "Nota - Módulo 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Módulo 2: Segmentação\nTrigger: A cada 2 horas\nSegmenta leads HOT/WARM/COLD via\nPOST /outreach/segment",
+        "height": 140,
+        "width": 280,
+        "color": 4
+      },
+      "id": "sticky-mod2",
+      "name": "Nota - Módulo 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Módulo 3: Envio de Campanha\nTrigger: 9h, 14h e 18h\nCria e enfileira campanha via\nPOST /outreach/send",
+        "height": 140,
+        "width": 280,
+        "color": 3
+      },
+      "id": "sticky-mod3",
+      "name": "Nota - Módulo 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-import-schedule",
+      "name": "Schedule - Importação (8h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "trigger-import-manual",
+      "name": "Manual - Importação",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        60,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.alexandrequeiroz.com.br/api/v1/outreach/config",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-get-config",
+      "name": "GET /outreach/config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        350
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "crm-api-key",
+          "name": "CRM API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.apifyDatasetUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-apify",
+      "name": "GET Apify Dataset",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        350
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza os itens do Apify para o formato BulkImportRequest do CRM\nconst apifyItems = $input.all();\n\nfunction extractWhatsApp(phone) {\n  if (!phone) return null;\n  // Tenta extrair de URLs wa.me/5511...\n  const waMatch = phone.match(/wa\\.me\\/(\\d+)/);\n  if (waMatch) return '+' + waMatch[1];\n  // Limpa o número e assume que é WhatsApp se tiver DDD válido\n  const cleaned = phone.replace(/[^0-9+]/g, '');\n  if (cleaned.length >= 10) return cleaned.startsWith('+') ? cleaned : '+55' + cleaned.replace(/^0/, '');\n  return null;\n}\n\nfunction cleanPhone(phone) {\n  if (!phone) return null;\n  const cleaned = phone.replace(/[^0-9+]/g, '');\n  if (cleaned.length < 8) return null;\n  return cleaned.startsWith('+') ? cleaned : '+55' + cleaned.replace(/^0/, '');\n}\n\nconst customers = apifyItems.map(item => {\n  const d = item.json;\n  const email = Array.isArray(d.emails) && d.emails.length > 0 ? d.emails[0] : null;\n  const phone = cleanPhone(d.phone);\n  const whatsApp = extractWhatsApp(d.phone) || phone;\n\n  // Monta tags: cidade + categoria\n  const tagParts = [];\n  if (d.city) tagParts.push(d.city.toLowerCase().replace(/\\s+/g, '-'));\n  if (d.categoryName) tagParts.push(d.categoryName.toLowerCase().replace(/\\s+/g, '-'));\n  if (d.website) tagParts.push('tem-site');\n  else tagParts.push('sem-site');\n  tagParts.push('google-maps');\n\n  // Monta notes com contexto do lead\n  const notesParts = [];\n  if (d.address) notesParts.push(`Endereço: ${d.address}`);\n  if (d.totalScore) notesParts.push(`Avaliação Google: ${d.totalScore}`);\n  if (d.reviewsCount) notesParts.push(`Reviews: ${d.reviewsCount}`);\n  if (d.website) notesParts.push(`Site: ${d.website}`);\n\n  return {\n    name: d.title || d.name || 'Sem nome',\n    email: email,\n    phone: phone,\n    whatsApp: whatsApp,\n    companyName: d.title || d.name || null,\n    website: d.website || null,\n    tags: tagParts.join(','),\n    notes: notesParts.join(' | ') || null\n  };\n}).filter(c => c.name && c.name !== 'Sem nome' && (c.phone || c.email));\n\nif (customers.length === 0) {\n  return [{ json: { skipped: true, reason: 'Nenhum lead válido encontrado no dataset Apify' } }];\n}\n\nreturn [{\n  json: {\n    customers: customers,\n    source: 11\n  }\n}];"
+      },
+      "id": "code-normalize-apify",
+      "name": "Normalizar Dados Apify",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        350
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.alexandrequeiroz.com.br/api/v1/customers/import",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "http-post-import",
+      "name": "POST /customers/import",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        350
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "crm-api-key",
+          "name": "CRM API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "trigger-segmentation",
+      "name": "Schedule - Segmentação (2h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.alexandrequeiroz.com.br/api/v1/outreach/segment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-post-segment",
+      "name": "POST /outreach/segment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        560
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "crm-api-key",
+          "name": "CRM API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconsole.log(`[Segmentação] Total: ${result.totalProcessed} | HOT: ${result.hotCount} | WARM: ${result.warmCount} | COLD: ${result.coldCount}`);\nreturn [{ json: { success: true, result } }];"
+      },
+      "id": "code-log-segmentation",
+      "name": "Log Segmentação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,14,18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-send",
+      "name": "Schedule - Envio (9h, 14h, 18h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.alexandrequeiroz.com.br/api/v1/outreach/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-post-send",
+      "name": "POST /outreach/send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        740
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "crm-api-key",
+          "name": "CRM API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst campaignId = result.campaignId || 'N/A';\nconst queued = result.queuedCount ?? 0;\nconst skipped = result.skippedCount ?? 0;\nconsole.log(`[Envio de Campanha] CampaignId: ${campaignId} | Enfileirados: ${queued} | Pulados: ${skipped}`);\nif (result.skippedReasons && result.skippedReasons.length > 0) {\n  console.log(`[Envio de Campanha] Motivos pulados: ${result.skippedReasons.join('; ')}`);\n}\nreturn [{ json: { success: true, campaignId, queued, skipped, result } }];"
+      },
+      "id": "code-log-send",
+      "name": "Log Envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        740
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "trigger-error",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        60,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconst workflow = error.workflow?.name || 'Desconhecido';\nconst node = error.execution?.lastNodeExecuted || 'Desconhecido';\nconst errorMsg = error.execution?.error?.message || JSON.stringify(error);\nconst execId = error.execution?.id || 'N/A';\n\nconsole.error(`[ERRO] Workflow: ${workflow}`);\nconsole.error(`[ERRO] Nó: ${node}`);\nconsole.error(`[ERRO] Execução ID: ${execId}`);\nconsole.error(`[ERRO] Mensagem: ${errorMsg}`);\n\n// Retorna resumo do erro para possível integração futura (ex: Slack, email)\nreturn [{\n  json: {\n    alertType: 'workflow_error',\n    workflow,\n    node,\n    execId,\n    errorMsg,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-error-handler",
+      "name": "Tratar Erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        940
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule - Importação (8h)": {
+      "main": [
+        [
+          {
+            "node": "GET /outreach/config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual - Importação": {
+      "main": [
+        [
+          {
+            "node": "GET /outreach/config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /outreach/config": {
+      "main": [
+        [
+          {
+            "node": "GET Apify Dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Apify Dataset": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Dados Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Dados Apify": {
+      "main": [
+        [
+          {
+            "node": "POST /customers/import",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule - Segmentação (2h)": {
+      "main": [
+        [
+          {
+            "node": "POST /outreach/segment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /outreach/segment": {
+      "main": [
+        [
+          {
+            "node": "Log Segmentação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule - Envio (9h, 14h, 18h)": {
+      "main": [
+        [
+          {
+            "node": "POST /outreach/send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /outreach/send": {
+      "main": [
+        [
+          {
+            "node": "Log Envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Tratar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "last",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": ""
+  }
+}

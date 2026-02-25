@@ -88,12 +88,10 @@ public class CustomerImportService : IApplicationService
                     }
                 }
 
-                // Cria o customer (usa email genérico se não fornecido)
-                var emailToUse = hasEmail ? row.Email : $"sem-email-{Guid.NewGuid():N}@placeholder.local";
-
+                // Cria o customer (email pode ser null)
                 var customer = new Customer(
                     row.Name,
-                    emailToUse,
+                    hasEmail ? row.Email : null,
                     PersonType.Individual,
                     request.Source);
 

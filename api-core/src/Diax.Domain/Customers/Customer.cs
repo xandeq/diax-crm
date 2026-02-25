@@ -35,9 +35,9 @@ public class Customer : AuditableEntity
     // ===== CONTATO =====
 
     /// <summary>
-    /// E-mail principal de contato.
+    /// E-mail principal de contato (opcional para leads sem email).
     /// </summary>
-    public string Email { get; private set; } = string.Empty;
+    public string? Email { get; private set; }
 
     /// <summary>
     /// E-mail secundário (opcional).
@@ -110,6 +110,33 @@ public class Customer : AuditableEntity
     /// </summary>
     public DateTime? LastContactAt { get; private set; }
 
+    // ===== SEGMENTAÇÃO (Outreach) =====
+
+    /// <summary>
+    /// Pontuação calculada para priorização de outreach.
+    /// </summary>
+    public int? LeadScore { get; private set; }
+
+    /// <summary>
+    /// Segmento atribuído: Hot, Warm ou Cold.
+    /// </summary>
+    public LeadSegment? Segment { get; private set; }
+
+    /// <summary>
+    /// Indica se o lead optou por não receber emails.
+    /// </summary>
+    public bool EmailOptOut { get; private set; }
+
+    /// <summary>
+    /// Data do último email enviado para este contato.
+    /// </summary>
+    public DateTime? LastEmailSentAt { get; private set; }
+
+    /// <summary>
+    /// Total de emails enviados para este contato.
+    /// </summary>
+    public int EmailSentCount { get; private set; }
+
     // ===== CONSTRUTORES =====
 
     /// <summary>
@@ -122,7 +149,7 @@ public class Customer : AuditableEntity
     /// </summary>
     public Customer(
         string name,
-        string email,
+        string? email = null,
         PersonType personType = PersonType.Individual,
         LeadSource source = LeadSource.Manual)
     {
@@ -140,7 +167,7 @@ public class Customer : AuditableEntity
     /// </summary>
     public void UpdateBasicInfo(
         string name,
-        string email,
+        string? email,
         PersonType personType,
         string? companyName = null,
         string? document = null)
@@ -247,5 +274,41 @@ public class Customer : AuditableEntity
     public void MarkAsChurned()
     {
         Status = CustomerStatus.Churned;
+    }
+
+    // ===== MÉTODOS DE SEGMENTAÇÃO =====
+
+    /// <summary>
+    /// Atualiza score e segmento do lead.
+    /// </summary>
+    public void UpdateSegmentation(int score, LeadSegment segment)
+    {
+        LeadScore = score;
+        Segment = segment;
+    }
+
+    /// <summary>
+    /// Registra que um email foi enviado para este contato.
+    /// </summary>
+    public void RegisterEmailSent()
+    {
+        LastEmailSentAt = DateTime.UtcNow;
+        EmailSentCount++;
+    }
+
+    /// <summary>
+    /// Marca o lead como opt-out de emails.
+    /// </summary>
+    public void OptOutEmail()
+    {
+        EmailOptOut = true;
+    }
+
+    /// <summary>
+    /// Reativa o recebimento de emails.
+    /// </summary>
+    public void OptInEmail()
+    {
+        EmailOptOut = false;
     }
 }

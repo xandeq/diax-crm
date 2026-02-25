@@ -21,6 +21,7 @@ using Diax.Domain.ApiKeys;
 using Diax.Domain.Blog;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.ImageGeneration;
+using Diax.Domain.Outreach;
 using Diax.Application.EmailMarketing;
 using Diax.Infrastructure.Email;
 using Diax.Application.AI;
@@ -203,6 +204,9 @@ public static class DependencyInjection
         services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
         services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
 
+        // ===== OUTREACH =====
+        services.AddScoped<IOutreachConfigRepository, OutreachConfigRepository>();
+
         // ===== IMAGE GENERATION =====
         services.AddScoped<IImageTemplateRepository, ImageTemplateRepository>();
         services.AddScoped<IImageGenerationProjectRepository, ImageGenerationProjectRepository>();
@@ -261,9 +265,31 @@ public static class DependencyInjection
         services.AddHttpClient<OpenAiImageClient>();
         services.AddScoped<IAiImageGenerationClient, OpenAiImageClient>();
 
+        services.AddHttpClient<OpenRouterImageClient>();
+        services.AddScoped<IAiImageGenerationClient, OpenRouterImageClient>();
+
+        services.AddHttpClient<GeminiImageClient>();
+        services.AddScoped<IAiImageGenerationClient, GeminiImageClient>();
+
+        services.AddHttpClient<FalAiImageClient>();
+        services.AddScoped<IAiImageGenerationClient, FalAiImageClient>();
+
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
-        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.Configure<BrevoSettings>(configuration.GetSection("Brevo"));
+
+        // Brevo como sender principal se configurado, SMTP como fallback
+        var brevoApiKey = configuration.GetSection("Brevo:ApiKey").Value;
+        if (!string.IsNullOrWhiteSpace(brevoApiKey))
+        {
+            services.AddHttpClient<BrevoEmailSender>();
+            services.AddScoped<IEmailSender, BrevoEmailSender>();
+        }
+        else
+        {
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
+        }
+
         services.AddHostedService<EmailQueueProcessorWorker>();
 
         return services;

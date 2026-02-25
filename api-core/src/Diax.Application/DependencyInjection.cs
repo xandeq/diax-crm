@@ -15,6 +15,7 @@ using Diax.Application.ApiKeys;
 using Diax.Application.Blog;
 using Diax.Application.Blog.Services;
 using Diax.Application.EmailMarketing;
+using Diax.Application.Outreach;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -61,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IPromptGeneratorService, PromptGeneratorService>();
         services.AddScoped<IHumanizeTextService, HumanizeTextService>();
         services.AddScoped<EmailMarketingService>();
+        services.AddScoped<OutreachService>();
         services.AddSingleton<IEmailTemplateEngine, EmailTemplateEngine>();
         services.AddScoped<SnippetService>();
         services.AddScoped<ISnippetService, SnippetService>();

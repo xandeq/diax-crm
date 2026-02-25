@@ -59,5 +59,10 @@ public enum LeadSource
     /// <summary>
     /// Importação de lista externa.
     /// </summary>
-    Import = 10
+    Import = 10,
+
+    /// <summary>
+    /// Scraping via Apify Google Maps.
+    /// </summary>
+    GoogleMaps = 11
 }
