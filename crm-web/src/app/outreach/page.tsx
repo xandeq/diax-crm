@@ -22,15 +22,18 @@ import {
   Loader2,
   Mail,
   MessageSquare,
+  Phone,
   RefreshCw,
+  Search,
   Send,
   Settings,
   Snowflake,
   Thermometer,
   TrendingUp,
   Users,
+  X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -52,6 +55,7 @@ import {
   WhatsAppConnectionStatus,
   WhatsAppReadyLeadResponse,
 } from '@/services/outreach';
+import { searchContacts, Customer } from '@/services/customers';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -1000,6 +1004,152 @@ function LeadsTab({ leads, loading, onRefresh }: LeadsTabProps) {
   );
 }
 
+// ─── Contact Search Autocomplete ──────────────────────────────────────────────
+
+interface ContactOption {
+  id: string;
+  name: string;
+  whatsApp: string | null;
+  phone: string | null;
+  email: string;
+  companyName: string | null;
+}
+
+function ContactSearchInput({
+  onSelect,
+  selectedContact,
+  onClear,
+}: {
+  onSelect: (contact: ContactOption) => void;
+  selectedContact: ContactOption | null;
+  onClear: () => void;
+}) {
+  const [searchText, setSearchText] = useState('');
+  const [results, setResults] = useState<ContactOption[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchText.length < 2) {
+      setResults([]);
+      setIsOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchContacts(searchText, 10);
+        const contacts: ContactOption[] = res.items.map((c: Customer) => ({
+          id: c.id,
+          name: c.name,
+          whatsApp: c.whatsApp ?? null,
+          phone: c.phone ?? null,
+          email: c.email,
+          companyName: c.companyName ?? null,
+        }));
+        setResults(contacts);
+        setIsOpen(contacts.length > 0);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  if (selectedContact) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-slate-50">
+        <div className="flex-1 min-w-0">
+          <span className="font-medium text-slate-900">{selectedContact.name}</span>
+          {selectedContact.companyName && (
+            <span className="text-xs text-slate-400 ml-2">({selectedContact.companyName})</span>
+          )}
+          <span className="text-sm text-green-600 ml-2 font-mono">
+            {selectedContact.whatsApp ?? selectedContact.phone ?? selectedContact.email}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          className="p-1 hover:bg-slate-200 rounded-md transition-colors"
+          title="Limpar seleção"
+        >
+          <X className="h-4 w-4 text-slate-500" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          value={searchText}
+          onChange={(e) => {
+            setSearchText(e.target.value);
+            if (e.target.value.length >= 2) setIsOpen(true);
+          }}
+          onFocus={() => results.length > 0 && setIsOpen(true)}
+          placeholder="Buscar por nome, email ou empresa..."
+          className="pl-9"
+        />
+        {searching && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />
+        )}
+      </div>
+      {isOpen && results.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-64 overflow-y-auto">
+          {results.map((contact) => (
+            <button
+              key={contact.id}
+              type="button"
+              className="w-full text-left px-3 py-2.5 hover:bg-slate-50 flex items-center justify-between border-b border-slate-100 last:border-0 transition-colors"
+              onClick={() => {
+                onSelect(contact);
+                setSearchText('');
+                setIsOpen(false);
+              }}
+            >
+              <div className="min-w-0">
+                <span className="font-medium text-slate-900">{contact.name}</span>
+                {contact.companyName && (
+                  <span className="text-xs text-slate-400 ml-2">({contact.companyName})</span>
+                )}
+              </div>
+              <span className="text-sm text-green-600 ml-3 font-mono shrink-0">
+                {contact.whatsApp ?? contact.phone ?? '–'}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      {isOpen && searchText.length >= 2 && results.length === 0 && !searching && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg p-3 text-sm text-slate-500 text-center">
+          Nenhum contato encontrado.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── WhatsApp Tab ─────────────────────────────────────────────────────────────
 
 interface WhatsAppTabProps {
@@ -1008,7 +1158,7 @@ interface WhatsAppTabProps {
   whatsAppLeads: WhatsAppReadyLeadResponse[];
   loading: boolean;
   onRefresh: () => void;
-  onSendManual: (customerId: string, message: string) => void;
+  onSendManual: (request: { customerId?: string; phoneNumber?: string; message: string }) => void;
   onSendCampaign: () => void;
   onSendFollowUp: () => void;
   sendingManual: boolean;
@@ -1029,8 +1179,10 @@ function WhatsAppTab({
   sendingCampaign,
   sendingFollowUp,
 }: WhatsAppTabProps) {
-  const [manualCustomerId, setManualCustomerId] = useState('');
+  const [selectedContact, setSelectedContact] = useState<ContactOption | null>(null);
+  const [manualPhoneNumber, setManualPhoneNumber] = useState('');
   const [manualMessage, setManualMessage] = useState('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   if (loading) {
     return (
@@ -1050,9 +1202,32 @@ function WhatsAppTab({
       toast.error('Digite uma mensagem antes de enviar.');
       return;
     }
-    onSendManual(manualCustomerId, manualMessage);
+    if (!selectedContact && !manualPhoneNumber.trim()) {
+      toast.error('Selecione um contato ou informe um número de WhatsApp.');
+      return;
+    }
+    onSendManual({
+      customerId: selectedContact?.id,
+      phoneNumber: !selectedContact ? manualPhoneNumber.trim() : undefined,
+      message: manualMessage,
+    });
     setManualMessage('');
-    setManualCustomerId('');
+    setSelectedContact(null);
+    setManualPhoneNumber('');
+  };
+
+  // Pre-fill form when clicking a lead from the table
+  const handleSelectLeadForSend = (lead: WhatsAppReadyLeadResponse) => {
+    setSelectedContact({
+      id: lead.id,
+      name: lead.name,
+      whatsApp: lead.whatsApp,
+      phone: lead.phone,
+      email: '',
+      companyName: null,
+    });
+    setManualPhoneNumber('');
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   return (
@@ -1067,7 +1242,7 @@ function WhatsAppTab({
         </CardHeader>
         <CardContent>
           {connectionStatus ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <Badge
                 className={
                   connectionStatus.isConnected
@@ -1120,20 +1295,71 @@ function WhatsAppTab({
       )}
 
       {/* Manual Send */}
-      <Card>
+      <Card ref={formRef}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Envio Manual</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Send className="h-4 w-4" />
+            Envio Manual
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Contact Search */}
           <div className="space-y-2">
-            <Label htmlFor="manualCustomerId">ID do Cliente (opcional)</Label>
-            <Input
-              id="manualCustomerId"
-              value={manualCustomerId}
-              onChange={(e) => setManualCustomerId(e.target.value)}
-              placeholder="ID do cliente no sistema..."
+            <Label>Destinatário</Label>
+            <ContactSearchInput
+              selectedContact={selectedContact}
+              onSelect={(contact) => {
+                setSelectedContact(contact);
+                setManualPhoneNumber('');
+              }}
+              onClear={() => setSelectedContact(null)}
             />
+            <p className="text-xs text-slate-500">
+              Busque por nome, email ou empresa para encontrar o contato.
+            </p>
           </div>
+
+          {/* Divider */}
+          {!selectedContact && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-slate-200" />
+              <span className="text-xs font-medium text-slate-400 uppercase">ou</span>
+              <div className="flex-1 border-t border-slate-200" />
+            </div>
+          )}
+
+          {/* Direct Phone Number */}
+          {!selectedContact && (
+            <div className="space-y-2">
+              <Label htmlFor="manualPhoneNumber" className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 text-slate-500" />
+                Número WhatsApp
+              </Label>
+              <Input
+                id="manualPhoneNumber"
+                value={manualPhoneNumber}
+                onChange={(e) => setManualPhoneNumber(e.target.value)}
+                placeholder="Ex: 5527999001234"
+                type="tel"
+              />
+              <p className="text-xs text-slate-500">
+                Formato: código do país + DDD + número (ex: 5527999001234).
+              </p>
+            </div>
+          )}
+
+          {/* Selected contact phone display */}
+          {selectedContact && (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Phone className="h-3.5 w-3.5 text-green-600" />
+              <span>Número:</span>
+              <span className="font-mono font-medium text-green-700">
+                {selectedContact.whatsApp ?? selectedContact.phone ?? 'Sem número'}
+              </span>
+            </div>
+          )}
+
+          {/* Message */}
           <div className="space-y-2">
             <Label htmlFor="manualMessage">Mensagem</Label>
             <Textarea
@@ -1144,6 +1370,8 @@ function WhatsAppTab({
               className="min-h-[120px]"
             />
           </div>
+
+          {/* Send Button */}
           <div className="flex justify-end">
             <Button onClick={handleManualSend} disabled={sendingManual}>
               {sendingManual ? (
@@ -1215,6 +1443,7 @@ function WhatsAppTab({
                     <TableHead className="text-right">Score</TableHead>
                     <TableHead className="text-right">Enviados</TableHead>
                     <TableHead>Último Envio</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1223,7 +1452,7 @@ function WhatsAppTab({
                       <TableCell className="font-medium text-slate-900">
                         {lead.name}
                       </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
+                      <TableCell className="text-slate-600 text-sm font-mono">
                         {lead.whatsApp ?? lead.phone ?? '–'}
                       </TableCell>
                       <TableCell>{getSegmentBadge(lead.segmentLabel)}</TableCell>
@@ -1239,6 +1468,17 @@ function WhatsAppTab({
                       </TableCell>
                       <TableCell className="text-slate-500 text-xs">
                         {formatDateShort(lead.lastWhatsAppSentAt)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSelectLeadForSend(lead)}
+                          title={`Enviar WhatsApp para ${lead.name}`}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Send className="h-3.5 w-3.5 text-green-600" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1400,13 +1640,10 @@ export default function OutreachPage() {
     }
   };
 
-  const handleSendManualWhatsApp = async (customerId: string, message: string) => {
+  const handleSendManualWhatsApp = async (request: { customerId?: string; phoneNumber?: string; message: string }) => {
     setSendingManualWhatsApp(true);
     try {
-      const result = await sendWhatsApp({
-        customerId: customerId || undefined,
-        message,
-      });
+      const result = await sendWhatsApp(request);
       if (result.success) {
         toast.success('Mensagem WhatsApp enviada com sucesso.');
       } else {

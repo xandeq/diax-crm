@@ -126,3 +126,18 @@ export async function getCustomerActivities(id: string): Promise<LeadActivity[]>
     method: 'GET'
   });
 }
+
+/**
+ * Busca contatos (leads + clientes) por nome, email ou empresa.
+ * Usado pelo autocomplete do envio manual de WhatsApp.
+ */
+export async function searchContacts(search: string, pageSize = 10) {
+  const params = new URLSearchParams({
+    page: '1',
+    pageSize: pageSize.toString(),
+    search,
+  });
+  return apiFetch<PagedResponse<Customer>>(`/customers?${params.toString()}`, {
+    method: 'GET',
+  });
+}
