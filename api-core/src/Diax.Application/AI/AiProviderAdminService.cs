@@ -548,8 +548,8 @@ public class AiProviderAdminService : IAiProviderAdminService
         var providerConfig = _promptSettings.GetProviderConfig(provider.Key);
         if (providerConfig != null && !string.IsNullOrWhiteSpace(providerConfig.ApiKey))
         {
-            var lastFour = providerConfig.ApiKey.Length > 4 
-                ? providerConfig.ApiKey.Substring(providerConfig.ApiKey.Length - 4) 
+            var lastFour = providerConfig.ApiKey.Length > 4
+                ? providerConfig.ApiKey.Substring(providerConfig.ApiKey.Length - 4)
                 : "****";
             return new CredentialStatusDto(
                 IsConfigured: true,

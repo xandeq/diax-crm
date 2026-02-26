@@ -67,11 +67,17 @@ public class OpenAiImageClient : IAiImageGenerationClient
             ["response_format"] = "url"
         };
 
-        if (!string.IsNullOrWhiteSpace(options.Quality))
-            payload["quality"] = options.Quality;
+        // quality and style are only supported by dall-e-3 (dall-e-2 returns 400 if these are sent)
+        var isDallE3 = options.Model.Equals("dall-e-3", StringComparison.OrdinalIgnoreCase)
+                    || options.Model.Equals("gpt-image-1", StringComparison.OrdinalIgnoreCase);
+        if (isDallE3)
+        {
+            if (!string.IsNullOrWhiteSpace(options.Quality))
+                payload["quality"] = options.Quality;
 
-        if (!string.IsNullOrWhiteSpace(options.Style))
-            payload["style"] = options.Style;
+            if (!string.IsNullOrWhiteSpace(options.Style))
+                payload["style"] = options.Style;
+        }
 
         var json = JsonSerializer.Serialize(payload);
 

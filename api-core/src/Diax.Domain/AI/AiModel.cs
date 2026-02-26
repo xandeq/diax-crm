@@ -61,11 +61,14 @@ public class AiModel : AuditableEntity
         "fal-ai/flux/dev",
         "fal-ai/flux/schnell",
         "fal-ai/flux-pro",
+        "fal-ai/flux-pro/v1.1",
         "fal-ai/flux-realism",
         "fal-ai/flux/dev/image-to-image",
+        "fal-ai/fast-sdxl",
         "fal-ai/stable-diffusion-v35-large",
         "fal-ai/ideogram/v2",
         "fal-ai/ideogram/v2/remix",
+        "fal-ai/luma-dream-machine",
     };
 
     public bool SupportsImageGeneration() =>
