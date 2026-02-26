@@ -68,7 +68,7 @@ public class AiModel : AuditableEntity
         "fal-ai/stable-diffusion-v35-large",
         "fal-ai/ideogram/v2",
         "fal-ai/ideogram/v2/remix",
-        "fal-ai/luma-dream-machine",
+        // Note: fal-ai/luma-dream-machine is a VIDEO model — intentionally excluded
     };
 
     public bool SupportsImageGeneration() =>

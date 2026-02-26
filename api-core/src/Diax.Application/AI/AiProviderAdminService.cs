@@ -497,11 +497,11 @@ public class AiProviderAdminService : IAiProviderAdminService
     {
         return new List<DiscoveredModelDto>
         {
+            new(Id: "fal-ai/flux/dev", Name: "Flux Dev", Provider: "falai"),
             new(Id: "fal-ai/flux/dev/image-to-image", Name: "Flux Dev (Image-to-Image)", Provider: "falai"),
             new(Id: "fal-ai/fast-sdxl", Name: "Fast SDXL", Provider: "falai"),
-            new(Id: "fal-ai/flux/dev", Name: "Flux Dev", Provider: "falai"),
             new(Id: "fal-ai/flux-pro/v1.1", Name: "Flux Pro v1.1", Provider: "falai"),
-            new(Id: "fal-ai/luma-dream-machine", Name: "Luma Dream Machine", Provider: "falai")
+            // fal-ai/luma-dream-machine omitted — it generates VIDEO, not images
         };
     }
 
