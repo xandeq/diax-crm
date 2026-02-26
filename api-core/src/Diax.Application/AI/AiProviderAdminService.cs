@@ -1,5 +1,6 @@
 using Diax.Application.AI.Dtos;
 using Diax.Application.AI.Services;
+using Diax.Application.PromptGenerator;
 using Diax.Domain.AI;
 using Diax.Domain.Common;
 using Microsoft.Extensions.Caching.Memory;
@@ -21,6 +22,7 @@ public class AiProviderAdminService : IAiProviderAdminService
     private readonly IAnthropicClient _anthropicClient;
     private readonly IGrokClient _grokClient;
     private readonly IMemoryCache _cache;
+    private readonly PromptGeneratorSettings _promptSettings;
     private readonly ILogger<AiProviderAdminService> _logger;
 
     private const string CacheKeyDiscoveredModels = "ai-discovered-models:{0}";
@@ -39,6 +41,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         IAnthropicClient anthropicClient,
         IGrokClient grokClient,
         IMemoryCache cache,
+        PromptGeneratorSettings promptSettings,
         ILogger<AiProviderAdminService> logger)
     {
         _providerRepository = providerRepository;
@@ -53,6 +56,7 @@ public class AiProviderAdminService : IAiProviderAdminService
         _anthropicClient = anthropicClient;
         _grokClient = grokClient;
         _cache = cache;
+        _promptSettings = promptSettings;
         _logger = logger;
     }
 
@@ -294,6 +298,7 @@ public class AiProviderAdminService : IAiProviderAdminService
                 "perplexity" => GetPerplexityModels(),
                 "anthropic" => await DiscoverAnthropicModelsAsync(cancellationToken),
                 "grok" => await DiscoverGrokModelsAsync(cancellationToken),
+                "falai" => GetFalAiModels(),
                 _ => throw new NotSupportedException(
                     $"Model discovery is not yet supported for provider '{providerKey}'.")
             };
@@ -488,6 +493,18 @@ public class AiProviderAdminService : IAiProviderAdminService
         };
     }
 
+    private static List<DiscoveredModelDto> GetFalAiModels()
+    {
+        return new List<DiscoveredModelDto>
+        {
+            new(Id: "fal-ai/flux/dev/image-to-image", Name: "Flux Dev (Image-to-Image)", Provider: "falai"),
+            new(Id: "fal-ai/fast-sdxl", Name: "Fast SDXL", Provider: "falai"),
+            new(Id: "fal-ai/flux/dev", Name: "Flux Dev", Provider: "falai"),
+            new(Id: "fal-ai/flux-pro/v1.1", Name: "Flux Pro v1.1", Provider: "falai"),
+            new(Id: "fal-ai/luma-dream-machine", Name: "Luma Dream Machine", Provider: "falai")
+        };
+    }
+
     // ===== API Key Management =====
 
     public async Task SaveApiKeyAsync(Guid providerId, string apiKey, CancellationToken cancellationToken = default)
@@ -514,17 +531,33 @@ public class AiProviderAdminService : IAiProviderAdminService
 
     public async Task<CredentialStatusDto> GetCredentialStatusAsync(Guid providerId, CancellationToken cancellationToken = default)
     {
+        var provider = await _providerRepository.GetByIdAsync(providerId, cancellationToken);
+        if (provider == null) return new CredentialStatusDto(IsConfigured: false, LastFourDigits: null);
+
         var credential = await _credentialRepository.GetByProviderIdAsync(providerId, cancellationToken);
 
-        if (credential == null || !credential.IsConfigured())
+        if (credential != null && credential.IsConfigured())
         {
-            return new CredentialStatusDto(IsConfigured: false, LastFourDigits: null);
+            return new CredentialStatusDto(
+                IsConfigured: true,
+                LastFourDigits: credential.ApiKeyLastFourDigits
+            );
         }
 
-        return new CredentialStatusDto(
-            IsConfigured: true,
-            LastFourDigits: credential.ApiKeyLastFourDigits
-        );
+        // Fallback to appsettings
+        var providerConfig = _promptSettings.GetProviderConfig(provider.Key);
+        if (providerConfig != null && !string.IsNullOrWhiteSpace(providerConfig.ApiKey))
+        {
+            var lastFour = providerConfig.ApiKey.Length > 4 
+                ? providerConfig.ApiKey.Substring(providerConfig.ApiKey.Length - 4) 
+                : "****";
+            return new CredentialStatusDto(
+                IsConfigured: true,
+                LastFourDigits: lastFour
+            );
+        }
+
+        return new CredentialStatusDto(IsConfigured: false, LastFourDigits: null);
     }
 
     public async Task<TestConnectionResultDto> TestConnectionAsync(Guid providerId, CancellationToken cancellationToken = default)
