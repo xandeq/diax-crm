@@ -39,7 +39,8 @@ public class FalAiImageClient : IAiImageGenerationClient
         // Fal.ai model keys on our side should match their IDs, e.g., "fal-ai/flux/dev"
         // The endpoint is usually https://fal.run/{model_id}
         var modelId = options.Model.Replace(":", "/"); // Allow colon for some providers if needed
-        var endpoint = $"https://fal.run/{modelId}";
+        var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl) ? "https://fal.run" : options.BaseUrl.TrimEnd('/');
+        var endpoint = $"{baseUrl}/{modelId}";
 
         var payload = new Dictionary<string, object>
         {
