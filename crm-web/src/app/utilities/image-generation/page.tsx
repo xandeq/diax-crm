@@ -1,8 +1,15 @@
 'use client';
 
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Select,
@@ -15,15 +22,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getAiCatalog, type AiProvider } from '@/services/aiCatalog';
 import {
     generateImage,
-    imageQualityOptions,
     imageSizeOptions,
-    imageStyleOptions,
-    type ImageGenerationResponse,
+    type ImageGenerationResponse
 } from '@/services/imageGeneration';
 import {
     AlertCircle,
-    ChevronDown,
-    ChevronUp,
     Download,
     Image as ImageIcon,
     Loader2,
@@ -31,7 +34,7 @@ import {
     Upload,
     Wand2,
     X,
-    ZoomIn,
+    ZoomIn
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -53,6 +56,21 @@ export default function ImageGenerationPage() {
   const [style, setStyle] = useState('vivid');
   const [quality, setQuality] = useState('standard');
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Prompt Builder State
+  const [subject, setSubject] = useState('');
+  const [setting, setSetting] = useState('');
+  const [action, setAction] = useState('');
+  const [expression, setExpression] = useState('');
+  const [secondaryElements, setSecondaryElements] = useState('');
+  const [artStyle, setArtStyle] = useState('');
+  const [photoStyle, setPhotoStyle] = useState('');
+  const [theme, setTheme] = useState('');
+  const [cameraAngle, setCameraAngle] = useState('');
+  const [focus, setFocus] = useState('');
+  const [detailLevel, setDetailLevel] = useState('');
+  const [editIntent, setEditIntent] = useState('');
+  const [isAutoUpdating, setIsAutoUpdating] = useState(true);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -124,6 +142,64 @@ export default function ImageGenerationPage() {
     }
     setPageReady(true);
   }, [isAuthenticated, authLoading, router]);
+
+  // Auto-update prompt logic
+  useEffect(() => {
+    if (!isAutoUpdating) return;
+
+    const parts = [];
+
+    if (referenceImageBase64 && editIntent) {
+      parts.push(`[Intenção: ${editIntent}]`);
+    }
+
+    const elements = [];
+    if (subject) elements.push(subject);
+    if (action) elements.push(action);
+    if (expression) elements.push(`com expressão ${expression}`);
+    if (secondaryElements) elements.push(`incluindo ${secondaryElements}`);
+
+    if (elements.length > 0) {
+      parts.push(elements.join(', '));
+    }
+
+    if (setting) {
+      parts.push(`Cenário: ${setting}`);
+    }
+
+    const styles = [];
+    if (artStyle) styles.push(artStyle);
+    if (photoStyle) styles.push(photoStyle);
+    if (theme) styles.push(theme);
+
+    if (styles.length > 0) {
+      parts.push(`Estilo: ${styles.join(', ')}`);
+    }
+
+    const composition = [];
+    if (cameraAngle) composition.push(`Ângulo: ${cameraAngle}`);
+    if (focus) composition.push(`Foco: ${focus}`);
+
+    if (composition.length > 0) {
+      parts.push(`Composição: ${composition.join(', ')}`);
+    }
+
+    if (detailLevel) {
+      parts.push(`Qualidade: ${detailLevel}`);
+    }
+
+    const generatedPrompt = parts.join('. ');
+    if (generatedPrompt !== prompt) {
+      setPrompt(generatedPrompt);
+    }
+  }, [
+    subject, setting, action, expression, secondaryElements,
+    artStyle, photoStyle, theme,
+    cameraAngle, focus,
+    detailLevel,
+    editIntent, referenceImageBase64,
+    isAutoUpdating
+  ]);
 
   const handleImageUpload = useCallback((file: File) => {
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
@@ -280,153 +356,295 @@ export default function ImageGenerationPage() {
             </CardContent>
           </Card>
 
-          {/* Prompt */}
+          {/* Prompt Builder */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-serif flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-accent" />
-                Prompt
+                Construtor de Prompt
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Reference Image Upload */}
-              <div className="space-y-2">
-                <Label>Imagem de Referência <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (file) handleImageUpload(file);
-                  }}
-                />
-                {referenceImagePreview ? (
-                  <div className="relative group w-full rounded-xl border border-border overflow-hidden bg-muted/30">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={referenceImagePreview}
-                      alt="Imagem de referência"
-                      className="w-full h-40 object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
-                      title="Remover imagem"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                    <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 bg-black/50 text-[11px] text-white/80 text-center">
-                      Imagem carregada — modo edição ativo
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => fileInputRef.current?.click()}
-                    onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
-                    onDrop={handleDrop}
-                    onDragOver={e => e.preventDefault()}
-                    className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-border hover:border-accent hover:bg-accent/5 cursor-pointer transition-all text-muted-foreground hover:text-accent"
-                  >
-                    <Upload className="h-6 w-6" />
-                    <span className="text-xs">Clique ou arraste uma imagem aqui</span>
-                    <span className="text-[10px] opacity-60">PNG, JPEG, WEBP — máx. 10MB</span>
-                  </div>
-                )}
-              </div>
+              <Accordion type="single" collapsible defaultValue="step-1" className="w-full">
 
-              <div className="space-y-2">
-                <Label>{referenceImageBase64 ? 'Como transformar a imagem' : 'Descreva a imagem'}</Label>
-                <textarea
-                  ref={promptRef}
-                  value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={referenceImageBase64
-                    ? 'Ex: Transforme em estilo aquarela, com cores vibrantes e traços suaves...'
-                    : 'Ex: Uma paisagem de montanha ao pôr do sol com névoa suave nos vales, estilo fotorrealista, iluminação dourada...'}
-                  className="w-full min-h-[120px] p-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y leading-relaxed placeholder:text-muted-foreground/60"
-                />
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
-                  <span>{prompt.length} caracteres</span>
-                  <span className="font-mono text-[10px] opacity-60">Ctrl+Enter para gerar</span>
-                </div>
-              </div>
-
-              {/* Advanced Options Toggle */}
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showAdvanced ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                Opções avançadas
-              </button>
-
-              {showAdvanced && (
-                <div className="space-y-4 pt-2 border-t border-border/50">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Prompt Negativo</Label>
-                    <textarea
-                      value={negativePrompt}
-                      onChange={e => setNegativePrompt(e.target.value)}
-                      placeholder="O que evitar: baixa qualidade, desfocado, texto, marca d'água..."
-                      className="w-full min-h-[80px] p-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y placeholder:text-muted-foreground/60"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+                {/* Step 1: Base Image */}
+                <AccordionItem value="step-1">
+                  <AccordionTrigger className="text-sm font-medium">1. Imagem Base (Opcional)</AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
-                      <Label className="text-xs">Dimensão</Label>
-                      <Select value={selectedSize} onValueChange={setSelectedSize}>
-                        <SelectTrigger className="h-10 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Label className="text-xs">Imagem de Referência</Label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImageUpload(file);
+                        }}
+                      />
+                      {referenceImagePreview ? (
+                        <div className="relative group w-full rounded-xl border border-border overflow-hidden bg-muted/30">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={referenceImagePreview}
+                            alt="Imagem de referência"
+                            className="w-full h-40 object-contain"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
+                            title="Remover imagem"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => fileInputRef.current?.click()}
+                          onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+                          onDrop={handleDrop}
+                          onDragOver={e => e.preventDefault()}
+                          className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-border hover:border-accent hover:bg-accent/5 cursor-pointer transition-all text-muted-foreground hover:text-accent"
+                        >
+                          <Upload className="h-6 w-6" />
+                          <span className="text-xs">Clique ou arraste uma imagem aqui</span>
+                          <span className="text-[10px] opacity-60">PNG, JPEG, WEBP — máx. 10MB</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {referenceImageBase64 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs">Intenção de Edição</Label>
+                        <Select value={editIntent} onValueChange={setEditIntent}>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="O que deseja fazer com a imagem?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Manter a estrutura e alterar o estilo">Alterar Estilo</SelectItem>
+                            <SelectItem value="Alterar o fundo da imagem">Alterar Fundo</SelectItem>
+                            <SelectItem value="Criar uma variação semelhante">Criar Variação</SelectItem>
+                            <SelectItem value="Transformar em personagem/avatar">Transformar em Avatar</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Step 2: Elements */}
+                <AccordionItem value="step-2">
+                  <AccordionTrigger className="text-sm font-medium">2. Elementos da Imagem</AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Sujeito Principal</Label>
+                      <Input
+                        placeholder="Ex: Um cachorro golden retriever, Uma mulher jovem..."
+                        value={subject} onChange={e => setSubject(e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Ação / Atividade</Label>
+                      <Input
+                        placeholder="Ex: correndo no parque, tomando café..."
+                        value={action} onChange={e => setAction(e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Cenário / Fundo</Label>
+                      <Input
+                        placeholder="Ex: em uma floresta mágica, estúdio com fundo branco..."
+                        value={setting} onChange={e => setSetting(e.target.value)}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Expressão / Pose</Label>
+                        <Input
+                          placeholder="Ex: sorrindo, de perfil..."
+                          value={expression} onChange={e => setExpression(e.target.value)}
+                          className="h-9 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Elementos Secundários</Label>
+                        <Input
+                          placeholder="Ex: usando óculos, pássaros voando..."
+                          value={secondaryElements} onChange={e => setSecondaryElements(e.target.value)}
+                          className="h-9 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Step 3: Style */}
+                <AccordionItem value="step-3">
+                  <AccordionTrigger className="text-sm font-medium">3. Estilo e Visual</AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Estilo Artístico</Label>
+                        <Select value={artStyle} onValueChange={setArtStyle}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            <SelectItem value="Pintura a óleo">Pintura a óleo</SelectItem>
+                            <SelectItem value="Aquarela">Aquarela</SelectItem>
+                            <SelectItem value="Pixel Art">Pixel Art</SelectItem>
+                            <SelectItem value="Ilustração 2D">Ilustração 2D</SelectItem>
+                            <SelectItem value="Anime / Mangá">Anime / Mangá</SelectItem>
+                            <SelectItem value="3D Render (Unreal Engine)">3D Render</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Estilo Fotográfico</Label>
+                        <Select value={photoStyle} onValueChange={setPhotoStyle}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            <SelectItem value="Retrato de estúdio">Retrato de estúdio</SelectItem>
+                            <SelectItem value="Foto Polaroid">Foto Polaroid</SelectItem>
+                            <SelectItem value="Macro (Close-up extremo)">Macro</SelectItem>
+                            <SelectItem value="Fotografia de rua">Fotografia de rua</SelectItem>
+                            <SelectItem value="Cinematic (Estilo cinema)">Cinematic</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Temática Visual</Label>
+                      <Select value={theme} onValueChange={setTheme}>
+                        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                         <SelectContent>
-                          {imageSizeOptions.map(s => (
-                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                          ))}
+                          <SelectItem value="">Nenhuma</SelectItem>
+                          <SelectItem value="Cyberpunk">Cyberpunk</SelectItem>
+                          <SelectItem value="Steampunk">Steampunk</SelectItem>
+                          <SelectItem value="Retrô Anos 90">Retrô Anos 90</SelectItem>
+                          <SelectItem value="Sci-Fi Futurista">Sci-Fi Futurista</SelectItem>
+                          <SelectItem value="Fantasia Épica">Fantasia Épica</SelectItem>
+                          <SelectItem value="Minimalista">Minimalista</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs">Estilo</Label>
-                      <Select value={style} onValueChange={setStyle}>
-                        <SelectTrigger className="h-10 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {imageStyleOptions.map(s => (
-                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs">Qualidade</Label>
-                    <Select value={quality} onValueChange={setQuality}>
-                      <SelectTrigger className="h-10 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {imageQualityOptions.map(q => (
-                          <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* Step 4: Composition */}
+                <AccordionItem value="step-4">
+                  <AccordionTrigger className="text-sm font-medium">4. Composição e Qualidade</AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Ângulo da Câmera</Label>
+                        <Select value={cameraAngle} onValueChange={setCameraAngle}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Padrão" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Padrão</SelectItem>
+                            <SelectItem value="Visão frontal">Frontal</SelectItem>
+                            <SelectItem value="Visão de cima (Top-down)">De cima</SelectItem>
+                            <SelectItem value="Visão de baixo (Low angle)">De baixo</SelectItem>
+                            <SelectItem value="Plano geral (Wide shot)">Plano geral</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Foco e Profundidade</Label>
+                        <Select value={focus} onValueChange={setFocus}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Padrão" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Padrão</SelectItem>
+                            <SelectItem value="Fundo desfocado (Bokeh)">Fundo desfocado</SelectItem>
+                            <SelectItem value="Foco nítido em toda a cena">Foco total</SelectItem>
+                            <SelectItem value="Foco no rosto">Foco no rosto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Nível de Detalhe</Label>
+                        <Select value={detailLevel} onValueChange={setDetailLevel}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Padrão" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Padrão</SelectItem>
+                            <SelectItem value="Fotorrealista, alta definição">Fotorrealista</SelectItem>
+                            <SelectItem value="Altamente detalhado, 8k">Altamente detalhado</SelectItem>
+                            <SelectItem value="Traços simples, rascunho">Traços simples</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Dimensão (Proporção)</Label>
+                        <Select value={selectedSize} onValueChange={setSelectedSize}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {imageSizeOptions.map(s => (
+                              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+
+          {/* Final Prompt Area */}
+          <Card className="border-accent/20 bg-accent/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-serif flex items-center gap-2">
+                  Prompt Final
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="auto-update" className="text-[10px] text-muted-foreground cursor-pointer">Auto-atualizar</Label>
+                  <input
+                    id="auto-update"
+                    type="checkbox"
+                    checked={isAutoUpdating}
+                    onChange={(e) => setIsAutoUpdating(e.target.checked)}
+                    className="rounded border-input"
+                  />
                 </div>
-              )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <textarea
+                ref={promptRef}
+                value={prompt}
+                onChange={e => {
+                  setPrompt(e.target.value);
+                  if (isAutoUpdating) setIsAutoUpdating(false); // Disable auto-update if user manually edits
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="O prompt gerado aparecerá aqui. Você pode editá-livremente..."
+                className="w-full min-h-[120px] p-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-y leading-relaxed"
+              />
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Prompt Negativo (Opcional)</Label>
+                <Input
+                  value={negativePrompt}
+                  onChange={e => setNegativePrompt(e.target.value)}
+                  placeholder="O que evitar: baixa qualidade, desfocado, texto..."
+                  className="h-9 text-xs bg-background"
+                />
+              </div>
 
               {/* Generate Button */}
               <Button
-                className="w-full py-6 text-base font-medium"
+                className="w-full py-6 text-base font-medium mt-2"
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt.trim()}
               >

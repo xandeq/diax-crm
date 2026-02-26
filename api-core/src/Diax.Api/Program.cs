@@ -64,6 +64,8 @@ promptGeneratorSettings.Gemini.ApiKey ??= builder.Configuration["GEMINI_API_KEY"
     ?? builder.Configuration["Gemini:ApiKey"];
 promptGeneratorSettings.OpenRouter.ApiKey ??= builder.Configuration["OPENROUTER_API_KEY"]
     ?? builder.Configuration["OpenRouter:ApiKey"];
+promptGeneratorSettings.FAL.ApiKey ??= builder.Configuration["FAL_API_KEY"]
+    ?? builder.Configuration["FAL:ApiKey"];
 
 builder.Services.AddSingleton(promptGeneratorSettings);
 
