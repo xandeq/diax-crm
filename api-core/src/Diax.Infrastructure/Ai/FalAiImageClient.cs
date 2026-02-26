@@ -37,12 +37,13 @@ public class FalAiImageClient : IAiImageGenerationClient
             throw new InvalidOperationException("API key not configured for fal.ai.");
 
         // Fal.ai model keys on our side should match their IDs, e.g., "fal-ai/flux/dev"
-        // The endpoint is usually https://fal.run/{model_id}
         var modelId = options.Model.Replace(":", "/"); // Allow colon for some providers if needed
-        var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl) ? "https://fal.run" : options.BaseUrl.TrimEnd('/');
-        var endpoint = $"{baseUrl}/{modelId}";
+        
+        // We will use the queue endpoint to avoid timeouts on large models,
+        // but we will poll synchronously to keep the architecture unchanged.
+        var endpoint = "https://queue.fal.run/v1";
 
-        var payload = new Dictionary<string, object>
+        var inputPayload = new Dictionary<string, object>
         {
             ["prompt"] = prompt ?? string.Empty
         };
@@ -50,27 +51,29 @@ public class FalAiImageClient : IAiImageGenerationClient
         // Add reference image if provided (as data URL)
         if (!string.IsNullOrWhiteSpace(referenceImageBase64))
         {
-            // Fal.ai usually accepts data URLs. Assuming PNG/JPEG.
-            payload["image_url"] = $"data:image/png;base64,{referenceImageBase64}";
+            inputPayload["image_url"] = $"data:image/png;base64,{referenceImageBase64}";
+            // Some models use "strength" for image-to-image
+            inputPayload["strength"] = 0.8;
             _logger.LogInformation("[Fal.ai] Image-to-image mode: reference image included");
         }
 
         // Add additional common parameters if present in options
         if (options.Width > 0 && options.Height > 0)
         {
-            // Some models use "image_size" enum or custom width/height
-            // Flux on Fal uses "image_size" or "width"/"height"
-            payload["width"] = options.Width;
-            payload["height"] = options.Height;
+            inputPayload["width"] = options.Width;
+            inputPayload["height"] = options.Height;
         }
 
-        if (options.Seed != null)
+        if (options.Seed != null && int.TryParse(options.Seed, out var seedInt))
         {
-            if (int.TryParse(options.Seed, out var seedInt))
-            {
-                payload["seed"] = seedInt;
-            }
+            inputPayload["seed"] = seedInt;
         }
+
+        var payload = new Dictionary<string, object>
+        {
+            ["model"] = modelId,
+            ["input"] = inputPayload
+        };
 
         var json = JsonSerializer.Serialize(payload);
 
@@ -79,23 +82,101 @@ public class FalAiImageClient : IAiImageGenerationClient
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
-        // Fal.ai uses "Key {API_KEY}" format instead of "Bearer"
-        request.Headers.Authorization = new AuthenticationHeaderValue("Key", options.ApiKey);
+        // Fal.ai supports Bearer token
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
 
-        _logger.LogInformation("[Fal.ai] Generating image(s) with model {Model}", options.Model);
+        _logger.LogInformation("[Fal.ai] Submitting generation request to queue for model {Model}", options.Model);
 
         using var response = await _httpClient.SendAsync(request, ct);
         var responseBody = await response.Content.ReadAsStringAsync(ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("[Fal.ai] API error {StatusCode}: {Body}",
-                (int)response.StatusCode, responseBody);
-            throw new InvalidOperationException(
-                $"Falha na geração de imagem via fal.ai. Status: {(int)response.StatusCode}");
+            _logger.LogWarning("[Fal.ai] API error {StatusCode}: {Body}", (int)response.StatusCode, responseBody);
+            throw new InvalidOperationException($"Falha na geração de imagem via fal.ai. Status: {(int)response.StatusCode}");
         }
 
-        return ParseResponse(responseBody);
+        // Parse request_id
+        using var doc = JsonDocument.Parse(responseBody);
+        if (!doc.RootElement.TryGetProperty("request_id", out var requestIdProp))
+        {
+            // If it returned the result directly (synchronous fallback)
+            return ParseResponse(responseBody);
+        }
+
+        var requestId = requestIdProp.GetString();
+        if (string.IsNullOrEmpty(requestId))
+            throw new InvalidOperationException("Fal.ai queue response did not contain a valid request_id.");
+
+        _logger.LogInformation("[Fal.ai] Request queued with ID {RequestId}. Polling for completion...", requestId);
+
+        // Poll for completion
+        return await PollForResultAsync(requestId, options.ApiKey, ct);
+    }
+
+    private async Task<List<ImageGenerationResult>> PollForResultAsync(string requestId, string apiKey, CancellationToken ct)
+    {
+        var statusEndpoint = "https://queue.fal.run/v1/status";
+        var resultEndpoint = "https://queue.fal.run/v1/result";
+        
+        var payload = new Dictionary<string, string> { ["requestId"] = requestId };
+        var json = JsonSerializer.Serialize(payload);
+
+        int maxAttempts = 60; // 60 attempts * 2 seconds = 120 seconds max
+        int delayMs = 2000;
+
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            using var statusReq = new HttpRequestMessage(HttpMethod.Post, statusEndpoint)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+            statusReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            using var statusRes = await _httpClient.SendAsync(statusReq, ct);
+            var statusBody = await statusRes.Content.ReadAsStringAsync(ct);
+
+            if (!statusRes.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[Fal.ai] Status check failed {StatusCode}: {Body}", (int)statusRes.StatusCode, statusBody);
+                throw new InvalidOperationException($"Falha ao verificar status na fal.ai. Status: {(int)statusRes.StatusCode}");
+            }
+
+            using var statusDoc = JsonDocument.Parse(statusBody);
+            var status = statusDoc.RootElement.TryGetProperty("status", out var s) ? s.GetString() : "UNKNOWN";
+
+            if (status == "COMPLETED")
+            {
+                _logger.LogInformation("[Fal.ai] Generation completed for request {RequestId}. Fetching result...", requestId);
+                
+                using var resultReq = new HttpRequestMessage(HttpMethod.Post, resultEndpoint)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+                resultReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+                using var resultRes = await _httpClient.SendAsync(resultReq, ct);
+                var resultBody = await resultRes.Content.ReadAsStringAsync(ct);
+
+                if (!resultRes.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException($"Falha ao obter resultado da fal.ai. Status: {(int)resultRes.StatusCode}");
+                }
+
+                return ParseResponse(resultBody);
+            }
+            else if (status == "FAILED")
+            {
+                throw new InvalidOperationException($"Fal.ai reportou falha na geração para o request {requestId}.");
+            }
+
+            // IN_QUEUE or IN_PROGRESS
+            await Task.Delay(delayMs, ct);
+        }
+
+        throw new TimeoutException($"Tempo limite excedido aguardando a geração da imagem na fal.ai (Request ID: {requestId}).");
     }
 
     private static List<ImageGenerationResult> ParseResponse(string responseBody)
