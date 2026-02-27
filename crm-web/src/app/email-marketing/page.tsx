@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '@/services/api';
 import { queueBulkEmail, QueueBulkEmailResponse } from '@/services/emailMarketing';
 import { Customer, PagedResponse } from '@/services/customers';
@@ -28,6 +28,8 @@ import {
   ArrowLeft,
   RefreshCw,
   X,
+  ImagePlus,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -77,6 +79,12 @@ export default function EmailMarketingPage() {
 
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<QueueBulkEmailResponse | null>(null);
+
+  // Image upload
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  interface UploadedImage { dataUri: string; name: string; sizeKb: number }
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
 
   const loadContacts = useCallback(async () => {
     setLoading(true);
@@ -129,8 +137,62 @@ export default function EmailMarketingPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
+  /** Insere texto na posição atual do cursor no textarea */
+  const insertAtCursor = (text: string) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setHtmlBody(prev => prev + text);
+      return;
+    }
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const newValue = el.value.substring(0, start) + text + el.value.substring(end);
+    setHtmlBody(newValue);
+    // Restaura foco e cursor após o texto inserido
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + text.length, start + text.length);
+    });
+  };
+
   const insertVariable = (variable: string) => {
-    setHtmlBody(prev => prev + variable);
+    insertAtCursor(variable);
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+
+    files.forEach(file => {
+      const sizeKb = Math.round(file.size / 1024);
+      if (sizeKb > 600) {
+        toast.warning(`"${file.name}" tem ${sizeKb} KB. Imagens grandes aumentam o tamanho do email e podem ser bloqueadas. Recomendamos até 600 KB.`);
+      }
+
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const dataUri = ev.target?.result as string;
+        if (!dataUri) return;
+
+        // Registra na lista de imagens enviadas
+        setUploadedImages(prev => [...prev, { dataUri, name: file.name, sizeKb }]);
+
+        // Insere a tag <img> na posição do cursor
+        const imgTag = `\n<img src="${dataUri}" alt="${file.name}" style="max-width:100%; height:auto; display:block; margin:8px 0;" />\n`;
+        insertAtCursor(imgTag);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Limpa o input para permitir reenviar o mesmo arquivo
+    e.target.value = '';
+  };
+
+  const removeImage = (idx: number) => {
+    const img = uploadedImages[idx];
+    setUploadedImages(prev => prev.filter((_, i) => i !== idx));
+    // Remove a tag do corpo substituindo o src exato
+    setHtmlBody(prev => prev.replace(new RegExp(`<img[^>]*src="${img.dataUri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*\\s*/?>`, 'g'), ''));
   };
 
   const handleSend = async () => {
@@ -348,12 +410,12 @@ export default function EmailMarketingPage() {
               />
             </div>
 
-            {/* Variable tokens */}
-            <div>
-              <Label className="mb-1.5 block text-xs text-muted-foreground">
-                Variáveis personalizadas (clique para inserir no corpo)
+            {/* Variable tokens + image upload */}
+            <div className="space-y-2">
+              <Label className="block text-xs text-muted-foreground">
+                Inserir no corpo (na posição do cursor)
               </Label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {['{{nome}}', '{{empresa}}', '{{email}}', '{{website}}'].map(v => (
                   <button
                     key={v}
@@ -364,7 +426,57 @@ export default function EmailMarketingPage() {
                     {v}
                   </button>
                 ))}
+                {/* Divider */}
+                <span className="text-muted-foreground/40 select-none">|</span>
+                {/* Image upload button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1 rounded border border-dashed bg-muted px-2 py-0.5 text-xs transition-colors hover:bg-muted/70"
+                  title="Fazer upload de imagem e inserir no email"
+                >
+                  <ImagePlus className="h-3 w-3" />
+                  Inserir imagem
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageFileChange}
+                />
               </div>
+
+              {/* Thumbnails of uploaded images */}
+              {uploadedImages.length > 0 && (
+                <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-2">
+                  {uploadedImages.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.dataUri}
+                        alt={img.name}
+                        className="h-14 w-14 rounded object-cover border"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 rounded-b bg-black/60 px-1 py-0.5 text-[9px] text-white truncate">
+                        {img.sizeKb} KB
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
+                        title="Remover imagem"
+                      >
+                        <Trash2 className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <p className="w-full text-[10px] text-muted-foreground">
+                    Imagens incorporadas via base64 (funciona em Outlook, Apple Mail e maioria dos clientes de email).
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Body editor / preview toggle */}
@@ -385,6 +497,7 @@ export default function EmailMarketingPage() {
                 />
               ) : (
                 <Textarea
+                  ref={textareaRef}
                   id="htmlBody"
                   rows={11}
                   className="font-mono text-xs leading-relaxed"
