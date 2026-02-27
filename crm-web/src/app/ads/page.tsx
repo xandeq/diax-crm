@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { ApiError } from '@/services/api';
 import {
   connectAdAccount,
   disconnectAdAccount,
@@ -22,7 +23,6 @@ import {
   ChevronRight,
   Eye,
   Link2,
-  Link2Off,
   Loader2,
   MousePointerClick,
   RefreshCw,
@@ -247,8 +247,10 @@ export default function AdsPage() {
       setSummary(summaryData);
       setCampaigns(campaignsData);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('NotFound') || msg.includes('404')) {
+      // Treat any 404 or "NotFound" code as "no account connected yet"
+      const is404 = err instanceof ApiError && err.status === 404;
+      const isNotFound = err instanceof ApiError && (err.code?.includes('NotFound') ?? false);
+      if (is404 || isNotFound) {
         setNotConnected(true);
       } else {
         toast.error('Erro ao carregar dados dos anúncios');
