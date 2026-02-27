@@ -88,6 +88,8 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         bool? hasWhatsApp = null,
         PersonType? personType = null,
         LeadSegment? segment = null,
+        bool? onlyLeads = null,
+        bool? onlyCustomers = null,
         CancellationToken cancellationToken = default)
     {
         var query = DbSet.AsQueryable();
@@ -102,10 +104,22 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
                 (c.CompanyName != null && c.CompanyName.ToLower().Contains(searchLower)));
         }
 
-        // Filtro por status
-        if (status.HasValue)
+        // Filtro por status exato (ignorado quando onlyLeads/onlyCustomers estão ativos)
+        if (status.HasValue && onlyLeads != true && onlyCustomers != true)
         {
             query = query.Where(c => c.Status == status.Value);
+        }
+
+        // Filtro: apenas leads (Status < Customer) — aplicado no SQL antes da paginação
+        if (onlyLeads == true)
+        {
+            query = query.Where(c => c.Status < CustomerStatus.Customer);
+        }
+
+        // Filtro: apenas clientes (Status >= Customer) — aplicado no SQL antes da paginação
+        if (onlyCustomers == true)
+        {
+            query = query.Where(c => c.Status >= CustomerStatus.Customer);
         }
 
         // Filtro por origem

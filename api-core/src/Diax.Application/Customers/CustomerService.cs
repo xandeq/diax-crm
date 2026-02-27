@@ -48,14 +48,11 @@ public class CustomerService : IApplicationService
         CustomerListRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Ajusta filtros baseado em flags
-        CustomerStatus? statusFilter = request.Status;
-
         var (items, totalCount) = await _repository.GetPagedAsync(
             request.Page,
             request.PageSize,
             request.Search,
-            statusFilter,
+            request.Status,
             request.Source,
             request.SortBy,
             request.SortDescending,
@@ -63,21 +60,9 @@ public class CustomerService : IApplicationService
             request.HasWhatsApp,
             request.PersonType,
             request.Segment,
+            request.OnlyLeads,
+            request.OnlyCustomers,
             cancellationToken);
-
-        // Se OnlyLeads, filtra para Status < Customer (0=Lead, 1=Contacted, 2=Qualified, 3=Negotiating)
-        if (request.OnlyLeads == true)
-        {
-            items = items.Where(c => c.IsLead);
-            totalCount = items.Count();
-        }
-
-        // Se OnlyCustomers, filtra para Status >= Customer (4=Customer, 5=Inactive, 6=Churned)
-        if (request.OnlyCustomers == true)
-        {
-            items = items.Where(c => !c.IsLead);
-            totalCount = items.Count();
-        }
 
         var responses = items.Select(CustomerResponse.FromEntity);
 
