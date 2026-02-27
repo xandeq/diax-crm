@@ -100,12 +100,18 @@ export default function ImageGenerationPage() {
   const modelSupportsImg2Img = (() => {
     const model = selectedModel.toLowerCase();
     const provider = selectedProvider.toLowerCase();
-    // dall-e-3: text-only (no edits/variations)
+    // dall-e-3: text-only (no edits/variations endpoint)
     if (model === 'dall-e-3') return false;
-    // Imagen models: text-only
+    // Imagen models: text-only (no img2img in the :predict endpoint)
     if (model.startsWith('imagen')) return false;
-    // OpenRouter: img2img not standardized across proxied models
-    if (provider === 'openrouter') return false;
+    // OpenRouter: only Gemini image models support img2img (via chat/completions)
+    // FLUX/SD models on OpenRouter are text-to-image only
+    if (provider === 'openrouter') {
+      return model.includes('gemini') && model.includes('image');
+    }
+    // fal.ai: text-only models that have no img2img variant (backend auto-redirects known ones)
+    if (provider === 'falai' && model === 'fal-ai/flux/schnell') return false;
+    if (provider === 'falai' && model === 'fal-ai/flux-realism') return false;
     return true;
   })();
 
@@ -438,9 +444,12 @@ export default function ImageGenerationPage() {
                       <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                         <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                         <span>
-                          O modelo <strong>{selectedModel}</strong> não suporta edição de imagem.
+                          O modelo <strong>{selectedModel}</strong> não suporta edição de imagem (img2img).
                           A imagem de referência será <strong>ignorada</strong> e apenas o prompt será usado.
-                          Para usar imagem + prompt, selecione <strong>gpt-image-1</strong>, <strong>dall-e-2</strong>, <strong>Gemini Flash</strong> ou <strong>fal.ai</strong>.
+                          Modelos que suportam imagem + prompt: <strong>gpt-image-1</strong> (OpenAI),{' '}
+                          <strong>Gemini Flash Image</strong> (Gemini),{' '}
+                          <strong>FLUX Kontext</strong> / <strong>FLUX img2img</strong> (fal.ai),{' '}
+                          <strong>Gemini Image</strong> (OpenRouter).
                         </span>
                       </div>
                     )}

@@ -21,6 +21,27 @@ public class FalAiImageClient : IAiImageGenerationClient
 
     public bool SupportsImageToImage => true;
 
+    /// <summary>
+    /// Auto-redirect map: when a user selects a text-to-image model and provides a reference
+    /// image, we automatically switch to the model's img2img endpoint variant.
+    /// Without this redirect, the image_url param is silently ignored and results look "random".
+    /// </summary>
+    private static readonly Dictionary<string, string> Img2ImgRedirects = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["fal-ai/flux/dev"]    = "fal-ai/flux/dev/image-to-image",
+        ["fal-ai/flux-pro"]    = "fal-ai/flux-pro/kontext",
+        ["fal-ai/flux-pro/v1.1"] = "fal-ai/flux-pro/kontext",
+        ["fal-ai/fast-sdxl"]   = "fal-ai/fast-sdxl/image-to-image",
+        ["fal-ai/stable-diffusion-v35-large"] = "fal-ai/stable-diffusion-v35-large/image-to-image",
+    };
+
+    /// <summary>
+    /// Kontext models handle img2img differently — they use guidance_scale instead of strength
+    /// and are specifically designed for in-context image editing.
+    /// </summary>
+    private static bool IsKontextModel(string modelId) =>
+        modelId.Contains("kontext", StringComparison.OrdinalIgnoreCase);
+
     public FalAiImageClient(HttpClient httpClient, ILogger<FalAiImageClient> logger)
     {
         _httpClient = httpClient;
@@ -40,6 +61,18 @@ public class FalAiImageClient : IAiImageGenerationClient
         // Model ID is used directly as part of the URL path
         // e.g. "fal-ai/flux/dev" → https://queue.fal.run/fal-ai/flux/dev
         var modelId = options.Model;
+
+        // Auto-redirect to img2img endpoint when reference image is provided.
+        // Text-to-image endpoints (e.g. fal-ai/flux/dev) silently IGNORE image_url,
+        // which causes the user to see "random" results unrelated to their reference image.
+        if (!string.IsNullOrWhiteSpace(referenceImageBase64) &&
+            Img2ImgRedirects.TryGetValue(modelId, out var img2imgModel))
+        {
+            _logger.LogInformation("[Fal.ai] Auto-redirecting {Original} → {Img2Img} for img2img",
+                modelId, img2imgModel);
+            modelId = img2imgModel;
+        }
+
         var submitEndpoint = $"https://queue.fal.run/{modelId}";
 
         // Build the input payload — sent DIRECTLY (not wrapped in {model, input})
@@ -52,8 +85,23 @@ public class FalAiImageClient : IAiImageGenerationClient
         if (!string.IsNullOrWhiteSpace(referenceImageBase64))
         {
             inputPayload["image_url"] = $"data:image/png;base64,{referenceImageBase64}";
-            inputPayload["strength"] = 0.8;
-            _logger.LogInformation("[Fal.ai] Image-to-image mode: reference image included");
+
+            if (IsKontextModel(modelId))
+            {
+                // Kontext models: designed for in-context editing.
+                // Use guidance_scale instead of strength; no strength param needed.
+                inputPayload["guidance_scale"] = 3.5;
+                _logger.LogInformation("[Fal.ai] Kontext img2img mode: guidance_scale=3.5");
+            }
+            else
+            {
+                // Standard img2img: strength controls how much to preserve from original.
+                // Lower = more faithful to reference.  0.55 is a good balance.
+                // (Previous value of 0.8 was too high, causing nearly full regeneration.)
+                inputPayload["strength"] = 0.55;
+                inputPayload["num_inference_steps"] = 35;
+                _logger.LogInformation("[Fal.ai] Standard img2img mode: strength=0.55, steps=35");
+            }
         }
 
         // Dimensions (fal.ai accepts image_size as object or named presets)

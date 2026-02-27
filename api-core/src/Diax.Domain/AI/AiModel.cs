@@ -49,6 +49,8 @@ public class AiModel : AuditableEntity
         "imagen-3.0-fast-generate-001",
         "gemini-2.0-flash-exp-image-generation",
         "gemini-2.0-flash-preview-image-generation",
+        "gemini-2.5-flash-preview-image-generation",   // Nano Banana (2.5 Flash image gen)
+        "gemini-2.5-flash-image-generation",            // Nano Banana (alternate naming)
 
         // OpenRouter — FLUX family
         "black-forest-labs/flux-1.1-pro",
@@ -57,16 +59,26 @@ public class AiModel : AuditableEntity
         "black-forest-labs/flux-schnell",
         "stability-ai/stable-diffusion-3.5-large",
 
-        // Fal.ai — popular models
+        // OpenRouter — Gemini image models (img2img via chat/completions)
+        "google/gemini-2.0-flash-image-generation",
+        "google/gemini-2.5-flash-image",
+        "google/gemini-2.5-flash-preview-image-generation",
+
+        // Fal.ai — text-to-image models
         "fal-ai/flux/dev",
         "fal-ai/flux/schnell",
         "fal-ai/flux-pro",
         "fal-ai/flux-pro/v1.1",
         "fal-ai/flux-realism",
-        "fal-ai/flux/dev/image-to-image",
         "fal-ai/fast-sdxl",
         "fal-ai/stable-diffusion-v35-large",
         "fal-ai/ideogram/v2",
+
+        // Fal.ai — img2img models (accept image_url + prompt)
+        "fal-ai/flux/dev/image-to-image",
+        "fal-ai/flux-pro/kontext",          // Best for img2img editing
+        "fal-ai/flux-kontext/dev",          // Kontext dev variant
+        "fal-ai/fast-sdxl/image-to-image",
         "fal-ai/ideogram/v2/remix",
         // Note: fal-ai/luma-dream-machine is a VIDEO model — intentionally excluded
     };
