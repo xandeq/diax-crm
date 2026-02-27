@@ -96,6 +96,19 @@ export default function ImageGenerationPage() {
   const currentModels = currentProvider?.models || [];
   const sizeOption = imageSizeOptions.find(s => s.value === selectedSize);
 
+  // Check if current model supports image-to-image (reference image editing)
+  const modelSupportsImg2Img = (() => {
+    const model = selectedModel.toLowerCase();
+    const provider = selectedProvider.toLowerCase();
+    // dall-e-3: text-only (no edits/variations)
+    if (model === 'dall-e-3') return false;
+    // Imagen models: text-only
+    if (model.startsWith('imagen')) return false;
+    // OpenRouter: img2img not standardized across proxied models
+    if (provider === 'openrouter') return false;
+    return true;
+  })();
+
   // Load providers once on mount — auto-select first image-capable provider/model.
   // NOTE: selectedProvider is intentionally NOT in the dependency array.
   // Including it would re-run this effect on every provider change, causing
@@ -420,6 +433,17 @@ export default function ImageGenerationPage() {
                         </div>
                       )}
                     </div>
+
+                    {referenceImageBase64 && !modelSupportsImg2Img && (
+                      <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                        <span>
+                          O modelo <strong>{selectedModel}</strong> não suporta edição de imagem.
+                          A imagem de referência será <strong>ignorada</strong> e apenas o prompt será usado.
+                          Para usar imagem + prompt, selecione <strong>gpt-image-1</strong>, <strong>dall-e-2</strong>, <strong>Gemini Flash</strong> ou <strong>fal.ai</strong>.
+                        </span>
+                      </div>
+                    )}
 
                     {referenceImageBase64 && (
                       <div className="space-y-2">

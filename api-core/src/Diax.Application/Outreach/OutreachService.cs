@@ -489,7 +489,7 @@ public class OutreachService : IApplicationService
         var cooldownDate = DateTime.UtcNow.AddDays(-cooldownDays);
 
         var candidates = await _customerRepository.FindAsync(
-            c => c.Status == CustomerStatus.Lead
+            c => c.IsLead
                  && c.Segment != null
                  && (c.WhatsApp != null || c.Phone != null)
                  && !c.WhatsAppOptOut

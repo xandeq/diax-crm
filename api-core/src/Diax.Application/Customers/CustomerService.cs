@@ -51,13 +51,6 @@ public class CustomerService : IApplicationService
         // Ajusta filtros baseado em flags
         CustomerStatus? statusFilter = request.Status;
 
-        // NOTA: Removemos o filtro estrito de OnlyCustomers para permitir que registros
-        // criados recentemente (que nascem como Leads) apareçam na listagem de Clientes.
-        // if (request.OnlyCustomers == true)
-        // {
-        //     statusFilter = CustomerStatus.Customer;
-        // }
-
         var (items, totalCount) = await _repository.GetPagedAsync(
             request.Page,
             request.PageSize,
@@ -72,14 +65,19 @@ public class CustomerService : IApplicationService
             request.Segment,
             cancellationToken);
 
-        // Se OnlyLeads, filtra adicionalmente
+        // Se OnlyLeads, filtra para Status < Customer (0=Lead, 1=Contacted, 2=Qualified, 3=Negotiating)
         if (request.OnlyLeads == true)
         {
             items = items.Where(c => c.IsLead);
             totalCount = items.Count();
         }
 
-        // OnlyCustomers agora retorna tudo (comportamento "All") se não houver status específico
+        // Se OnlyCustomers, filtra para Status >= Customer (4=Customer, 5=Inactive, 6=Churned)
+        if (request.OnlyCustomers == true)
+        {
+            items = items.Where(c => !c.IsLead);
+            totalCount = items.Count();
+        }
 
         var responses = items.Select(CustomerResponse.FromEntity);
 

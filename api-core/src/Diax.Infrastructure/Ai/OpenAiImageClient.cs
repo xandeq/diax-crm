@@ -34,17 +34,19 @@ public class OpenAiImageClient : IAiImageGenerationClient
             ? "https://api.openai.com/v1"
             : options.BaseUrl.TrimEnd('/');
 
-        // dall-e-3 only supports text-to-image; it does NOT support edits or variations.
-        var isDallE3 = options.Model.Equals("dall-e-3", StringComparison.OrdinalIgnoreCase)
-                    || options.Model.Equals("gpt-image-1", StringComparison.OrdinalIgnoreCase);
+        // dall-e-3 does NOT support edits or variations (text-to-image only).
+        var isDallE3 = options.Model.Equals("dall-e-3", StringComparison.OrdinalIgnoreCase);
+
+        // gpt-image-1 DOES support edits (image + prompt) but NOT variations (image only).
+        var isGptImage1 = options.Model.Equals("gpt-image-1", StringComparison.OrdinalIgnoreCase);
 
         // 1. Variations (Image only, no prompt) — dall-e-2 only
-        if (!string.IsNullOrWhiteSpace(referenceImageBase64) && string.IsNullOrWhiteSpace(prompt) && !isDallE3)
+        if (!string.IsNullOrWhiteSpace(referenceImageBase64) && string.IsNullOrWhiteSpace(prompt) && !isDallE3 && !isGptImage1)
         {
             return await GenerateVariationAsync(options, referenceImageBase64, baseUrl, ct);
         }
 
-        // 2. Edits (Image + Prompt) — dall-e-2 only; dall-e-3 falls through to text generation
+        // 2. Edits (Image + Prompt) — dall-e-2 and gpt-image-1; dall-e-3 falls through to text generation
         if (!string.IsNullOrWhiteSpace(referenceImageBase64) && !isDallE3)
         {
             return await GenerateWithReferenceAsync(prompt!, options, referenceImageBase64, baseUrl, ct);
@@ -71,16 +73,30 @@ public class OpenAiImageClient : IAiImageGenerationClient
             ["response_format"] = "url"
         };
 
-        // quality and style are only supported by dall-e-3 (dall-e-2 returns 400 if these are sent)
-        var isDallE3 = options.Model.Equals("dall-e-3", StringComparison.OrdinalIgnoreCase)
-                    || options.Model.Equals("gpt-image-1", StringComparison.OrdinalIgnoreCase);
-        if (isDallE3)
+        // dall-e-3: quality (standard/hd), style (vivid/natural)
+        // gpt-image-1: quality (low/medium/high/auto), no style param
+        // dall-e-2: neither quality nor style (returns 400 if sent)
+        if (options.Model.Equals("dall-e-3", StringComparison.OrdinalIgnoreCase))
         {
             if (!string.IsNullOrWhiteSpace(options.Quality))
                 payload["quality"] = options.Quality;
 
             if (!string.IsNullOrWhiteSpace(options.Style))
                 payload["style"] = options.Style;
+        }
+        else if (options.Model.Equals("gpt-image-1", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(options.Quality))
+            {
+                // Map dall-e-3 quality values to gpt-image-1 equivalents
+                payload["quality"] = options.Quality.ToLower() switch
+                {
+                    "standard" => "auto",
+                    "hd" => "high",
+                    _ => options.Quality
+                };
+            }
+            // gpt-image-1 does not support the "style" parameter
         }
 
         var json = JsonSerializer.Serialize(payload);

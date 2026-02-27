@@ -1693,13 +1693,21 @@ function WhatsAppTab({
           </Button>
         </div>
 
+        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>
+            Apenas leads <strong>com segmento definido</strong> (Cold / Warm / Hot) e <strong>com WhatsApp ou telefone</strong> aparecem aqui.
+            Leads importados sem segmentação não serão listados — execute a segmentação na aba <strong>Configuração</strong> para incluí-los.
+          </span>
+        </div>
+
         {whatsAppLeads.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-slate-400">
               <MessageSquare className="h-10 w-10 mb-3" />
               <p className="font-medium text-slate-500">Nenhum lead pronto para WhatsApp</p>
               <p className="text-sm mt-1">
-                Leads com número de WhatsApp disponível aparecerão aqui.
+                Leads com número de WhatsApp ou telefone e segmento definido aparecerão aqui.
               </p>
             </CardContent>
           </Card>
