@@ -17,12 +17,10 @@ export interface ImageGenerationRequest {
 
 export interface GeneratedImageDto {
   imageUrl: string;
-  isBase64: boolean;
   revisedPrompt?: string;
   seed?: string;
   width: number;
   height: number;
-  durationMs: number;
 }
 
 export interface ImageGenerationResponse {

@@ -55,7 +55,6 @@ export default function ImageGenerationPage() {
   const [selectedSize, setSelectedSize] = useState('1024x1024');
   const [style, setStyle] = useState('vivid');
   const [quality, setQuality] = useState('standard');
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Prompt Builder State
   const [subject, setSubject] = useState('');
@@ -97,7 +96,10 @@ export default function ImageGenerationPage() {
   const currentModels = currentProvider?.models || [];
   const sizeOption = imageSizeOptions.find(s => s.value === selectedSize);
 
-  // Load providers — auto-select first image-capable provider/model
+  // Load providers once on mount — auto-select first image-capable provider/model.
+  // NOTE: selectedProvider is intentionally NOT in the dependency array.
+  // Including it would re-run this effect on every provider change, causing
+  // duplicate API calls and potential race conditions.
   useEffect(() => {
     async function loadProviders() {
       try {
@@ -105,7 +107,7 @@ export default function ImageGenerationPage() {
         const enabledProviders = catalog.filter(p => p.isEnabled);
         setProviders(enabledProviders);
 
-        if (enabledProviders.length > 0 && !selectedProvider) {
+        if (enabledProviders.length > 0) {
           // Find first provider that has at least one image-capable model
           const imageProvider = enabledProviders.find(p =>
             p.models.some(m => m.isEnabled && m.supportsImage)
@@ -117,7 +119,7 @@ export default function ImageGenerationPage() {
               setSelectedModel(imageModel.modelKey);
             }
           } else {
-            // Fallback: select first provider even if no image models
+            // Fallback: select first provider even if no image models found
             setSelectedProvider(enabledProviders[0].key);
           }
         }
@@ -131,7 +133,8 @@ export default function ImageGenerationPage() {
     if (isAuthenticated) {
       loadProviders();
     }
-  }, [isAuthenticated, selectedProvider]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Auth guard
   useEffect(() => {
@@ -189,16 +192,17 @@ export default function ImageGenerationPage() {
     }
 
     const generatedPrompt = parts.join('. ');
-    if (generatedPrompt !== prompt) {
-      setPrompt(generatedPrompt);
-    }
+    // React bails out of re-render when state value is unchanged (Object.is comparison),
+    // so calling setPrompt with the same string is safe and avoids the stale-closure
+    // problem that came from comparing against a captured `prompt` ref.
+    setPrompt(generatedPrompt);
   }, [
     subject, setting, action, expression, secondaryElements,
     artStyle, photoStyle, theme,
     cameraAngle, focus,
     detailLevel,
     editIntent, referenceImageBase64,
-    isAutoUpdating
+    isAutoUpdating,
   ]);
 
   const handleImageUpload = useCallback((file: File) => {
@@ -705,9 +709,7 @@ export default function ImageGenerationPage() {
                     size="sm"
                     className="h-8 text-xs"
                     onClick={() => {
-                      const img = result.images[0];
-                      const url = img.isBase64 ? `data:image/png;base64,${img.imageUrl}` : img.imageUrl;
-                      setLightboxUrl(url);
+                      setLightboxUrl(result.images[0].imageUrl);
                     }}
                   >
                     <ZoomIn className="h-3.5 w-3.5 mr-1.5" />
@@ -720,9 +722,7 @@ export default function ImageGenerationPage() {
                     asChild
                   >
                     <a
-                      href={result.images[0].isBase64
-                        ? `data:image/png;base64,${result.images[0].imageUrl}`
-                        : result.images[0].imageUrl}
+                      href={result.images[0].imageUrl}
                       download={`diax-image-${Date.now()}.png`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -778,9 +778,9 @@ export default function ImageGenerationPage() {
               ) : result && result.images.length > 0 ? (
                 <div className="space-y-4">
                   {result.images.map((img, index) => {
-                    const src = img.isBase64
-                      ? `data:image/png;base64,${img.imageUrl}`
-                      : img.imageUrl;
+                    // imageUrl from backend is always a complete URL or full data-URL
+                    // (e.g. "https://..." for OpenAI/fal.ai, "data:image/png;base64,..." for Gemini/Imagen)
+                    const src = img.imageUrl;
 
                     return (
                       <div key={index} className="relative group">
@@ -833,7 +833,10 @@ export default function ImageGenerationPage() {
                       <button
                         key={suggestion}
                         type="button"
-                        onClick={() => setPrompt(suggestion)}
+                        onClick={() => {
+                          setPrompt(suggestion);
+                          setIsAutoUpdating(false); // Prevent builder fields from overwriting suggestion
+                        }}
                         className="px-3 py-2.5 text-xs text-left text-muted-foreground rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/60 hover:text-foreground hover:border-border transition-all"
                       >
                         {suggestion}
