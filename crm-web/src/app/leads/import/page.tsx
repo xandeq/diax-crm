@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/services/api';
-import { ArrowLeft, Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Upload, Code2, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -35,26 +35,46 @@ interface BulkImportResponse {
   errors: ImportError[];
 }
 
+// ─── Apify Google Maps scraper result schema ───────────────────────────────
+interface ApifyGoogleMapsItem {
+  title?: string;
+  phone?: string;
+  emails?: string[];
+  website?: string;
+  city?: string;
+  totalScore?: number;
+  reviewsCount?: number | null;
+  instagrams?: string[];
+  facebooks?: string[];
+  linkedIns?: string[];
+  youtubes?: string[];
+  tiktoks?: string[];
+  twitters?: string[];
+  url?: string;
+  imageUrl?: string;
+}
+
+type ImportMode = 'csv' | 'text' | 'apify';
+
 export default function LeadsImportPage() {
   const router = useRouter();
-  const [importMode, setImportMode] = useState<'csv' | 'text'>('csv');
+  const [importMode, setImportMode] = useState<ImportMode>('csv');
   const [file, setFile] = useState<File | null>(null);
   const [textData, setTextData] = useState('');
+  const [apifyJson, setApifyJson] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BulkImportResponse | null>(null);
+
+  // ── Parsers ──────────────────────────────────────────────────────────────
 
   const parseCSV = (text: string): ImportCustomerRow[] => {
     const lines = text.split('\n').filter(l => l.trim());
     if (lines.length === 0) return [];
 
-    // Get header and data
     const header = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-
-    // Detect Google Contacts format
     const isGoogleContacts = header.includes('First Name') && header.includes('E-mail 1 - Value');
 
     if (isGoogleContacts) {
-      // Map Google Contacts columns
       const firstNameIdx = header.indexOf('First Name');
       const middleNameIdx = header.indexOf('Middle Name');
       const lastNameIdx = header.indexOf('Last Name');
@@ -65,13 +85,10 @@ export default function LeadsImportPage() {
 
       return lines.slice(1).map(line => {
         const parts = line.split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
-
-        // Build full name
         const firstName = parts[firstNameIdx] || '';
         const middleName = parts[middleNameIdx] || '';
         const lastName = parts[lastNameIdx] || '';
         const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
-
         const email = parts[emailIdx] || '';
         const phone = phoneIdx >= 0 ? parts[phoneIdx] || '' : '';
         const companyName = orgNameIdx >= 0 ? parts[orgNameIdx] || '' : '';
@@ -88,15 +105,15 @@ export default function LeadsImportPage() {
       });
     }
 
-    // Simple CSV format (name, email, phone, ...)
-    const hasHeader = header[0]?.toLowerCase().includes('nome') || header[0]?.toLowerCase().includes('name') || header[0]?.toLowerCase().includes('email');
+    const hasHeader =
+      header[0]?.toLowerCase().includes('nome') ||
+      header[0]?.toLowerCase().includes('name') ||
+      header[0]?.toLowerCase().includes('email');
     const dataLines = hasHeader ? lines.slice(1) : lines;
 
     return dataLines.map(line => {
-      // Handle both comma and semicolon separators
       const separator = line.includes(';') ? ';' : ',';
       const parts = line.split(separator).map(p => p.trim().replace(/^["']|["']$/g, ''));
-
       const [name = '', email = '', phone = '', whatsApp = '', companyName = '', notes = '', tags = ''] = parts;
 
       return {
@@ -115,17 +132,12 @@ export default function LeadsImportPage() {
     const lines = text.split('\n').filter(l => l.trim());
 
     return lines.map(line => {
-      // Try to extract email
       const emailMatch = line.match(/[\w.+-]+@[\w.-]+\.\w+/);
-
-      // Try to extract phone (Brazilian format or international)
       const phoneMatch = line.match(/\+?5?5?\s?\(?[0-9]{2}\)?\s?[0-9]{4,5}-?[0-9]{4}|\+?[0-9]{10,15}/);
 
-      // Name is whatever comes before the email or the whole line
       let name = line;
       if (emailMatch) {
         name = line.substring(0, line.indexOf(emailMatch[0])).trim();
-        // Remove common separators
         name = name.replace(/[<>,;-]\s*$/, '').trim();
       }
 
@@ -138,18 +150,79 @@ export default function LeadsImportPage() {
     });
   };
 
+  /**
+   * Parse Apify Google Maps scraper JSON output.
+   * Maps to ImportCustomerRow, storing social links and extra info in notes.
+   * Source will be GoogleMaps (11).
+   */
+  const parseApifyJson = (jsonText: string): ImportCustomerRow[] => {
+    let data: ApifyGoogleMapsItem[];
+    try {
+      data = JSON.parse(jsonText);
+      if (!Array.isArray(data)) throw new Error('JSON deve ser um array.');
+    } catch (e: any) {
+      throw new Error('JSON inválido: ' + e.message);
+    }
+
+    return data.map((item): ImportCustomerRow => {
+      const emails = item.emails ?? [];
+      const rawPhone = item.phone ?? '';
+
+      // Clean phone: keep digits, +, spaces, hyphens and parentheses but remove country prefix formatting
+      const phone = rawPhone.trim() || undefined;
+
+      // Build notes with all available extra information
+      const noteParts: string[] = [];
+      if (item.website) noteParts.push(`Website: ${item.website}`);
+      if (item.city) noteParts.push(`Cidade: ${item.city}`);
+      if (item.totalScore) noteParts.push(`Nota Google: ${item.totalScore}★`);
+      if (item.reviewsCount) noteParts.push(`Avaliações: ${item.reviewsCount}`);
+      if (item.instagrams?.length) noteParts.push(`Instagram: ${item.instagrams[0]}`);
+      if (item.facebooks?.length) noteParts.push(`Facebook: ${item.facebooks[0]}`);
+      if (item.linkedIns?.length) noteParts.push(`LinkedIn: ${item.linkedIns[0]}`);
+      if (item.tiktoks?.length) noteParts.push(`TikTok: ${item.tiktoks[0]}`);
+      if (item.twitters?.length) noteParts.push(`Twitter: ${item.twitters[0]}`);
+      if (item.url) noteParts.push(`Google Maps: ${item.url}`);
+
+      const tags = [
+        item.city ? item.city.toLowerCase().replace(/\s+/g, '-') : null,
+        'google-maps',
+        'apify',
+      ]
+        .filter(Boolean)
+        .join(',');
+
+      return {
+        name: item.title || 'Sem nome',
+        email: emails[0] ?? '',
+        phone,
+        whatsApp: phone,
+        companyName: item.title || undefined,
+        notes: noteParts.length ? noteParts.join('\n') : undefined,
+        tags,
+      };
+    });
+  };
+
+  // ── Import handler ────────────────────────────────────────────────────────
+
   const handleImport = async () => {
     setLoading(true);
     setResult(null);
 
     try {
       let customers: ImportCustomerRow[] = [];
+      // source: 10 = Import, 11 = GoogleMaps
+      let source = 10;
 
       if (importMode === 'csv' && file) {
         const text = await file.text();
         customers = parseCSV(text);
       } else if (importMode === 'text' && textData) {
         customers = parseText(textData);
+      } else if (importMode === 'apify' && apifyJson) {
+        customers = parseApifyJson(apifyJson);
+        source = 11; // GoogleMaps
       }
 
       if (customers.length === 0) {
@@ -159,7 +232,7 @@ export default function LeadsImportPage() {
 
       const response = await apiFetch<BulkImportResponse>('/customers/import', {
         method: 'POST',
-        body: JSON.stringify({ customers }),
+        body: JSON.stringify({ customers, source }),
       });
 
       setResult(response);
@@ -167,7 +240,7 @@ export default function LeadsImportPage() {
       if (response.successCount > 0) {
         setTimeout(() => {
           router.push('/leads');
-        }, 3000);
+        }, 3500);
       }
     } catch (error: any) {
       alert(`Erro ao importar: ${error.message}`);
@@ -175,6 +248,28 @@ export default function LeadsImportPage() {
       setLoading(false);
     }
   };
+
+  const canImport =
+    (importMode === 'csv' && !!file) ||
+    (importMode === 'text' && !!textData.trim()) ||
+    (importMode === 'apify' && !!apifyJson.trim());
+
+  // ── Preview Apify count ───────────────────────────────────────────────────
+  let apifyPreviewCount: number | null = null;
+  let apifyWithEmail = 0;
+  let apifyWithPhone = 0;
+  if (importMode === 'apify' && apifyJson.trim()) {
+    try {
+      const parsed: ApifyGoogleMapsItem[] = JSON.parse(apifyJson);
+      if (Array.isArray(parsed)) {
+        apifyPreviewCount = parsed.length;
+        apifyWithEmail = parsed.filter(i => (i.emails?.length ?? 0) > 0).length;
+        apifyWithPhone = parsed.filter(i => !!i.phone).length;
+      }
+    } catch {
+      // invalid JSON, no preview
+    }
+  }
 
   return (
     <div className="container mx-auto py-6 max-w-4xl">
@@ -190,7 +285,7 @@ export default function LeadsImportPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Importar Leads</h1>
         <p className="text-muted-foreground mt-2">
-          Importe múltiplos leads de uma vez usando arquivo CSV ou texto.
+          Importe múltiplos leads de uma vez usando arquivo CSV, texto ou JSON do Apify.
         </p>
       </div>
 
@@ -199,11 +294,12 @@ export default function LeadsImportPage() {
           <CardHeader>
             <CardTitle>Selecione o método de importação</CardTitle>
             <CardDescription>
-              Escolha entre fazer upload de um arquivo CSV ou colar contatos em formato de texto.
+              CSV, texto livre ou cole o resultado JSON do Apify (Google Maps scraper).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
+            {/* Mode tabs */}
+            <div className="flex gap-2">
               <Button
                 variant={importMode === 'csv' ? 'default' : 'outline'}
                 onClick={() => setImportMode('csv')}
@@ -217,10 +313,20 @@ export default function LeadsImportPage() {
                 onClick={() => setImportMode('text')}
                 className="flex-1"
               >
+                <FileText className="h-4 w-4 mr-2" />
                 Colar Texto
+              </Button>
+              <Button
+                variant={importMode === 'apify' ? 'default' : 'outline'}
+                onClick={() => setImportMode('apify')}
+                className="flex-1"
+              >
+                <Code2 className="h-4 w-4 mr-2" />
+                JSON Apify
               </Button>
             </div>
 
+            {/* ── CSV mode ── */}
             {importMode === 'csv' && (
               <div className="space-y-2">
                 <Label htmlFor="file">Arquivo CSV</Label>
@@ -228,7 +334,7 @@ export default function LeadsImportPage() {
                   id="file"
                   type="file"
                   accept=".csv,.txt"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  onChange={e => setFile(e.target.files?.[0] || null)}
                 />
                 <p className="text-sm text-muted-foreground">
                   Formato esperado: Nome,Email,Telefone,WhatsApp,Empresa,Observações,Tags
@@ -239,38 +345,87 @@ export default function LeadsImportPage() {
               </div>
             )}
 
+            {/* ── Text mode ── */}
             {importMode === 'text' && (
               <div className="space-y-2">
                 <Label htmlFor="text">Cole os contatos</Label>
                 <Textarea
                   id="text"
-                  placeholder="João Silva <joao@email.com> (11) 99999-9999&#10;Maria Santos maria@email.com +5511988888888&#10;Pedro Oliveira, pedro@email.com, 11977777777"
+                  placeholder={`João Silva <joao@email.com> (11) 99999-9999\nMaria Santos maria@email.com +5511988888888\nPedro Oliveira, pedro@email.com, 11977777777`}
                   rows={12}
                   value={textData}
-                  onChange={(e) => setTextData(e.target.value)}
+                  onChange={e => setTextData(e.target.value)}
                   className="font-mono text-sm"
                 />
                 <p className="text-sm text-muted-foreground">
                   Cole uma lista de contatos. O sistema detectará automaticamente nome, email e telefone.
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  Formatos aceitos: "Nome &lt;email&gt; telefone", "Nome, email, telefone", etc.
-                </p>
               </div>
             )}
 
-            <Button
-              onClick={handleImport}
-              disabled={loading || (importMode === 'csv' ? !file : !textData)}
-              className="w-full"
-              size="lg"
-            >
+            {/* ── Apify JSON mode ── */}
+            {importMode === 'apify' && (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 space-y-1">
+                  <p className="font-semibold">Como usar:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    <li>Acesse o <strong>Apify Console → Actor Runs</strong></li>
+                    <li>Abra o resultado do run desejado (aba <em>Output</em> ou <em>Dataset</em>)</li>
+                    <li>Clique em <strong>Export → JSON</strong> e copie o conteúdo</li>
+                    <li>Cole abaixo e clique em Importar</li>
+                  </ol>
+                  <p className="text-xs mt-1">
+                    Campos mapeados: <code>title → Nome/Empresa</code>, <code>phone → Telefone/WhatsApp</code>,{' '}
+                    <code>emails[0] → Email</code>, <code>website/city/redes sociais → Observações</code>.
+                    Origem registrada como <strong>Google Maps</strong>.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="apifyJson">JSON do Apify</Label>
+                  <Textarea
+                    id="apifyJson"
+                    placeholder={'[\n  {\n    "title": "Empresa ABC",\n    "phone": "+55 27 99999-9999",\n    "emails": ["contato@empresa.com"],\n    "website": "https://empresa.com",\n    "city": "Vila Velha"\n  }\n]'}
+                    rows={14}
+                    value={apifyJson}
+                    onChange={e => setApifyJson(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                {/* Live preview stats */}
+                {apifyPreviewCount !== null && (
+                  <div className="flex gap-4 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+                    <div className="text-center">
+                      <div className="text-xl font-bold">{apifyPreviewCount}</div>
+                      <div className="text-xs text-muted-foreground">Total</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-green-600">{apifyWithEmail}</div>
+                      <div className="text-xs text-muted-foreground">Com email</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-blue-600">{apifyWithPhone}</div>
+                      <div className="text-xs text-muted-foreground">Com telefone</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-amber-600">{apifyPreviewCount - apifyWithEmail}</div>
+                      <div className="text-xs text-muted-foreground">Sem email</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Import button */}
+            <Button onClick={handleImport} disabled={loading || !canImport} className="w-full" size="lg">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? 'Importando...' : 'Importar Leads'}
             </Button>
           </CardContent>
         </Card>
 
+        {/* Result card */}
         {result && (
           <Card className={result.failedCount === 0 ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}>
             <CardHeader>
@@ -287,7 +442,7 @@ export default function LeadsImportPage() {
                   <div className="text-sm text-muted-foreground">Sucesso</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-red-600">{result.failedCount}</div>
+                  <div className="text-red-600 text-2xl font-bold">{result.failedCount}</div>
                   <div className="text-sm text-muted-foreground">Erros</div>
                 </div>
               </div>
@@ -309,7 +464,7 @@ export default function LeadsImportPage() {
 
               {result.successCount > 0 && (
                 <p className="text-sm text-green-700 font-medium">
-                  ✅ {result.successCount} lead(s) importado(s) com sucesso! Redirecionando...
+                  ✅ {result.successCount} lead(s) importado(s) com sucesso! Redirecionando para Leads...
                 </p>
               )}
             </CardContent>
