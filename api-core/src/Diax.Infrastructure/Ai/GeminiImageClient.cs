@@ -117,15 +117,16 @@ public class GeminiImageClient : IAiImageGenerationClient
 
         if (!string.IsNullOrWhiteSpace(referenceImageBase64))
         {
+            var mimeType = DetectMimeTypeFromBase64(referenceImageBase64);
             parts.Add(new
             {
                 inline_data = new
                 {
-                    mime_type = "image/png",
+                    mime_type = mimeType,
                     data = referenceImageBase64
                 }
             });
-            _logger.LogInformation("[Gemini Flash] Image-to-image mode: reference image included");
+            _logger.LogInformation("[Gemini Flash] Image-to-image mode: reference image included (mime: {MimeType})", mimeType);
         }
 
         var payload = new
@@ -156,8 +157,10 @@ public class GeminiImageClient : IAiImageGenerationClient
         {
             _logger.LogWarning("[Gemini Flash] API error {StatusCode}: {Body}",
                 (int)response.StatusCode, responseBody);
+
+            var detail = ExtractGeminiErrorDetail(responseBody);
             throw new InvalidOperationException(
-                $"Falha na geração de imagem via Gemini Flash. Status: {(int)response.StatusCode}");
+                $"Falha na geração de imagem via Gemini Flash. Status: {(int)response.StatusCode}. {detail}");
         }
 
         return ParseGeminiFlashResponse(responseBody);
@@ -242,5 +245,44 @@ public class GeminiImageClient : IAiImageGenerationClient
         if (width == height) return "1:1";
         if (width > height) return "16:9";
         return "9:16";
+    }
+
+    /// <summary>
+    /// Detects the MIME type of an image from its base64-encoded content
+    /// by inspecting the first few bytes (magic bytes).
+    /// </summary>
+    private static string DetectMimeTypeFromBase64(string base64)
+    {
+        // JPEG: starts with /9j (FFD8FF)
+        if (base64.StartsWith("/9j", StringComparison.Ordinal)) return "image/jpeg";
+        // PNG: starts with iVBOR (89504E47)
+        if (base64.StartsWith("iVBOR", StringComparison.Ordinal)) return "image/png";
+        // WEBP: starts with UklGR
+        if (base64.StartsWith("UklGR", StringComparison.Ordinal)) return "image/webp";
+        // GIF: starts with R0lGOD
+        if (base64.StartsWith("R0lGOD", StringComparison.Ordinal)) return "image/gif";
+        return "image/png"; // safe default
+    }
+
+    /// <summary>
+    /// Attempts to extract a human-readable error message from a Gemini API error response body.
+    /// </summary>
+    private static string ExtractGeminiErrorDetail(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            if (doc.RootElement.TryGetProperty("error", out var errorObj) &&
+                errorObj.TryGetProperty("message", out var msg))
+            {
+                var text = msg.GetString() ?? string.Empty;
+                return text.Length > 300 ? text[..300] : text;
+            }
+        }
+        catch
+        {
+            // ignore parse errors
+        }
+        return responseBody.Length > 300 ? responseBody[..300] : responseBody;
     }
 }

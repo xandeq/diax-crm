@@ -49,8 +49,12 @@ public class AiModel : AuditableEntity
         "imagen-3.0-fast-generate-001",
         "gemini-2.0-flash-exp-image-generation",
         "gemini-2.0-flash-preview-image-generation",
-        "gemini-2.5-flash-preview-image-generation",   // Nano Banana (2.5 Flash image gen)
-        "gemini-2.5-flash-image-generation",            // Nano Banana (alternate naming)
+        // Gemini 2.5 Flash image gen — use the actual Gemini API model IDs below.
+        // The :generateContent endpoint accepts these with responseModalities: ["IMAGE"]
+        "gemini-2.5-flash-preview-image-generation",   // if/when Google releases this exact ID
+        "gemini-2.5-flash-image-generation",            // alternate naming
+        "gemini-2.5-flash",                             // base 2.5 Flash (supports image gen via responseModalities)
+        "gemini-2.5-flash-preview-04-17",               // dated preview release
 
         // OpenRouter — FLUX family
         "black-forest-labs/flux-1.1-pro",
