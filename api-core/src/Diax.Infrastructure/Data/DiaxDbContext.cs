@@ -1,3 +1,4 @@
+using Diax.Domain.Ads;
 using Diax.Domain.Audit;
 using Diax.Domain.Common;
 using Diax.Domain.Auth;
@@ -108,6 +109,9 @@ public class DiaxDbContext : DbContext
     // Outreach
     public DbSet<OutreachConfig> OutreachConfigs => Set<OutreachConfig>();
 
+    // Facebook Ads
+    public DbSet<FacebookAdAccount> FacebookAdAccounts => Set<FacebookAdAccount>();
+
     // Financial Planner
     public DbSet<FinancialGoal> FinancialGoals => Set<FinancialGoal>();
     public DbSet<RecurringTransaction> RecurringTransactions => Set<RecurringTransaction>();
@@ -189,6 +193,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<TransactionCategory>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<StatementImport>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<ImportedTransaction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<FacebookAdAccount>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.

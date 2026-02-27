@@ -1,6 +1,9 @@
+using Diax.Application.Ads;
+using Diax.Domain.Ads.Repositories;
 using Diax.Domain.Audit;
 using Diax.Domain.Auth;
 using Diax.Domain.Common;
+using Diax.Infrastructure.Ads;
 using Diax.Infrastructure.Data.Interceptors;
 using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Identity;
@@ -297,6 +300,11 @@ public static class DependencyInjection
         // ===== WHATSAPP (EVOLUTION API) =====
         services.Configure<EvolutionApiSettings>(configuration.GetSection("EvolutionApi"));
         services.AddHttpClient<IWhatsAppSender, EvolutionApiClient>();
+
+        // ===== FACEBOOK ADS (GRAPH API) =====
+        services.AddScoped<IFacebookAdAccountRepository, FacebookAdAccountRepository>();
+        services.AddHttpClient<FacebookGraphApiClient>();
+        services.AddScoped<IFacebookAdsService, FacebookAdsService>();
 
         return services;
     }

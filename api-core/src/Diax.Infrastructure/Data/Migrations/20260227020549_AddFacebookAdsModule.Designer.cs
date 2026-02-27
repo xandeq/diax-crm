@@ -4,6 +4,7 @@ using Diax.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Diax.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(DiaxDbContext))]
-    partial class DiaxDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260227020549_AddFacebookAdsModule")]
+    partial class AddFacebookAdsModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -338,8 +341,8 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.Property<string>("AccessToken")
                         .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("access_token");
 
                     b.Property<string>("AccountName")
@@ -350,14 +353,14 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.Property<string>("AccountStatus")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("account_status");
 
                     b.Property<string>("AdAccountId")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("ad_account_id");
 
                     b.Property<DateTime>("CreatedAt")
@@ -371,8 +374,8 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("currency");
 
                     b.Property<bool>("IsActive")
@@ -385,8 +388,8 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.Property<string>("Timezone")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("timezone");
 
                     b.Property<DateTime?>("UpdatedAt")
