@@ -34,6 +34,44 @@ public class CustomersController : BaseApiController
     }
 
     /// <summary>
+    /// [DEBUG] Endpoint de diagnóstico para testar query básica.
+    /// </summary>
+    [HttpGet("debug")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Debug(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("DEBUG: Iniciando diagnóstico");
+
+            // Test 1: Count without loading data
+            _logger.LogInformation("DEBUG: Test 1 - Count");
+            var count = await _customerService.CountAsync(cancellationToken);
+            _logger.LogInformation("DEBUG: Count = {Count}", count);
+
+            // Test 2: Get first customer (if any)
+            _logger.LogInformation("DEBUG: Test 2 - GetFirst");
+            var first = await _customerService.GetFirstAsync(cancellationToken);
+            _logger.LogInformation("DEBUG: First customer ID = {Id}", first?.Id);
+
+            return Ok(new {
+                count,
+                firstCustomerId = first?.Id,
+                firstCustomerEmail = first?.Email ?? "NULL"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DEBUG: Erro durante diagnóstico");
+            return Ok(new {
+                error = ex.Message,
+                innerError = ex.InnerException?.Message,
+                stackTrace = ex.StackTrace
+            });
+        }
+    }
+
+    /// <summary>
     /// Lista customers/leads com paginação e filtros.
     /// </summary>
     /// <param name="request">Parâmetros de filtro e paginação</param>

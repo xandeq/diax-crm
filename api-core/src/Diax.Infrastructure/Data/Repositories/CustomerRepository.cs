@@ -182,4 +182,16 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
 
         return (items, totalCount);
     }
+
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet.CountAsync(cancellationToken);
+    }
+
+    public async Task<Customer?> GetFirstAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 }

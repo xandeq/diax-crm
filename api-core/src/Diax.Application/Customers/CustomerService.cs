@@ -29,6 +29,23 @@ public class CustomerService : IApplicationService
     }
 
     /// <summary>
+    /// [DEBUG] Conta total de customers sem carregar dados.
+    /// </summary>
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _repository.CountAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// [DEBUG] Obtém o primeiro customer (para diagnóstico).
+    /// </summary>
+    public async Task<CustomerResponse?> GetFirstAsync(CancellationToken cancellationToken = default)
+    {
+        var customer = await _repository.GetFirstAsync(cancellationToken);
+        return customer != null ? CustomerResponse.FromEntity(customer) : null;
+    }
+
+    /// <summary>
     /// Obtém um customer por ID.
     /// </summary>
     public async Task<Result<CustomerResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
