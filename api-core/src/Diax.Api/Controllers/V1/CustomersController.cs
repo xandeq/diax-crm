@@ -34,6 +34,25 @@ public class CustomersController : BaseApiController
     }
 
     /// <summary>
+    /// [DEBUG] Endpoint mais simples possível - não acessa banco de dados.
+    /// </summary>
+    [HttpGet("ping")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult Ping()
+    {
+        return Ok(new {
+            message = "Controller is working",
+            timestamp = DateTime.UtcNow,
+            services = new {
+                customerService = _customerService != null ? "OK" : "NULL",
+                importService = _importService != null ? "OK" : "NULL",
+                brevoStatsService = _brevoStatsService != null ? "OK" : "NULL",
+                logger = _logger != null ? "OK" : "NULL"
+            }
+        });
+    }
+
+    /// <summary>
     /// [DEBUG] Endpoint de diagnóstico para testar query básica.
     /// </summary>
     [HttpGet("debug")]
