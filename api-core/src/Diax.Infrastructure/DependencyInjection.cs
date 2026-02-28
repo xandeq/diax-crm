@@ -289,6 +289,10 @@ public static class DependencyInjection
         {
             services.AddHttpClient<BrevoEmailSender>();
             services.AddScoped<IEmailSender, BrevoEmailSender>();
+
+            // Brevo Contact Stats Service (para analytics por contato)
+            services.AddHttpClient<IBrevoContactStatsService, BrevoContactStatsService>();
+            services.AddScoped<IBrevoContactStatsService, BrevoContactStatsService>();
         }
         else
         {

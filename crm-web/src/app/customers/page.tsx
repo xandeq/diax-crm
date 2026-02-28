@@ -1,6 +1,8 @@
 'use client';
 
 import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
+import { EmailTimeline } from '@/components/EmailTimeline';
+import { EngagementBadge } from '@/components/EngagementBadge';
 import {
   Avatar,
   ChannelIcons,
@@ -17,6 +19,7 @@ import {
 import { TableActions } from '@/components/data-table/TableActions';
 import { LeadTimeline } from '@/components/customers/LeadTimeline';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -436,6 +439,17 @@ export default function CustomersPage() {
             hasWhatsApp={!!(row.whatsApp || row.phone)}
             emailOptOut={row.emailOptOut}
             whatsAppOptOut={row.whatsAppOptOut}
+          />
+        ),
+      },
+      {
+        id: 'engagement',
+        header: 'Engajamento',
+        cell: (row) => (
+          <EngagementBadge
+            customerId={row.id}
+            hasEmail={!!row.email && !row.emailOptOut}
+            compact={true}
           />
         ),
       },
@@ -914,9 +928,9 @@ export default function CustomersPage() {
           if (!open) setTimelineCustomer(null);
         }}
       >
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader className="mb-4">
-            <SheetTitle>Histórico de Atividades</SheetTitle>
+            <SheetTitle>Histórico do Cliente</SheetTitle>
             {timelineCustomer && (
               <div className="flex items-center gap-3 mt-2">
                 <Avatar name={timelineCustomer.name} size="sm" />
@@ -931,7 +945,20 @@ export default function CustomersPage() {
               </div>
             )}
           </SheetHeader>
-          {timelineCustomer && <LeadTimeline customerId={timelineCustomer.id} />}
+          {timelineCustomer && (
+            <Tabs defaultValue="activities" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="activities">Atividades</TabsTrigger>
+                <TabsTrigger value="emails">Histórico de Emails</TabsTrigger>
+              </TabsList>
+              <TabsContent value="activities" className="mt-4">
+                <LeadTimeline customerId={timelineCustomer.id} />
+              </TabsContent>
+              <TabsContent value="emails" className="mt-4">
+                <EmailTimeline customerId={timelineCustomer.id} days={90} />
+              </TabsContent>
+            </Tabs>
+          )}
         </SheetContent>
       </Sheet>
     </div>

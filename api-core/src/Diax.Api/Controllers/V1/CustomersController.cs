@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Diax.Application.Common;
 using Diax.Application.Customers;
 using Diax.Application.Customers.Dtos;
+using Diax.Infrastructure.Email;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Diax.Api.Controllers.V1;
@@ -17,15 +18,18 @@ public class CustomersController : BaseApiController
 {
     private readonly CustomerService _customerService;
     private readonly CustomerImportService _importService;
+    private readonly IBrevoContactStatsService? _brevoStatsService;
     private readonly ILogger<CustomersController> _logger;
 
     public CustomersController(
         CustomerService customerService,
         CustomerImportService importService,
-        ILogger<CustomersController> logger)
+        ILogger<CustomersController> logger,
+        IBrevoContactStatsService? brevoStatsService = null)
     {
         _customerService = customerService;
         _importService = importService;
+        _brevoStatsService = brevoStatsService;
         _logger = logger;
     }
 
@@ -227,6 +231,104 @@ public class CustomersController : BaseApiController
         var result = await _customerService.GetActivitiesAsync(id, cancellationToken);
 
         return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Obtém estatísticas de email do contato via API do Brevo (com cache de 24h).
+    /// </summary>
+    /// <param name="id">ID do customer</param>
+    /// <param name="cancellationToken">Token de cancelamento</param>
+    /// <returns>Estatísticas agregadas de email (sent, opened, clicked, bounced, etc)</returns>
+    [HttpGet("{id:guid}/email-stats")]
+    [ProducesResponseType(typeof(ContactEmailStatsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetEmailStats(Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Buscando estatísticas de email do customer: {Id}", id);
+
+        if (_brevoStatsService == null)
+        {
+            _logger.LogWarning("Brevo stats service não está disponível (API key não configurada)");
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { message = "Email stats service not available. Check Brevo API configuration." });
+        }
+
+        // Get customer to retrieve email
+        var customerResult = await _customerService.GetByIdAsync(id, cancellationToken);
+        if (customerResult.IsFailure)
+            return HandleResult(customerResult);
+
+        var customer = customerResult.Value;
+        if (string.IsNullOrWhiteSpace(customer.Email))
+        {
+            _logger.LogDebug("Customer {Id} não possui email cadastrado", id);
+            return Ok(new ContactEmailStatsResponse { Email = string.Empty });
+        }
+
+        var stats = await _brevoStatsService.GetContactStatsAsync(customer.Email, cancellationToken);
+
+        if (stats == null)
+        {
+            _logger.LogWarning("Falha ao obter estatísticas de email para {Email}", customer.Email);
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { message = "Failed to fetch email stats from Brevo API" });
+        }
+
+        return Ok(stats);
+    }
+
+    /// <summary>
+    /// Obtém timeline de eventos de email do contato via API do Brevo (com cache de 24h).
+    /// </summary>
+    /// <param name="id">ID do customer</param>
+    /// <param name="days">Número de dias para buscar no histórico (padrão: 30)</param>
+    /// <param name="cancellationToken">Token de cancelamento</param>
+    /// <returns>Timeline de eventos de email (sent, delivered, opened, clicked, bounced, etc)</returns>
+    [HttpGet("{id:guid}/email-timeline")]
+    [ProducesResponseType(typeof(EmailTimelineResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetEmailTimeline(
+        Guid id,
+        [FromQuery] int days = 30,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Buscando timeline de email do customer: {Id} (últimos {Days} dias)", id, days);
+
+        if (_brevoStatsService == null)
+        {
+            _logger.LogWarning("Brevo stats service não está disponível (API key não configurada)");
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { message = "Email timeline service not available. Check Brevo API configuration." });
+        }
+
+        // Get customer to retrieve email
+        var customerResult = await _customerService.GetByIdAsync(id, cancellationToken);
+        if (customerResult.IsFailure)
+            return HandleResult(customerResult);
+
+        var customer = customerResult.Value;
+        if (string.IsNullOrWhiteSpace(customer.Email))
+        {
+            _logger.LogDebug("Customer {Id} não possui email cadastrado", id);
+            return Ok(new EmailTimelineResponse { Email = string.Empty });
+        }
+
+        var timeline = await _brevoStatsService.GetContactEmailTimelineAsync(customer.Email, days, cancellationToken);
+
+        if (timeline == null)
+        {
+            _logger.LogWarning("Falha ao obter timeline de email para {Email}", customer.Email);
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new { message = "Failed to fetch email timeline from Brevo API" });
+        }
+
+        return Ok(timeline);
     }
 
     /// <summary>
