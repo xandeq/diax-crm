@@ -18,18 +18,18 @@ public class CustomersController : BaseApiController
 {
     private readonly CustomerService _customerService;
     private readonly CustomerImportService _importService;
-    private readonly IBrevoContactStatsService? _brevoStatsService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<CustomersController> _logger;
 
     public CustomersController(
         CustomerService customerService,
         CustomerImportService importService,
-        ILogger<CustomersController> logger,
-        IBrevoContactStatsService? brevoStatsService)
+        IServiceProvider serviceProvider,
+        ILogger<CustomersController> logger)
     {
         _customerService = customerService;
         _importService = importService;
-        _brevoStatsService = brevoStatsService;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -304,7 +304,8 @@ public class CustomersController : BaseApiController
     {
         _logger.LogInformation("Buscando estatísticas de email do customer: {Id}", id);
 
-        if (_brevoStatsService == null)
+        var brevoStatsService = _serviceProvider.GetService<IBrevoContactStatsService>();
+        if (brevoStatsService == null)
         {
             _logger.LogWarning("Brevo stats service não está disponível (API key não configurada)");
             return StatusCode(
@@ -324,7 +325,7 @@ public class CustomersController : BaseApiController
             return Ok(new ContactEmailStatsResponse { Email = string.Empty });
         }
 
-        var stats = await _brevoStatsService.GetContactStatsAsync(customer.Email, cancellationToken);
+        var stats = await brevoStatsService.GetContactStatsAsync(customer.Email, cancellationToken);
 
         if (stats == null)
         {
@@ -355,7 +356,8 @@ public class CustomersController : BaseApiController
     {
         _logger.LogInformation("Buscando timeline de email do customer: {Id} (últimos {Days} dias)", id, days);
 
-        if (_brevoStatsService == null)
+        var brevoStatsService = _serviceProvider.GetService<IBrevoContactStatsService>();
+        if (brevoStatsService == null)
         {
             _logger.LogWarning("Brevo stats service não está disponível (API key não configurada)");
             return StatusCode(
@@ -375,7 +377,7 @@ public class CustomersController : BaseApiController
             return Ok(new EmailTimelineResponse { Email = string.Empty });
         }
 
-        var timeline = await _brevoStatsService.GetContactEmailTimelineAsync(customer.Email, days, cancellationToken);
+        var timeline = await brevoStatsService.GetContactEmailTimelineAsync(customer.Email, days, cancellationToken);
 
         if (timeline == null)
         {
