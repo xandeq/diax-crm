@@ -10,7 +10,7 @@ export function Header() {
 
   if (isLoading) {
     return (
-      <header className="flex justify-between items-center mb-4 py-4 border-b border-slate-100">
+      <header className="relative z-50 flex justify-between items-center mb-4 py-4 border-b border-slate-100 bg-white">
         <div className="w-[150px]">
           <Logo variant="full" />
         </div>
@@ -22,11 +22,11 @@ export function Header() {
   }
 
   return (
-    <header className="flex justify-between items-center mb-4 py-4 border-b border-slate-100">
+    <header className="relative z-50 flex justify-between items-center mb-4 py-4 border-b border-slate-100 bg-white">
       <Link href="/" className="hover:opacity-80 transition-opacity">
         <Logo variant="full" />
       </Link>
-      <nav className="flex gap-4 items-center text-sm font-medium text-slate-600">
+      <nav className="flex gap-4 items-center text-sm font-medium text-slate-600 overflow-visible">
         <Link href="/" className="hover:text-slate-900">Início</Link>
 
         {isAuthenticated && (
@@ -95,7 +95,7 @@ export function Header() {
               </button>
               <div
                 role="menu"
-                className="absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"
+                className="absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
               >
                 <Link
                   href="/tools/html-extractor"
