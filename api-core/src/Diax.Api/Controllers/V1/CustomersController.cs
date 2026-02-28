@@ -25,7 +25,7 @@ public class CustomersController : BaseApiController
         CustomerService customerService,
         CustomerImportService importService,
         ILogger<CustomersController> logger,
-        IBrevoContactStatsService? brevoStatsService = null)
+        IBrevoContactStatsService? brevoStatsService)
     {
         _customerService = customerService;
         _importService = importService;
