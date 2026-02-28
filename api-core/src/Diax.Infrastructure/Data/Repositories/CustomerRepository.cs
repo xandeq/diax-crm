@@ -132,16 +132,16 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         if (hasEmail.HasValue)
         {
             query = hasEmail.Value
-                ? query.Where(c => c.Email != null && c.Email != "")
-                : query.Where(c => c.Email == null || c.Email == "");
+                ? query.Where(c => !string.IsNullOrEmpty(c.Email))
+                : query.Where(c => string.IsNullOrEmpty(c.Email));
         }
 
         // Filtro: possui WhatsApp
         if (hasWhatsApp.HasValue)
         {
             query = hasWhatsApp.Value
-                ? query.Where(c => c.WhatsApp != null && c.WhatsApp != "")
-                : query.Where(c => c.WhatsApp == null || c.WhatsApp == "");
+                ? query.Where(c => !string.IsNullOrEmpty(c.WhatsApp))
+                : query.Where(c => string.IsNullOrEmpty(c.WhatsApp));
         }
 
         // Filtro: tipo de pessoa

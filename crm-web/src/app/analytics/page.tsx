@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
     setIsLoading(true);
     try {
       const data = await apiFetch<AnalyticsSummary>(
-        `/api/v1/email-campaigns/analytics?days=${days}`
+        `/email-campaigns/analytics?days=${days}`
       );
       setAnalytics(data);
     } catch (error) {
