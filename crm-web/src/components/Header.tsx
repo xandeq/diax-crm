@@ -204,6 +204,13 @@ export function Header() {
                   ✉️ Email Marketing
                 </Link>
                 <Link
+                  href="/analytics"
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  role="menuitem"
+                >
+                  📊 Analytics
+                </Link>
+                <Link
                   href="/leads/import"
                   className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                   role="menuitem"

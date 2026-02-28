@@ -18,6 +18,10 @@ public class EmailCampaign : AuditableEntity
     public int SentCount { get; private set; }
     public int FailedCount { get; private set; }
     public int OpenCount { get; private set; }
+    public int ClickCount { get; private set; }
+    public int DeliveredCount { get; private set; }
+    public int BounceCount { get; private set; }
+    public int UnsubscribeCount { get; private set; }
 
     protected EmailCampaign() { }
 
@@ -106,6 +110,26 @@ public class EmailCampaign : AuditableEntity
     public void IncrementOpened()
     {
         OpenCount++;
+    }
+
+    public void IncrementClick()
+    {
+        ClickCount++;
+    }
+
+    public void IncrementDelivered()
+    {
+        DeliveredCount++;
+    }
+
+    public void IncrementBounce()
+    {
+        BounceCount++;
+    }
+
+    public void IncrementUnsubscribe()
+    {
+        UnsubscribeCount++;
     }
 
     private void CheckCompletion()

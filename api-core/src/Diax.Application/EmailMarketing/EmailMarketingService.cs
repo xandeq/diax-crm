@@ -705,4 +705,76 @@ public class EmailMarketingService : IApplicationService
         var attachmentsJson = JsonSerializer.Serialize(normalized);
         return Result.Success<string?>(attachmentsJson);
     }
+
+    public async Task<Result<EmailAnalyticsSummaryResponse>> GetAnalyticsSummaryAsync(
+        int days,
+        CancellationToken cancellationToken = default)
+    {
+        if (_currentUserService.UserId is null)
+        {
+            return Result.Failure<EmailAnalyticsSummaryResponse>(
+                Error.Unauthorized("Usuário não autenticado."));
+        }
+
+        var cutoffDate = DateTime.UtcNow.AddDays(-days);
+
+        // Get recent campaigns for current user
+        var allCampaigns = await _emailCampaignRepository.FindAsync(
+            c => c.UserId == _currentUserService.UserId.Value && c.CreatedAt >= cutoffDate,
+            cancellationToken);
+
+        var campaigns = allCampaigns.OrderByDescending(c => c.CreatedAt).ToList();
+
+        // Calculate overall stats
+        var overallStats = new OverallStatsDto
+        {
+            TotalCampaigns = campaigns.Count,
+            TotalEmailsSent = campaigns.Sum(c => c.SentCount),
+            TotalDelivered = campaigns.Sum(c => c.DeliveredCount),
+            TotalOpened = campaigns.Sum(c => c.OpenCount),
+            TotalClicks = campaigns.Sum(c => c.ClickCount),
+            TotalBounces = campaigns.Sum(c => c.BounceCount),
+            TotalUnsubscribes = campaigns.Sum(c => c.UnsubscribeCount),
+        };
+
+        // Map campaigns to DTOs
+        var campaignStats = campaigns.Select(c => new CampaignStatsDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Subject = c.Subject,
+            CreatedAt = c.CreatedAt,
+            TotalRecipients = c.TotalRecipients,
+            SentCount = c.SentCount,
+            DeliveredCount = c.DeliveredCount,
+            OpenCount = c.OpenCount,
+            ClickCount = c.ClickCount,
+            BounceCount = c.BounceCount,
+            UnsubscribeCount = c.UnsubscribeCount,
+            FailedCount = c.FailedCount,
+        }).ToList();
+
+        // Calculate daily engagement trend
+        var engagementTrend = new EngagementTrendDto
+        {
+            DailyData = campaigns
+                .GroupBy(c => c.CreatedAt.Date)
+                .Select(g => new DailyEngagementDto
+                {
+                    Date = g.Key,
+                    Sent = g.Sum(c => c.SentCount),
+                    Opened = g.Sum(c => c.OpenCount),
+                    Clicked = g.Sum(c => c.ClickCount),
+                })
+                .OrderBy(d => d.Date)
+                .ToList()
+        };
+
+        return new EmailAnalyticsSummaryResponse
+        {
+            OverallStats = overallStats,
+            RecentCampaigns = campaignStats,
+            EngagementTrend = engagementTrend,
+        };
+    }
 }

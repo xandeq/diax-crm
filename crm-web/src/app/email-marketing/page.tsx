@@ -32,6 +32,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { compressImage, formatCompressionRatio } from '@/lib/image-compression';
 
 const SEGMENT_LABELS: Record<number, string> = { 0: 'Cold', 1: 'Warm', 2: 'Hot' };
 const SEGMENT_COLORS: Record<number, string> = {
@@ -83,8 +84,17 @@ export default function EmailMarketingPage() {
   // Image upload
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  interface UploadedImage { dataUri: string; name: string; sizeKb: number }
+  interface UploadedImage {
+    id: string;
+    dataUri: string;
+    name: string;
+    originalSizeKb: number;
+    compressedSizeKb: number;
+    width: number;
+    height: number;
+  }
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [compressing, setCompressing] = useState(false);
 
   const loadContacts = useCallback(async () => {
     setLoading(true);
@@ -159,40 +169,101 @@ export default function EmailMarketingPage() {
     insertAtCursor(variable);
   };
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /** Renderiza variáveis com dados reais do primeiro contato selecionado */
+  const renderPreview = (template: string): string => {
+    // Se não tem contatos selecionados, usa dados mock
+    const selectedContacts = contacts.filter(c => selectedIds.has(c.id));
+    const firstContact = selectedContacts[0];
+
+    const variables: Record<string, string> = {
+      nome: firstContact?.name || 'Cliente',
+      firstName: firstContact?.name?.split(' ')[0] || 'Cliente',
+      empresa: firstContact?.companyName || 'sua empresa',
+      company: firstContact?.companyName || 'sua empresa',
+      companyName: firstContact?.companyName || 'sua empresa',
+      email: firstContact?.email || 'cliente@exemplo.com',
+      website: firstContact?.website || '',
+      leadStatus: firstContact ? STATUS_LABELS[firstContact.status] || 'Lead' : 'Lead',
+    };
+
+    // Substitui variáveis (case-insensitive)
+    let rendered = template;
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
+      rendered = rendered.replace(regex, value);
+    });
+
+    return rendered;
+  };
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
 
-    files.forEach(file => {
-      const sizeKb = Math.round(file.size / 1024);
-      if (sizeKb > 600) {
-        toast.warning(`"${file.name}" tem ${sizeKb} KB. Imagens grandes aumentam o tamanho do email e podem ser bloqueadas. Recomendamos até 600 KB.`);
-      }
+    setCompressing(true);
 
-      const reader = new FileReader();
-      reader.onload = ev => {
-        const dataUri = ev.target?.result as string;
-        if (!dataUri) return;
+    try {
+      for (const file of files) {
+        const originalSizeKb = Math.round(file.size / 1024);
 
-        // Registra na lista de imagens enviadas
-        setUploadedImages(prev => [...prev, { dataUri, name: file.name, sizeKb }]);
+        // Comprime a imagem
+        const compressed = await compressImage(file, {
+          maxWidthOrHeight: 1200,
+          maxSizeKB: 300,
+          quality: 0.85,
+        });
 
-        // Insere a tag <img> na posição do cursor
-        const imgTag = `\n<img src="${dataUri}" alt="${file.name}" style="max-width:100%; height:auto; display:block; margin:8px 0;" />\n`;
+        // Gera ID único para a imagem
+        const imageId = `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+        // Registra na lista de imagens
+        setUploadedImages(prev => [
+          ...prev,
+          {
+            id: imageId,
+            dataUri: compressed.dataUrl,
+            name: file.name,
+            originalSizeKb: compressed.originalSizeKB,
+            compressedSizeKb: compressed.compressedSizeKB,
+            width: compressed.width,
+            height: compressed.height,
+          },
+        ]);
+
+        // Insere a tag <img> com ID único
+        const imgTag = `\n<img id="${imageId}" src="${compressed.dataUrl}" alt="${file.name}" style="max-width:100%; height:auto; display:block; margin:8px 0;" />\n`;
         insertAtCursor(imgTag);
-      };
-      reader.readAsDataURL(file);
-    });
 
-    // Limpa o input para permitir reenviar o mesmo arquivo
-    e.target.value = '';
+        // Notifica resultado da compressão
+        if (compressed.compressionRatio < 0.9) {
+          toast.success(
+            `"${file.name}" comprimida: ${compressed.originalSizeKB} KB → ${compressed.compressedSizeKB} KB (${formatCompressionRatio(compressed.compressionRatio)})`
+          );
+        } else if (compressed.compressedSizeKB > 400) {
+          toast.warning(
+            `"${file.name}" ainda está grande (${compressed.compressedSizeKB} KB). Considere usar uma imagem menor.`
+          );
+        }
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao processar imagem: ${error.message}`);
+    } finally {
+      setCompressing(false);
+      // Limpa o input para permitir reenviar o mesmo arquivo
+      e.target.value = '';
+    }
   };
 
   const removeImage = (idx: number) => {
     const img = uploadedImages[idx];
     setUploadedImages(prev => prev.filter((_, i) => i !== idx));
-    // Remove a tag do corpo substituindo o src exato
-    setHtmlBody(prev => prev.replace(new RegExp(`<img[^>]*src="${img.dataUri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*\\s*/?>`, 'g'), ''));
+
+    // Remove a tag do corpo usando o ID único (muito mais preciso e rápido!)
+    setHtmlBody(prev => {
+      // Regex para encontrar tag <img> com o ID específico
+      const regex = new RegExp(`<img[^>]*id="${img.id}"[^>]*\\s*/?>\\n?`, 'g');
+      return prev.replace(regex, '');
+    });
   };
 
   const handleSend = async () => {
@@ -408,6 +479,12 @@ export default function EmailMarketingPage() {
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
               />
+              {showPreview && subject && (
+                <div className="text-xs">
+                  <span className="text-muted-foreground">Preview: </span>
+                  <span className="font-medium">{renderPreview(subject)}</span>
+                </div>
+              )}
             </div>
 
             {/* Variable tokens + image upload */}
@@ -452,20 +529,24 @@ export default function EmailMarketingPage() {
               {uploadedImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 rounded-md border bg-muted/30 p-2">
                   {uploadedImages.map((img, idx) => (
-                    <div key={idx} className="relative group">
+                    <div key={img.id} className="relative group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={img.dataUri}
                         alt={img.name}
                         className="h-14 w-14 rounded object-cover border"
+                        title={`${img.name}\n${img.width}×${img.height}px\nOriginal: ${img.originalSizeKb} KB\nComprimida: ${img.compressedSizeKb} KB`}
                       />
-                      <div className="absolute bottom-0 left-0 right-0 rounded-b bg-black/60 px-1 py-0.5 text-[9px] text-white truncate">
-                        {img.sizeKb} KB
+                      <div className="absolute bottom-0 left-0 right-0 rounded-b bg-black/70 px-1 py-0.5 text-[9px] text-white truncate">
+                        {img.compressedSizeKb} KB
+                        {img.originalSizeKb !== img.compressedSizeKb && (
+                          <span className="text-green-300"> ↓</span>
+                        )}
                       </div>
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
+                        className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
                         title="Remover imagem"
                       >
                         <Trash2 className="h-2.5 w-2.5" />
@@ -473,7 +554,8 @@ export default function EmailMarketingPage() {
                     </div>
                   ))}
                   <p className="w-full text-[10px] text-muted-foreground">
-                    Imagens incorporadas via base64 (funciona em Outlook, Apple Mail e maioria dos clientes de email).
+                    ✨ Imagens automaticamente comprimidas e incorporadas via base64 (compatível com todos os clientes de email).
+                    {compressing && <span className="ml-1 text-blue-600">Processando...</span>}
                   </p>
                 </div>
               )}
@@ -487,14 +569,33 @@ export default function EmailMarketingPage() {
                   onClick={() => setShowPreview(v => !v)}
                   className="flex items-center gap-1 text-xs text-primary hover:underline"
                 >
-                  {showPreview ? <><EyeOff className="h-3 w-3" /> Editar</> : <><Eye className="h-3 w-3" /> Preview</>}
+                  {showPreview ? <><EyeOff className="h-3 w-3" /> Editar</> : <><Eye className="h-3 w-3" /> Preview com dados reais</>}
                 </button>
               </div>
               {showPreview ? (
-                <div
-                  className="min-h-[220px] overflow-auto rounded-md border bg-white p-4 text-sm"
-                  dangerouslySetInnerHTML={{ __html: htmlBody }}
-                />
+                <div className="space-y-2">
+                  {/* Preview header info */}
+                  {(() => {
+                    const selectedContacts = contacts.filter(c => selectedIds.has(c.id));
+                    const firstContact = selectedContacts[0];
+                    return firstContact ? (
+                      <div className="rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">
+                        <strong>Preview renderizado com dados de:</strong> {firstContact.name}
+                        {firstContact.companyName && ` (${firstContact.companyName})`}
+                      </div>
+                    ) : (
+                      <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+                        Preview com dados fictícios. Selecione contatos para ver dados reais.
+                      </div>
+                    );
+                  })()}
+
+                  {/* Rendered preview */}
+                  <div
+                    className="min-h-[220px] max-h-[400px] overflow-auto rounded-md border bg-white p-4 text-sm"
+                    dangerouslySetInnerHTML={{ __html: renderPreview(htmlBody) }}
+                  />
+                </div>
               ) : (
                 <Textarea
                   ref={textareaRef}
@@ -506,7 +607,9 @@ export default function EmailMarketingPage() {
                 />
               )}
               <p className="text-xs text-muted-foreground">
-                HTML completo suportado. Use as variáveis acima para personalização por contato.
+                {showPreview
+                  ? '💡 Preview mostra como o email será exibido com variáveis substituídas e imagens renderizadas.'
+                  : 'HTML completo suportado. Use as variáveis acima para personalização por contato.'}
               </p>
             </div>
 

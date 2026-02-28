@@ -115,4 +115,16 @@ public class EmailCampaignsController : BaseApiController
         var result = await _emailMarketingService.GetQueueByCurrentUserAsync(page, pageSize, cancellationToken);
         return HandleResult(result);
     }
+
+    /// <summary>
+    /// Get analytics summary (recent campaigns with statistics)
+    /// </summary>
+    [HttpGet("analytics")]
+    public async Task<IActionResult> GetAnalytics(
+        [FromQuery] int days = 30,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _emailMarketingService.GetAnalyticsSummaryAsync(days, cancellationToken);
+        return HandleResult(result);
+    }
 }

@@ -49,6 +49,22 @@ public class EmailCampaignConfiguration : IEntityTypeConfiguration<EmailCampaign
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(c => c.ClickCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(c => c.DeliveredCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(c => c.BounceCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(c => c.UnsubscribeCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.Property(c => c.Status)
             .HasConversion<int>()
             .HasDefaultValue(EmailCampaignStatus.Draft);

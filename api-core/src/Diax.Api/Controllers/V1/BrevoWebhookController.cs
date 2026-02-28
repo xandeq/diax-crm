@@ -83,9 +83,7 @@ public class BrevoWebhookController : BaseApiController
                     break;
 
                 case "click":
-                    _logger.LogInformation(
-                        "Click event for email={Email}, messageId={MessageId}",
-                        payload.Email, payload.MessageId);
+                    await HandleClickAsync(payload, cancellationToken);
                     break;
 
                 case "hard_bounce":
@@ -135,6 +133,17 @@ public class BrevoWebhookController : BaseApiController
             return;
         }
 
+        // Increment delivered count for campaign if exists
+        if (queueItem.CampaignId.HasValue)
+        {
+            var campaign = await _emailCampaignRepository.GetByIdAsync(queueItem.CampaignId.Value, cancellationToken);
+            if (campaign != null)
+            {
+                campaign.IncrementDelivered();
+                await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+            }
+        }
+
         _logger.LogInformation(
             "Email delivered: QueueItemId={QueueItemId}, ProviderMessageId={MessageId}",
             queueItem.Id, payload.MessageId);
@@ -173,17 +182,53 @@ public class BrevoWebhookController : BaseApiController
         }
     }
 
+    private async Task HandleClickAsync(BrevoWebhookPayload payload, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation(
+            "Click event for email={Email}, messageId={MessageId}, tag={Tag}",
+            payload.Email, payload.MessageId, payload.Tag);
+
+        // Try to find campaign by tag
+        if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var campaignId))
+        {
+            var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId, cancellationToken);
+            if (campaign != null)
+            {
+                campaign.IncrementClick();
+                await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Click count incremented for CampaignId={CampaignId}, new ClickCount={ClickCount}",
+                    campaignId, campaign.ClickCount);
+            }
+        }
+    }
+
     private async Task HandleBounceAsync(BrevoWebhookPayload payload, CancellationToken cancellationToken)
     {
         _logger.LogWarning(
-            "Bounce event ({Event}) for email={Email}",
-            payload.Event, payload.Email);
+            "Bounce event ({Event}) for email={Email}, tag={Tag}",
+            payload.Event, payload.Email, payload.Tag);
+
+        // Increment bounce count for campaign if exists
+        if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var campaignId))
+        {
+            var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId, cancellationToken);
+            if (campaign != null)
+            {
+                campaign.IncrementBounce();
+                await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+            }
+        }
 
         // Hard bounces should opt-out the customer
         if (payload.Event.Equals("hard_bounce", StringComparison.OrdinalIgnoreCase))
         {
             await HandleOptOutAsync(payload, "hard_bounce", cancellationToken);
         }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     private async Task HandleOptOutAsync(
@@ -194,12 +239,24 @@ public class BrevoWebhookController : BaseApiController
         if (string.IsNullOrWhiteSpace(payload.Email))
             return;
 
+        // Increment unsubscribe count for campaign if exists
+        if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var campaignId))
+        {
+            var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId, cancellationToken);
+            if (campaign != null)
+            {
+                campaign.IncrementUnsubscribe();
+                await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+            }
+        }
+
         var customer = await _customerRepository.GetByEmailAsync(payload.Email, cancellationToken);
         if (customer == null)
         {
             _logger.LogDebug(
                 "No customer found for opt-out ({Reason}): email={Email}",
                 reason, payload.Email);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             return;
         }
 
@@ -218,6 +275,7 @@ public class BrevoWebhookController : BaseApiController
             _logger.LogDebug(
                 "Customer already opted out: CustomerId={CustomerId}, Email={Email}",
                 customer.Id, payload.Email);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 }

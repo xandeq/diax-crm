@@ -16,6 +16,10 @@ public class EmailCampaignResponse
     public int SentCount { get; set; }
     public int FailedCount { get; set; }
     public int OpenCount { get; set; }
+    public int ClickCount { get; set; }
+    public int DeliveredCount { get; set; }
+    public int BounceCount { get; set; }
+    public int UnsubscribeCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
@@ -34,6 +38,10 @@ public class EmailCampaignResponse
             SentCount = entity.SentCount,
             FailedCount = entity.FailedCount,
             OpenCount = entity.OpenCount,
+            ClickCount = entity.ClickCount,
+            DeliveredCount = entity.DeliveredCount,
+            BounceCount = entity.BounceCount,
+            UnsubscribeCount = entity.UnsubscribeCount,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt
         };
