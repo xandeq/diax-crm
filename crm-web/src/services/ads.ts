@@ -2,11 +2,24 @@ import { apiFetch } from './api';
 import type {
   AdAccountResponse,
   AdAccountSummary,
+  AdCreativeResponse,
+  AdSetWriteResponse,
+  AdWriteResponse,
+  CampaignWriteResponse,
   ConnectAdAccountRequest,
+  CreateAdCreativeRequest,
+  CreateAdRequest,
+  CreateAdSetRequest,
+  CreateCampaignRequest,
   FacebookAd,
   FacebookAdSet,
   FacebookCampaign,
   FacebookInsight,
+  UpdateAdSetBudgetRequest,
+  UpdateAdSetStatusRequest,
+  UpdateAdStatusRequest,
+  UpdateCampaignBudgetRequest,
+  UpdateCampaignStatusRequest,
 } from '@/types/ads';
 
 const BASE = '/ads';
@@ -75,4 +88,94 @@ export async function getInsights(params: InsightsParams = {}): Promise<Facebook
   if (params.level) q.set('level', params.level);
   const query = q.toString() ? `?${q.toString()}` : '';
   return apiFetch<FacebookInsight[]>(`${BASE}/insights${query}`);
+}
+
+// ===== Campaigns - Write =====
+
+export async function createCampaign(data: CreateCampaignRequest): Promise<CampaignWriteResponse> {
+  return apiFetch<CampaignWriteResponse>(`${BASE}/campaigns`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCampaignStatus(
+  campaignId: string,
+  data: UpdateCampaignStatusRequest
+): Promise<CampaignWriteResponse> {
+  return apiFetch<CampaignWriteResponse>(`${BASE}/campaigns/${campaignId}/status`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCampaignBudget(
+  campaignId: string,
+  data: UpdateCampaignBudgetRequest
+): Promise<CampaignWriteResponse> {
+  return apiFetch<CampaignWriteResponse>(`${BASE}/campaigns/${campaignId}/budget`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ===== Ad Sets - Write =====
+
+export async function createAdSet(data: CreateAdSetRequest): Promise<AdSetWriteResponse> {
+  return apiFetch<AdSetWriteResponse>(`${BASE}/adsets`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdSetStatus(
+  adSetId: string,
+  data: UpdateAdSetStatusRequest
+): Promise<AdSetWriteResponse> {
+  return apiFetch<AdSetWriteResponse>(`${BASE}/adsets/${adSetId}/status`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdSetBudget(
+  adSetId: string,
+  data: UpdateAdSetBudgetRequest
+): Promise<AdSetWriteResponse> {
+  return apiFetch<AdSetWriteResponse>(`${BASE}/adsets/${adSetId}/budget`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ===== Ads - Write =====
+
+export async function createAd(data: CreateAdRequest): Promise<AdWriteResponse> {
+  return apiFetch<AdWriteResponse>(`${BASE}/ads`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdStatus(
+  adId: string,
+  data: UpdateAdStatusRequest
+): Promise<AdWriteResponse> {
+  return apiFetch<AdWriteResponse>(`${BASE}/ads/${adId}/status`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ===== Ad Creatives =====
+
+export async function getCreatives(): Promise<AdCreativeResponse[]> {
+  return apiFetch<AdCreativeResponse[]>(`${BASE}/creatives`);
+}
+
+export async function createCreative(data: CreateAdCreativeRequest): Promise<AdCreativeResponse> {
+  return apiFetch<AdCreativeResponse>(`${BASE}/creatives`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
