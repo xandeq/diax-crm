@@ -103,3 +103,127 @@ public record AdAccountSummaryResponse(
     decimal TotalImpressions,
     decimal TotalClicks,
     double AverageCtr);
+
+// ===== Campaign Write =====
+
+public record CreateCampaignRequest(
+    string Name,
+    string Objective,
+    string Status,
+    string? DailyBudget,
+    string? LifetimeBudget,
+    DateTime? StartTime,
+    DateTime? StopTime);
+
+public record UpdateCampaignStatusRequest(string Status);
+
+public record UpdateCampaignBudgetRequest(
+    string? DailyBudget,
+    string? LifetimeBudget,
+    string? BidStrategy);
+
+public record CampaignWriteResponse(
+    string Id,
+    string Status,
+    string Name);
+
+// ===== Ad Set Write =====
+
+public record TargetingRequest(
+    List<string>? Countries,
+    List<string>? Regions,
+    int? AgeMin,
+    int? AgeMax,
+    List<int>? Genders,
+    List<long>? InterestIds,
+    List<long>? BehaviorIds,
+    List<string>? DevicePlatforms,
+    List<string>? FacebookPositions,
+    List<string>? InstagramPositions,
+    List<string>? CustomAudienceIds);
+
+public record CreateAdSetRequest(
+    string CampaignId,
+    string Name,
+    string Status,
+    string OptimizationGoal,
+    string BillingEvent,
+    string BidStrategy,
+    string? DailyBudget,
+    string? LifetimeBudget,
+    string? BidAmount,
+    TargetingRequest Targeting,
+    DateTime? StartTime,
+    DateTime? EndTime);
+
+public record UpdateAdSetStatusRequest(string Status);
+
+public record UpdateAdSetBudgetRequest(
+    string? DailyBudget,
+    string? LifetimeBudget,
+    string? BidAmount,
+    string? BidStrategy);
+
+public record AdSetWriteResponse(
+    string Id,
+    string Status,
+    string Name);
+
+// ===== Ad Write =====
+
+public record CreateAdRequest(
+    string AdSetId,
+    string Name,
+    string Status,
+    string CreativeId);
+
+public record UpdateAdStatusRequest(string Status);
+
+public record AdWriteResponse(
+    string Id,
+    string Status,
+    string Name);
+
+// ===== Ad Creative =====
+
+public record CreateAdCreativeRequest(
+    string Name,
+    string ObjectType,
+    string PageId,
+    string? Body,
+    string? Title,
+    string? CallToActionType,
+    string? LinkUrl,
+    string? ImageHash,
+    string? VideoId,
+    List<CarouselElementRequest>? CarouselElements);
+
+public record CarouselElementRequest(
+    string Title,
+    string? Description,
+    string ImageHash,
+    string LinkUrl,
+    string CallToActionType);
+
+public record AdCreativeResponse(
+    string Id,
+    string Name,
+    string ObjectType,
+    string Status,
+    string? ThumbnailUrl,
+    string? Body,
+    string? Title,
+    string? CallToActionType,
+    string? LinkUrl,
+    DateTime CreatedTime);
+
+// ===== Insights Enhanced =====
+
+public record UpdatedInsightsRequest(
+    string? DatePreset = "last_30d",
+    string? Since = null,
+    string? Until = null,
+    string Level = "campaign",
+    string? CampaignId = null,
+    string? AdSetId = null,
+    string? Breakdown = null);
