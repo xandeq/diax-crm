@@ -40,13 +40,14 @@ public class CustomersController : BaseApiController
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult Ping()
     {
+        var brevoStatsService = _serviceProvider.GetService<IBrevoContactStatsService>();
         return Ok(new {
             message = "Controller is working",
             timestamp = DateTime.UtcNow,
             services = new {
                 customerService = _customerService != null ? "OK" : "NULL",
                 importService = _importService != null ? "OK" : "NULL",
-                brevoStatsService = _brevoStatsService != null ? "OK" : "NULL",
+                brevoStatsService = brevoStatsService != null ? "OK" : "NULL",
                 logger = _logger != null ? "OK" : "NULL"
             }
         });
