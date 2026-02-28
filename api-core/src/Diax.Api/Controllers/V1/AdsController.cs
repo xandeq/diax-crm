@@ -193,4 +193,212 @@ public class AdsController : BaseApiController
         var result = await _adsService.GetInsightsAsync(userId.Value, request, ct);
         return HandleResult(result);
     }
+
+    // ===== CAMPAIGNS - WRITE =====
+
+    /// <summary>
+    /// Cria uma nova campanha no Facebook.
+    /// </summary>
+    [HttpPost("campaigns")]
+    [ProducesResponseType(typeof(CampaignWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateCampaign(
+        [FromBody] CreateCampaignRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} creating campaign {Name}", userId, request.Name);
+
+        var result = await _adsService.CreateCampaignAsync(userId.Value, request, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Atualiza o status de uma campanha (ACTIVE/PAUSED).
+    /// </summary>
+    [HttpPost("campaigns/{campaignId}/status")]
+    [ProducesResponseType(typeof(CampaignWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCampaignStatus(
+        [FromRoute] string campaignId,
+        [FromBody] UpdateCampaignStatusRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} updating campaign {CampaignId} status to {Status}", userId, campaignId, request.Status);
+
+        var result = await _adsService.UpdateCampaignStatusAsync(userId.Value, campaignId, request, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Atualiza o orçamento de uma campanha.
+    /// </summary>
+    [HttpPost("campaigns/{campaignId}/budget")]
+    [ProducesResponseType(typeof(CampaignWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCampaignBudget(
+        [FromRoute] string campaignId,
+        [FromBody] UpdateCampaignBudgetRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} updating campaign {CampaignId} budget", userId, campaignId);
+
+        var result = await _adsService.UpdateCampaignBudgetAsync(userId.Value, campaignId, request, ct);
+        return HandleResult(result);
+    }
+
+    // ===== AD SETS - WRITE =====
+
+    /// <summary>
+    /// Cria um novo ad set em uma campanha.
+    /// </summary>
+    [HttpPost("adsets")]
+    [ProducesResponseType(typeof(AdSetWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateAdSet(
+        [FromBody] CreateAdSetRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} creating ad set {Name}", userId, request.Name);
+
+        var result = await _adsService.CreateAdSetAsync(userId.Value, request, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Atualiza o status de um ad set (ACTIVE/PAUSED).
+    /// </summary>
+    [HttpPost("adsets/{adSetId}/status")]
+    [ProducesResponseType(typeof(AdSetWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateAdSetStatus(
+        [FromRoute] string adSetId,
+        [FromBody] UpdateAdSetStatusRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} updating ad set {AdSetId} status to {Status}", userId, adSetId, request.Status);
+
+        var result = await _adsService.UpdateAdSetStatusAsync(userId.Value, adSetId, request, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Atualiza o orçamento de um ad set.
+    /// </summary>
+    [HttpPost("adsets/{adSetId}/budget")]
+    [ProducesResponseType(typeof(AdSetWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateAdSetBudget(
+        [FromRoute] string adSetId,
+        [FromBody] UpdateAdSetBudgetRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} updating ad set {AdSetId} budget", userId, adSetId);
+
+        var result = await _adsService.UpdateAdSetBudgetAsync(userId.Value, adSetId, request, ct);
+        return HandleResult(result);
+    }
+
+    // ===== ADS - WRITE =====
+
+    /// <summary>
+    /// Cria um novo anúncio em um ad set.
+    /// </summary>
+    [HttpPost("ads")]
+    [ProducesResponseType(typeof(AdWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateAd(
+        [FromBody] CreateAdRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} creating ad {Name}", userId, request.Name);
+
+        var result = await _adsService.CreateAdAsync(userId.Value, request, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Atualiza o status de um anúncio (ACTIVE/PAUSED).
+    /// </summary>
+    [HttpPost("ads/{adId}/status")]
+    [ProducesResponseType(typeof(AdWriteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateAdStatus(
+        [FromRoute] string adId,
+        [FromBody] UpdateAdStatusRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} updating ad {AdId} status to {Status}", userId, adId, request.Status);
+
+        var result = await _adsService.UpdateAdStatusAsync(userId.Value, adId, request, ct);
+        return HandleResult(result);
+    }
+
+    // ===== AD CREATIVES =====
+
+    /// <summary>
+    /// Lista os criativos (ads creatives) da conta.
+    /// </summary>
+    [HttpGet("creatives")]
+    [ProducesResponseType(typeof(List<AdCreativeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCreatives(CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        var result = await _adsService.GetCreativesAsync(userId.Value, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Cria um novo criativo (ads creative) na conta.
+    /// </summary>
+    [HttpPost("creatives")]
+    [ProducesResponseType(typeof(AdCreativeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateCreative(
+        [FromBody] CreateAdCreativeRequest request,
+        CancellationToken ct)
+    {
+        var userId = await ResolveUserIdAsync(_db, ct);
+        if (userId == null) return Unauthorized();
+
+        _logger.LogInformation("User {UserId} creating creative {Name}", userId, request.Name);
+
+        var result = await _adsService.CreateCreativeAsync(userId.Value, request, ct);
+        return HandleResult(result);
+    }
 }
