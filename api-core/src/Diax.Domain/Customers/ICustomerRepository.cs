@@ -61,14 +61,4 @@ public interface ICustomerRepository : IRepository<Customer>
         bool? onlyLeads = null,
         bool? onlyCustomers = null,
         CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// [DEBUG] Conta total de customers.
-    /// </summary>
-    Task<int> CountAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// [DEBUG] Obtém o primeiro customer.
-    /// </summary>
-    Task<Customer?> GetFirstAsync(CancellationToken cancellationToken = default);
 }
