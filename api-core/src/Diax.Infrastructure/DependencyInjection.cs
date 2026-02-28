@@ -297,6 +297,9 @@ public static class DependencyInjection
         else
         {
             services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+            // Registrar IBrevoContactStatsService como null quando não configurado
+            services.AddScoped<IBrevoContactStatsService?>(_ => null);
         }
 
         services.AddHostedService<EmailQueueProcessorWorker>();
