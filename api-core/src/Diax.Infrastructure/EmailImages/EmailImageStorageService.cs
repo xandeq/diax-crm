@@ -129,7 +129,7 @@ public class EmailImageStorageService : IEmailImageStorageService
         {
             _logger.LogError(ex, "Erro ao salvar imagem de email.");
             return Result.Failure<UploadEmailImageResponse>(
-                Error.Unexpected($"Erro ao salvar imagem: {ex.Message}"));
+                new Error("EmailImage.SaveFailed", $"Erro ao salvar imagem: {ex.Message}"));
         }
     }
 
@@ -163,7 +163,7 @@ public class EmailImageStorageService : IEmailImageStorageService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao remover imagem de email: {ImageId}", imageId);
-            return Result.Failure(Error.Unexpected($"Erro ao remover imagem: {ex.Message}"));
+            return Result.Failure(new Error("EmailImage.DeleteFailed", $"Erro ao remover imagem: {ex.Message}"));
         }
     }
 }
