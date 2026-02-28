@@ -100,7 +100,7 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             var searchLower = search.ToLower();
             query = query.Where(c =>
                 c.Name.ToLower().Contains(searchLower) ||
-                c.Email.ToLower().Contains(searchLower) ||
+                (c.Email != null && c.Email.ToLower().Contains(searchLower)) ||
                 (c.CompanyName != null && c.CompanyName.ToLower().Contains(searchLower)));
         }
 
