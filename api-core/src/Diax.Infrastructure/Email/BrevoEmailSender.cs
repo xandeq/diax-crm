@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Diax.Application.EmailMarketing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -51,7 +53,8 @@ public class BrevoEmailSender : IEmailSender
                     Name = message.RecipientName
                 }],
                 Subject = message.Subject,
-                HtmlContent = message.HtmlBody
+                HtmlContent = message.HtmlBody,
+                TextContent = ConvertHtmlToPlainText(message.HtmlBody)
             };
 
             if (!string.IsNullOrWhiteSpace(_settings.ReplyTo))
@@ -105,6 +108,56 @@ public class BrevoEmailSender : IEmailSender
         }
     }
 
+    /// <summary>
+    /// Converte HTML para texto plano, preservando formatação básica.
+    /// Isso garante que clientes de email que preferem texto plano recebam conteúdo legível.
+    /// </summary>
+    private static string ConvertHtmlToPlainText(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return string.Empty;
+        }
+
+        var text = html;
+
+        // Remove scripts e styles completamente (com conteúdo)
+        text = Regex.Replace(text, @"<script[^>]*>.*?</script>", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        text = Regex.Replace(text, @"<style[^>]*>.*?</style>", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Remove comentários HTML
+        text = Regex.Replace(text, @"<!--.*?-->", "", RegexOptions.Singleline);
+
+        // Substitui quebras de linha HTML por \n
+        text = Regex.Replace(text, @"<br\s*/?>", "\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"</p>", "\n\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"</div>", "\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"</h[1-6]>", "\n\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"</li>", "\n", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"</tr>", "\n", RegexOptions.IgnoreCase);
+
+        // Remove todas as tags HTML restantes
+        text = Regex.Replace(text, @"<[^>]+>", "");
+
+        // Decodifica entidades HTML comuns
+        text = text.Replace("&nbsp;", " ");
+        text = text.Replace("&amp;", "&");
+        text = text.Replace("&lt;", "<");
+        text = text.Replace("&gt;", ">");
+        text = text.Replace("&quot;", "\"");
+        text = text.Replace("&#39;", "'");
+        text = text.Replace("&apos;", "'");
+
+        // Remove linhas em branco consecutivas (mais de 2)
+        text = Regex.Replace(text, @"\n{3,}", "\n\n");
+
+        // Remove espaços no início e fim de cada linha
+        var lines = text.Split('\n');
+        text = string.Join('\n', lines.Select(line => line.Trim()));
+
+        return text.Trim();
+    }
+
     // ===== Brevo API DTOs =====
 
     private sealed class BrevoSendRequest
@@ -113,6 +166,7 @@ public class BrevoEmailSender : IEmailSender
         public List<BrevoEmailAddress> To { get; set; } = [];
         public string Subject { get; set; } = string.Empty;
         public string HtmlContent { get; set; } = string.Empty;
+        public string? TextContent { get; set; }
         public BrevoEmailAddress? ReplyTo { get; set; }
         public List<BrevoAttachment>? Attachment { get; set; }
     }
