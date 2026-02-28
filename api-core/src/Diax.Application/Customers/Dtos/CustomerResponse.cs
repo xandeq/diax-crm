@@ -71,7 +71,7 @@ public class CustomerResponse
             CompanyName = customer.CompanyName,
             PersonType = customer.PersonType,
             Document = customer.Document,
-            Email = customer.Email,
+            Email = customer.Email ?? string.Empty,
             SecondaryEmail = customer.SecondaryEmail,
             Phone = customer.Phone,
             WhatsApp = customer.WhatsApp,
