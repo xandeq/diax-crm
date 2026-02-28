@@ -112,6 +112,351 @@ public class FacebookGraphApiClient
             url, accessToken, MapInsight, ct);
     }
 
+    // ===== CAMPAIGNS - WRITE =====
+
+    public async Task<string?> CreateCampaignAsync(
+        string adAccountId, string accessToken, CreateCampaignRequest request, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{adAccountId}/campaigns";
+        var body = new Dictionary<string, string>
+        {
+            { "name", request.Name },
+            { "objective", request.Objective },
+            { "status", request.Status },
+            { "buying_type", "AUCTION" },
+            { "access_token", accessToken }
+        };
+
+        if (!string.IsNullOrEmpty(request.DailyBudget))
+            body["daily_budget"] = request.DailyBudget;
+        if (!string.IsNullOrEmpty(request.LifetimeBudget))
+            body["lifetime_budget"] = request.LifetimeBudget;
+        if (request.StartTime.HasValue)
+            body["start_time"] = request.StartTime.Value.ToUniversalTime().ToString("O");
+        if (request.StopTime.HasValue)
+            body["stop_time"] = request.StopTime.Value.ToUniversalTime().ToString("O");
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Facebook API error creating campaign: {Content}", responseContent);
+                return null;
+            }
+
+            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent, JsonOptions);
+            return result?.ContainsKey("id") == true ? result["id"].ToString() : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating campaign in Facebook API");
+            return null;
+        }
+    }
+
+    public async Task<bool> UpdateCampaignStatusAsync(
+        string campaignId, string accessToken, string status, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{campaignId}";
+        var body = new Dictionary<string, string>
+        {
+            { "status", status },
+            { "access_token", accessToken }
+        };
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Facebook API error updating campaign status: {Content}", responseContent);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating campaign status in Facebook API");
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateCampaignBudgetAsync(
+        string campaignId, string accessToken, UpdateCampaignBudgetRequest request, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{campaignId}";
+        var body = new Dictionary<string, string> { { "access_token", accessToken } };
+
+        if (!string.IsNullOrEmpty(request.DailyBudget))
+            body["daily_budget"] = request.DailyBudget;
+        if (!string.IsNullOrEmpty(request.LifetimeBudget))
+            body["lifetime_budget"] = request.LifetimeBudget;
+        if (!string.IsNullOrEmpty(request.BidStrategy))
+            body["bid_strategy"] = request.BidStrategy;
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Facebook API error updating campaign budget: {Content}", responseContent);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating campaign budget in Facebook API");
+            return false;
+        }
+    }
+
+    // ===== AD SETS - WRITE =====
+
+    public async Task<string?> CreateAdSetAsync(
+        string adAccountId, string accessToken, CreateAdSetRequest request, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{adAccountId}/adsets";
+        var body = new Dictionary<string, string>
+        {
+            { "name", request.Name },
+            { "campaign_id", request.CampaignId },
+            { "status", request.Status },
+            { "optimization_goal", request.OptimizationGoal },
+            { "billing_event", request.BillingEvent },
+            { "bid_strategy", request.BidStrategy },
+            { "targeting", SerializeTargeting(request.Targeting) },
+            { "access_token", accessToken }
+        };
+
+        if (!string.IsNullOrEmpty(request.DailyBudget))
+            body["daily_budget"] = request.DailyBudget;
+        if (!string.IsNullOrEmpty(request.LifetimeBudget))
+            body["lifetime_budget"] = request.LifetimeBudget;
+        if (!string.IsNullOrEmpty(request.BidAmount))
+            body["bid_amount"] = request.BidAmount;
+        if (request.StartTime.HasValue)
+            body["start_time"] = request.StartTime.Value.ToUniversalTime().ToString("O");
+        if (request.EndTime.HasValue)
+            body["end_time"] = request.EndTime.Value.ToUniversalTime().ToString("O");
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Facebook API error creating ad set: {Content}", responseContent);
+                return null;
+            }
+
+            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent, JsonOptions);
+            return result?.ContainsKey("id") == true ? result["id"].ToString() : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating ad set in Facebook API");
+            return null;
+        }
+    }
+
+    public async Task<bool> UpdateAdSetStatusAsync(
+        string adSetId, string accessToken, string status, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{adSetId}";
+        var body = new Dictionary<string, string>
+        {
+            { "status", status },
+            { "access_token", accessToken }
+        };
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Facebook API error updating ad set status: {Content}", responseContent);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating ad set status in Facebook API");
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateAdSetBudgetAsync(
+        string adSetId, string accessToken, UpdateAdSetBudgetRequest request, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{adSetId}";
+        var body = new Dictionary<string, string> { { "access_token", accessToken } };
+
+        if (!string.IsNullOrEmpty(request.DailyBudget))
+            body["daily_budget"] = request.DailyBudget;
+        if (!string.IsNullOrEmpty(request.LifetimeBudget))
+            body["lifetime_budget"] = request.LifetimeBudget;
+        if (!string.IsNullOrEmpty(request.BidAmount))
+            body["bid_amount"] = request.BidAmount;
+        if (!string.IsNullOrEmpty(request.BidStrategy))
+            body["bid_strategy"] = request.BidStrategy;
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Facebook API error updating ad set budget: {Content}", responseContent);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating ad set budget in Facebook API");
+            return false;
+        }
+    }
+
+    // ===== ADS - WRITE =====
+
+    public async Task<string?> CreateAdAsync(
+        string adSetId, string accessToken, CreateAdRequest request, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{adSetId}/ads";
+        var body = new Dictionary<string, string>
+        {
+            { "name", request.Name },
+            { "adset_id", request.AdSetId },
+            { "status", request.Status },
+            { "creative", JsonSerializer.Serialize(new { creative_id = request.CreativeId }) },
+            { "access_token", accessToken }
+        };
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Facebook API error creating ad: {Content}", responseContent);
+                return null;
+            }
+
+            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent, JsonOptions);
+            return result?.ContainsKey("id") == true ? result["id"].ToString() : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating ad in Facebook API");
+            return null;
+        }
+    }
+
+    public async Task<bool> UpdateAdStatusAsync(
+        string adId, string accessToken, string status, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{adId}";
+        var body = new Dictionary<string, string>
+        {
+            { "status", status },
+            { "access_token", accessToken }
+        };
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("Facebook API error updating ad status: {Content}", responseContent);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating ad status in Facebook API");
+            return false;
+        }
+    }
+
+    // ===== AD CREATIVES =====
+
+    public async Task<List<AdCreativeResponse>> GetCreativesAsync(
+        string adAccountId, string accessToken, CancellationToken ct = default)
+    {
+        var fields = "id,name,object_type,status,thumbnail_url,body,title,created_time";
+        var url = $"{GraphApiBase}/{adAccountId}/adcreatives?fields={fields}&limit=100&access_token={accessToken}";
+
+        return await FetchPaginatedAsync<FacebookCreativeResult, AdCreativeResponse>(
+            url, accessToken, MapCreative, ct);
+    }
+
+    public async Task<string?> CreateCreativeAsync(
+        string adAccountId, string accessToken, CreateAdCreativeRequest request, CancellationToken ct = default)
+    {
+        var url = $"{GraphApiBase}/{adAccountId}/adcreatives";
+        var body = new Dictionary<string, string>
+        {
+            { "name", request.Name },
+            { "object_type", request.ObjectType },
+            { "access_token", accessToken }
+        };
+
+        var objectStorySpec = BuildObjectStorySpec(request);
+        body["object_story_spec"] = JsonSerializer.Serialize(objectStorySpec);
+
+        try
+        {
+            var content = new FormUrlEncodedContent(body);
+            var response = await _httpClient.PostAsync(url, content, ct);
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Facebook API error creating creative: {Content}", responseContent);
+                return null;
+            }
+
+            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent, JsonOptions);
+            return result?.ContainsKey("id") == true ? result["id"].ToString() : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating creative in Facebook API");
+            return null;
+        }
+    }
+
     // ===== PAGINATION HELPER =====
 
     private async Task<List<TDto>> FetchPaginatedAsync<TRaw, TDto>(
@@ -152,6 +497,69 @@ public class FacebookGraphApiClient
         }
 
         return results;
+    }
+
+    // ===== HELPERS =====
+
+    private static string SerializeTargeting(TargetingRequest targeting)
+    {
+        var targetingObj = new Dictionary<string, object>();
+
+        if (targeting.Countries?.Count > 0)
+            targetingObj["geo_locations"] = new { countries = targeting.Countries };
+        if (targeting.Regions?.Count > 0)
+            targetingObj["geo_locations"] = new { regions = targeting.Regions };
+        if (targeting.AgeMin.HasValue || targeting.AgeMax.HasValue)
+        {
+            if (!targetingObj.ContainsKey("age_min") && targeting.AgeMin.HasValue)
+                targetingObj["age_min"] = targeting.AgeMin.Value;
+            if (!targetingObj.ContainsKey("age_max") && targeting.AgeMax.HasValue)
+                targetingObj["age_max"] = targeting.AgeMax.Value;
+        }
+        if (targeting.Genders?.Count > 0)
+            targetingObj["genders"] = targeting.Genders;
+        if (targeting.InterestIds?.Count > 0)
+            targetingObj["flexible_spec"] = new[] { new { interests = targeting.InterestIds.Select(i => new { id = i }).ToList() } };
+        if (targeting.BehaviorIds?.Count > 0)
+            targetingObj["behaviors"] = targeting.BehaviorIds;
+        if (targeting.DevicePlatforms?.Count > 0)
+            targetingObj["device_platforms"] = targeting.DevicePlatforms;
+
+        return JsonSerializer.Serialize(targetingObj);
+    }
+
+    private static object BuildObjectStorySpec(CreateAdCreativeRequest request)
+    {
+        var linkData = new Dictionary<string, object>
+        {
+            { "message", request.Body ?? "" },
+            { "link", request.LinkUrl ?? "" }
+        };
+
+        if (!string.IsNullOrEmpty(request.Title))
+            linkData["title"] = request.Title;
+        if (!string.IsNullOrEmpty(request.ImageHash))
+            linkData["image_hash"] = request.ImageHash;
+        if (!string.IsNullOrEmpty(request.CallToActionType))
+            linkData["call_to_action"] = new { type = request.CallToActionType };
+
+        var objectStorySpec = new Dictionary<string, object>
+        {
+            { "page_id", request.PageId },
+            { "link_data", linkData }
+        };
+
+        if (request.ObjectType == "VIDEO" && !string.IsNullOrEmpty(request.VideoId))
+        {
+            objectStorySpec["video_data"] = new
+            {
+                video_id = request.VideoId,
+                title = request.Title ?? "Ad",
+                message = request.Body ?? ""
+            };
+        }
+
+        return objectStorySpec;
     }
 
     // ===== MAPPERS =====
@@ -213,6 +621,18 @@ public class FacebookGraphApiClient
         r.Frequency,
         r.Actions?.Select(a => new FacebookActionDto(a.ActionType ?? "", a.Value ?? "0")).ToList() ?? [],
         r.Conversions?.Select(a => new FacebookActionDto(a.ActionType ?? "", a.Value ?? "0")).ToList() ?? []);
+
+    private static AdCreativeResponse MapCreative(FacebookCreativeResult r) => new(
+        r.Id ?? "",
+        r.Name ?? "",
+        r.ObjectType ?? "",
+        r.Status ?? "",
+        r.ThumbnailUrl,
+        r.Body,
+        r.Title,
+        r.CallToActionType,
+        r.LinkUrl,
+        r.CreatedTime ?? DateTime.MinValue);
 }
 
 // ===== RAW RESPONSE MODELS =====
@@ -437,4 +857,37 @@ public class FacebookActionResult
 
     [JsonPropertyName("value")]
     public string? Value { get; set; }
+}
+
+public class FacebookCreativeResult
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("object_type")]
+    public string? ObjectType { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
+
+    [JsonPropertyName("thumbnail_url")]
+    public string? ThumbnailUrl { get; set; }
+
+    [JsonPropertyName("body")]
+    public string? Body { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("call_to_action_type")]
+    public string? CallToActionType { get; set; }
+
+    [JsonPropertyName("link_url")]
+    public string? LinkUrl { get; set; }
+
+    [JsonPropertyName("created_time")]
+    public DateTime? CreatedTime { get; set; }
 }
