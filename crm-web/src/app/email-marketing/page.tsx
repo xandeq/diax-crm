@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '@/services/api';
 import { queueBulkEmail, QueueBulkEmailResponse } from '@/services/emailMarketing';
+import { uploadEmailImage } from '@/services/emailImages';
 import { Customer, PagedResponse } from '@/services/customers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,7 +87,8 @@ export default function EmailMarketingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   interface UploadedImage {
     id: string;
-    dataUri: string;
+    publicUrl: string; // URL pública retornada pelo backend
+    thumbnailDataUri: string; // Data URI apenas para thumbnail no preview
     name: string;
     originalSizeKb: number;
     compressedSizeKb: number;
@@ -94,7 +96,7 @@ export default function EmailMarketingPage() {
     height: number;
   }
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [compressing, setCompressing] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const loadContacts = useCallback(async () => {
     setLoading(true);
@@ -200,28 +202,35 @@ export default function EmailMarketingPage() {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
 
-    setCompressing(true);
+    setUploading(true);
 
     try {
       for (const file of files) {
-        const originalSizeKb = Math.round(file.size / 1024);
-
-        // Comprime a imagem
+        // 1. Comprime a imagem localmente
         const compressed = await compressImage(file, {
           maxWidthOrHeight: 1200,
           maxSizeKB: 300,
           quality: 0.85,
         });
 
-        // Gera ID único para a imagem
-        const imageId = `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        // 2. Faz upload para o backend e recebe URL pública
+        // Remove o prefixo "data:image/png;base64," do dataUrl
+        const base64Content = compressed.dataUrl.split(',')[1];
+        const contentType = compressed.dataUrl.split(';')[0].split(':')[1];
 
-        // Registra na lista de imagens
+        const uploadResponse = await uploadEmailImage({
+          fileName: file.name,
+          base64Content: base64Content,
+          contentType: contentType,
+        });
+
+        // 3. Registra na lista de imagens com URL pública
         setUploadedImages(prev => [
           ...prev,
           {
-            id: imageId,
-            dataUri: compressed.dataUrl,
+            id: uploadResponse.imageId,
+            publicUrl: uploadResponse.publicUrl,
+            thumbnailDataUri: compressed.dataUrl, // Mantém dataUri apenas para thumbnail
             name: file.name,
             originalSizeKb: compressed.originalSizeKB,
             compressedSizeKb: compressed.compressedSizeKB,
@@ -230,25 +239,26 @@ export default function EmailMarketingPage() {
           },
         ]);
 
-        // Insere a tag <img> com ID único
-        const imgTag = `\n<img id="${imageId}" src="${compressed.dataUrl}" alt="${file.name}" style="max-width:100%; height:auto; display:block; margin:8px 0;" />\n`;
+        // 4. Insere tag <img> com URL pública (NÃO base64!)
+        // CRÍTICO: Gmail e outros bloqueiam data URIs. Usar URL hospedada é obrigatório.
+        const imgTag = `\n<img id="${uploadResponse.imageId}" src="${uploadResponse.publicUrl}" alt="${file.name}" style="max-width:100%; height:auto; display:block; margin:8px 0;" />\n`;
         insertAtCursor(imgTag);
 
-        // Notifica resultado da compressão
-        if (compressed.compressionRatio < 0.9) {
-          toast.success(
-            `"${file.name}" comprimida: ${compressed.originalSizeKB} KB → ${compressed.compressedSizeKB} KB (${formatCompressionRatio(compressed.compressionRatio)})`
-          );
-        } else if (compressed.compressedSizeKB > 400) {
+        // 5. Notifica sucesso
+        toast.success(
+          `"${file.name}" hospedada com sucesso! (${compressed.originalSizeKB} KB → ${compressed.compressedSizeKB} KB)`
+        );
+
+        if (compressed.compressedSizeKB > 400) {
           toast.warning(
-            `"${file.name}" ainda está grande (${compressed.compressedSizeKB} KB). Considere usar uma imagem menor.`
+            `"${file.name}" ainda está grande (${compressed.compressedSizeKB} KB). Considere usar uma imagem menor para melhor deliverability.`
           );
         }
       }
     } catch (error: any) {
-      toast.error(`Erro ao processar imagem: ${error.message}`);
+      toast.error(`Erro ao fazer upload da imagem: ${error.message}`);
     } finally {
-      setCompressing(false);
+      setUploading(false);
       // Limpa o input para permitir reenviar o mesmo arquivo
       e.target.value = '';
     }
@@ -532,10 +542,10 @@ export default function EmailMarketingPage() {
                     <div key={img.id} className="relative group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={img.dataUri}
+                        src={img.thumbnailDataUri}
                         alt={img.name}
                         className="h-14 w-14 rounded object-cover border"
-                        title={`${img.name}\n${img.width}×${img.height}px\nOriginal: ${img.originalSizeKb} KB\nComprimida: ${img.compressedSizeKb} KB`}
+                        title={`${img.name}\n${img.width}×${img.height}px\nOriginal: ${img.originalSizeKb} KB\nHospedada: ${img.compressedSizeKb} KB\nURL: ${img.publicUrl}`}
                       />
                       <div className="absolute bottom-0 left-0 right-0 rounded-b bg-black/70 px-1 py-0.5 text-[9px] text-white truncate">
                         {img.compressedSizeKb} KB
@@ -554,8 +564,8 @@ export default function EmailMarketingPage() {
                     </div>
                   ))}
                   <p className="w-full text-[10px] text-muted-foreground">
-                    ✨ Imagens automaticamente comprimidas e incorporadas via base64 (compatível com todos os clientes de email).
-                    {compressing && <span className="ml-1 text-blue-600">Processando...</span>}
+                    ✨ Imagens automaticamente comprimidas e hospedadas no servidor (compatível com Gmail, Outlook e todos os clientes).
+                    {uploading && <span className="ml-1 text-blue-600">Fazendo upload...</span>}
                   </p>
                 </div>
               )}

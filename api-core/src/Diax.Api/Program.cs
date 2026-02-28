@@ -314,6 +314,9 @@ app.UseSwaggerUI(c =>
 // Serilog request logging
 app.UseSerilogRequestLogging();
 
+// Static Files - serve imagens de email da pasta wwwroot/email-images
+app.UseStaticFiles();
+
 // HTTPS Redirection
 app.UseHttpsRedirection();
 

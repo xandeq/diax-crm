@@ -74,7 +74,11 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(npm install:*)",
       "Bash(gh run watch:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git branch:*)",
+      "WebFetch(domain:help.brevo.com)",
+      "WebFetch(domain:community.brevo.com)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
