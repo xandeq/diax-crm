@@ -104,6 +104,137 @@ export interface AdAccountSummary {
   averageCtr: number;
 }
 
+// ===== Campaign Write =====
+
+export interface CreateCampaignRequest {
+  name: string;
+  objective: string;
+  status: 'ACTIVE' | 'PAUSED';
+  dailyBudget?: string;
+  lifetimeBudget?: string;
+  startTime?: string;
+  stopTime?: string;
+}
+
+export interface UpdateCampaignStatusRequest {
+  status: 'ACTIVE' | 'PAUSED';
+}
+
+export interface UpdateCampaignBudgetRequest {
+  dailyBudget?: string;
+  lifetimeBudget?: string;
+  bidStrategy?: string;
+}
+
+export interface CampaignWriteResponse {
+  id: string;
+  status: string;
+  name: string;
+}
+
+// ===== Ad Set Write =====
+
+export interface TargetingRequest {
+  countries?: string[];
+  regions?: string[];
+  ageMin?: number;
+  ageMax?: number;
+  genders?: number[];
+  interestIds?: number[];
+  behaviorIds?: number[];
+  devicePlatforms?: string[];
+  facebookPositions?: string[];
+  instagramPositions?: string[];
+  customAudienceIds?: string[];
+}
+
+export interface CreateAdSetRequest {
+  campaignId: string;
+  name: string;
+  status: 'ACTIVE' | 'PAUSED';
+  optimizationGoal: string;
+  billingEvent: string;
+  bidStrategy: string;
+  dailyBudget?: string;
+  lifetimeBudget?: string;
+  bidAmount?: string;
+  targeting: TargetingRequest;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface UpdateAdSetStatusRequest {
+  status: 'ACTIVE' | 'PAUSED';
+}
+
+export interface UpdateAdSetBudgetRequest {
+  dailyBudget?: string;
+  lifetimeBudget?: string;
+  bidAmount?: string;
+  bidStrategy?: string;
+}
+
+export interface AdSetWriteResponse {
+  id: string;
+  status: string;
+  name: string;
+}
+
+// ===== Ad Write =====
+
+export interface CreateAdRequest {
+  adSetId: string;
+  name: string;
+  status: 'ACTIVE' | 'PAUSED';
+  creativeId: string;
+}
+
+export interface UpdateAdStatusRequest {
+  status: 'ACTIVE' | 'PAUSED';
+}
+
+export interface AdWriteResponse {
+  id: string;
+  status: string;
+  name: string;
+}
+
+// ===== Ad Creative =====
+
+export interface CarouselElementRequest {
+  title: string;
+  description?: string;
+  imageHash: string;
+  linkUrl: string;
+  callToActionType: string;
+}
+
+export interface CreateAdCreativeRequest {
+  name: string;
+  objectType: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
+  pageId: string;
+  body?: string;
+  title?: string;
+  callToActionType?: string;
+  linkUrl?: string;
+  imageHash?: string;
+  videoId?: string;
+  carouselElements?: CarouselElementRequest[];
+}
+
+export interface AdCreativeResponse {
+  id: string;
+  name: string;
+  objectType: string;
+  status: string;
+  thumbnailUrl?: string;
+  body?: string;
+  title?: string;
+  callToActionType?: string;
+  linkUrl?: string;
+  createdTime: string;
+}
+
 // ===== Status colors =====
 
 export const STATUS_COLORS: Record<string, string> = {
