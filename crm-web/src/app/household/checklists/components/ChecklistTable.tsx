@@ -136,7 +136,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
 
   const handleToggleStatus = async (item: ChecklistItem) => {
     try {
-      if (item.status === ChecklistItemStatus.ToBuy) {
+      if (item.status === ChecklistItemStatus.ToBuy || item.status === ChecklistItemStatus.PartiallyPaid) {
         await checklistService.markBought(item.id);
       } else {
         await checklistService.reactivate(item.id);
@@ -187,12 +187,16 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
 
   const getStatusBadge = (status: ChecklistItemStatus) => {
     switch (status) {
-      case ChecklistItemStatus.ToBuy: return <Badge variant="outline" className="text-slate-500 border-slate-200 bg-slate-50">A Comprar</Badge>;
-      case ChecklistItemStatus.Bought: return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Comprado</Badge>;
+      case ChecklistItemStatus.ToBuy: return <Badge variant="outline" className="text-slate-500 border-slate-200 bg-slate-50">Pendente</Badge>;
+      case ChecklistItemStatus.PartiallyPaid: return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Parcial</Badge>;
+      case ChecklistItemStatus.Bought: return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Pago</Badge>;
       case ChecklistItemStatus.Canceled: return <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50">Cancelado</Badge>;
       case ChecklistItemStatus.Archived: return <Badge variant="outline" className="text-slate-400 border-slate-200 bg-slate-100">Arquivado</Badge>;
     }
   };
+
+  const currentTotalPaid = data?.items.reduce((acc, item) => acc + (item.paidAmount || (item.status === ChecklistItemStatus.Bought ? item.estimatedPrice || 0 : 0)), 0) || 0;
+  const currentTotalPending = data?.items.reduce((acc, item) => acc + Math.max(0, (item.estimatedPrice || 0) - (item.paidAmount || (item.status === ChecklistItemStatus.Bought ? item.estimatedPrice || 0 : 0))), 0) || 0;
 
   return (
     <div className="flex flex-col">
@@ -217,8 +221,9 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos Status</SelectItem>
-              <SelectItem value={ChecklistItemStatus.ToBuy.toString()}>A Comprar</SelectItem>
-              <SelectItem value={ChecklistItemStatus.Bought.toString()}>Comprado</SelectItem>
+              <SelectItem value={ChecklistItemStatus.ToBuy.toString()}>Pendente</SelectItem>
+              <SelectItem value={ChecklistItemStatus.PartiallyPaid.toString()}>Parcialmente Pago</SelectItem>
+              <SelectItem value={ChecklistItemStatus.Bought.toString()}>Pago</SelectItem>
               <SelectItem value={ChecklistItemStatus.Canceled.toString()}>Cancelado</SelectItem>
               <SelectItem value={ChecklistItemStatus.Archived.toString()}>Arquivado</SelectItem>
             </SelectContent>
@@ -293,10 +298,13 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
                 <DropdownMenuContent align="end" className="w-48">
                   <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">Alterar status para...</div>
                   <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 0 })}>
-                    A Comprar
+                    Pendente
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 4 })}>
+                    Parcialmente Pago
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 1 })}>
-                    Comprado
+                    Pago
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleBulkAction('changestatus', { targetStatus: 2 })}>
                     Cancelado
@@ -361,9 +369,11 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
               <TableHead className="cursor-pointer hover:text-slate-900" onClick={() => toggleSort('priority')}>
                 Prioridade <ArrowUpDown className="inline h-3 w-3 ml-1" />
               </TableHead>
-              <TableHead className="cursor-pointer hover:text-slate-900" onClick={() => toggleSort('estimatedPrice')}>
-                Preço Est. <ArrowUpDown className="inline h-3 w-3 ml-1" />
+              <TableHead className="cursor-pointer text-right hover:text-slate-900" onClick={() => toggleSort('estimatedPrice')}>
+                Total <ArrowUpDown className="inline h-3 w-3 ml-1" />
               </TableHead>
+              <TableHead className="text-right">Pago</TableHead>
+              <TableHead className="text-right">Restante</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -426,9 +436,19 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <span className="text-sm font-mono text-slate-600">
                       {item.estimatedPrice ? formatCurrency(item.estimatedPrice) : "-"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm font-mono text-green-600">
+                      {item.paidAmount || item.status === ChecklistItemStatus.Bought ? formatCurrency(item.paidAmount || item.estimatedPrice || 0) : "-"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-sm font-mono text-slate-500">
+                      {item.estimatedPrice ? formatCurrency(Math.max(0, item.estimatedPrice - (item.paidAmount || (item.status === ChecklistItemStatus.Bought ? item.estimatedPrice : 0)))) : "-"}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -456,9 +476,21 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
       {data && (
         <div className="p-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/30">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 font-medium">
               {data.totalCount} itens
             </span>
+            <div className="h-4 w-px bg-slate-300 mx-1"></div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">Total Pago:</span>
+                <span className="text-sm font-medium text-green-600">{formatCurrency(currentTotalPaid)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">Restante:</span>
+                <span className="text-sm font-medium text-blue-600">{formatCurrency(currentTotalPending)}</span>
+              </div>
+            </div>
+            <div className="h-4 w-px bg-slate-300 mx-1"></div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Exibir:</span>
               <Select

@@ -14,6 +14,7 @@ public class ChecklistItem : AuditableEntity
     public DateTime? CanceledAt { get; set; }
     public decimal? EstimatedPrice { get; set; }
     public decimal? ActualPrice { get; set; }
+    public decimal? PaidAmount { get; set; }
     public decimal? Quantity { get; set; }
     public string? StoreOrLink { get; set; }
     public bool IsArchived { get; set; }

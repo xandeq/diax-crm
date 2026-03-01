@@ -53,6 +53,7 @@ export function ChecklistDialog({
     priority: ChecklistPriority.Medium,
     quantity: 1,
     estimatedPrice: undefined,
+    paidAmount: undefined,
     storeOrLink: ''
   });
 
@@ -67,6 +68,7 @@ export function ChecklistDialog({
         priority: ChecklistPriority.Medium,
         quantity: 1,
         estimatedPrice: undefined,
+        paidAmount: undefined,
         storeOrLink: ''
       });
     }
@@ -159,15 +161,16 @@ export function ChecklistDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">A Comprar</SelectItem>
-                <SelectItem value="1">Comprado</SelectItem>
+                <SelectItem value="0">Pendente</SelectItem>
+                <SelectItem value="4">Parcialmente Pago</SelectItem>
+                <SelectItem value="1">Pago</SelectItem>
                 <SelectItem value="2">Cancelado</SelectItem>
                 <SelectItem value="3">Arquivado</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="quantity">Quantidade</Label>
               <Input
@@ -178,8 +181,8 @@ export function ChecklistDialog({
                 onChange={(e) => handleChange('quantity', parseInt(e.target.value))}
               />
             </div>
-            <div className="grid gap-2 col-span-2">
-              <Label htmlFor="price">Estimativa de Preço (R$)</Label>
+            <div className="grid gap-2">
+              <Label htmlFor="price">Valor Total (R$)</Label>
               <Input
                 id="price"
                 type="number"
@@ -187,6 +190,17 @@ export function ChecklistDialog({
                 placeholder="0,00"
                 value={formData.estimatedPrice || ''}
                 onChange={(e) => handleChange('estimatedPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="paid">Valor Pago (R$)</Label>
+              <Input
+                id="paid"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={formData.paidAmount || ''}
+                onChange={(e) => handleChange('paidAmount', e.target.value ? parseFloat(e.target.value) : undefined)}
               />
             </div>
           </div>

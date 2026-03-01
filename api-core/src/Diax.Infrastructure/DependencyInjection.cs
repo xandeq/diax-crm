@@ -81,6 +81,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // ===== CACHE =====
+        services.AddDistributedMemoryCache();
+
         // ===== CONNECTION STRING =====
         // Prioridade: 1) Variável de ambiente, 2) User Secrets, 3) appsettings.json
         var connectionString = configuration.GetConnectionString("DefaultConnection");

@@ -74,6 +74,23 @@ public class ChecklistItemService : IChecklistItemService
         var categoryExists = await _categoryRepository.ExistsAsync(request.CategoryId);
         if (!categoryExists) return Result.Failure<ChecklistItemDto>(new Error("ChecklistCategory.NotFound", "Categoria não encontrada."));
 
+        if (request.PaidAmount.HasValue)
+        {
+            if (!request.EstimatedPrice.HasValue)
+                return Result.Failure<ChecklistItemDto>(new Error("ChecklistItem.InvalidPayment", "É necessário definir o valor total para registrar um pagamento."));
+            if (request.PaidAmount.Value > request.EstimatedPrice.Value)
+                return Result.Failure<ChecklistItemDto>(new Error("ChecklistItem.InvalidPayment", "O valor pago não pode ser maior que o valor total."));
+        }
+
+        var status = ChecklistItemStatus.ToBuy;
+        if (request.PaidAmount.HasValue && request.EstimatedPrice.HasValue)
+        {
+            if (request.PaidAmount.Value > 0 && request.PaidAmount.Value < request.EstimatedPrice.Value)
+                status = ChecklistItemStatus.PartiallyPaid;
+            else if (request.PaidAmount.Value == request.EstimatedPrice.Value)
+                status = ChecklistItemStatus.Bought;
+        }
+
         var item = new ChecklistItem
         {
             CategoryId = request.CategoryId,
@@ -82,10 +99,14 @@ public class ChecklistItemService : IChecklistItemService
             Priority = request.Priority,
             TargetDate = request.TargetDate,
             EstimatedPrice = request.EstimatedPrice,
+            PaidAmount = request.PaidAmount,
             Quantity = request.Quantity,
             StoreOrLink = request.StoreOrLink,
-            Status = ChecklistItemStatus.ToBuy
+            Status = status
         };
+
+        if (status == ChecklistItemStatus.Bought)
+            item.BoughtAt = DateTime.UtcNow;
 
         await _repository.AddAsync(item);
         await _unitOfWork.SaveChangesAsync();
@@ -101,6 +122,16 @@ public class ChecklistItemService : IChecklistItemService
         var categoryExists = await _categoryRepository.ExistsAsync(request.CategoryId);
         if (!categoryExists) return Result.Failure<ChecklistItemDto>(new Error("ChecklistCategory.NotFound", "Categoria não encontrada."));
 
+        if (request.PaidAmount.HasValue)
+        {
+            if (!request.EstimatedPrice.HasValue && !item.EstimatedPrice.HasValue)
+                return Result.Failure<ChecklistItemDto>(new Error("ChecklistItem.InvalidPayment", "É necessário definir o valor total para registrar um pagamento."));
+
+            var total = request.EstimatedPrice ?? item.EstimatedPrice;
+            if (request.PaidAmount.Value > total)
+                return Result.Failure<ChecklistItemDto>(new Error("ChecklistItem.InvalidPayment", "O valor pago não pode ser maior que o valor total."));
+        }
+
         item.CategoryId = request.CategoryId;
         item.Title = request.Title;
         item.Description = request.Description;
@@ -108,12 +139,22 @@ public class ChecklistItemService : IChecklistItemService
         item.TargetDate = request.TargetDate;
         item.EstimatedPrice = request.EstimatedPrice;
         item.ActualPrice = request.ActualPrice;
+        item.PaidAmount = request.PaidAmount;
         item.Quantity = request.Quantity;
         item.StoreOrLink = request.StoreOrLink;
 
-        if (request.Status.HasValue && item.Status != request.Status.Value)
+        // Auto-status based on payments
+        var newStatus = request.Status ?? item.Status;
+        if (item.PaidAmount.HasValue && item.EstimatedPrice.HasValue && newStatus != ChecklistItemStatus.Canceled && newStatus != ChecklistItemStatus.Archived)
         {
-            item.Status = request.Status.Value;
+            if (item.PaidAmount.Value == 0) newStatus = ChecklistItemStatus.ToBuy;
+            else if (item.PaidAmount.Value > 0 && item.PaidAmount.Value < item.EstimatedPrice.Value) newStatus = ChecklistItemStatus.PartiallyPaid;
+            else if (item.PaidAmount.Value == item.EstimatedPrice.Value) newStatus = ChecklistItemStatus.Bought;
+        }
+
+        if (item.Status != newStatus)
+        {
+            item.Status = newStatus;
             if (item.Status == ChecklistItemStatus.Bought && item.BoughtAt == null)
                 item.BoughtAt = DateTime.UtcNow;
             else if (item.Status != ChecklistItemStatus.Bought)
@@ -126,7 +167,7 @@ public class ChecklistItemService : IChecklistItemService
 
             if (item.Status == ChecklistItemStatus.Archived)
                 item.IsArchived = true;
-            else if (item.Status == ChecklistItemStatus.ToBuy)
+            else if (item.Status == ChecklistItemStatus.ToBuy || item.Status == ChecklistItemStatus.PartiallyPaid)
                 item.IsArchived = false;
         }
 
@@ -156,6 +197,7 @@ public class ChecklistItemService : IChecklistItemService
         item.BoughtAt = DateTime.UtcNow;
         item.CanceledAt = null;
         if (actualPrice.HasValue) item.ActualPrice = actualPrice;
+        if (item.EstimatedPrice.HasValue) item.PaidAmount = item.EstimatedPrice;
 
         await _repository.UpdateAsync(item);
         await _unitOfWork.SaveChangesAsync();
@@ -234,6 +276,7 @@ public class ChecklistItemService : IChecklistItemService
                     item.BoughtAt = DateTime.UtcNow;
                     item.CanceledAt = null;
                     if (request.ActualPrice.HasValue) item.ActualPrice = request.ActualPrice;
+                    if (item.EstimatedPrice.HasValue) item.PaidAmount = item.EstimatedPrice;
                     await _repository.UpdateAsync(item);
                     break;
                 case "markcanceled":
@@ -375,6 +418,7 @@ public class ChecklistItemService : IChecklistItemService
             CanceledAt = item.CanceledAt,
             EstimatedPrice = item.EstimatedPrice,
             ActualPrice = item.ActualPrice,
+            PaidAmount = item.PaidAmount,
             Quantity = item.Quantity,
             StoreOrLink = item.StoreOrLink,
             IsArchived = item.IsArchived,

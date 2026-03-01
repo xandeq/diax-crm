@@ -16,6 +16,7 @@ public record ChecklistItemDto
     public DateTime? CanceledAt { get; init; }
     public decimal? EstimatedPrice { get; init; }
     public decimal? ActualPrice { get; init; }
+    public decimal? PaidAmount { get; init; }
     public decimal? Quantity { get; init; }
     public string? StoreOrLink { get; init; }
     public bool IsArchived { get; init; }
@@ -30,6 +31,7 @@ public record CreateChecklistItemRequest(
     ChecklistItemPriority? Priority = null,
     DateTime? TargetDate = null,
     decimal? EstimatedPrice = null,
+    decimal? PaidAmount = null,
     decimal? Quantity = null,
     string? StoreOrLink = null);
 
@@ -42,6 +44,7 @@ public record UpdateChecklistItemRequest(
     DateTime? TargetDate = null,
     decimal? EstimatedPrice = null,
     decimal? ActualPrice = null,
+    decimal? PaidAmount = null,
     decimal? Quantity = null,
     string? StoreOrLink = null);
 
@@ -62,5 +65,6 @@ public record ChecklistItemBulkRequest(
     Guid[] Ids,
     string Action,
     decimal? ActualPrice = null,
+    decimal? PaidAmount = null,
     Guid? TargetCategoryId = null,
     ChecklistItemStatus? TargetStatus = null);

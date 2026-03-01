@@ -2,7 +2,8 @@ export enum ChecklistItemStatus {
   ToBuy = 0,
   Bought = 1,
   Canceled = 2,
-  Archived = 3
+  Archived = 3,
+  PartiallyPaid = 4
 }
 
 export enum ChecklistPriority {
@@ -31,6 +32,7 @@ export interface ChecklistItem {
   targetDate?: string;
   estimatedPrice?: number;
   actualPrice?: number;
+  paidAmount?: number;
   quantity: number;
   storeOrLink?: string;
   status: ChecklistItemStatus;
@@ -62,6 +64,7 @@ export interface CreateChecklistItemRequest {
   priority: ChecklistPriority;
   targetDate?: string;
   estimatedPrice?: number;
+  paidAmount?: number;
   quantity: number;
   storeOrLink?: string;
 }
@@ -75,6 +78,7 @@ export interface UpdateChecklistItemRequest {
   targetDate?: string;
   estimatedPrice?: number;
   actualPrice?: number;
+  paidAmount?: number;
   quantity: number;
   storeOrLink?: string;
 }
