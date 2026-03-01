@@ -181,6 +181,7 @@ public static class DependencyInjection
         // ===== REPOSITÓRIOS =====
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<Diax.Application.Auth.IPermissionService, Diax.Infrastructure.Auth.PermissionService>();
+        services.AddScoped<Diax.Application.Customers.IApifyIntegrationService, Diax.Application.Customers.ApifyIntegrationService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerImportRepository, CustomerImportRepository>();
         services.AddScoped<IIncomeRepository, IncomeRepository>();

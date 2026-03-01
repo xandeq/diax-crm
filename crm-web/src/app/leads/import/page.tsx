@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/services/api';
-import { ArrowLeft, Loader2, Upload, Code2, FileText } from 'lucide-react';
+import { ArrowLeft, Code2, FileText, Loader2, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -54,7 +54,7 @@ interface ApifyGoogleMapsItem {
   imageUrl?: string;
 }
 
-type ImportMode = 'csv' | 'text' | 'apify';
+type ImportMode = 'csv' | 'text' | 'apify' | 'apify-url';
 
 export default function LeadsImportPage() {
   const router = useRouter();
@@ -62,6 +62,7 @@ export default function LeadsImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [textData, setTextData] = useState('');
   const [apifyJson, setApifyJson] = useState('');
+  const [apifyUrl, setApifyUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BulkImportResponse | null>(null);
 
@@ -230,6 +231,31 @@ export default function LeadsImportPage() {
         return;
       }
 
+      if (importMode === 'apify-url' && apifyUrl) {
+        // Apify dataset direct download flow
+        const response = await apiFetch<BulkImportResponse>('/leads/import/apify-url', {
+          method: 'POST',
+          body: JSON.stringify({ datasetUrl: apifyUrl, source: 11 }),
+        });
+
+        // Mock a success BulkImportResponse visually since backend returns generic Ok/Result<Guid>
+        // But we don't have the exact BulkImportResponse object, so we show simple success.
+        setResult({
+          success: true,
+          totalRecords: 0,
+          successCount: 1, // trigger visual success
+          failedCount: 0,
+          errors: []
+        });
+
+        alert("Comando de importação do Apify enviado com sucesso! Os leads serão processados em background.");
+        setTimeout(() => {
+          router.push('/leads');
+        }, 1500);
+
+        return;
+      }
+
       const response = await apiFetch<BulkImportResponse>('/customers/import', {
         method: 'POST',
         body: JSON.stringify({ customers, source }),
@@ -252,7 +278,8 @@ export default function LeadsImportPage() {
   const canImport =
     (importMode === 'csv' && !!file) ||
     (importMode === 'text' && !!textData.trim()) ||
-    (importMode === 'apify' && !!apifyJson.trim());
+    (importMode === 'apify' && !!apifyJson.trim()) ||
+    (importMode === 'apify-url' && !!apifyUrl.trim());
 
   // ── Preview Apify count ───────────────────────────────────────────────────
   let apifyPreviewCount: number | null = null;
@@ -320,9 +347,21 @@ export default function LeadsImportPage() {
                 variant={importMode === 'apify' ? 'default' : 'outline'}
                 onClick={() => setImportMode('apify')}
                 className="flex-1"
+                title="Colar JSON do Apify"
               >
-                <Code2 className="h-4 w-4 mr-2" />
-                JSON Apify
+                <Code2 className="h-4 w-4 xl:mr-2" />
+                <span className="hidden xl:inline">JSON Apify</span>
+                <span className="xl:hidden">JSON</span>
+              </Button>
+              <Button
+                variant={importMode === 'apify-url' ? 'default' : 'outline'}
+                onClick={() => setImportMode('apify-url')}
+                className="flex-1"
+                title="Importar pela URL da Run no Apify"
+              >
+                <Loader2 className="h-4 w-4 xl:mr-2" />
+                <span className="hidden xl:inline">URL da Run (Automático)</span>
+                <span className="xl:hidden">Apify URL</span>
               </Button>
             </div>
 
@@ -414,6 +453,35 @@ export default function LeadsImportPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ── Apify URL Dataset mode ── */}
+            {importMode === 'apify-url' && (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 text-sm text-purple-800 space-y-1">
+                  <p className="font-semibold">Importação Automática do Apify:</p>
+                  <p className="text-xs">
+                    Certifique-se de que o seu <strong>Token do Apify</strong> está configurado em <Link href="/outreach" className="underline font-bold">Automações (Outreach)</Link>.
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs mt-2">
+                    <li>Acesse o <strong>Apify Console → Actor Runs</strong></li>
+                    <li>Abra o resultado do run desejado (aba <em>API</em>)</li>
+                    <li>Copie o link que aponta para <code>/datasets/XYZ/items</code></li>
+                    <li>Cole abaixo e clique em Importar</li>
+                  </ol>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="apifyUrl">URL do Dataset (Apify API)</Label>
+                  <Input
+                    id="apifyUrl"
+                    type="url"
+                    placeholder="https://api.apify.com/v2/datasets/xxxxx/items"
+                    value={apifyUrl}
+                    onChange={e => setApifyUrl(e.target.value)}
+                  />
+                </div>
               </div>
             )}
 

@@ -88,4 +88,16 @@ public class LeadsController : BaseApiController
         var result = await _service.DeleteAsync(id);
         return HandleResult(result);
     }
+
+    [HttpPost("import/apify-url")]
+    public async Task<IActionResult> ImportFromApify([FromBody] ApifyImportRequest request, [FromServices] IApifyIntegrationService apifyService)
+    {
+        if (string.IsNullOrWhiteSpace(request.DatasetUrl))
+        {
+            return BadRequest(new { Message = "A URL do dataset da Apify é obrigatória." });
+        }
+
+        var result = await apifyService.ImportDatasetAsync(request.DatasetUrl, (int)request.Source);
+        return HandleResult(result);
+    }
 }
