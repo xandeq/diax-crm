@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using System.Text;
 using System.Text.Json;
 
@@ -429,6 +430,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     private ProviderSettings BuildSettings(string providerName, ProviderConfig config, string defaultBaseUrl, string? requestedModel)
     {
         var baseUrl = string.IsNullOrWhiteSpace(config.BaseUrl) ? defaultBaseUrl : config.BaseUrl;
+        var normalizedApiKey = NormalizeApiKey(config.ApiKey);
 
         // Priority:
         // 1. Requested model from frontend (if valid)
@@ -457,7 +459,26 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             model = !string.IsNullOrWhiteSpace(config.Model) ? config.Model : databaseDefault;
         }
 
-        return new ProviderSettings(providerName, config.ApiKey, baseUrl, model);
+        return new ProviderSettings(providerName, normalizedApiKey, baseUrl, model);
+    }
+
+    private static string? NormalizeApiKey(string? rawApiKey)
+    {
+        if (string.IsNullOrWhiteSpace(rawApiKey))
+        {
+            return rawApiKey;
+        }
+
+        var value = rawApiKey.Trim().Trim('"').Trim('\'');
+
+        if (value.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value.Substring("Bearer ".Length).Trim();
+        }
+
+        // Remove whitespace/newline/invisible characters from copy-paste.
+        value = Regex.Replace(value, @"\s+", string.Empty);
+        return value;
     }
 
     private string NormalizeProviderForDatabase(string providerName)
