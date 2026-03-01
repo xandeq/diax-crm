@@ -4,16 +4,26 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ApiError } from '@/services/api';
 import {
   connectAdAccount,
+  createCampaign,
   disconnectAdAccount,
   getAdAccountSummary,
+  getAdSets,
   getCampaigns,
   getInsights,
   syncAdAccount,
+  updateAdSetBudget,
+  updateAdSetStatus,
+  updateCampaignBudget,
+  updateCampaignStatus,
 } from '@/services/ads';
 import type {
   AdAccountSummary,
+  CreateCampaignRequest,
+  FacebookAdSet,
   FacebookCampaign,
   FacebookInsight,
+  UpdateAdSetBudgetRequest,
+  UpdateCampaignBudgetRequest,
 } from '@/types/ads';
 import { STATUS_COLORS } from '@/types/ads';
 import {
@@ -22,13 +32,19 @@ import {
   CheckCircle2,
   ChevronRight,
   Eye,
+  Layers,
   Link2,
   Loader2,
   MousePointerClick,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
   RefreshCw,
   TrendingUp,
   Unplug,
   Wallet,
+  X,
   Zap,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -42,6 +58,15 @@ const DATE_PRESETS = [
   { label: 'Últimos 30 dias', value: 'last_30d' },
   { label: 'Este mês', value: 'this_month' },
   { label: 'Mês passado', value: 'last_month' },
+];
+
+const CAMPAIGN_OBJECTIVES = [
+  { value: 'OUTCOME_AWARENESS', label: 'Reconhecimento (Awareness)' },
+  { value: 'OUTCOME_TRAFFIC', label: 'Tráfego (Traffic)' },
+  { value: 'OUTCOME_ENGAGEMENT', label: 'Engajamento (Engagement)' },
+  { value: 'OUTCOME_LEADS', label: 'Geração de Leads' },
+  { value: 'OUTCOME_APP_PROMOTION', label: 'Promoção de App' },
+  { value: 'OUTCOME_SALES', label: 'Vendas (Sales)' },
 ];
 
 function formatCurrency(value: number, currency = 'BRL') {
@@ -169,15 +194,469 @@ function MetricCard({
   );
 }
 
+// ===== NEW CAMPAIGN MODAL =====
+
+function NewCampaignModal({
+  open,
+  onClose,
+  onSuccess,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [objective, setObjective] = useState('OUTCOME_TRAFFIC');
+  const [status, setStatus] = useState<'ACTIVE' | 'PAUSED'>('PAUSED');
+  const [budgetType, setBudgetType] = useState<'daily' | 'lifetime'>('daily');
+  const [budgetValue, setBudgetValue] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [stopTime, setStopTime] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const reset = () => {
+    setName('');
+    setObjective('OUTCOME_TRAFFIC');
+    setStatus('PAUSED');
+    setBudgetType('daily');
+    setBudgetValue('');
+    setStartTime('');
+    setStopTime('');
+  };
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !budgetValue) return;
+    const budgetCentavos = Math.round(parseFloat(budgetValue) * 100).toString();
+    const payload: CreateCampaignRequest = {
+      name: name.trim(),
+      objective,
+      status,
+      ...(budgetType === 'daily' ? { dailyBudget: budgetCentavos } : { lifetimeBudget: budgetCentavos }),
+      ...(startTime ? { startTime } : {}),
+      ...(stopTime ? { stopTime } : {}),
+    };
+    setLoading(true);
+    try {
+      await createCampaign(payload);
+      toast.success('Campanha criada com sucesso!');
+      handleClose();
+      onSuccess();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao criar campanha');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-800">Nova Campanha</h2>
+          <button onClick={handleClose} className="text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Nome *</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Ex: Campanha Verão 2025"
+              required
+              className="w-full px-3 py-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Objetivo</label>
+            <select
+              value={objective}
+              onChange={e => setObjective(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {CAMPAIGN_OBJECTIVES.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Status inicial</label>
+            <div className="flex gap-2">
+              {(['PAUSED', 'ACTIVE'] as const).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatus(s)}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                    status === s
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {s === 'PAUSED' ? 'Pausada' : 'Ativa'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de orçamento</label>
+            <div className="flex gap-2 mb-2">
+              {([['daily', 'Diário'], ['lifetime', 'Total']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setBudgetType(val)}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                    budgetType === val
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">R$</span>
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                value={budgetValue}
+                onChange={e => setBudgetValue(e.target.value)}
+                placeholder="0,00"
+                required
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Início (opcional)</label>
+              <input
+                type="datetime-local"
+                value={startTime}
+                onChange={e => setStartTime(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Fim {budgetType === 'lifetime' ? '*' : '(opcional)'}
+              </label>
+              <input
+                type="datetime-local"
+                value={stopTime}
+                onChange={e => setStopTime(e.target.value)}
+                required={budgetType === 'lifetime'}
+                className="w-full px-3 py-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex-1 py-2 text-sm text-slate-600 border border-slate-200 rounded-md hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !name.trim() || !budgetValue}
+              className="flex-1 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              {loading ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Criando...</>
+              ) : (
+                'Criar Campanha'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ===== EDIT CAMPAIGN BUDGET MODAL =====
+
+function EditBudgetModal({
+  campaign,
+  onClose,
+  onSuccess,
+}: {
+  campaign: FacebookCampaign | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [budgetType, setBudgetType] = useState<'daily' | 'lifetime'>('daily');
+  const [budgetValue, setBudgetValue] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (campaign) {
+      setBudgetType(campaign.lifetimeBudget ? 'lifetime' : 'daily');
+      const raw = parseInt(campaign.dailyBudget || campaign.lifetimeBudget || '0');
+      setBudgetValue(raw > 0 ? (raw / 100).toFixed(2) : '');
+    }
+  }, [campaign]);
+
+  if (!campaign) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!budgetValue) return;
+    const budgetCentavos = Math.round(parseFloat(budgetValue) * 100).toString();
+    const payload: UpdateCampaignBudgetRequest = {
+      ...(budgetType === 'daily' ? { dailyBudget: budgetCentavos } : { lifetimeBudget: budgetCentavos }),
+    };
+    setLoading(true);
+    try {
+      await updateCampaignBudget(campaign.id, payload);
+      toast.success('Orçamento atualizado!');
+      onClose();
+      onSuccess();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar orçamento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-800">Editar Orçamento</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <p className="text-xs text-slate-500">
+            Campanha: <span className="font-medium text-slate-700">{campaign.name}</span>
+          </p>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de orçamento</label>
+            <div className="flex gap-2">
+              {([['daily', 'Diário'], ['lifetime', 'Total']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setBudgetType(val)}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                    budgetType === val
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Valor</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">R$</span>
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                value={budgetValue}
+                onChange={e => setBudgetValue(e.target.value)}
+                required
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 text-sm text-slate-600 border border-slate-200 rounded-md hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !budgetValue}
+              className="flex-1 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              {loading ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</>
+              ) : (
+                'Salvar'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ===== EDIT AD SET BUDGET MODAL =====
+
+function EditAdSetBudgetModal({
+  adSet,
+  onClose,
+  onSuccess,
+}: {
+  adSet: FacebookAdSet | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [budgetType, setBudgetType] = useState<'daily' | 'lifetime'>('daily');
+  const [budgetValue, setBudgetValue] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (adSet) {
+      setBudgetType(adSet.lifetimeBudget ? 'lifetime' : 'daily');
+      const raw = parseInt(adSet.dailyBudget || adSet.lifetimeBudget || '0');
+      setBudgetValue(raw > 0 ? (raw / 100).toFixed(2) : '');
+    }
+  }, [adSet]);
+
+  if (!adSet) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!budgetValue) return;
+    const budgetCentavos = Math.round(parseFloat(budgetValue) * 100).toString();
+    const payload: UpdateAdSetBudgetRequest = {
+      ...(budgetType === 'daily' ? { dailyBudget: budgetCentavos } : { lifetimeBudget: budgetCentavos }),
+    };
+    setLoading(true);
+    try {
+      await updateAdSetBudget(adSet.id, payload);
+      toast.success('Orçamento do conjunto atualizado!');
+      onClose();
+      onSuccess();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar orçamento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-800">Editar Orçamento do Conjunto</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <p className="text-xs text-slate-500">
+            Conjunto: <span className="font-medium text-slate-700">{adSet.name}</span>
+          </p>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Tipo de orçamento</label>
+            <div className="flex gap-2">
+              {([['daily', 'Diário'], ['lifetime', 'Total']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setBudgetType(val)}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                    budgetType === val
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Valor</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">R$</span>
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                value={budgetValue}
+                onChange={e => setBudgetValue(e.target.value)}
+                required
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 text-sm text-slate-600 border border-slate-200 rounded-md hover:bg-slate-50 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !budgetValue}
+              className="flex-1 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              {loading ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</>
+              ) : (
+                'Salvar'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ===== CAMPAIGN ROW =====
 
-function CampaignRow({ campaign }: { campaign: FacebookCampaign }) {
+function CampaignRow({
+  campaign,
+  onStatusToggle,
+  onEditBudget,
+  isToggling,
+}: {
+  campaign: FacebookCampaign;
+  onStatusToggle: () => void;
+  onEditBudget: () => void;
+  isToggling: boolean;
+}) {
   const colorClass = STATUS_COLORS[campaign.status] ?? STATUS_COLORS.UNKNOWN;
   const budget = campaign.dailyBudget
     ? `R$ ${(parseInt(campaign.dailyBudget) / 100).toFixed(2)}/dia`
     : campaign.lifetimeBudget
     ? `R$ ${(parseInt(campaign.lifetimeBudget) / 100).toFixed(2)} total`
     : '—';
+
+  const canToggle = campaign.status === 'ACTIVE' || campaign.status === 'PAUSED';
+  const isPausing = campaign.status === 'ACTIVE';
 
   return (
     <tr className="border-t border-slate-50 hover:bg-slate-50/50 transition-colors">
@@ -193,6 +672,101 @@ function CampaignRow({ campaign }: { campaign: FacebookCampaign }) {
       <td className="px-4 py-3 text-sm text-slate-600">{budget}</td>
       <td className="px-4 py-3 text-sm text-slate-400">
         {campaign.startTime ? new Date(campaign.startTime).toLocaleDateString('pt-BR') : '—'}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onStatusToggle}
+            disabled={!canToggle || isToggling}
+            title={isPausing ? 'Pausar campanha' : 'Ativar campanha'}
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {isToggling
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : isPausing
+              ? <Pause className="w-3.5 h-3.5" />
+              : <Play className="w-3.5 h-3.5" />
+            }
+          </button>
+          <button
+            onClick={onEditBudget}
+            title="Editar orçamento"
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ===== AD SET ROW =====
+
+function AdSetRow({
+  adSet,
+  campaignName,
+  onStatusToggle,
+  onEditBudget,
+  isToggling,
+}: {
+  adSet: FacebookAdSet;
+  campaignName: string;
+  onStatusToggle: () => void;
+  onEditBudget: () => void;
+  isToggling: boolean;
+}) {
+  const colorClass = STATUS_COLORS[adSet.status] ?? STATUS_COLORS.UNKNOWN;
+  const budget = adSet.dailyBudget
+    ? `R$ ${(parseInt(adSet.dailyBudget) / 100).toFixed(2)}/dia`
+    : adSet.lifetimeBudget
+    ? `R$ ${(parseInt(adSet.lifetimeBudget) / 100).toFixed(2)} total`
+    : '—';
+
+  const canToggle = adSet.status === 'ACTIVE' || adSet.status === 'PAUSED';
+  const isPausing = adSet.status === 'ACTIVE';
+
+  return (
+    <tr className="border-t border-slate-50 hover:bg-slate-50/50 transition-colors">
+      <td className="px-4 py-3">
+        <span className="text-sm font-medium text-slate-800">{adSet.name}</span>
+        {campaignName && (
+          <span className="block text-xs text-slate-400 mt-0.5">{campaignName}</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
+          {adSet.status}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-sm text-slate-600">{adSet.optimizationGoal || '—'}</td>
+      <td className="px-4 py-3 text-sm text-slate-600">{budget}</td>
+      <td className="px-4 py-3 text-sm text-slate-400">
+        {adSet.startTime ? new Date(adSet.startTime).toLocaleDateString('pt-BR') : '—'}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onStatusToggle}
+            disabled={!canToggle || isToggling}
+            title={isPausing ? 'Pausar conjunto' : 'Ativar conjunto'}
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {isToggling
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : isPausing
+              ? <Pause className="w-3.5 h-3.5" />
+              : <Play className="w-3.5 h-3.5" />
+            }
+          </button>
+          <button
+            onClick={onEditBudget}
+            title="Editar orçamento"
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </td>
     </tr>
   );
@@ -234,7 +808,19 @@ export default function AdsPage() {
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [notConnected, setNotConnected] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'campaigns' | 'insights'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'campaigns' | 'adsets' | 'insights'>('overview');
+
+  // Campaign write state
+  const [showNewCampaign, setShowNewCampaign] = useState(false);
+  const [editBudgetCampaign, setEditBudgetCampaign] = useState<FacebookCampaign | null>(null);
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+
+  // Ad Sets state
+  const [adSets, setAdSets] = useState<FacebookAdSet[]>([]);
+  const [loadingAdSets, setLoadingAdSets] = useState(false);
+  const [adSetCampaignFilter, setAdSetCampaignFilter] = useState('');
+  const [editBudgetAdSet, setEditBudgetAdSet] = useState<FacebookAdSet | null>(null);
+  const [togglingAdSetIds, setTogglingAdSetIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -257,6 +843,27 @@ export default function AdsPage() {
       }
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const refreshCampaigns = useCallback(async () => {
+    try {
+      const data = await getCampaigns();
+      setCampaigns(data);
+    } catch {
+      toast.error('Erro ao atualizar campanhas');
+    }
+  }, []);
+
+  const refreshAdSets = useCallback(async (campaignId?: string) => {
+    setLoadingAdSets(true);
+    try {
+      const data = await getAdSets(campaignId || undefined);
+      setAdSets(data);
+    } catch {
+      toast.error('Erro ao carregar conjuntos de anúncios');
+    } finally {
+      setLoadingAdSets(false);
     }
   }, []);
 
@@ -284,6 +891,12 @@ export default function AdsPage() {
     }
   }, [activeTab, datePreset, notConnected, loading, loadInsights]);
 
+  useEffect(() => {
+    if (activeTab === 'adsets' && !notConnected && !loading) {
+      refreshAdSets(adSetCampaignFilter || undefined);
+    }
+  }, [activeTab, adSetCampaignFilter, notConnected, loading, refreshAdSets]);
+
   const handleSync = async () => {
     setSyncing(true);
     try {
@@ -306,8 +919,45 @@ export default function AdsPage() {
       setSummary(null);
       setCampaigns([]);
       setInsights([]);
+      setAdSets([]);
     } catch {
       toast.error('Erro ao desconectar conta');
+    }
+  };
+
+  const handleStatusToggle = async (campaign: FacebookCampaign) => {
+    const newStatus = campaign.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+    setTogglingIds(prev => new Set(prev).add(campaign.id));
+    try {
+      await updateCampaignStatus(campaign.id, { status: newStatus });
+      toast.success(newStatus === 'PAUSED' ? 'Campanha pausada.' : 'Campanha ativada.');
+      await refreshCampaigns();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status');
+    } finally {
+      setTogglingIds(prev => {
+        const next = new Set(prev);
+        next.delete(campaign.id);
+        return next;
+      });
+    }
+  };
+
+  const handleAdSetStatusToggle = async (adSet: FacebookAdSet) => {
+    const newStatus = adSet.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+    setTogglingAdSetIds(prev => new Set(prev).add(adSet.id));
+    try {
+      await updateAdSetStatus(adSet.id, { status: newStatus });
+      toast.success(newStatus === 'PAUSED' ? 'Conjunto pausado.' : 'Conjunto ativado.');
+      await refreshAdSets(adSetCampaignFilter || undefined);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status');
+    } finally {
+      setTogglingAdSetIds(prev => {
+        const next = new Set(prev);
+        next.delete(adSet.id);
+        return next;
+      });
     }
   };
 
@@ -336,8 +986,31 @@ export default function AdsPage() {
   const account = summary?.account;
   const currency = account?.currency || 'BRL';
 
+  // Build a lookup map for campaign names (used in AdSetRow)
+  const campaignNameById = campaigns.reduce<Record<string, string>>((acc, c) => {
+    acc[c.id] = c.name;
+    return acc;
+  }, {});
+
   return (
     <div className="max-w-5xl mx-auto px-4">
+      {/* Modals */}
+      <NewCampaignModal
+        open={showNewCampaign}
+        onClose={() => setShowNewCampaign(false)}
+        onSuccess={refreshCampaigns}
+      />
+      <EditBudgetModal
+        campaign={editBudgetCampaign}
+        onClose={() => setEditBudgetCampaign(null)}
+        onSuccess={refreshCampaigns}
+      />
+      <EditAdSetBudgetModal
+        adSet={editBudgetAdSet}
+        onClose={() => setEditBudgetAdSet(null)}
+        onSuccess={() => refreshAdSets(adSetCampaignFilter || undefined)}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -379,6 +1052,7 @@ export default function AdsPage() {
         {([
           { key: 'overview', label: 'Visão Geral', icon: BarChart3 },
           { key: 'campaigns', label: 'Campanhas', icon: Zap },
+          { key: 'adsets', label: 'Conjuntos', icon: Layers },
           { key: 'insights', label: 'Insights', icon: TrendingUp },
         ] as const).map(({ key, label, icon: Icon }) => (
           <button
@@ -488,6 +1162,13 @@ export default function AdsPage() {
             <h2 className="text-sm font-semibold text-slate-700">
               Campanhas ({campaigns.length})
             </h2>
+            <button
+              onClick={() => setShowNewCampaign(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nova Campanha
+            </button>
           </div>
           {campaigns.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-400">
@@ -504,11 +1185,77 @@ export default function AdsPage() {
                     <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Objetivo</th>
                     <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Orçamento</th>
                     <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Início</th>
+                    <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {campaigns.map(c => (
-                    <CampaignRow key={c.id} campaign={c} />
+                    <CampaignRow
+                      key={c.id}
+                      campaign={c}
+                      onStatusToggle={() => handleStatusToggle(c)}
+                      onEditBudget={() => setEditBudgetCampaign(c)}
+                      isToggling={togglingIds.has(c.id)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Ad Sets Tab */}
+      {activeTab === 'adsets' && (
+        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between gap-4">
+            <h2 className="text-sm font-semibold text-slate-700 shrink-0">
+              Conjuntos ({adSets.length})
+            </h2>
+            <select
+              value={adSetCampaignFilter}
+              onChange={e => setAdSetCampaignFilter(e.target.value)}
+              className="ml-auto px-3 py-1.5 text-xs rounded-md border border-slate-200 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs"
+            >
+              <option value="">Todas as campanhas</option>
+              {campaigns.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {loadingAdSets ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            </div>
+          ) : adSets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <AlertCircle className="w-8 h-8 mb-2" />
+              <p className="text-sm">Nenhum conjunto encontrado</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50">
+                    <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Nome</th>
+                    <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Status</th>
+                    <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Objetivo</th>
+                    <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Orçamento</th>
+                    <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Início</th>
+                    <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adSets.map(a => (
+                    <AdSetRow
+                      key={a.id}
+                      adSet={a}
+                      campaignName={campaignNameById[a.campaignId] ?? ''}
+                      onStatusToggle={() => handleAdSetStatusToggle(a)}
+                      onEditBudget={() => setEditBudgetAdSet(a)}
+                      isToggling={togglingAdSetIds.has(a.id)}
+                    />
                   ))}
                 </tbody>
               </table>
