@@ -4,6 +4,7 @@ import { getCustomerActivities, LeadActivity } from '@/services/customers';
 import {
     AlertCircle,
     CheckCircle,
+    Eye,
     Mail,
     UserCheck,
     UserPlus,
@@ -126,6 +127,12 @@ export function LeadTimeline({ customerId }: LeadTimelineProps) {
                     <p className="text-xs text-slate-500 mt-0.5 break-words">
                       {activity.detail}
                     </p>
+                  )}
+                  {activity.wasRead && activity.readAt && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center font-medium bg-green-50 p-1 rounded w-fit">
+                          <Eye className="w-3 h-3 mr-1" />
+                          Lido em {formatDate(activity.readAt)}
+                      </p>
                   )}
                   <p className="text-xs text-slate-400 mt-1">
                     {formatDate(activity.date)}

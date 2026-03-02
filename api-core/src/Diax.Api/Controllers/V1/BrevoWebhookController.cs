@@ -133,6 +133,10 @@ public class BrevoWebhookController : BaseApiController
             return;
         }
 
+        // Note: the Delivered event also sets the timestamp on the individual queue item
+        queueItem.MarkDelivered();
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
         // Increment delivered count for campaign if exists
         if (queueItem.CampaignId.HasValue)
         {
@@ -153,6 +157,24 @@ public class BrevoWebhookController : BaseApiController
 
     private async Task HandleOpenedAsync(BrevoWebhookPayload payload, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(payload.MessageId))
+            return;
+
+        var items = await _emailQueueRepository.FindAsync(
+            q => q.ProviderMessageId == payload.MessageId,
+            cancellationToken);
+
+        var queueItem = items.FirstOrDefault();
+
+        if (queueItem != null)
+        {
+            queueItem.RecordOpen();
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation(
+                "Email opened: QueueItemId={QueueItemId}, ProviderMessageId={MessageId}, ReadCount={ReadCount}",
+                queueItem.Id, payload.MessageId, queueItem.ReadCount);
+        }
+
         // Try to find campaign by tag (which contains the campaign ID)
         if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var campaignId))
         {

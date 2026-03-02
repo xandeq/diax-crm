@@ -170,6 +170,8 @@ export interface LeadActivity {
   detail?: string;
   date: string;
   status: 'success' | 'warning' | 'info' | 'error';
+  wasRead?: boolean;
+  readAt?: string;
 }
 
 export async function getCustomerActivities(id: string): Promise<LeadActivity[]> {

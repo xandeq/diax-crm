@@ -30,4 +30,14 @@ public class LeadActivityDto
     /// Indicador visual: "success", "warning", "info", "error"
     /// </summary>
     public string Status { get; set; } = "info";
+
+    /// <summary>
+    /// Booleano para rastrear se o e-mail foi lido
+    /// </summary>
+    public bool WasRead { get; set; }
+
+    /// <summary>
+    /// Data em que o e-mail foi lido (se aplicável)
+    /// </summary>
+    public DateTime? ReadAt { get; set; }
 }

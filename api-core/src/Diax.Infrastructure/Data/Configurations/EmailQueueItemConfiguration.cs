@@ -69,6 +69,14 @@ public class EmailQueueItemConfiguration : IEntityTypeConfiguration<EmailQueueIt
         builder.Property(item => item.UpdatedBy)
             .HasMaxLength(100);
 
+        builder.Property(item => item.DeliveredAt);
+
+        builder.Property(item => item.OpenedAt);
+
+        builder.Property(item => item.ReadCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.HasIndex(item => new { item.Status, item.ScheduledAt })
             .HasDatabaseName("IX_EmailQueueItem_Status_ScheduledAt");
 

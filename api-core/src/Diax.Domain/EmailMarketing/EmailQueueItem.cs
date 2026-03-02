@@ -20,6 +20,9 @@ public class EmailQueueItem : AuditableEntity
     public string? LastError { get; private set; }
     public string? ProviderMessageId { get; private set; }
     public Guid? CampaignId { get; private set; }
+    public DateTime? DeliveredAt { get; private set; }
+    public DateTime? OpenedAt { get; private set; }
+    public int ReadCount { get; private set; }
 
     protected EmailQueueItem()
     {
@@ -70,6 +73,19 @@ public class EmailQueueItem : AuditableEntity
     {
         Status = EmailQueueStatus.Failed;
         LastError = errorMessage;
+        SetUpdated("system");
+    }
+
+    public void MarkDelivered()
+    {
+        DeliveredAt = DateTime.UtcNow;
+        SetUpdated("system");
+    }
+
+    public void RecordOpen()
+    {
+        OpenedAt = DateTime.UtcNow;
+        ReadCount++;
         SetUpdated("system");
     }
 }

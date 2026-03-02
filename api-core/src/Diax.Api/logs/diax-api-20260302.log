@@ -1,0 +1,26 @@
+2026-03-02 17:04:38.174 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
+2026-03-02 17:04:38.928 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-03-02 17:04:55.567 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
+2026-03-02 17:04:56.245 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-03-02 17:04:58.068 -03:00 [INF] Executed DbCommand (198ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-03-02 17:04:58.250 -03:00 [INF] Executed DbCommand (170ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-03-02 17:04:58.429 -03:00 [INF] Executed DbCommand (174ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-03-02 17:04:58.595 -03:00 [INF] Executed DbCommand (163ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-03-02 17:04:58.773 -03:00 [INF] Executed DbCommand (164ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-03-02 17:04:58.787 -03:00 [INF] Applying migration '20260302200440_AddEmailTrackingFields'.
+2026-03-02 17:04:59.278 -03:00 [INF] Executed DbCommand (215ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [email_queue_items] ADD [delivered_at] datetime2 NULL;
+2026-03-02 17:04:59.439 -03:00 [INF] Executed DbCommand (158ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [email_queue_items] ADD [opened_at] datetime2 NULL;
+2026-03-02 17:04:59.651 -03:00 [INF] Executed DbCommand (209ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+ALTER TABLE [email_queue_items] ADD [read_count] int NOT NULL DEFAULT 0;
+2026-03-02 17:04:59.814 -03:00 [INF] Executed DbCommand (159ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260302200440_AddEmailTrackingFields', N'8.0.11');

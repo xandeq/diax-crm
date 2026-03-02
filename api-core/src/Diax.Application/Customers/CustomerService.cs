@@ -312,7 +312,9 @@ public class CustomerService : IApplicationService
                     ? (email.LastError ?? email.Subject)
                     : email.Subject,
                 Date = date,
-                Status = status
+                Status = status,
+                WasRead = email.ReadCount > 0 || email.OpenedAt.HasValue,
+                ReadAt = email.OpenedAt
             });
         }
 
