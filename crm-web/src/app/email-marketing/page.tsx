@@ -1,40 +1,39 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiFetch } from '@/services/api';
-import { queueBulkEmail, QueueBulkEmailResponse } from '@/services/emailMarketing';
-import { uploadEmailImage } from '@/services/emailImages';
-import { Customer, PagedResponse } from '@/services/customers';
+import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
+import { compressImage } from '@/lib/image-compression';
+import { apiFetch } from '@/services/api';
+import { Customer, PagedResponse } from '@/services/customers';
+import { uploadEmailImage } from '@/services/emailImages';
+import { queueBulkEmail, QueueBulkEmailResponse } from '@/services/emailMarketing';
 import {
-  Mail,
-  Search,
-  Users,
-  Send,
-  Info,
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Eye,
-  EyeOff,
-  ChevronLeft,
-  ChevronRight,
-  ArrowLeft,
-  RefreshCw,
-  X,
-  ImagePlus,
-  Trash2,
+    AlertCircle,
+    ArrowLeft,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    Eye,
+    EyeOff,
+    ImagePlus,
+    Info,
+    Loader2,
+    Mail,
+    RefreshCw,
+    Search,
+    Send,
+    Trash2,
+    Users,
+    X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { compressImage, formatCompressionRatio } from '@/lib/image-compression';
-
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 const SEGMENT_LABELS: Record<number, string> = { 0: 'Cold', 1: 'Warm', 2: 'Hot' };
 const SEGMENT_COLORS: Record<number, string> = {
   0: 'bg-sky-100 text-sky-700',
@@ -82,8 +81,8 @@ export default function EmailMarketingPage() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<QueueBulkEmailResponse | null>(null);
 
-  // Image upload
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Image upload and Editor Ref
+  const editorRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   interface UploadedImage {
     id: string;
@@ -149,22 +148,16 @@ export default function EmailMarketingPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  /** Insere texto na posição atual do cursor no textarea */
-  const insertAtCursor = (text: string) => {
-    const el = textareaRef.current;
-    if (!el) {
-      setHtmlBody(prev => prev + text);
+  /** Insere texto/HTML na posição atual do cursor no editor TipTap */
+  const insertAtCursor = (content: string) => {
+    if (editorRef.current) {
+      // Usar a func insertContent do TipTap para colocar HTML na posição
+      editorRef.current.chain().focus().insertContent(content).run();
       return;
     }
-    const start = el.selectionStart ?? el.value.length;
-    const end = el.selectionEnd ?? el.value.length;
-    const newValue = el.value.substring(0, start) + text + el.value.substring(end);
-    setHtmlBody(newValue);
-    // Restaura foco e cursor após o texto inserido
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(start + text.length, start + text.length);
-    });
+
+    // Fallback de segurança se o ref não estiver pronto
+    setHtmlBody(prev => prev + content);
   };
 
   const insertVariable = (variable: string) => {
@@ -602,18 +595,15 @@ export default function EmailMarketingPage() {
 
                   {/* Rendered preview */}
                   <div
-                    className="min-h-[220px] max-h-[400px] overflow-auto rounded-md border bg-white p-4 text-sm"
+                    className="prose max-w-none min-h-[220px] max-h-[400px] overflow-auto rounded-md border bg-white p-4 text-sm"
                     dangerouslySetInnerHTML={{ __html: renderPreview(htmlBody) }}
                   />
                 </div>
               ) : (
-                <Textarea
-                  ref={textareaRef}
-                  id="htmlBody"
-                  rows={11}
-                  className="font-mono text-xs leading-relaxed"
+                <RichTextEditor
                   value={htmlBody}
-                  onChange={e => setHtmlBody(e.target.value)}
+                  onChange={setHtmlBody}
+                  editorRef={editorRef}
                 />
               )}
               <p className="text-xs text-muted-foreground">

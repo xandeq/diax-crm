@@ -78,7 +78,10 @@
       "Bash(git branch:*)",
       "WebFetch(domain:help.brevo.com)",
       "WebFetch(domain:community.brevo.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(npm run type-check)",
+      "Bash(npm run)",
+      "Bash(dotnet test --logger \"console;verbosity=normal\")"
     ]
   }
 }
