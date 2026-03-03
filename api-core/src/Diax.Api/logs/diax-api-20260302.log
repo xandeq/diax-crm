@@ -24,3 +24,40 @@ ALTER TABLE [email_queue_items] ADD [read_count] int NOT NULL DEFAULT 0;
 2026-03-02 17:04:59.814 -03:00 [INF] Executed DbCommand (159ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20260302200440_AddEmailTrackingFields', N'8.0.11');
+2026-03-02 21:32:12.219 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
+2026-03-02 21:32:13.056 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-03-02 21:32:39.397 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
+2026-03-02 21:32:40.279 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-03-02 21:32:41.944 -03:00 [INF] Executed DbCommand (176ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-03-02 21:32:42.127 -03:00 [INF] Executed DbCommand (167ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-03-02 21:32:42.303 -03:00 [INF] Executed DbCommand (170ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-03-02 21:32:42.474 -03:00 [INF] Executed DbCommand (166ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-03-02 21:32:42.651 -03:00 [INF] Executed DbCommand (161ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-03-02 21:32:42.667 -03:00 [INF] Applying migration '20260303003214_AddAgendaAppointments'.
+2026-03-02 21:32:43.169 -03:00 [INF] Executed DbCommand (165ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE TABLE [appointments] (
+    [id] uniqueidentifier NOT NULL,
+    [title] nvarchar(256) NOT NULL,
+    [description] nvarchar(256) NULL,
+    [date] datetime2 NOT NULL,
+    [type] int NOT NULL,
+    [daily_notification_sent] bit NOT NULL,
+    [user_id] uniqueidentifier NOT NULL,
+    [created_at] datetime2 NOT NULL,
+    [created_by] nvarchar(256) NULL,
+    [updated_at] datetime2 NULL,
+    [updated_by] nvarchar(256) NULL,
+    CONSTRAINT [PK_appointments] PRIMARY KEY ([id])
+);
+2026-03-02 21:32:43.333 -03:00 [INF] Executed DbCommand (159ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+CREATE INDEX [IX_appointments_user_id] ON [appointments] ([user_id]);
+2026-03-02 21:32:43.495 -03:00 [INF] Executed DbCommand (159ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260303003214_AddAgendaAppointments', N'8.0.11');

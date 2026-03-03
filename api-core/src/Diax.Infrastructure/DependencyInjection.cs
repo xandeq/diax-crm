@@ -213,6 +213,7 @@ public static class DependencyInjection
         services.AddScoped<IGroupAiAccessRepository, GroupAiAccessRepository>();
         services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
         services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
+        services.AddScoped<Diax.Domain.Calendar.IAppointmentRepository, AppointmentRepository>();
 
         // ===== OUTREACH =====
         services.AddScoped<IOutreachConfigRepository, OutreachConfigRepository>();

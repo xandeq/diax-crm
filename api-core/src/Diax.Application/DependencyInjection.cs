@@ -38,6 +38,7 @@ public static class DependencyInjection
         // Registra os serviços de aplicação
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IUserGroupService, UserGroupService>();
+        services.AddScoped<Diax.Application.Calendar.IAppointmentService, Diax.Application.Calendar.AppointmentService>();
         services.AddScoped<CustomerService>();
         services.AddScoped<CustomerImportService>();
         services.AddScoped<IncomeService>();

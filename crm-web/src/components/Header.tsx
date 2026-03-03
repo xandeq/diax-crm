@@ -151,7 +151,8 @@ export function Header() {
 
         {isAuthenticated && (
           <>
-            <Link href="/dashboard/">Dashboard</Link>
+            <Link href="/dashboard/" className="hover:text-slate-900">Dashboard</Link>
+            <Link href="/agenda" className="hover:text-slate-900 font-medium text-blue-600">Agenda</Link>
 
             <Link href="/ads/" className="hover:text-slate-900 flex items-center gap-1">
               <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-[#1877F2]" aria-hidden="true">

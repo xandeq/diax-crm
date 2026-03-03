@@ -1,0 +1,3 @@
+# Workspace Rules
+
+1. Always monitor the CI/CD pipeline after executing a git commit and push (`git push`). Use `gh run watch` or `gh run list` to verify the deployment status and ensure no errors occurred during the pipeline execution.

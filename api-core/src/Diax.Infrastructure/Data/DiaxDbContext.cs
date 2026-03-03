@@ -1,5 +1,6 @@
 using Diax.Domain.Ads;
 using Diax.Domain.Audit;
+using Diax.Domain.Calendar;
 using Diax.Domain.Common;
 using Diax.Domain.Auth;
 using Diax.Domain.Customers;
@@ -79,6 +80,9 @@ public class DiaxDbContext : DbContext
     public DbSet<Snippet> Snippets => Set<Snippet>();
     public DbSet<ChecklistCategory> ChecklistCategories => Set<ChecklistCategory>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
+
+    // Calendar
+    public DbSet<Appointment> Appointments => Set<Appointment>();
 
     // AI & RBAC
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
@@ -194,6 +198,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<StatementImport>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<ImportedTransaction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<FacebookAdAccount>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<Appointment>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.
