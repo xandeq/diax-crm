@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace Diax.Domain.Calendar;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AppointmentType
 {
     Medical = 1,
