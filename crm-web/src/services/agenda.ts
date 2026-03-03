@@ -22,5 +22,9 @@ export const agendaService = {
 
     async delete(id: string): Promise<void> {
         await apiRequest<void>(`appointments/${id}`, 'DELETE');
+    },
+
+    async importFromText(text: string): Promise<CreateAppointmentDto[]> {
+        return await apiRequest<CreateAppointmentDto[]>('appointments/import-text', 'POST', { prompt: text });
     }
 };

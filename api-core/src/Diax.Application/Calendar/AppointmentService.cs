@@ -163,6 +163,57 @@ public class AppointmentService : IAppointmentService
         return Result.Success();
     }
 
+    public async Task<Result<IEnumerable<CreateAppointmentDto>>> ParseFromTextAsync(string text, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return Result.Failure<IEnumerable<CreateAppointmentDto>>(new Error("Validation", "Text cannot be empty"));
+
+        var promptGenerator = _unitOfWork.GetService<Diax.Application.PromptGenerator.IPromptGeneratorService>();
+        if (promptGenerator == null)
+            return Result.Failure<IEnumerable<CreateAppointmentDto>>(new Error("Dependencies", "Prompt generator service not available."));
+
+        var currentYear = DateTime.Now.Year;
+
+        var metaPrompt = $@"
+Você é um extator inteligente de agendamentos. Seu objetivo é analisar o texto do usuário contendo uma lista de compromissos ou um texto livre e retornar *exclusivamente* um array JSON válido.
+Se o usuário informar um mês sem o ano (ex: 15/03), assuma que o ano atual é {currentYear}. Se o mês já tiver passado neste ano em relação à data atual ({DateTime.Now:dd/MM/yyyy}), também assuma o ano de {currentYear} (assumindo que seja para o mesmo ano a menos que faça explícito sentido ser no próximo). Assuma que todos os compromissos são de ano corrente {currentYear}.
+
+Regras do Array JSON:
+Retorne uma lista de objetos contendo *apenas* as seguintes propriedades:
+- title: string (nome ou título do compromisso, inclua aqui informações extras como observações, ex: 'Aplicação ferrosa clínica (R$ 160)')
+- date: string no formato completo ISO 8601 UTC (ex: '2026-03-03T10:00:00.000Z'). Se a pessoa não definir uma hora exata, assuma às 08:00 da manhã.
+- type: string (Classifique baseado no título. Os tipos permitidos *estritamente* são: 'Medical' (médicos/clínicas/exames), 'HomeService' (serviços casa/compras), 'Payment' (pagar/cobrar), 'Other' (padrão se não couber nas demais)).
+- description: string (opcional. use apenas se houver contexto extra).
+
+Retorne APENAS o JSON puro, sem formatações Markdown (sem ```json no começo).";
+
+        try
+        {
+            var jsonResult = await promptGenerator.GenerateAsync(text, "chatgpt", "json_extraction");
+
+            // Clean up potential markdown formatting that the LLM might still throw
+            jsonResult = jsonResult.Replace("```json", "").Replace("```", "").Trim();
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            };
+
+            var parsedAppointments = System.Text.Json.JsonSerializer.Deserialize<List<CreateAppointmentDto>>(jsonResult, options);
+
+            if (parsedAppointments == null || !parsedAppointments.Any())
+                return Result.Failure<IEnumerable<CreateAppointmentDto>>(new Error("Parsing", "Could not parse any appointments from the provided text."));
+
+            return Result.Success(parsedAppointments.AsEnumerable());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error parsing appointments from text via AI");
+            return Result.Failure<IEnumerable<CreateAppointmentDto>>(new Error("AI_Error", "Failed to parse text via AI: " + ex.Message));
+        }
+    }
+
     private static AppointmentDto MapToDto(Appointment entity)
     {
         return new AppointmentDto

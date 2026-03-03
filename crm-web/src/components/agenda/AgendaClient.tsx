@@ -6,10 +6,11 @@ import { agendaService } from '@/services/agenda';
 import { Appointment, AppointmentType, CreateAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, parseISO, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, List as ListIcon, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, List as ListIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AppointmentForm } from './AppointmentForm';
+import { ImportTextDialog } from './ImportTextDialog';
 
 const TYPE_COLORS: Record<AppointmentType, string> = {
   Medical: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -32,6 +33,7 @@ export function AgendaClient() {
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
   const [preselectedDate, setPreselectedDate] = useState<Date | undefined>();
 
@@ -144,7 +146,7 @@ export function AgendaClient() {
 
         <div className="flex items-center gap-2">
           {view === 'calendar' && (
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 mr-2">
+            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1 mr-2 hidden md:flex">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePreviousMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -156,6 +158,10 @@ export function AgendaClient() {
               </Button>
             </div>
           )}
+          <Button variant="outline" className="border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-medium" onClick={() => setIsImportOpen(true)}>
+             <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+             IA Extrair Texto
+          </Button>
           <Button onClick={() => handleOpenForm()} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             Novo Compromisso
@@ -290,6 +296,12 @@ export function AgendaClient() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ImportTextDialog
+        isOpen={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onSuccess={fetchAppointments}
+      />
     </div>
   );
 }

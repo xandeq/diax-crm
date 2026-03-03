@@ -25,6 +25,14 @@ public class AppointmentsController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpPost("import-text")]
+    public async Task<IActionResult> ImportText([FromBody] Diax.Application.PromptGenerator.Dtos.GeneratePromptRequestDto request, CancellationToken cancellationToken)
+    {
+        var result = await _appointmentService.ParseFromTextAsync(request.Prompt, cancellationToken);
+        if (result.IsFailure) return BadRequest(result.Error);
+        return Ok(result.Value);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
