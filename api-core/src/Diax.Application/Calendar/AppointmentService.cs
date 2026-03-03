@@ -174,7 +174,7 @@ public class AppointmentService : IAppointmentService
         var currentYear = DateTime.Now.Year;
 
         var metaPrompt = $@"
-Você é um extator inteligente de agendamentos. Seu objetivo é analisar o texto do usuário contendo uma lista de compromissos ou um texto livre e retornar *exclusivamente* um array JSON válido.
+Seu objetivo é analisar o texto do usuário contendo uma lista de compromissos ou um texto livre e extrair os dados.
 Se o usuário informar um mês sem o ano (ex: 15/03), assuma que o ano atual é {currentYear}. Se o mês já tiver passado neste ano em relação à data atual ({DateTime.Now:dd/MM/yyyy}), também assuma o ano de {currentYear} (assumindo que seja para o mesmo ano a menos que faça explícito sentido ser no próximo). Assuma que todos os compromissos são de ano corrente {currentYear}.
 
 Regras do Array JSON:
@@ -184,14 +184,23 @@ Retorne uma lista de objetos contendo *apenas* as seguintes propriedades:
 - type: string (Classifique baseado no título. Os tipos permitidos *estritamente* são: 'Medical' (médicos/clínicas/exames), 'HomeService' (serviços casa/compras), 'Payment' (pagar/cobrar), 'Other' (padrão se não couber nas demais)).
 - description: string (opcional. use apenas se houver contexto extra).
 
-Retorne APENAS o JSON puro, sem formatações Markdown (sem ```json no começo).";
+TEXTO PARA EXTRAIR:
+{text}";
 
         try
         {
-            var jsonResult = await _promptGenerator.GenerateAsync(text, "chatgpt", "json_extraction");
+            var jsonResult = await _promptGenerator.GenerateAsync(metaPrompt, "chatgpt", "json_extraction");
 
             // Clean up potential markdown formatting that the LLM might still throw
             jsonResult = jsonResult.Replace("```json", "").Replace("```", "").Trim();
+
+            var startIndex = jsonResult.IndexOf('[');
+            var endIndex = jsonResult.LastIndexOf(']');
+
+            if (startIndex >= 0 && endIndex >= startIndex)
+            {
+                jsonResult = jsonResult.Substring(startIndex, endIndex - startIndex + 1);
+            }
 
             var options = new System.Text.Json.JsonSerializerOptions
             {

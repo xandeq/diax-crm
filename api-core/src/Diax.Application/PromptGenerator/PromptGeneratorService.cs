@@ -552,8 +552,19 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             "sref" => BuildSrefMetaPrompt(),
             "deep_research" => BuildDeepResearchMetaPrompt(),
             "context_objective" => BuildContextObjectiveMetaPrompt(),
+            "json_extraction" => BuildJsonExtractionMetaPrompt(),
             _ => BuildProfessionalMetaPrompt()
         };
+    }
+
+    private string BuildJsonExtractionMetaPrompt()
+    {
+        return """
+Você é um extrator e conversor de dados superinteligente.
+A sua ÚNICA função é retornar um formato JSON bruto e perfeitamente válido de acordo com os requisitos solicitados no prompt do usuário.
+Você NÃO deve agir como um assistente, NÃO deve responder cumprimentos, NÃO deve utilizar formatação markdown (como blocos ```json), e NÃO DEVE adicionar nenhum texto antes ou depois da resposta. Siga rigidamente o esquema de dados solicitado pelo usuário se houver.
+A sua saída DEVE ser puramente e exclusivamente o código JSON.
+""";
     }
 
     private string BuildProfessionalMetaPrompt()
