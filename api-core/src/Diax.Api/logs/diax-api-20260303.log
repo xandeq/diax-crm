@@ -1,0 +1,19 @@
+2026-03-03 07:34:12.350 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
+2026-03-03 07:34:13.158 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-03-03 07:35:03.755 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
+2026-03-03 07:35:04.641 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-03-03 07:51:14.652 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
+2026-03-03 07:51:15.365 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
+2026-03-03 07:51:16.986 -03:00 [INF] Executed DbCommand (166ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-03-03 07:51:17.160 -03:00 [INF] Executed DbCommand (161ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-03-03 07:51:17.316 -03:00 [INF] Executed DbCommand (152ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT 1
+2026-03-03 07:51:17.472 -03:00 [INF] Executed DbCommand (152ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+2026-03-03 07:51:17.639 -03:00 [INF] Executed DbCommand (155ms) [Parameters=[], CommandType='"Text"', CommandTimeout='60']
+SELECT [MigrationId], [ProductVersion]
+FROM [__EFMigrationsHistory]
+ORDER BY [MigrationId];
+2026-03-03 07:51:17.651 -03:00 [INF] No migrations were applied. The database is already up to date.

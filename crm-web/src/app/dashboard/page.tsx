@@ -14,6 +14,8 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { UpcomingAgendaWidget } from "@/components/dashboard/agenda/UpcomingAgendaWidget";
+
 export default function DashboardPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -52,8 +54,11 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Finance spans 2 columns */}
+        {/* Upper row */}
+        <UpcomingAgendaWidget />
         <FinanceSummaryWidget />
+
+        {/* Next row */}
         <CrmSummaryWidget />
         <SystemHealthWidget />
         <ShoppingListWidget />

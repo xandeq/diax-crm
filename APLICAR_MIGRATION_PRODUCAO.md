@@ -124,6 +124,24 @@ Este script é **idempotente** - pode ser executado múltiplas vezes sem causar 
 
 ---
 
+## 🚀 Método Rápido (Via CLI Local)
+
+Uma vez que as credenciais do banco de produção estão na sua máquina configuradas via `dotnet user-secrets`, você pode aplicar as migrações no banco de produção rodando apenas um comando na raiz do projeto (`api-core`):
+
+```bash
+dotnet ef database update --project src\Diax.Infrastructure --startup-project src\Diax.Api --connection "Server=sql1002.site4now.net;Database=db_aaf0a8_diaxcrm;User ID=db_aaf0a8_diaxcrm_admin;Password=Alexandre10#;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
+```
+
+Ou, como a `DefaultConnection` já está nos seus Secrets apontando para produção:
+
+```bash
+dotnet ef database update --project src\Diax.Infrastructure --startup-project src\Diax.Api
+```
+
+Isso fará com que o EF Core detecte a string de banco em produção (desde que o Secret local continue igual!) e aplique lá as tabelas novas sem precisar copiar e colar no SmartASP. Se o comando der sucesso, o ambiente de produção já estará pronto.
+
+---
+
 ## 🆘 Em caso de erro
 
 Se houver algum erro durante a execução:

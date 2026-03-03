@@ -1,3 +1,13 @@
 # Workspace Rules
 
 1. Always monitor the CI/CD pipeline after executing a git commit and push (`git push`). Use `gh run watch` or `gh run list` to verify the deployment status and ensure no errors occurred during the pipeline execution.
+
+### Database Migrations in Production
+
+Whenever you are asked to run EF Core database migrations in production, DO NOT generate SQL files unless specifically asked. The connection string to the production database is already available locally in your `dotnet user-secrets`.
+
+To apply migrations directly to production, execute the following command from the `api-core` directory:
+
+```bash
+dotnet ef database update --project src\Diax.Infrastructure --startup-project src\Diax.Api --connection "Server=sql1002.site4now.net;Database=db_aaf0a8_diaxcrm;User ID=db_aaf0a8_diaxcrm_admin;Password=Alexandre10#;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
+```

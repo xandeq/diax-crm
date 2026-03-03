@@ -27,7 +27,7 @@ export function Header() {
         <Logo variant="full" />
       </Link>
       <nav className="flex gap-4 items-center text-sm font-medium text-slate-600 overflow-visible">
-        <Link href="/" className="hover:text-slate-900">Início</Link>
+        <Link href="/dashboard" className="hover:text-slate-900">Início</Link>
 
         {isAuthenticated && (
           <>
