@@ -26,9 +26,9 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpPost("import-text")]
-    public async Task<IActionResult> ImportText([FromBody] Diax.Application.PromptGenerator.Dtos.GeneratePromptRequestDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> ImportText([FromBody] ImportTextRequestDto request, CancellationToken cancellationToken)
     {
-        var result = await _appointmentService.ParseFromTextAsync(request.Prompt, cancellationToken);
+        var result = await _appointmentService.ParseFromTextAsync(request.Text, cancellationToken);
         if (result.IsFailure) return BadRequest(result.Error);
         return Ok(result.Value);
     }

@@ -25,6 +25,6 @@ export const agendaService = {
     },
 
     async importFromText(text: string): Promise<CreateAppointmentDto[]> {
-        return await apiRequest<CreateAppointmentDto[]>('appointments/import-text', 'POST', { prompt: text });
+        return await apiRequest<CreateAppointmentDto[]>('appointments/import-text', 'POST', { text });
     }
 };

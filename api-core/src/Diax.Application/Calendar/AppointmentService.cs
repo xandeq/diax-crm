@@ -17,6 +17,7 @@ public class AppointmentService : IAppointmentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AppointmentService> _logger;
+    private readonly Diax.Application.PromptGenerator.IPromptGeneratorService _promptGenerator;
 
     public AppointmentService(
         IAppointmentRepository appointmentRepository,
@@ -24,7 +25,8 @@ public class AppointmentService : IAppointmentService
         IUserRepository userRepository,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        ILogger<AppointmentService> logger)
+        ILogger<AppointmentService> logger,
+        Diax.Application.PromptGenerator.IPromptGeneratorService promptGenerator)
     {
         _appointmentRepository = appointmentRepository;
         _emailQueueRepository = emailQueueRepository;
@@ -32,6 +34,7 @@ public class AppointmentService : IAppointmentService
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _logger = logger;
+        _promptGenerator = promptGenerator;
     }
 
     public async Task<Result<AppointmentDto>> CreateAsync(CreateAppointmentDto dto, CancellationToken cancellationToken = default)
@@ -168,10 +171,6 @@ public class AppointmentService : IAppointmentService
         if (string.IsNullOrWhiteSpace(text))
             return Result.Failure<IEnumerable<CreateAppointmentDto>>(new Error("Validation", "Text cannot be empty"));
 
-        var promptGenerator = _unitOfWork.GetService<Diax.Application.PromptGenerator.IPromptGeneratorService>();
-        if (promptGenerator == null)
-            return Result.Failure<IEnumerable<CreateAppointmentDto>>(new Error("Dependencies", "Prompt generator service not available."));
-
         var currentYear = DateTime.Now.Year;
 
         var metaPrompt = $@"
@@ -189,7 +188,7 @@ Retorne APENAS o JSON puro, sem formatações Markdown (sem ```json no começo).
 
         try
         {
-            var jsonResult = await promptGenerator.GenerateAsync(text, "chatgpt", "json_extraction");
+            var jsonResult = await _promptGenerator.GenerateAsync(text, "chatgpt", "json_extraction");
 
             // Clean up potential markdown formatting that the LLM might still throw
             jsonResult = jsonResult.Replace("```json", "").Replace("```", "").Trim();
