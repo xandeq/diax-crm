@@ -44,6 +44,11 @@ public class CustomerImportService : IApplicationService
 
         var errors = new List<ImportError>();
         var successCount = 0;
+        var skippedCount = 0;
+
+        // HashSets para dedup dentro do próprio lote (evita duplicatas na mesma importação)
+        var seenEmailsInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenPhonesInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Processa cada linha
         for (int i = 0; i < request.Customers.Count; i++)
@@ -62,8 +67,10 @@ public class CustomerImportService : IApplicationService
                     continue;
                 }
 
-                // Email é opcional, mas se fornecido deve ser válido
                 var hasEmail = !string.IsNullOrWhiteSpace(row.Email);
+                var cleanedPhone = CleanPhone(row.Phone);
+                var cleanedWhatsApp = CleanPhone(row.WhatsApp);
+                var primaryPhone = cleanedWhatsApp ?? cleanedPhone;
 
                 if (hasEmail)
                 {
@@ -77,13 +84,51 @@ public class CustomerImportService : IApplicationService
                         continue;
                     }
 
-                    // Verifica se email já existe
-                    if (await _customerRepository.EmailExistsAsync(row.Email, null, cancellationToken))
+                    // Dedup por email: verifica no lote atual
+                    if (!seenEmailsInBatch.Add(row.Email!))
                     {
+                        skippedCount++;
                         errors.Add(new ImportError(
                             i + 1,
-                            row.Email,
-                            "Email já existe no sistema"));
+                            row.Email!,
+                            $"Duplicata no lote: email '{row.Email}' aparece mais de uma vez"));
+                        continue;
+                    }
+
+                    // Dedup por email: verifica no banco
+                    if (await _customerRepository.EmailExistsAsync(row.Email, null, cancellationToken))
+                    {
+                        skippedCount++;
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Email!,
+                            $"Duplicata: email '{row.Email}' já existe no sistema"));
+                        continue;
+                    }
+                }
+                else if (primaryPhone != null)
+                {
+                    // Sem email — usa telefone como chave de dedup
+
+                    // Dedup por telefone: verifica no lote atual
+                    if (!seenPhonesInBatch.Add(primaryPhone))
+                    {
+                        skippedCount++;
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Name,
+                            $"Duplicata no lote: telefone '{primaryPhone}' aparece mais de uma vez"));
+                        continue;
+                    }
+
+                    // Dedup por telefone: verifica no banco
+                    if (await _customerRepository.PhoneExistsAsync(primaryPhone, cancellationToken))
+                    {
+                        skippedCount++;
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Name,
+                            $"Duplicata: telefone '{primaryPhone}' já existe no sistema"));
                         continue;
                     }
                 }
@@ -95,9 +140,7 @@ public class CustomerImportService : IApplicationService
                     PersonType.Individual,
                     request.Source);
 
-                // Limpa e atualiza informações de contato
-                var cleanedPhone = CleanPhone(row.Phone);
-                var cleanedWhatsApp = CleanPhone(row.WhatsApp);
+                // Atualiza informações de contato
                 customer.UpdateContactInfo(cleanedPhone, cleanedWhatsApp);
 
                 // Se tem CompanyName, assume que é Pessoa Jurídica
@@ -110,18 +153,12 @@ public class CustomerImportService : IApplicationService
                         row.CompanyName);
                 }
 
-                // Atualiza notes e tags se fornecidos
                 if (!string.IsNullOrWhiteSpace(row.Notes))
-                {
                     customer.UpdateNotes(row.Notes);
-                }
 
                 if (!string.IsNullOrWhiteSpace(row.Tags))
-                {
                     customer.UpdateTags(row.Tags);
-                }
 
-                // Adiciona ao repositório
                 await _customerRepository.AddAsync(customer, cancellationToken);
                 successCount++;
             }
@@ -148,7 +185,8 @@ public class CustomerImportService : IApplicationService
             successCount > 0,
             request.Customers.Count,
             successCount,
-            errors.Count,
+            errors.Count - skippedCount,
+            skippedCount,
             errors);
     }
 

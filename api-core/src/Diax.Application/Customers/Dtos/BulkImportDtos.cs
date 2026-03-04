@@ -30,6 +30,7 @@ public record BulkImportResponse(
     int TotalRecords,
     int SuccessCount,
     int FailedCount,
+    int SkippedCount,
     List<ImportError> Errors);
 
 /// <summary>

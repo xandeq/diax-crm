@@ -216,6 +216,23 @@ public class CustomersController : BaseApiController
     }
 
     /// <summary>
+    /// Exclui múltiplos customers/leads em uma única operação.
+    /// </summary>
+    [HttpDelete("bulk")]
+    [ProducesResponseType(typeof(BulkDeleteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkDelete(
+        [FromBody] BulkDeleteRequest request,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Excluindo {Count} customers em lote", request.Ids.Count);
+
+        var result = await _customerService.BulkDeleteAsync(request.Ids, cancellationToken);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Importa customers/leads em lote.
     /// </summary>
     /// <param name="request">Request com lista de customers a importar</param>

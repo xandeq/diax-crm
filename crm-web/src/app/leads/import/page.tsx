@@ -32,6 +32,7 @@ interface BulkImportResponse {
   totalRecords: number;
   successCount: number;
   failedCount: number;
+  skippedCount: number;
   errors: ImportError[];
 }
 
@@ -245,6 +246,7 @@ export default function LeadsImportPage() {
           totalRecords: 0,
           successCount: 1, // trigger visual success
           failedCount: 0,
+          skippedCount: 0,
           errors: []
         });
 
@@ -495,37 +497,48 @@ export default function LeadsImportPage() {
 
         {/* Result card */}
         {result && (
-          <Card className={result.failedCount === 0 ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}>
+          <Card className={result.failedCount === 0 && result.skippedCount === 0 ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}>
             <CardHeader>
               <CardTitle>Resultado da Importação</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className={`grid gap-4 text-center ${result.skippedCount > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 <div>
                   <div className="text-2xl font-bold">{result.totalRecords}</div>
                   <div className="text-sm text-muted-foreground">Total</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-green-600">{result.successCount}</div>
-                  <div className="text-sm text-muted-foreground">Sucesso</div>
+                  <div className="text-sm text-muted-foreground">Importados</div>
                 </div>
+                {result.skippedCount > 0 && (
+                  <div>
+                    <div className="text-2xl font-bold text-yellow-600">{result.skippedCount}</div>
+                    <div className="text-sm text-muted-foreground">Duplicatas</div>
+                  </div>
+                )}
                 <div>
                   <div className="text-red-600 text-2xl font-bold">{result.failedCount}</div>
                   <div className="text-sm text-muted-foreground">Erros</div>
                 </div>
               </div>
 
-              {result.failedCount > 0 && (
+              {(result.failedCount > 0 || result.skippedCount > 0) && (
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Erros encontrados:</h4>
+                  <h4 className="font-semibold text-sm">
+                    {result.skippedCount > 0 ? 'Erros e duplicatas encontrados:' : 'Erros encontrados:'}
+                  </h4>
                   <div className="max-h-60 overflow-y-auto space-y-1">
-                    {result.errors.map((error, index) => (
-                      <div key={index} className="text-sm bg-white p-2 rounded border">
-                        <span className="font-medium">Linha {error.rowNumber}:</span>{' '}
-                        <span className="text-muted-foreground">{error.email || 'sem email'}</span> -{' '}
-                        <span className="text-red-600">{error.errorMessage}</span>
-                      </div>
-                    ))}
+                    {result.errors.map((error, index) => {
+                      const isDuplicate = error.errorMessage.toLowerCase().startsWith('duplicata');
+                      return (
+                        <div key={index} className={`text-sm bg-white p-2 rounded border ${isDuplicate ? 'border-yellow-200' : ''}`}>
+                          <span className="font-medium">Linha {error.rowNumber}:</span>{' '}
+                          <span className="text-muted-foreground">{error.email || 'sem email'}</span> -{' '}
+                          <span className={isDuplicate ? 'text-yellow-600' : 'text-red-600'}>{error.errorMessage}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

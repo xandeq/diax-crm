@@ -61,6 +61,25 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<bool> PhoneExistsAsync(string phone, CancellationToken cancellationToken = default)
+    {
+        var normalized = phone.Trim();
+        return await DbSet.AnyAsync(
+            c => c.Phone == normalized || c.WhatsApp == normalized,
+            cancellationToken);
+    }
+
+    public async Task<int> BulkDeleteAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        var customers = await DbSet
+            .Where(c => idList.Contains(c.Id))
+            .ToListAsync(cancellationToken);
+
+        DbSet.RemoveRange(customers);
+        return customers.Count;
+    }
+
     public async Task<bool> EmailExistsAsync(
         string email,
         Guid? excludeId = null,

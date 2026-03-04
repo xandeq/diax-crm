@@ -44,6 +44,16 @@ public interface ICustomerRepository : IRepository<Customer>
     Task<bool> EmailExistsAsync(string email, Guid? excludeId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Verifica se já existe um cliente com o telefone ou WhatsApp informado.
+    /// </summary>
+    Task<bool> PhoneExistsAsync(string phone, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Exclui múltiplos customers/leads em uma única operação.
+    /// </summary>
+    Task<int> BulkDeleteAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Busca paginada com filtros e sorting.
     /// </summary>
     Task<(IEnumerable<Customer> Items, int TotalCount)> GetPagedAsync(

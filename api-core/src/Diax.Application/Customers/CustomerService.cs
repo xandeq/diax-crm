@@ -242,6 +242,23 @@ public class CustomerService : IApplicationService
     }
 
     /// <summary>
+    /// Exclui múltiplos customers/leads em uma única operação.
+    /// </summary>
+    public async Task<Result<BulkDeleteResponse>> BulkDeleteAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0)
+            return Result.Failure<BulkDeleteResponse>(Error.Validation("Ids", "Nenhum ID informado."));
+
+        var deletedCount = await _repository.BulkDeleteAsync(idList, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(new BulkDeleteResponse { DeletedCount = deletedCount });
+    }
+
+    /// <summary>
     /// Retorna a timeline de atividades de um customer/lead.
     /// </summary>
     public async Task<Result<IEnumerable<LeadActivityDto>>> GetActivitiesAsync(

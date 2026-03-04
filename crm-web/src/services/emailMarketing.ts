@@ -134,6 +134,12 @@ export async function previewEmailCampaign(campaignId: string, data: PreviewCamp
   });
 }
 
+export async function getEmailCampaigns(page = 1, pageSize = 20) {
+  return apiFetch<{ items: EmailCampaignResponse[]; totalCount: number }>(`/email-campaigns/campaigns?page=${page}&pageSize=${pageSize}`, {
+    method: 'GET'
+  });
+}
+
 export async function queueCampaignRecipients(campaignId: string, data: QueueCampaignRecipientsRequest) {
   return apiFetch<QueueCampaignRecipientsResponse>(`/email-campaigns/campaigns/${campaignId}/queue`, {
     method: 'POST',

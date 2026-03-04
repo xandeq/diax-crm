@@ -89,6 +89,13 @@ public class LeadsController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpDelete("bulk")]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkDeleteRequest request)
+    {
+        var result = await _service.BulkDeleteAsync(request.Ids);
+        return HandleResult(result);
+    }
+
     [HttpPost("import/apify-url")]
     public async Task<IActionResult> ImportFromApify([FromBody] ApifyImportRequest request, [FromServices] IApifyIntegrationService apifyService)
     {

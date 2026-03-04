@@ -39,6 +39,7 @@ import { exportToCSV } from '@/lib/export';
 import { navigateToWhatsAppSend, normalizePhoneBR } from '@/lib/whatsapp-navigation';
 import { apiFetch } from '@/services/api';
 import {
+  bulkDeleteLeads,
   createLead,
   CustomerStatus,
   deleteLead,
@@ -73,10 +74,14 @@ import * as z from 'zod';
 
 const leadSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  email: z.string().email('Email inválido'),
-  phone: z.string().optional(),
-  companyName: z.string().optional(),
+  email: z.string().email('Email inválido').or(z.literal('')),
   personType: z.number(),
+  companyName: z.string().optional(),
+  phone: z.string().optional(),
+  whatsApp: z.string().optional(),
+  website: z.string().optional(),
+  notes: z.string().optional(),
+  tags: z.string().optional(),
 });
 
 type LeadFormValues = z.infer<typeof leadSchema>;
@@ -145,7 +150,7 @@ export default function LeadsPage() {
     formState: { errors },
   } = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
-    defaultValues: { name: '', email: '', phone: '', companyName: '', personType: 0 },
+    defaultValues: { name: '', email: '', personType: 0, companyName: '', phone: '', whatsApp: '', website: '', notes: '', tags: '' },
   });
 
   // ── Data Fetching ────────────────────────────────────────────────────────
@@ -231,18 +236,24 @@ export default function LeadsPage() {
 
   const handleOpenCreate = () => {
     setEditingLead(null);
-    reset({ name: '', email: '', phone: '', companyName: '', personType: 0 });
+    reset({ name: '', email: '', personType: 0, companyName: '', phone: '', whatsApp: '', website: '', notes: '', tags: '' });
     setFormError(null);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (lead: Lead) => {
     setEditingLead(lead);
-    setValue('name', lead.name);
-    setValue('email', lead.email || '');
-    setValue('phone', lead.phone || '');
-    setValue('companyName', lead.companyName || '');
-    setValue('personType', lead.personType);
+    reset({
+      name: lead.name,
+      email: lead.email || '',
+      personType: lead.personType,
+      companyName: lead.companyName || '',
+      phone: lead.phone || '',
+      whatsApp: lead.whatsApp || '',
+      website: lead.website || '',
+      notes: lead.notes || '',
+      tags: lead.tags || '',
+    });
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -258,13 +269,13 @@ export default function LeadsPage() {
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Deletar ${selectedRows.length} lead(s)?`)) return;
+    if (!confirm(`Deletar ${selectedRows.length} lead(s)? Esta ação não pode ser desfeita.`)) return;
     try {
-      for (const lead of selectedRows) {
-        await deleteLead(lead.id);
-      }
+      const ids = selectedRows.map((l) => l.id);
+      const result = await bulkDeleteLeads(ids);
       fetchLeads();
       setSelectedRows([]);
+      alert(`${result.deletedCount} lead(s) excluído(s) com sucesso.`);
     } catch {
       alert('Erro ao deletar leads.');
     }
@@ -350,9 +361,26 @@ export default function LeadsPage() {
     setFormError(null);
     try {
       if (editingLead) {
-        await updateLead(editingLead.id, data);
+        await updateLead(editingLead.id, {
+          name: data.name,
+          email: data.email,
+          personType: data.personType,
+          companyName: data.companyName || undefined,
+          phone: data.phone || undefined,
+          whatsApp: data.whatsApp || undefined,
+          website: data.website || undefined,
+          notes: data.notes || undefined,
+          tags: data.tags || undefined,
+          source: editingLead.source,
+        });
       } else {
-        await createLead(data);
+        await createLead({
+          name: data.name,
+          email: data.email,
+          personType: data.personType,
+          companyName: data.companyName || undefined,
+          phone: data.phone || undefined,
+        });
       }
       setIsModalOpen(false);
       fetchLeads();
@@ -761,64 +789,106 @@ export default function LeadsPage() {
 
       {/* Lead Form Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingLead ? 'Editar Lead' : 'Novo Lead'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input id="name" {...register('name')} placeholder="Ex: João Silva" />
-              {errors.name && (
-                <p className="text-xs text-red-500">{errors.name.message}</p>
-              )}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+            {/* Dados Básicos */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Dados Básicos</p>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  {...register('email')}
-                  placeholder="joao@empresa.com"
-                />
-                {errors.email && (
-                  <p className="text-xs text-red-500">{errors.email.message}</p>
-                )}
+                <Label htmlFor="name">Nome Completo *</Label>
+                <Input id="name" {...register('name')} placeholder="Ex: João Silva" />
+                {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" {...register('email')} placeholder="joao@empresa.com" />
+                  {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Empresa</Label>
+                  <Input id="companyName" {...register('companyName')} placeholder="Empresa LTDA" />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  {...register('phone')}
-                  placeholder="(11) 99999-9999"
-                />
+                <Label>Tipo Pessoa</Label>
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value={0}
+                      {...register('personType', { valueAsNumber: true })}
+                      className="accent-slate-900"
+                    />
+                    <span className="text-sm">Física</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value={1}
+                      {...register('personType', { valueAsNumber: true })}
+                      className="accent-slate-900"
+                    />
+                    <span className="text-sm">Jurídica</span>
+                  </label>
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Empresa</Label>
-              <Input
-                id="companyName"
-                {...register('companyName')}
-                placeholder="Empresa LTDA"
-              />
+
+            {/* Contato */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Contato</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input id="phone" {...register('phone')} placeholder="(11) 99999-9999" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsApp">WhatsApp</Label>
+                  <Input id="whatsApp" {...register('whatsApp')} placeholder="(11) 99999-9999" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input id="website" {...register('website')} placeholder="https://empresa.com.br" />
+              </div>
             </div>
-            {formError && (
-              <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm">
-                {formError}
+
+            {/* Notas & Tags — só no modo edição */}
+            {editingLead && (
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Notas & Tags</p>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notas</Label>
+                  <textarea
+                    id="notes"
+                    {...register('notes')}
+                    placeholder="Observações sobre este lead..."
+                    rows={3}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tags">Tags</Label>
+                  <Input id="tags" {...register('tags')} placeholder="tag1, tag2, tag3" />
+                  <p className="text-xs text-slate-400">Separe as tags por vírgula</p>
+                </div>
               </div>
             )}
+
+            {formError && (
+              <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm">{formError}</div>
+            )}
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsModalOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editingLead ? 'Salvar' : 'Criar Lead'}
+                {editingLead ? 'Salvar Alterações' : 'Criar Lead'}
               </Button>
             </DialogFooter>
           </form>

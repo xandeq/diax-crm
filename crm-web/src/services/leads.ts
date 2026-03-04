@@ -17,6 +17,9 @@ export interface Lead {
   phone?: string;
   whatsApp?: string;
   companyName?: string;
+  website?: string;
+  notes?: string;
+  tags?: string;
   status: CustomerStatus;
   createdAt: string;
   personType: number; // 0 = Individual, 1 = Company
@@ -60,9 +63,14 @@ export interface CreateLeadRequest {
 export interface UpdateLeadRequest {
   name: string;
   email: string;
-  phone?: string;
-  companyName?: string;
   personType: number;
+  companyName?: string;
+  phone?: string;
+  whatsApp?: string;
+  website?: string;
+  notes?: string;
+  tags?: string;
+  source?: number;
 }
 
 export interface LeadListParams {
@@ -137,5 +145,12 @@ export async function updateLead(id: string, data: UpdateLeadRequest) {
 export async function deleteLead(id: string) {
   return apiFetch<void>(`/leads/${id}`, {
     method: 'DELETE'
+  });
+}
+
+export async function bulkDeleteLeads(ids: string[]): Promise<{ deletedCount: number }> {
+  return apiFetch<{ deletedCount: number }>('/leads/bulk', {
+    method: 'DELETE',
+    body: JSON.stringify({ ids })
   });
 }

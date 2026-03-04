@@ -21,6 +21,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     createEmailCampaign,
     EmailAttachmentRequest,
+    EmailCampaignResponse,
+    getEmailCampaigns,
     previewEmailCampaign,
     queueCampaignRecipients,
     updateEmailCampaign,
@@ -57,6 +59,8 @@ export function EmailCampaignComposerModal({
   const [bodyHtml, setBodyHtml] = useState('<p>Olá {{FirstName}},</p><p>Sua mensagem aqui.</p>');
   const [selectedSnippetId, setSelectedSnippetId] = useState<string>('none');
   const [snippets, setSnippets] = useState<SnippetResponse[]>([]);
+  const [savedCampaigns, setSavedCampaigns] = useState<EmailCampaignResponse[]>([]);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewSubject, setPreviewSubject] = useState('');
@@ -136,6 +140,12 @@ export function EmailCampaignComposerModal({
       })
       .catch(() => setError('Não foi possível carregar snippets.'))
       .finally(() => setIsLoadingSnippets(false));
+
+    setIsLoadingCampaigns(true);
+    getEmailCampaigns(1, 20)
+      .then(data => setSavedCampaigns(data.items))
+      .catch(() => { /* silently ignore */ })
+      .finally(() => setIsLoadingCampaigns(false));
   }, [open]);
 
   const insertVariable = (token: string) => {
@@ -198,6 +208,17 @@ export function EmailCampaignComposerModal({
     if (!subject.trim()) {
       setSubject(snippet.title);
     }
+  };
+
+  const handleLoadCampaign = (campaignId: string) => {
+    const campaign = savedCampaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+    setCampaignName(campaign.name);
+    setSubject(campaign.subject);
+    setBodyHtml(campaign.bodyHtml);
+    setSelectedSnippetId(campaign.sourceSnippetId ?? 'none');
+    setPreviewHtml('');
+    setPreviewSubject('');
   };
 
   const handlePreview = async () => {
@@ -267,6 +288,24 @@ export function EmailCampaignComposerModal({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2">
           <div className="space-y-4">
+            {savedCampaigns.length > 0 && (
+              <div className="space-y-2">
+                <Label>Carregar campanha anterior</Label>
+                <Select onValueChange={handleLoadCampaign} disabled={isLoadingCampaigns}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingCampaigns ? 'Carregando...' : 'Selecionar campanha salva'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedCampaigns.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} — {new Date(c.createdAt).toLocaleDateString('pt-BR')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Campanha</Label>
               <Input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Nome da campanha" />
