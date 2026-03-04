@@ -109,6 +109,8 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         LeadSegment? segment = null,
         bool? onlyLeads = null,
         bool? onlyCustomers = null,
+        bool? neverEmailed = null,
+        DateTime? createdAfter = null,
         CancellationToken cancellationToken = default)
     {
         var query = DbSet.AsQueryable();
@@ -173,6 +175,18 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         if (segment.HasValue)
         {
             query = query.Where(c => c.Segment == segment.Value);
+        }
+
+        // Filtro: nunca recebeu email (EmailSentCount == 0)
+        if (neverEmailed == true)
+        {
+            query = query.Where(c => c.EmailSentCount == 0);
+        }
+
+        // Filtro: criado após data
+        if (createdAfter.HasValue)
+        {
+            query = query.Where(c => c.CreatedAt >= createdAfter.Value);
         }
 
         // Contagem total

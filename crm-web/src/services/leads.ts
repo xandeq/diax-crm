@@ -85,6 +85,8 @@ export interface LeadListParams {
   personType?: number;
   source?: number;
   segment?: number;
+  neverEmailed?: boolean;
+  createdAfter?: string; // ISO date string
 }
 
 export async function getLeads(params: LeadListParams = {}) {
@@ -100,6 +102,8 @@ export async function getLeads(params: LeadListParams = {}) {
     personType,
     source,
     segment,
+    neverEmailed,
+    createdAfter,
   } = params;
 
   const qs = new URLSearchParams({
@@ -116,6 +120,8 @@ export async function getLeads(params: LeadListParams = {}) {
   if (personType !== undefined) qs.append('personType', personType.toString());
   if (source !== undefined) qs.append('source', source.toString());
   if (segment !== undefined) qs.append('segment', segment.toString());
+  if (neverEmailed) qs.append('neverEmailed', 'true');
+  if (createdAfter) qs.append('createdAfter', createdAfter);
 
   return apiFetch<PagedResponse<Lead>>(`/leads?${qs.toString()}`, {
     method: 'GET'

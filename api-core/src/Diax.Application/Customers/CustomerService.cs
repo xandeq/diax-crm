@@ -62,6 +62,8 @@ public class CustomerService : IApplicationService
             request.Segment,
             request.OnlyLeads,
             request.OnlyCustomers,
+            request.NeverEmailed,
+            request.CreatedAfter,
             cancellationToken);
 
         var responses = items.Select(CustomerResponse.FromEntity);

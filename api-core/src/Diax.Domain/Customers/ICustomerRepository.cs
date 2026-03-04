@@ -70,5 +70,7 @@ public interface ICustomerRepository : IRepository<Customer>
         LeadSegment? segment = null,
         bool? onlyLeads = null,
         bool? onlyCustomers = null,
+        bool? neverEmailed = null,
+        DateTime? createdAfter = null,
         CancellationToken cancellationToken = default);
 }

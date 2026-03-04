@@ -33,7 +33,9 @@ public class LeadsController : BaseApiController
         [FromQuery] bool? hasWhatsApp = null,
         [FromQuery] PersonType? personType = null,
         [FromQuery] LeadSource? source = null,
-        [FromQuery] LeadSegment? segment = null)
+        [FromQuery] LeadSegment? segment = null,
+        [FromQuery] bool? neverEmailed = null,
+        [FromQuery] DateTime? createdAfter = null)
     {
         var request = new CustomerListRequest
         {
@@ -48,7 +50,9 @@ public class LeadsController : BaseApiController
             HasWhatsApp = hasWhatsApp,
             PersonType = personType,
             Source = source,
-            Segment = segment
+            Segment = segment,
+            NeverEmailed = neverEmailed,
+            CreatedAfter = createdAfter
         };
 
         var result = await _service.GetPagedAsync(request);

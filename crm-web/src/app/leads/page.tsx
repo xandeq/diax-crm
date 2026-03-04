@@ -124,6 +124,8 @@ export default function LeadsPage() {
   const [personTypeFilter, setPersonTypeFilter] = useState<number | undefined>(undefined);
   const [sourceFilter, setSourceFilter] = useState<number | undefined>(undefined);
   const [segmentFilter, setSegmentFilter] = useState<number | undefined>(undefined);
+  const [neverEmailedFilter, setNeverEmailedFilter] = useState(false);
+  const [createdAfterFilter, setCreatedAfterFilter] = useState<string>('');
 
   // Sorting (server-side)
   const [sortBy, setSortBy] = useState<string | null>(null);
@@ -172,6 +174,8 @@ export default function LeadsPage() {
         personType: personTypeFilter,
         source: sourceFilter,
         segment: segmentFilter,
+        neverEmailed: neverEmailedFilter || undefined,
+        createdAfter: createdAfterFilter || undefined,
       });
       setLeads(data.items);
       setTotalPages(data.totalPages);
@@ -185,12 +189,12 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchLeads();
-  }, [page, pageSize, debouncedSearch, statusFilter, sortBy, sortDirection, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter]);
+  }, [page, pageSize, debouncedSearch, statusFilter, sortBy, sortDirection, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter, neverEmailedFilter, createdAfterFilter]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter]);
+  }, [debouncedSearch, statusFilter, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter, neverEmailedFilter, createdAfterFilter]);
 
   // Clear selection on page change
   useEffect(() => {
@@ -204,7 +208,9 @@ export default function LeadsPage() {
     (hasWhatsAppFilter !== undefined ? 1 : 0) +
     (personTypeFilter !== undefined ? 1 : 0) +
     (sourceFilter !== undefined ? 1 : 0) +
-    (segmentFilter !== undefined ? 1 : 0);
+    (segmentFilter !== undefined ? 1 : 0) +
+    (neverEmailedFilter ? 1 : 0) +
+    (createdAfterFilter ? 1 : 0);
 
   const clearFilters = () => {
     setSearchInput('');
@@ -216,6 +222,8 @@ export default function LeadsPage() {
     setPersonTypeFilter(undefined);
     setSourceFilter(undefined);
     setSegmentFilter(undefined);
+    setNeverEmailedFilter(false);
+    setCreatedAfterFilter('');
   };
 
   const filtersActive =
@@ -724,6 +732,45 @@ export default function LeadsPage() {
                       onClick={() => setSegmentFilter(opt.value)}
                     />
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Sem email enviado + Importado após */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Emails enviados</label>
+                <div className="flex gap-2">
+                  <FilterChip
+                    label="Todos"
+                    active={!neverEmailedFilter}
+                    onClick={() => setNeverEmailedFilter(false)}
+                  />
+                  <FilterChip
+                    label="Nunca recebeu email"
+                    active={neverEmailedFilter}
+                    onClick={() => setNeverEmailedFilter(true)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Importado após</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    className="h-8 text-sm w-40"
+                    value={createdAfterFilter}
+                    onChange={(e) => setCreatedAfterFilter(e.target.value)}
+                  />
+                  {createdAfterFilter && (
+                    <button
+                      onClick={() => setCreatedAfterFilter('')}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

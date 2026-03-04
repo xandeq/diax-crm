@@ -52,4 +52,14 @@ public class CustomerListRequest : PagedRequest
     /// Filtro por segmento de outreach (Hot, Warm, Cold).
     /// </summary>
     public LeadSegment? Segment { get; set; }
+
+    /// <summary>
+    /// Se true, retorna apenas leads que nunca receberam email (EmailSentCount == 0).
+    /// </summary>
+    public bool? NeverEmailed { get; set; }
+
+    /// <summary>
+    /// Retorna apenas leads criados após esta data.
+    /// </summary>
+    public DateTime? CreatedAfter { get; set; }
 }
