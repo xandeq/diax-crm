@@ -7,20 +7,26 @@ using Diax.Infrastructure;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ===== CONFIGURAÇÃO =====
 // User Secrets é carregado automaticamente em Development
 // Variáveis de ambiente são carregadas em todos os ambientes
-// Prioridade: Env Vars > User Secrets > appsettings.{Environment}.json > appsettings.json
+// Prioridade: Env Vars > AWS Secrets Manager > User Secrets > appsettings.{Environment}.json > appsettings.json
 
 // Adiciona variáveis de ambiente com prefixo DIAX_ (opcional, para produção)
 builder.Configuration.AddEnvironmentVariables(prefix: "DIAX_");
+
+// AWS Secrets Manager — carrega secrets do AWS em produção (path: /diax-crm/)
+// Optional=true: não derruba o startup se o AWS estiver inacessível
+builder.Configuration.AddAwsSecretsManager(builder.Environment);
 
 // ===== SERILOG =====
 Log.Logger = new LoggerConfiguration()
@@ -175,6 +181,19 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+// Rate Limiting — proteção contra brute force no login
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.QueueLimit = 0;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 // Health Checks
 builder.Services.AddHealthChecks();
 
@@ -289,27 +308,33 @@ app.UseExceptionLogging();
 // Request/Response Logging - registra requisições com erro (4xx/5xx) na tabela app_logs
 app.UseRequestResponseLogging();
 
-// Swagger (disponível em todos os ambientes por enquanto)
-app.UseSwagger(c =>
-{
-    c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
-    {
-        var serverUrl = $"{httpReq.Scheme}://{httpReq.Host}{httpReq.PathBase}";
-        swaggerDoc.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
-        {
-            new() { Url = serverUrl }
-        };
-    });
-});
-app.UseSwaggerUI(c =>
-{
-    var swaggerJson = string.IsNullOrWhiteSpace(pathBase)
-        ? "v1/swagger.json"
-        : $"{pathBase}/swagger/v1/swagger.json";
+// Rate Limiting — deve vir antes de auth/controllers
+app.UseRateLimiter();
 
-    c.SwaggerEndpoint(swaggerJson, "DIAX CRM API v1");
-    c.RoutePrefix = "swagger";
-});
+// Swagger — restrito a ambientes não-produção
+if (!app.Environment.IsProduction())
+{
+    app.UseSwagger(c =>
+    {
+        c.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+        {
+            var serverUrl = $"{httpReq.Scheme}://{httpReq.Host}{httpReq.PathBase}";
+            swaggerDoc.Servers = new List<Microsoft.OpenApi.Models.OpenApiServer>
+            {
+                new() { Url = serverUrl }
+            };
+        });
+    });
+    app.UseSwaggerUI(c =>
+    {
+        var swaggerJson = string.IsNullOrWhiteSpace(pathBase)
+            ? "v1/swagger.json"
+            : $"{pathBase}/swagger/v1/swagger.json";
+
+        c.SwaggerEndpoint(swaggerJson, "DIAX CRM API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 // Serilog request logging
 app.UseSerilogRequestLogging();
@@ -330,13 +355,18 @@ app.MapControllers();
 // Health Check endpoint
 app.MapHealthChecks("/health");
 
-// Redirects for clients hitting /v1/swagger/* (avoid 404)
-app.MapGet("/v1/swagger", () => Results.Redirect("/swagger/index.html"));
-app.MapGet("/v1/swagger/index.html", () => Results.Redirect("/swagger/index.html"));
-app.MapGet("/v1/swagger/v1/swagger.json", () => Results.Redirect("/swagger/v1/swagger.json"));
-
-// Root redirect para Swagger
-app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
+// Redirects para Swagger — apenas em não-produção
+if (!app.Environment.IsProduction())
+{
+    app.MapGet("/v1/swagger", () => Results.Redirect("/swagger/index.html"));
+    app.MapGet("/v1/swagger/index.html", () => Results.Redirect("/swagger/index.html"));
+    app.MapGet("/v1/swagger/v1/swagger.json", () => Results.Redirect("/swagger/v1/swagger.json"));
+    app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
+}
+else
+{
+    app.MapGet("/", () => Results.Ok(new { status = "ok", version = "1.0" }));
+}
 
 // ===== RUN =====
 try
