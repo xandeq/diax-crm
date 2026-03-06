@@ -81,7 +81,9 @@
       "WebFetch(domain:github.com)",
       "Bash(npm run type-check)",
       "Bash(npm run)",
-      "Bash(dotnet test --logger \"console;verbosity=normal\")"
+      "Bash(dotnet test --logger \"console;verbosity=normal\")",
+      "Skill(find-bugs)",
+      "Skill(find-bugs:*)"
     ]
   }
 }

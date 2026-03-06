@@ -3,6 +3,7 @@ using Diax.Application.Common;
 using Diax.Application.Customers;
 using Diax.Application.Customers.Dtos;
 using Diax.Infrastructure.Email;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Diax.Api.Controllers.V1;
@@ -10,6 +11,7 @@ namespace Diax.Api.Controllers.V1;
 /// <summary>
 /// Controller para gerenciamento de Customers/Leads.
 /// </summary>
+[Authorize]
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]

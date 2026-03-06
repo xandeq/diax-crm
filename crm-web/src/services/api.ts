@@ -47,11 +47,6 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   const token = getAccessToken();
 
-  // Debug log para identificar problemas de token
-  if (process.env.NODE_ENV === 'development' || path.includes('catalog')) {
-    console.log(`[apiFetch] ${path} - Token exists: ${!!token}, Token length: ${token?.length || 0}`);
-  }
-
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   let res: Response;

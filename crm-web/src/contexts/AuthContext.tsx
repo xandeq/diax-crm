@@ -48,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = getAccessToken();
-    console.log('[AuthContext] Initial token check:', token ? `Token exists (${token.length} chars)` : 'No token');
     if (token) {
       decodeAndSetUser(token);
     }
@@ -57,16 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (token: string) => {
     if (!token || token === 'undefined' || token === 'null') {
-      console.warn('[AuthContext] login() called with invalid token');
       return;
     }
-    console.log('[AuthContext] login() - Saving token to sessionStorage');
     setApiToken(token);
     decodeAndSetUser(token);
-
-    // Verificar se foi salvo corretamente
-    const savedToken = getAccessToken();
-    console.log('[AuthContext] login() - Token saved:', savedToken ? 'YES' : 'NO');
   };
 
   const logout = useCallback(() => {

@@ -22,13 +22,25 @@ public class RequestResponseLoggingMiddleware
         _logger = logger;
     }
 
+    // Paths que nunca precisam de captura de body (alto volume, sempre 2xx)
+    private static readonly string[] SkipPaths = ["/health", "/email-images"];
+
     public async Task InvokeAsync(HttpContext context, IAppLogService appLogService)
     {
+        var path = context.Request.Path.Value ?? "";
+
+        // Bypass completo para paths de alta frequência sem necessidade de logging de erros
+        if (Array.Exists(SkipPaths, p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+        {
+            await _next(context);
+            return;
+        }
+
         var stopwatch = Stopwatch.StartNew();
         var correlationId = context.Request.Headers["X-Correlation-ID"].FirstOrDefault()
             ?? context.TraceIdentifier;
 
-        // Captura o body da resposta
+        // Captura o body da resposta apenas para capturar conteúdo de erro (4xx/5xx)
         var originalBodyStream = context.Response.Body;
         using var responseBody = new MemoryStream();
         context.Response.Body = responseBody;
@@ -52,7 +64,6 @@ public class RequestResponseLoggingMiddleware
             }
             else
             {
-                // Garante que respostas 2xx/3xx sejam copiadas corretamente
                 responseBody.Seek(0, SeekOrigin.Begin);
             }
 

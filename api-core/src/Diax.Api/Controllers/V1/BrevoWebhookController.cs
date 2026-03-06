@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Diax.Domain.Common;
@@ -47,17 +49,29 @@ public class BrevoWebhookController : BaseApiController
         [FromBody] BrevoWebhookPayload payload,
         CancellationToken cancellationToken)
     {
-        // Validate webhook secret if configured
-        if (!string.IsNullOrWhiteSpace(_brevoSettings.WebhookSecret))
+        // Validar webhook secret — obrigatório; rejeita qualquer request sem configuração
+        if (string.IsNullOrWhiteSpace(_brevoSettings.WebhookSecret))
         {
-            var signature = Request.Headers["X-Brevo-Signature"].FirstOrDefault()
-                         ?? Request.Query["secret"].FirstOrDefault();
+            _logger.LogWarning("Brevo webhook recebido, mas WebhookSecret não está configurado. Requisição rejeitada.");
+            return Unauthorized();
+        }
 
-            if (signature != _brevoSettings.WebhookSecret)
-            {
-                _logger.LogWarning("Brevo webhook received with invalid signature");
-                return Unauthorized();
-            }
+        var signature = Request.Headers["X-Brevo-Signature"].FirstOrDefault()
+                     ?? Request.Query["secret"].FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(signature))
+        {
+            _logger.LogWarning("Brevo webhook recebido sem assinatura");
+            return Unauthorized();
+        }
+
+        // Comparação em tempo constante para evitar timing attacks
+        var expectedBytes = Encoding.UTF8.GetBytes(_brevoSettings.WebhookSecret);
+        var actualBytes = Encoding.UTF8.GetBytes(signature);
+        if (!CryptographicOperations.FixedTimeEquals(actualBytes, expectedBytes))
+        {
+            _logger.LogWarning("Brevo webhook recebido com assinatura inválida");
+            return Unauthorized();
         }
 
         if (string.IsNullOrWhiteSpace(payload.Event))

@@ -1,0 +1,85 @@
+﻿# DIAX CRM - Contexto Permanente
+
+## Funcionalidades
+- Autenticação
+- Gestão de usuários
+- Gestão de grupos de usuários
+- Gestão de permissões
+- Gestão de chaves de API
+- Gestão de provedores de IA
+- Gestão de modelos de IA
+- Controle de acesso de IA por grupo
+- Catálogo de IA
+- Humanização de texto com IA
+- Geração de imagens com IA
+- Gerador de prompts
+- Histórico de prompts
+- Snippets
+- CRM de clientes
+- Gestão de leads
+- Importação de leads
+- Importação de contatos
+- Timeline de relacionamento
+- Agenda de compromissos
+- Importação de agenda por texto
+- Checklists domésticos
+- Dashboard geral
+- Analytics
+- Logs de sistema
+- Auditoria de ações
+- Gestão de blog
+- Campanhas de e-mail
+- Estatísticas de e-mail
+- Rastreamento de e-mail
+- Webhook Brevo
+- Gestão de imagens para e-mail
+- Outreach
+- Disparo de WhatsApp
+- Roteamento de WhatsApp
+- Módulo de anúncios (Ads/Facebook)
+- Extração de HTML
+- Extração de HTML por URL
+- Módulo financeiro
+- Resumo financeiro
+- Contas financeiras
+- Receitas
+- Despesas
+- Categorias de receita
+- Categorias de despesa
+- Transações
+- Transferências entre contas
+- Cartões de crédito
+- Grupos de cartões
+- Faturas de cartão
+- Importação de extratos/faturas
+- Conciliação de transações importadas
+- Planejador financeiro
+- Metas financeiras
+- Simulações mensais
+- Transações recorrentes
+- Health check da API
+- Swagger/OpenAPI
+
+## Ferramentas
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- .NET 8
+- ASP.NET Core Web API
+- Entity Framework Core
+- SQL Server
+- FluentValidation
+- Serilog
+- Swagger/OpenAPI
+- JWT Bearer
+- Python
+- Selenium
+- BeautifulSoup (BS4)
+- n8n
+- Workflows n8n (`n8n-workflow`, `email-marketing-v2`, `whatsapp-marketing-v2`, `whatsapp-routing`)
+- Docker
+- GitHub Actions
+- PowerShell scripts
+- EF Core Migrations

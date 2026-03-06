@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
@@ -7,6 +8,7 @@ using Diax.Infrastructure.Data;
 using Diax.Shared.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -28,8 +30,10 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
@@ -68,7 +72,10 @@ public class AuthController : ControllerBase
         if (!string.Equals(email, adminEmail, StringComparison.OrdinalIgnoreCase))
             return Unauthorized(new { message = "Invalid credentials." });
 
-        if (!string.Equals(request.Password, adminPassword, StringComparison.Ordinal))
+        // Comparação em tempo constante para evitar timing attacks
+        var expectedBytes = Encoding.UTF8.GetBytes(adminPassword);
+        var actualBytes = Encoding.UTF8.GetBytes(request.Password);
+        if (!CryptographicOperations.FixedTimeEquals(actualBytes, expectedBytes))
             return Unauthorized(new { message = "Invalid credentials." });
 
         return Ok(CreateTokenResponse(adminEmail, "Admin"));
@@ -120,28 +127,35 @@ public class AuthController : ControllerBase
         var email = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue(JwtRegisteredClaimNames.Email) ?? "";
         var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToArray();
 
-        // Buscar info adicional do usuário
-        var dbUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+        // Buscar userId + grupos + permissões em 2 queries (antes eram 4)
+        var userId = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Email == email)
+            .Select(u => (Guid?)u.Id)
+            .FirstOrDefaultAsync();
+
         var isAdmin = false;
         var groups = Array.Empty<string>();
         var permissions = Array.Empty<string>();
 
-        if (dbUser != null)
+        if (userId.HasValue)
         {
-            isAdmin = await _db.UserGroupMembers
-                .AnyAsync(ugm => ugm.UserId == dbUser.Id && ugm.Group.Key == "system-admin");
-
-            groups = await _db.UserGroupMembers
-                .Where(ugm => ugm.UserId == dbUser.Id)
-                .Select(ugm => ugm.Group.Key)
+            var membershipData = await _db.UserGroupMembers
+                .AsNoTracking()
+                .Where(ugm => ugm.UserId == userId.Value)
+                .Select(ugm => new
+                {
+                    GroupKey = ugm.Group.Key,
+                    GroupId = ugm.GroupId
+                })
                 .ToArrayAsync();
 
-            var groupIds = await _db.UserGroupMembers
-                .Where(ugm => ugm.UserId == dbUser.Id)
-                .Select(ugm => ugm.GroupId)
-                .ToListAsync();
+            groups = membershipData.Select(m => m.GroupKey).ToArray();
+            isAdmin = groups.Contains("system-admin");
 
+            var groupIds = membershipData.Select(m => m.GroupId).ToArray();
             permissions = await _db.GroupPermissions
+                .AsNoTracking()
                 .Where(gp => groupIds.Contains(gp.GroupId))
                 .Select(gp => gp.Permission.Key)
                 .Distinct()

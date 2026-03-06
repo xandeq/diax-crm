@@ -1,10 +1,12 @@
 using Asp.Versioning;
 using Diax.Application.HtmlExtraction;
 using Diax.Application.HtmlExtraction.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Diax.Api.Controllers.V1;
 
+[Authorize]
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]

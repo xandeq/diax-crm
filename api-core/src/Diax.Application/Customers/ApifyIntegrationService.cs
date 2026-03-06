@@ -45,18 +45,32 @@ public class ApifyIntegrationService : IApifyIntegrationService
 
         try
         {
-            // Normalize URL to ensure it has correct format for Apify API
-            var url = datasetUrl.Trim();
-            if (!url.Contains("token="))
+            // Validar que a URL pertence ao domínio oficial da Apify (prevenção de SSRF)
+            var rawUrl = datasetUrl.Trim();
+            if (!Uri.TryCreate(rawUrl, UriKind.Absolute, out var parsedUri)
+                || parsedUri.Scheme != "https"
+                || !parsedUri.Host.Equals("api.apify.com", StringComparison.OrdinalIgnoreCase))
             {
-                var connector = url.Contains("?") ? "&" : "?";
-                url = $"{url}{connector}token={config.ApifyApiToken}";
+                return Result.Failure<Guid>(Error.Validation("Apify.InvalidUrl",
+                    "A URL do dataset deve ser do domínio https://api.apify.com."));
             }
+
+            // Adicionar token como query param (sem sobrescrever se já vier na URL)
+            var uriBuilder = new UriBuilder(parsedUri);
+            var existingQuery = uriBuilder.Query.TrimStart('?');
+            var hasToken = existingQuery.Split('&')
+                .Any(p => p.StartsWith("token=", StringComparison.OrdinalIgnoreCase));
+            if (!hasToken)
+            {
+                var sep = string.IsNullOrEmpty(existingQuery) ? "" : "&";
+                uriBuilder.Query = existingQuery + sep + "token=" + Uri.EscapeDataString(config.ApifyApiToken);
+            }
+            var url = uriBuilder.Uri.ToString();
 
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromMinutes(5); // datasets can be large
 
-            _logger.LogInformation("Fetching Apify dataset from {Url}", datasetUrl);
+            _logger.LogInformation("Fetching Apify dataset from {Url}", parsedUri.GetLeftPart(UriPartial.Path));
 
             var response = await client.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
