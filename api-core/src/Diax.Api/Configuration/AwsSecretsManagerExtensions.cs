@@ -17,11 +17,7 @@ public static class AwsSecretsManagerExtensions
         this IConfigurationBuilder builder,
         IHostEnvironment environment)
     {
-        // Não ativar em Development (usa User Secrets localmente)
-        if (environment.IsDevelopment())
-        {
-            return builder;
-        }
+        // Ativado localmente e em produção, assume que a AWS CLI ou Environment Variables possuem as credenciais.
 
         try
         {
