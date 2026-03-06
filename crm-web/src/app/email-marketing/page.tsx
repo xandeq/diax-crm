@@ -73,6 +73,7 @@ export default function EmailMarketingPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [segment, setSegment] = useState('');
   const [contactType, setContactType] = useState<'all' | 'leads' | 'customers'>('all');
+  const [pageSize, setPageSize] = useState('25');
 
   const [subject, setSubject] = useState('');
   const [htmlBody, setHtmlBody] = useState(DEFAULT_TEMPLATE);
@@ -100,7 +101,7 @@ export default function EmailMarketingPage() {
   const loadContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ page: page.toString(), pageSize: '25', hasEmail: 'true' });
+      const qs = new URLSearchParams({ page: page.toString(), pageSize: pageSize, hasEmail: 'true' });
       if (search) qs.append('search', search);
       if (segment) qs.append('segment', segment);
       if (contactType === 'leads') qs.append('onlyLeads', 'true');
@@ -115,7 +116,7 @@ export default function EmailMarketingPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, segment, contactType]);
+  }, [page, search, segment, contactType, pageSize]);
 
   useEffect(() => {
     loadContacts();
@@ -124,7 +125,7 @@ export default function EmailMarketingPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, segment, contactType]);
+  }, [search, segment, contactType, pageSize]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -369,6 +370,19 @@ export default function EmailMarketingPage() {
                 <option value="2">Hot 🔥</option>
                 <option value="1">Warm ☀️</option>
                 <option value="0">Cold 🧊</option>
+              </select>
+              <select
+                className="h-9 rounded-md border bg-background px-2.5 text-sm"
+                value={pageSize}
+                onChange={e => setPageSize(e.target.value)}
+                title="Itens por página"
+              >
+                <option value="10">10 / pág</option>
+                <option value="25">25 / pág</option>
+                <option value="50">50 / pág</option>
+                <option value="100">100 / pág</option>
+                <option value="200">200 / pág</option>
+                <option value="500">500 / pág</option>
               </select>
               <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={loadContacts} title="Recarregar">
                 <RefreshCw className="h-4 w-4" />
