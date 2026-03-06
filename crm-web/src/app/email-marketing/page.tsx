@@ -7,11 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { compressImage } from '@/lib/image-compression';
 import { apiFetch } from '@/services/api';
 import { Customer, PagedResponse } from '@/services/customers';
 import { uploadEmailImage } from '@/services/emailImages';
-import { queueBulkEmail, QueueBulkEmailResponse } from '@/services/emailMarketing';
+import {
+    createEmailCampaign,
+    EmailCampaignResponse,
+    getEmailCampaigns,
+    queueCampaignRecipients,
+    QueueCampaignRecipientsResponse
+} from '@/services/emailMarketing';
 import {
     AlertCircle,
     ArrowLeft,
@@ -79,8 +92,12 @@ export default function EmailMarketingPage() {
   const [htmlBody, setHtmlBody] = useState(DEFAULT_TEMPLATE);
   const [showPreview, setShowPreview] = useState(false);
 
+  const [campaignName, setCampaignName] = useState('');
+  const [savedCampaigns, setSavedCampaigns] = useState<EmailCampaignResponse[]>([]);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
+
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<QueueBulkEmailResponse | null>(null);
+  const [result, setResult] = useState<QueueCampaignRecipientsResponse | null>(null);
 
   // Image upload and Editor Ref
   const editorRef = useRef<any>(null);
@@ -122,10 +139,26 @@ export default function EmailMarketingPage() {
     loadContacts();
   }, [loadContacts]);
 
+  useEffect(() => {
+    setIsLoadingCampaigns(true);
+    getEmailCampaigns(1, 20)
+      .then(data => setSavedCampaigns(data.items))
+      .catch(() => { /* ignora se falhar */ })
+      .finally(() => setIsLoadingCampaigns(false));
+  }, []);
+
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [search, segment, contactType, pageSize]);
+
+  const handleLoadCampaign = (campaignId: string) => {
+    const campaign = savedCampaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+    setSubject(campaign.subject);
+    setHtmlBody(campaign.bodyHtml);
+    setCampaignName(campaign.name);
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -278,10 +311,25 @@ export default function EmailMarketingPage() {
     setSending(true);
     setResult(null);
     try {
-      const res = await queueBulkEmail({ customerIds: Array.from(selectedIds), subject, htmlBody });
+      // 1. Criar a campanha para salvar no histórico
+      const finalCampaignName = campaignName.trim() || `Disparo Manual - ${new Date().toLocaleString('pt-BR')}`;
+      const campaign = await createEmailCampaign({
+        name: finalCampaignName,
+        subject,
+        bodyHtml: htmlBody,
+      });
+
+      // 2. Enfileirar na campanha criada
+      const res = await queueCampaignRecipients(campaign.id, {
+        customerIds: Array.from(selectedIds)
+      });
+
       setResult(res);
-      toast.success(`${res.queuedCount} email(s) enfileirado(s) com sucesso!`);
+      toast.success(`${res.queuedCount} email(s) enfileirado(s) com sucesso e salvo no histórico!`);
       clearSelection();
+
+      // Recarrega campanhas para atualizar dropdown
+      getEmailCampaigns(1, 20).then(data => setSavedCampaigns(data.items));
     } catch (e: any) {
       toast.error('Erro ao enviar: ' + e.message);
     } finally {
@@ -487,6 +535,39 @@ export default function EmailMarketingPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {/* Load History */}
+            {savedCampaigns.length > 0 && (
+              <div className="space-y-1.5 border-b pb-3">
+                <Label>Carregar envio do Histórico</Label>
+                <Select onValueChange={handleLoadCampaign} disabled={isLoadingCampaigns}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingCampaigns ? 'Carregando...' : 'Selecione um email anterior'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedCampaigns.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} — {new Date(c.createdAt).toLocaleDateString('pt-BR')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Isso preencherá o Assunto e o Corpo abaixo. Todo envio é salvo aqui.
+                </p>
+              </div>
+            )}
+
+            {/* Campaign Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="campaignName">Nome do Envio (Para localizar no histórico)</Label>
+              <Input
+                id="campaignName"
+                placeholder="Ex: Oferta de Natal 2026"
+                value={campaignName}
+                onChange={e => setCampaignName(e.target.value)}
+              />
+            </div>
+
             {/* Subject */}
             <div className="space-y-1.5">
               <Label htmlFor="subject">Assunto *</Label>
