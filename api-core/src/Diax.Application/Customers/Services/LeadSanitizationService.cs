@@ -8,21 +8,37 @@ namespace Diax.Application.Customers.Services;
 
 public class LeadSanitizationService : ILeadSanitizationService
 {
-    // E-mails que são claramente de sistemas, suporte, genéricos. Usado para classificar o EmailType.
     private static readonly HashSet<string> GenericEmailPrefixes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "contato", "suporte", "financeiro", "admin", "vendas", "faturamento", "atendimento", "info", "hello", "comercial"
+        "contato", "suporte", "financeiro", "admin", "vendas", "faturamento", "atendimento", "info", "hello", "comercial",
+        "sac", "ouvidoria", "marketing", "rh", "vagas", "privacidade", "franquia", "faleconosco", "webmaster", "contact",
+        "hello", "jobs", "press", "billing"
     };
 
     // Domínios conhecidos por serem temporários ou spam/lixo
     private static readonly HashSet<string> SuspiciousDomains = new(StringComparer.OrdinalIgnoreCase)
     {
-        "mailinator.com", "10minutemail.com", "tempmail.com", "yopmail.com", "guerrillamail.com"
+        "mailinator.com", "10minutemail.com", "tempmail.com", "yopmail.com", "guerrillamail.com",
+        "temp-mail.org", "throwawaymail.com", "fakeinbox.com", "dropmail.me", "fakemail.net", "getnada.com"
     };
 
-    // Regex para validar formato básico do email (garante que não tem espaços, tem @ e domínio válido)
+    // Sufixos muito estranhos ou não comerciais comuns.
+    private static readonly HashSet<string> SuspiciousDomainSuffixes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".xyz", ".top", ".club", ".space", ".online", ".site", ".ru", ".tk"
+    };
+
+    // Palavras-chave que indicam diretórios ou páginas genéricas
+    private static readonly HashSet<string> GenericCompanyKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Linktree", "404", "Not Found", "GuiaMais", "Telelistas", "Home", "Página Inicial", "Instagram", "Facebook",
+        "LinkedIn", "Twitter", "TikTok", "YouTube", "Google", "WhatsApp", "Diretório", "Busca", "Erro 404",
+        "Default", "Sem Nome", "Site", "Contato"
+    };
+
+    // Regex mais severo (rejeita espaços, obriga TLD válido simples com ao menos 2 letras)
     private static readonly Regex EmailRegex = new(
-        @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+        @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public SanitizedLeadResult SanitizeAndClassify(RawLeadData rawData)
@@ -51,12 +67,33 @@ public class LeadSanitizationService : ILeadSanitizationService
         result.Phone = cleanPhone;
         result.WhatsApp = cleanWhatsApp;
 
-        // 2. Validação e Normalização do E-mail
+        // Regra Especial de Diretório: Se o Nome ou Nome da Empresa batem exatamente ou continerem os termos genéricos
+        bool isDirectoryOrGeneric = false;
+        var checkName = result.CompanyName ?? result.Name;
+        if (!string.IsNullOrWhiteSpace(checkName))
+        {
+            if (GenericCompanyKeywords.Any(k => checkName.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            {
+                isDirectoryOrGeneric = true;
+                result.ShouldReject = true; // Por enquanto podemos apenas sinalizar o Reject. O CustomerService vai decidir o que fazer no batch.
+                                            // Se no CreateManual cair aqui, rejeita direto.
+                result.RejectionReason = "Lead originates from a Generic Directory/Profile (e.g., Linktree, GuiaMais) rather than real business context.";
+            }
+        }
+
+        // 2. Validação Rigorosa do E-mail
         if (!string.IsNullOrWhiteSpace(rawData.Email))
         {
             var cleanedEmail = rawData.Email.Trim().ToLowerInvariant();
 
-            // Corrige emails grudados (ex: `teste@empresa.com, contato@`)
+            // Punição: Se o email tiver lixo concatenado por scraping mal feito (ex: contato@empresa.com.br?subject=xxx ou & ou " ou ' ou espaços brutais).
+            var garbageChars = new[] { '?', '&', '"', '\'', '\\', '/', '=', '(', ')' };
+            int garbageIndex = cleanedEmail.IndexOfAny(garbageChars);
+            if (garbageIndex > 0)
+            {
+                cleanedEmail = cleanedEmail.Substring(0, garbageIndex);
+            }
+
             if (cleanedEmail.Contains(","))
             {
                 cleanedEmail = cleanedEmail.Split(',')[0].Trim();
@@ -64,80 +101,132 @@ public class LeadSanitizationService : ILeadSanitizationService
 
             if (EmailRegex.IsMatch(cleanedEmail))
             {
-                result.Email = cleanedEmail;
-                result.IsEmailValid = true;
-
-                // Extrair as partes
                 var parts = cleanedEmail.Split('@');
                 var prefix = parts[0];
                 var domain = parts[1];
 
-                // 3. Detecção de Domínio Suspeito
-                if (SuspiciousDomains.Contains(domain))
+                // 3. Detecção de Domínio Suspeito (Agora incluindo sulfixos exóticos)
+                bool isSuspiciousDomain = SuspiciousDomains.Contains(domain) ||
+                                          SuspiciousDomainSuffixes.Any(ext => domain.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+
+                if (isSuspiciousDomain)
                 {
                     result.HasSuspiciousDomain = true;
-                }
-
-                // 4. Classificação do E-mail
-                if (GenericEmailPrefixes.Contains(prefix))
-                {
-                    result.EmailType = EmailType.GenericCorporate;
+                    // Se for bizarro demais, derrubamos.
+                    result.IsEmailValid = false;
+                    result.Email = null;
                 }
                 else
                 {
-                    result.EmailType = EmailType.PersonalDirect;
+                    result.Email = cleanedEmail;
+                    result.IsEmailValid = true;
+
+                    // 4. Classificação de Generic Emails
+                    if (GenericEmailPrefixes.Contains(prefix))
+                    {
+                        result.EmailType = EmailType.GenericCorporate;
+                    }
+                    else
+                    {
+                        result.EmailType = EmailType.PersonalDirect;
+                    }
                 }
             }
             else
             {
                 result.IsEmailValid = false;
-                result.Email = null; // Email formato incorreto, apaga
+                result.Email = null;
             }
         }
 
-        // 5. Determinação da Qualidade (Scoring Simples)
+        // Regra de Ouro 8 e 9: Se NÃO tiver e-mail E NÃO tiver telefone válido, rejeita.
+        if (!result.IsEmailValid && string.IsNullOrWhiteSpace(result.Phone) && string.IsNullOrWhiteSpace(result.WhatsApp))
+        {
+            result.ShouldReject = true;
+            result.RejectionReason = "Lead lacks any commercial viable contact point (No valid Email, no Phone).";
+            return result;
+        }
+
+        // 5. Determinação da Qualidade Rígida
         int score = 0;
 
-        if (result.IsEmailValid) score += 3;
-        if (!string.IsNullOrWhiteSpace(result.Phone) || !string.IsNullOrWhiteSpace(result.WhatsApp)) score += 2;
-        if (!string.IsNullOrWhiteSpace(result.CompanyName)) score += 2;
-        if (!result.HasSuspiciousDomain && result.IsEmailValid) score += 1; // Bônus por email bom
+        if (result.IsEmailValid && result.EmailType == EmailType.PersonalDirect) score += 4;
+        if (result.IsEmailValid && result.EmailType == EmailType.GenericCorporate) score += 2;
+        if (!string.IsNullOrWhiteSpace(result.Phone) || !string.IsNullOrWhiteSpace(result.WhatsApp)) score += 3;
+        if (!string.IsNullOrWhiteSpace(result.CompanyName) && !isDirectoryOrGeneric) score += 3;
 
-        if (score >= 6) result.Quality = LeadQuality.High;
-        else if (score >= 3) result.Quality = LeadQuality.Medium;
+        if (isDirectoryOrGeneric) score -= 10;
+        if (result.HasSuspiciousDomain) score -= 5;
+
+        if (score >= 8) result.Quality = LeadQuality.High;
+        else if (score >= 4) result.Quality = LeadQuality.Medium;
         else result.Quality = LeadQuality.Low;
 
         // 6. Elegibilidade para Campanhas
-        // - Precisa ter um email válido
-        // - Não pode ser um domínio suspeito
-        // - Ter o nome mínimo preenchido (não ser "Unknown")
         result.IsEligibleForCampaigns =
             result.IsEmailValid &&
             !result.HasSuspiciousDomain &&
-            result.Name.Length > 2;
+            !isDirectoryOrGeneric &&
+            result.Quality != LeadQuality.Low;
 
         return result;
     }
 
     /// <summary>
-    /// Limpa e aplica Title Case numa String para corrigir Caps Locks indesejados e encodes zoados.
+    /// Limpa e aplica Title Case numa String para corrigir Caps Locks indesejados e decodes zoados.
     /// </summary>
     private static string SanitizeText(string? input, bool isMultiline = false)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
 
+        // Corrige encodings rasgados comuns da internet ex: UTF8 lido como ISO que virou ISO salvo de forma errada
+        var decoded = FixBrokenEncoding(input);
+
         // Limpa espaços no inicio e fim e substitui múltiplos espaços internos
-        var clean = Regex.Replace(input.Trim(), @"\s+", " ");
+        var clean = Regex.Replace(decoded.Trim(), @"\s+", " ");
 
         // Em descrições (multiline), ignorar o title case
         if (!isMultiline)
         {
             var textInfo = CultureInfo.CurrentCulture.TextInfo;
-            // O TitleCase do .NET não muda se a string for toda maiúscula antes, então forçamos para minúsculo
             clean = textInfo.ToTitleCase(clean.ToLowerInvariant());
         }
 
         return clean;
+    }
+
+    /// <summary>
+    /// Tenta consertar caracteres de encoding corrompidos (Ex: Ã¢, Ã§).
+    /// </summary>
+    private static string FixBrokenEncoding(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return input;
+
+        var replacements = new Dictionary<string, string>
+        {
+            { "Ã¡", "á" }, { "Ã ", "à" }, { "Ã¢", "â" }, { "Ã£", "ã" }, { "Ã¤", "ä" },
+            { "Ã©", "é" }, { "Ã¨", "è" }, { "Ãª", "ê" }, { "Ã«", "ë" },
+            { "Ã­", "í" }, { "Ã¬", "ì" }, { "Ã®", "î" }, { "Ã¯", "ï" },
+            { "Ã³", "ó" }, { "Ã²", "ò" }, { "Ã´", "ô" }, { "Ãµ", "õ" }, { "Ã¶", "ö" },
+            { "Ãº", "ú" }, { "Ã¹", "ù" }, { "Ã»", "û" }, { "Ã¼", "ü" },
+            { "Ã§", "ç" }, { "Ã±", "ñ" },
+            { "Ã?", "Á" }, { "Ã\u0080", "À" }, { "Ã\u0082", "Â" }, { "Ã\u0083", "Ã" }, { "Ã\u0084", "Ä" },
+            { "Ã\u0089", "É" }, { "Ã\u0088", "È" }, { "Ã\u008A", "Ê" }, { "Ã\u008B", "Ë" },
+            { "Ã\u008D", "Í" }, { "Ã\u008C", "Ì" }, { "Ã\u008E", "Î" }, { "Ã\u008F", "Ï" },
+            { "Ã\u0093", "Ó" }, { "Ã\u0092", "Ò" }, { "Ã\u0094", "Ô" }, { "Ã\u0095", "Õ" }, { "Ã\u0096", "Ö" },
+            { "Ã\u009A", "Ú" }, { "Ã\u0099", "Ù" }, { "Ã\u009B", "Û" }, { "Ã\u009C", "Ü" },
+            { "Ã\u0087", "Ç" }, { "Ã\u0091", "Ñ" },
+            { "Âº", "º" }, { "Âª", "ª" }, { "â€“", "–" }, { "&amp;", "&" },
+            { "&quot;", "\"" }, { "&lt;", "<" }, { "&gt;", ">" }
+        };
+
+        var sb = new StringBuilder(input);
+        foreach (var kvp in replacements)
+        {
+            sb.Replace(kvp.Key, kvp.Value);
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>

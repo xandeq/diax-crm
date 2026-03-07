@@ -163,9 +163,12 @@ export async function bulkDeleteLeads(ids: string[]): Promise<{ deletedCount: nu
 
 export interface BulkSanitizationResponse {
   analyzedLeads: number;
-  updatedLeads: number;
-  duplicatesRemoved: number;
-  invalidEmailsDetected: number;
+  correctedLeads: number;
+  removedByInvalidEmail: number;
+  removedBySuspiciousDomain: number;
+  removedByDirectoryOrGeneric: number;
+  duplicatesConsolidated: number;
+  validLeadsRemaining: number;
 }
 
 export async function sanitizeLeadBase(customerIds?: string[]): Promise<BulkSanitizationResponse> {

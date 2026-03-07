@@ -391,7 +391,10 @@ public class CustomerService : IApplicationService
 
         var leadsToUpdate = new List<Customer>();
         var leadsToDelete = new List<Customer>();
+
         var seenEmails = new Dictionary<string, Customer>(StringComparer.OrdinalIgnoreCase);
+        var seenPhones = new Dictionary<string, Customer>(StringComparer.OrdinalIgnoreCase);
+        var seenCompanies = new Dictionary<string, Customer>(StringComparer.OrdinalIgnoreCase);
 
         // Analisa e deduplica os leads encontrados (mais antigos primeiro para manter o registro inicial como base)
         foreach (var lead in targets.OrderBy(c => c.CreatedAt))
@@ -403,53 +406,84 @@ public class CustomerService : IApplicationService
 
             bool wasUpdated = false;
 
+            // Rejeição direta (Sem email e sem telefone, ou ser agregador Linktree)
+            if (sanitized.ShouldReject)
+            {
+                if (sanitized.RejectionReason != null && sanitized.RejectionReason.Contains("Directory"))
+                {
+                    response.RemovedByDirectoryOrGeneric++;
+                }
+                else
+                {
+                    response.RemovedByInvalidEmail++;
+                }
+                leadsToDelete.Add(lead);
+                continue;
+            }
+
             if (!sanitized.IsEmailValid && !string.IsNullOrWhiteSpace(lead.Email))
             {
-                response.InvalidEmailsDetected++;
-                // Torna e-mail nulo para não enviar mensagens a leads rejeitados
+                response.RemovedByInvalidEmail++;
                 lead.UpdateBasicInfo(lead.Name, null, lead.PersonType, lead.CompanyName, lead.Document);
                 wasUpdated = true;
             }
 
             var activeEmail = sanitized.IsEmailValid ? sanitized.Email : null;
+            var activePhone = !string.IsNullOrWhiteSpace(sanitized.Phone) ? sanitized.Phone : sanitized.WhatsApp;
+            var activeCompany = !string.IsNullOrWhiteSpace(sanitized.CompanyName) ? sanitized.CompanyName : null;
 
-            // Lógica de Deduplicação e Enriquecimento pelo E-mail
-            if (!string.IsNullOrWhiteSpace(activeEmail))
+            // Lógica de Deduplicação e Enriquecimento Inteligente (E-mail -> Telefone -> Nome da Empresa)
+            Customer? primaryLead = null;
+
+            if (!string.IsNullOrWhiteSpace(activeEmail) && seenEmails.TryGetValue(activeEmail, out var matchByEmail))
             {
-                if (seenEmails.TryGetValue(activeEmail!, out var primaryLead))
-                {
-                    // Mescla as informações no primaryLead
-                    bool merged = false;
-
-                    if (string.IsNullOrWhiteSpace(primaryLead.Phone) && !string.IsNullOrWhiteSpace(sanitized.Phone)) { primaryLead.UpdateContactInfo(sanitized.Phone, primaryLead.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
-                    if (string.IsNullOrWhiteSpace(primaryLead.WhatsApp) && !string.IsNullOrWhiteSpace(sanitized.WhatsApp)) { primaryLead.UpdateContactInfo(primaryLead.Phone, sanitized.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
-                    if (string.IsNullOrWhiteSpace(primaryLead.CompanyName) && !string.IsNullOrWhiteSpace(sanitized.CompanyName)) { primaryLead.UpdateBasicInfo(primaryLead.Name, primaryLead.Email, PersonType.Company, sanitized.CompanyName, primaryLead.Document); merged = true; }
-
-                    // Combina os notes da duplicata
-                    if (!string.IsNullOrWhiteSpace(sanitized.Notes))
-                    {
-                        var n = primaryLead.Notes + $"\n[Mesclado na Sanitização]: {sanitized.Notes}";
-                        primaryLead.UpdateNotes(n);
-                        merged = true;
-                    }
-
-                    if (merged && !leadsToUpdate.Contains(primaryLead))
-                    {
-                        leadsToUpdate.Add(primaryLead);
-                    }
-
-                    leadsToDelete.Add(lead);
-                    response.DuplicatesRemoved++;
-                    continue; // Pula o resto da execução pois a entidade duplicada será deletada
-                }
-                else
-                {
-                    seenEmails[activeEmail!] = lead;
-                }
+                primaryLead = matchByEmail;
+            }
+            else if (!string.IsNullOrWhiteSpace(activePhone) && seenPhones.TryGetValue(activePhone, out var matchByPhone))
+            {
+                primaryLead = matchByPhone;
+            }
+            else if (!string.IsNullOrWhiteSpace(activeCompany) && seenCompanies.TryGetValue(activeCompany, out var matchByCompany))
+            {
+                primaryLead = matchByCompany;
             }
 
-            // Atualiza os campos do Lead Principal em si com os dados refinados (se for necessário)
-            if (lead.Name != sanitized.Name || lead.CompanyName != sanitized.CompanyName)
+            if (primaryLead != null && primaryLead.Id != lead.Id)
+            {
+                // Mescla as informações no primaryLead
+                bool merged = false;
+
+                if (string.IsNullOrWhiteSpace(primaryLead.Phone) && !string.IsNullOrWhiteSpace(sanitized.Phone)) { primaryLead.UpdateContactInfo(sanitized.Phone, primaryLead.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
+                if (string.IsNullOrWhiteSpace(primaryLead.WhatsApp) && !string.IsNullOrWhiteSpace(sanitized.WhatsApp)) { primaryLead.UpdateContactInfo(primaryLead.Phone, sanitized.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
+                if (string.IsNullOrWhiteSpace(primaryLead.CompanyName) && !string.IsNullOrWhiteSpace(sanitized.CompanyName)) { primaryLead.UpdateBasicInfo(primaryLead.Name, primaryLead.Email, PersonType.Company, sanitized.CompanyName, primaryLead.Document); merged = true; }
+                if (string.IsNullOrWhiteSpace(primaryLead.Email) && !string.IsNullOrWhiteSpace(activeEmail)) { primaryLead.UpdateBasicInfo(primaryLead.Name, activeEmail, primaryLead.PersonType, primaryLead.CompanyName, primaryLead.Document); merged = true; }
+
+                // Combina os notes da duplicata
+                if (!string.IsNullOrWhiteSpace(sanitized.Notes))
+                {
+                    var n = primaryLead.Notes + $"\n[Mesclado na Sanitização]: {sanitized.Notes}";
+                    primaryLead.UpdateNotes(n);
+                    merged = true;
+                }
+
+                if (merged && !leadsToUpdate.Contains(primaryLead))
+                {
+                    leadsToUpdate.Add(primaryLead);
+                }
+
+                leadsToDelete.Add(lead);
+                response.DuplicatesConsolidated++;
+                continue; // Pula o resto da execução pois a entidade duplicada será deletada
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(activeEmail)) seenEmails[activeEmail] = lead;
+                if (!string.IsNullOrWhiteSpace(activePhone)) seenPhones[activePhone] = lead;
+                if (!string.IsNullOrWhiteSpace(activeCompany)) seenCompanies[activeCompany] = lead;
+            }
+
+            // Atualiza os campos do Lead Principal em si com os dados refinados
+            if (lead.Name != sanitized.Name || lead.CompanyName != sanitized.CompanyName || lead.Email != activeEmail)
             {
                 lead.UpdateBasicInfo(sanitized.Name, activeEmail, string.IsNullOrWhiteSpace(sanitized.CompanyName) ? PersonType.Individual : PersonType.Company, sanitized.CompanyName, lead.Document);
                 wasUpdated = true;
@@ -473,6 +507,12 @@ public class CustomerService : IApplicationService
             var currentSuspicious = lead.HasSuspiciousDomain;
             var currentEligible = lead.IsEligibleForCampaigns;
 
+            // Se ainda assim o domínio for ruim, reporta na estatística e derruba a qualidade drasticamente
+            if (sanitized.HasSuspiciousDomain)
+            {
+                response.RemovedBySuspiciousDomain++; // Ele fica na base, mas reportamos q foi detectado e invocado
+            }
+
             lead.UpdateClassification(sanitized.Quality, sanitized.EmailType, sanitized.HasSuspiciousDomain, sanitized.IsEligibleForCampaigns);
 
             if (currentQuality != lead.Quality || currentEmailType != lead.EmailType || currentSuspicious != lead.HasSuspiciousDomain || currentEligible != lead.IsEligibleForCampaigns)
@@ -483,7 +523,7 @@ public class CustomerService : IApplicationService
             if (wasUpdated && !leadsToUpdate.Contains(lead))
             {
                 leadsToUpdate.Add(lead);
-                response.UpdatedLeads++; // Apenas contabilizamos as modificadas que não pularam num merge de exclusão
+                response.CorrectedLeads++;
             }
         }
 
@@ -502,6 +542,8 @@ public class CustomerService : IApplicationService
         {
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
+
+        response.ValidLeadsRemaining = response.AnalyzedLeads - leadsToDelete.Count;
 
         return Result.Success(response);
     }

@@ -347,11 +347,14 @@ export default function LeadsPage() {
       const result = await sanitizeLeadBase(ids);
 
       toast.success('Sanitização concluída!', { id: 'sanitize-base' });
-      alert(`Resultado da Sanitização:\n` +
-            `- Leads Analisados: ${result.analyzedLeads}\n` +
-            `- Leads Atualizados/Corrigidos: ${result.updatedLeads}\n` +
-            `- Duplicatas Mescladas/Removidas: ${result.duplicatesRemoved}\n` +
-            `- E-mails Inválidos Limpos: ${result.invalidEmailsDetected}`);
+      alert(`Resultados da Limpeza Rígida:\n\n` +
+            `🔍 Leads Analisados: ${result.analyzedLeads}\n` +
+            `✨ Leads Corrigidos: ${result.correctedLeads}\n` +
+            `🗑️ Removidos por Email Inválido: ${result.removedByInvalidEmail}\n` +
+            `🚩 Removidos por Domínio Suspeito: ${result.removedBySuspiciousDomain}\n` +
+            `🚫 Removidos como Genéricos/Diretório: ${result.removedByDirectoryOrGeneric}\n` +
+            `🔗 Duplicatas Mescladas/Consolidadas: ${result.duplicatesConsolidated}\n\n` +
+            `✅ Leads Válidos Restantes: ${result.validLeadsRemaining}`);
 
       fetchLeads();
       setSelectedRows([]);
