@@ -229,4 +229,54 @@ public class BlogController : BaseApiController
 
         return NoContent();
     }
+
+    /// <summary>
+    /// Faz upload de imagem para post de blog. Salva em wwwroot/blog-images/.
+    /// </summary>
+    [HttpPost("admin/upload-image")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadBlogImage(
+        [FromBody] UploadBlogImageRequest request,
+        [FromServices] IWebHostEnvironment env,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Base64Content))
+            return BadRequest(new { message = "Base64Content is required." });
+
+        byte[] imageBytes;
+        try
+        {
+            imageBytes = Convert.FromBase64String(request.Base64Content);
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new { message = "Invalid Base64 content." });
+        }
+
+        if (imageBytes.Length > 10 * 1024 * 1024)
+            return BadRequest(new { message = "Image too large. Max 10 MB." });
+
+        var fileName = !string.IsNullOrWhiteSpace(request.FileName)
+            ? Path.GetFileNameWithoutExtension(request.FileName) + ".jpg"
+            : $"{Guid.NewGuid():N}.jpg";
+
+        var folder = Path.Combine(env.WebRootPath ?? env.ContentRootPath, "blog-images");
+        Directory.CreateDirectory(folder);
+
+        var filePath = Path.Combine(folder, fileName);
+        await System.IO.File.WriteAllBytesAsync(filePath, imageBytes, cancellationToken);
+
+        var publicUrl = $"https://api.alexandrequeiroz.com.br/blog-images/{fileName}";
+        _logger.LogInformation("Blog image uploaded: {FileName} ({SizeKB} KB)", fileName, imageBytes.Length / 1024);
+
+        return Ok(new { url = publicUrl, fileName });
+    }
+}
+
+public class UploadBlogImageRequest
+{
+    public string Base64Content { get; set; } = string.Empty;
+    public string? FileName { get; set; }
 }

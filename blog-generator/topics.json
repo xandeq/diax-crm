@@ -1,0 +1,275 @@
+{
+  "topics": [
+    {
+      "title": "Quanto custa criar um site em Vitória ES",
+      "keyword": "quanto custa criar um site em Vitória ES",
+      "slug": "quanto-custa-criar-um-site-em-vitoria-es",
+      "category": "Desenvolvimento de Sites",
+      "tags": "site,vitoria,es,preco,criacao",
+      "city": "Vitória, ES",
+      "status": "pendente",
+      "last_error": "API retornou 400: {\"code\":\"BlogPost.CreateFailed\",\"message\":\"Falha ao criar post.\"}"
+    },
+    {
+      "title": "Agência de marketing digital em Vitória ES",
+      "keyword": "agência de marketing digital em Vitória ES",
+      "slug": "agencia-de-marketing-digital-em-vitoria",
+      "category": "Marketing Digital",
+      "tags": "marketing digital,agencia,vitoria,es",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como escolher agência de sites em Vila Velha",
+      "keyword": "agência de sites em Vila Velha",
+      "slug": "como-escolher-agencia-de-sites-em-vila-velha",
+      "category": "Desenvolvimento de Sites",
+      "tags": "site,vila velha,agencia,es",
+      "city": "Vila Velha, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Quanto custa um logo profissional",
+      "keyword": "quanto custa um logo profissional",
+      "slug": "quanto-custa-um-logo-profissional",
+      "category": "Design",
+      "tags": "logo,design,identidade visual,preco",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como aumentar as vendas com Google Ads em Vitória ES",
+      "keyword": "Google Ads em Vitória ES",
+      "slug": "como-aumentar-vendas-com-google-ads-em-vitoria-es",
+      "category": "Tráfego Pago",
+      "tags": "google ads,trafego pago,vitoria,vendas",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "SEO local para empresas em Vitória ES",
+      "keyword": "SEO local Vitória ES",
+      "slug": "seo-local-para-empresas-em-vitoria-es",
+      "category": "SEO",
+      "tags": "seo,seo local,vitoria,google",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Por que sua empresa precisa de presença online em 2025",
+      "keyword": "presença online empresas Vitória ES",
+      "slug": "por-que-sua-empresa-precisa-de-presenca-online-2025",
+      "category": "Marketing Digital",
+      "tags": "presenca online,marketing digital,2025",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como criar página de vendas que converte em Vitória ES",
+      "keyword": "página de vendas que converte",
+      "slug": "como-criar-pagina-de-vendas-que-converte-vitoria-es",
+      "category": "Conversão",
+      "tags": "landing page,conversao,vendas,vitoria",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Tráfego pago para pequenas empresas em Espírito Santo",
+      "keyword": "tráfego pago pequenas empresas Espírito Santo",
+      "slug": "trafego-pago-para-pequenas-empresas-espirito-santo",
+      "category": "Tráfego Pago",
+      "tags": "trafego pago,es,espirito santo,pequenas empresas",
+      "city": "Espírito Santo",
+      "status": "pendente"
+    },
+    {
+      "title": "Identidade visual para empresas em Vila Velha",
+      "keyword": "identidade visual empresa Vila Velha",
+      "slug": "identidade-visual-para-empresas-em-vila-velha",
+      "category": "Design",
+      "tags": "identidade visual,branding,vila velha,design",
+      "city": "Vila Velha, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Instagram para negócios locais em Vitória ES",
+      "keyword": "Instagram para negócios Vitória ES",
+      "slug": "instagram-para-negocios-locais-em-vitoria-es",
+      "category": "Redes Sociais",
+      "tags": "instagram,redes sociais,negocios locais,vitoria",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como aparecer no Google Meu Negócio em Vitória ES",
+      "keyword": "Google Meu Negócio Vitória ES",
+      "slug": "como-aparecer-no-google-meu-negocio-vitoria-es",
+      "category": "SEO",
+      "tags": "google meu negocio,seo local,vitoria,google",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Quanto custa fazer um e-commerce no Brasil em 2025",
+      "keyword": "quanto custa fazer e-commerce Brasil 2025",
+      "slug": "quanto-custa-fazer-ecommerce-brasil-2025",
+      "category": "Desenvolvimento de Sites",
+      "tags": "ecommerce,loja virtual,preco,2025",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Marketing de conteúdo para clínicas em Vitória ES",
+      "keyword": "marketing digital para clínicas Vitória",
+      "slug": "marketing-de-conteudo-para-clinicas-vitoria-es",
+      "category": "Marketing Digital",
+      "tags": "marketing digital,clinicas,saude,vitoria",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como gerar leads com Facebook Ads no Espírito Santo",
+      "keyword": "Facebook Ads Espírito Santo leads",
+      "slug": "como-gerar-leads-com-facebook-ads-espirito-santo",
+      "category": "Tráfego Pago",
+      "tags": "facebook ads,leads,espirito santo,trafego pago",
+      "city": "Espírito Santo",
+      "status": "pendente"
+    },
+    {
+      "title": "Site responsivo ou aplicativo qual é melhor para minha empresa",
+      "keyword": "site responsivo ou aplicativo empresa",
+      "slug": "site-responsivo-ou-aplicativo-qual-melhor-empresa",
+      "category": "Desenvolvimento de Sites",
+      "tags": "site responsivo,aplicativo,desenvolvimento,vitoria",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como fazer WhatsApp Business funcionar como ferramenta de vendas",
+      "keyword": "WhatsApp Business vendas",
+      "slug": "como-fazer-whatsapp-business-funcionar-como-ferramenta-de-vendas",
+      "category": "Marketing Digital",
+      "tags": "whatsapp business,vendas,marketing digital",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Quanto custa anunciar no Google em 2025",
+      "keyword": "quanto custa anunciar no Google 2025",
+      "slug": "quanto-custa-anunciar-no-google-2025",
+      "category": "Tráfego Pago",
+      "tags": "google ads,anuncio,custo,2025",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como escolher a melhor agência de marketing digital",
+      "keyword": "como escolher agência de marketing digital",
+      "slug": "como-escolher-melhor-agencia-de-marketing-digital",
+      "category": "Marketing Digital",
+      "tags": "agencia,marketing digital,como escolher",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Branding para startups e pequenas empresas em Vitória",
+      "keyword": "branding startups Vitória ES",
+      "slug": "branding-para-startups-e-pequenas-empresas-vitoria",
+      "category": "Design",
+      "tags": "branding,startup,pequenas empresas,vitoria",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Email marketing ainda funciona em 2025",
+      "keyword": "email marketing 2025",
+      "slug": "email-marketing-ainda-funciona-em-2025",
+      "category": "Marketing Digital",
+      "tags": "email marketing,2025,marketing digital",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Automação de marketing para pequenas empresas",
+      "keyword": "automação de marketing pequenas empresas",
+      "slug": "automacao-de-marketing-para-pequenas-empresas",
+      "category": "Automação",
+      "tags": "automacao,marketing digital,pequenas empresas",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como medir resultados de campanhas de marketing digital",
+      "keyword": "como medir resultados marketing digital",
+      "slug": "como-medir-resultados-campanhas-marketing-digital",
+      "category": "Marketing Digital",
+      "tags": "metricas,resultados,marketing digital,analytics",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Consultoria de marketing digital para advogados em Vitória",
+      "keyword": "marketing digital para advogados Vitória",
+      "slug": "consultoria-marketing-digital-para-advogados-vitoria",
+      "category": "Marketing Digital",
+      "tags": "advogados,marketing juridico,vitoria,es",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Como criar uma estratégia de conteúdo do zero",
+      "keyword": "estratégia de conteúdo",
+      "slug": "como-criar-estrategia-de-conteudo-do-zero",
+      "category": "Marketing Digital",
+      "tags": "conteudo,estrategia,marketing de conteudo,blog",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "TikTok para empresas locais funciona em Vitória ES",
+      "keyword": "TikTok marketing empresas locais",
+      "slug": "tiktok-para-empresas-locais-funciona-vitoria-es",
+      "category": "Redes Sociais",
+      "tags": "tiktok,redes sociais,empresas locais,vitoria",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Loja virtual para artesãos e produtos regionais do ES",
+      "keyword": "loja virtual artesãos Espírito Santo",
+      "slug": "loja-virtual-para-artesaos-produtos-regionais-es",
+      "category": "Desenvolvimento de Sites",
+      "tags": "loja virtual,ecommerce,artesaos,espirito santo",
+      "city": "Espírito Santo",
+      "status": "pendente"
+    },
+    {
+      "title": "Como aparecer na primeira página do Google sem pagar anúncios",
+      "keyword": "aparecer primeira página Google sem anúncios",
+      "slug": "como-aparecer-primeira-pagina-google-sem-pagar-anuncios",
+      "category": "SEO",
+      "tags": "seo,google,organico,primeira pagina",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Marketing imobiliário digital em Vitória ES",
+      "keyword": "marketing imobiliário digital Vitória ES",
+      "slug": "marketing-imobiliario-digital-vitoria-es",
+      "category": "Marketing Digital",
+      "tags": "marketing imobiliario,imoveis,vitoria,es",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    },
+    {
+      "title": "Por que seu site não aparece no Google",
+      "keyword": "por que meu site não aparece no Google",
+      "slug": "por-que-seu-site-nao-aparece-no-google",
+      "category": "SEO",
+      "tags": "seo,google,indexacao,site",
+      "city": "Vitória, ES",
+      "status": "pendente"
+    }
+  ]
+}

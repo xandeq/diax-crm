@@ -27,5 +27,9 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Google Cloud credentials
+service_account.json
+**/service_account.json
 api-core/nul
 nul
