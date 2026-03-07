@@ -1,5 +1,7 @@
 'use client';
 
+import { AiCostWidget } from "@/components/dashboard/ai/AiCostWidget";
+import { AiInsightsWidget } from "@/components/dashboard/ai/AiInsightsWidget";
 import { RecentPromptsWidget } from "@/components/dashboard/ai/RecentPromptsWidget";
 import { CrmSummaryWidget } from "@/components/dashboard/crm/CrmSummaryWidget";
 import { FinanceSummaryWidget } from "@/components/dashboard/finance/FinanceSummaryWidget";
@@ -54,6 +56,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* CEO Command Center Insight */}
+        <AiInsightsWidget />
+
         {/* Upper row */}
         <UpcomingAgendaWidget />
         <FinanceSummaryWidget />
@@ -64,6 +69,7 @@ export default function DashboardPage() {
         <ShoppingListWidget />
         <RecentPromptsWidget />
         <RecentSnippetsWidget />
+        <AiCostWidget />
       </div>
     </div>
   );

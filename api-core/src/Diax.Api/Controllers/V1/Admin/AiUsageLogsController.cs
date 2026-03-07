@@ -135,4 +135,41 @@ public class AiUsageLogsController : ControllerBase
             return StatusCode(500, new { Message = "Error fetching usage statistics" });
         }
     }
+
+    /// <summary>
+    /// Get aggregated usage statistics grouped by provider
+    /// </summary>
+    [HttpGet("stats/grouped")]
+    public async Task<IActionResult> GetGroupedStats(
+        [FromQuery] Guid? userId = null,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var stats = await _repository.GetGroupedByProviderStatsAsync(
+                userId,
+                startDate,
+                endDate,
+                cancellationToken
+            );
+
+            var result = stats.Select(s => new
+            {
+                ProviderId = s.ProviderId,
+                ProviderName = s.ProviderName,
+                TotalRequests = s.TotalLogs,
+                TotalTokens = s.TotalTokens,
+                TotalCost = s.TotalCost
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching grouped AI usage stats");
+            return StatusCode(500, new { Message = "Error fetching grouped usage statistics" });
+        }
+    }
 }

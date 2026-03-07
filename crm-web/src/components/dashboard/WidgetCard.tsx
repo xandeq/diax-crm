@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { HelpCircle, Loader2 } from "lucide-react";
 import { ReactNode } from "react";
 
 interface WidgetCardProps {
@@ -10,6 +10,7 @@ interface WidgetCardProps {
   error?: string | null;
   className?: string;
   action?: ReactNode;
+  infoTooltip?: string;
 }
 
 export function WidgetCard({
@@ -19,7 +20,8 @@ export function WidgetCard({
   isLoading = false,
   error = null,
   className = "",
-  action
+  action,
+  infoTooltip
 }: WidgetCardProps) {
   return (
     <Card className={`widget-enter ${className}`.trim()}>
@@ -27,6 +29,17 @@ export function WidgetCard({
         <div className="flex items-center gap-2">
             {icon && <div className="text-muted-foreground">{icon}</div>}
             <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {infoTooltip && (
+              <div className="group relative flex items-center">
+                <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                <div className="pointer-events-none absolute left-1/2 -top-2 z-50 flex w-max max-w-[250px] -translate-x-1/2 -translate-y-full flex-col items-center opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="rounded bg-popover text-popover-foreground shadow-md px-3 py-2 text-xs border">
+                    {infoTooltip}
+                  </div>
+                  <div className="-mt-px h-2 w-2 rotate-45 border-r border-b bg-popover" />
+                </div>
+              </div>
+            )}
         </div>
       </CardHeader>
       <CardContent>

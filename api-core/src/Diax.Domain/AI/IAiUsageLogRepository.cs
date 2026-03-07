@@ -7,4 +7,5 @@ public interface IAiUsageLogRepository
     Task<List<AiUsageLog>> GetByProviderIdAsync(Guid providerId, int skip, int take, CancellationToken cancellationToken = default);
     Task<List<AiUsageLog>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, int skip, int take, CancellationToken cancellationToken = default);
     Task<(int totalLogs, int totalTokens, decimal totalCost)> GetUsageStatsAsync(Guid? userId = null, Guid? providerId = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default);
+    Task<List<(Guid ProviderId, string ProviderName, int TotalLogs, int TotalTokens, decimal TotalCost)>> GetGroupedByProviderStatsAsync(Guid? userId = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default);
 }

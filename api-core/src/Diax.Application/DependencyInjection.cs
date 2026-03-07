@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IAiProviderAdminService, AiProviderAdminService>();
         services.AddScoped<IAiCatalogService, AiCatalogService>();
         services.AddScoped<IGroupAiAccessService, GroupAiAccessService>();
+        services.AddScoped<Diax.Application.AI.Interfaces.IAiInsightsService, AiInsightsService>();
 
         // AI Model Validator com cache (fonte única de verdade = banco)
         services.AddScoped<IAiModelValidator, AiModelValidator>();

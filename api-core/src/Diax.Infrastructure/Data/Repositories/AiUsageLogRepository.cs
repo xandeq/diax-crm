@@ -84,4 +84,37 @@ public class AiUsageLogRepository : Repository<AiUsageLog>, IAiUsageLogRepositor
 
         return (totalLogs, totalTokens, totalCost);
     }
+
+    public async Task<List<(Guid ProviderId, string ProviderName, int TotalLogs, int TotalTokens, decimal TotalCost)>> GetGroupedByProviderStatsAsync(
+        Guid? userId = null,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.AsNoTracking();
+
+        if (userId.HasValue)
+            query = query.Where(x => x.UserId == userId.Value);
+
+        if (startDate.HasValue)
+            query = query.Where(x => x.CreatedAt >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(x => x.CreatedAt <= endDate.Value);
+
+        var result = await query
+            .Where(x => x.Success)
+            .GroupBy(x => new { x.ProviderId, x.Provider.Name })
+            .Select(g => new
+            {
+                ProviderId = g.Key.ProviderId,
+                ProviderName = g.Key.Name,
+                TotalLogs = g.Count(),
+                TotalTokens = g.Sum(x => (x.InputTokens ?? 0) + (x.OutputTokens ?? 0)),
+                TotalCost = g.Sum(x => x.EstimatedCost ?? 0)
+            })
+            .ToListAsync(cancellationToken);
+
+        return result.Select(x => (x.ProviderId, x.ProviderName, x.TotalLogs, x.TotalTokens, x.TotalCost)).ToList();
+    }
 }
