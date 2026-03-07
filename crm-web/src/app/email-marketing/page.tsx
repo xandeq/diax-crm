@@ -86,7 +86,7 @@ export default function EmailMarketingPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [segment, setSegment] = useState('');
   const [contactType, setContactType] = useState<'all' | 'leads' | 'customers'>('all');
-  const [pageSize, setPageSize] = useState('25');
+  const [pageSize, setPageSize] = useState('100');
 
   const [subject, setSubject] = useState('');
   const [htmlBody, setHtmlBody] = useState(DEFAULT_TEMPLATE);
@@ -370,7 +370,7 @@ export default function EmailMarketingPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="flex flex-col-reverse gap-6">
         {/* ── LEFT: Contact selector ───────────────────────── */}
         <Card className="flex flex-col">
           <CardHeader className="pb-3">
@@ -467,7 +467,7 @@ export default function EmailMarketingPage() {
                 <p className="text-sm">Nenhum contato com email encontrado.</p>
               </div>
             ) : (
-              <div className="max-h-[430px] space-y-1 overflow-y-auto pr-1">
+              <div className="max-h-[3000px] h-[75vh] space-y-1 overflow-y-auto pr-1">
                 {contacts.map(contact => {
                   const isSelected = selectedIds.has(contact.id);
                   return (
