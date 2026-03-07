@@ -1,68 +1,75 @@
 'use client';
 
+import { LeadTimeline } from '@/components/customers/LeadTimeline';
+import {
+    Avatar,
+    ChannelIcons,
+    FilterChip,
+    GridColumn,
+    PerfectGrid,
+    SEGMENT_FILTER_OPTIONS,
+    SegmentBadge,
+    SOURCE_FILTER_OPTIONS,
+    SourceLabel,
+    StatusBadge,
+    useDebounce,
+} from '@/components/data-table/PerfectGrid';
+import { TableActions } from '@/components/data-table/TableActions';
 import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
 import { EmailTimeline } from '@/components/EmailTimeline';
 import { EngagementBadge } from '@/components/EngagementBadge';
-import {
-  Avatar,
-  ChannelIcons,
-  FilterChip,
-  GridColumn,
-  PerfectGrid,
-  SEGMENT_FILTER_OPTIONS,
-  SegmentBadge,
-  SOURCE_FILTER_OPTIONS,
-  SourceLabel,
-  StatusBadge,
-  useDebounce,
-} from '@/components/data-table/PerfectGrid';
-import { TableActions } from '@/components/data-table/TableActions';
-import { LeadTimeline } from '@/components/customers/LeadTimeline';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
 } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { exportToCSV } from '@/lib/export';
 import { navigateToWhatsAppSend, normalizePhoneBR } from '@/lib/whatsapp-navigation';
 import { apiFetch } from '@/services/api';
 import {
-  bulkDeleteLeads,
-  createLead,
-  CustomerStatus,
-  deleteLead,
-  getLeads,
-  Lead,
-  updateLead,
+    bulkDeleteLeads,
+    createLead,
+    CustomerStatus,
+    deleteLead,
+    getLeads,
+    Lead,
+    updateLead,
 } from '@/services/leads';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Activity,
-  CheckCircle,
-  ChevronDown,
-  ChevronUp,
-  Edit2,
-  Filter,
-  Loader2,
-  Mail,
-  MessageCircle,
-  Plus,
-  Search,
-  Trash2,
-  Upload,
-  X,
+    Activity,
+    CheckCircle,
+    ChevronDown,
+    ChevronUp,
+    Download,
+    Edit2,
+    Filter,
+    Loader2,
+    Mail,
+    MessageCircle,
+    Plus,
+    Search,
+    Trash2,
+    Upload,
+    X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -364,6 +371,20 @@ export default function LeadsPage() {
     );
   };
 
+  const handleExportJson = () => {
+    const dataToExport = selectedRows.length > 0 ? selectedRows : leads;
+    const jsonString = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `leads-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const onSubmit = async (data: LeadFormValues) => {
     setSubmitting(true);
     setFormError(null);
@@ -567,6 +588,22 @@ export default function LeadsPage() {
           <p className="text-slate-500">Gerencie seus potenciais clientes.</p>
         </div>
         <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" /> Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExport}>
+                Formato CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportJson}>
+                Formato JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Link href="/leads/import">
             <Button variant="outline">
               <Upload className="mr-2 h-4 w-4" /> Importar
