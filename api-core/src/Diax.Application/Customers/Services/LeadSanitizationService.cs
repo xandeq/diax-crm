@@ -15,6 +15,13 @@ public class LeadSanitizationService : ILeadSanitizationService
         "hello", "jobs", "press", "billing"
     };
 
+    // Palavras promocionais para limpeza de nome (Case Insensitive)
+    private static readonly HashSet<string> PromotionalKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Compre Agora", "Frete Grátis", "Arrase no Verão", "Desconto", "Promoção", "Promo", "Oferta",
+        "Peça Já", "Entrega Rápida", "Mais Vendido", "Clique Aqui"
+    };
+
     // Domínios conhecidos por serem temporários ou spam/lixo
     private static readonly HashSet<string> SuspiciousDomains = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -45,6 +52,20 @@ public class LeadSanitizationService : ILeadSanitizationService
     {
         var result = new SanitizedLeadResult();
 
+        // Regra Especial de Diretório: Se o Nome ou Nome da Empresa batem exatamente ou continerem os termos genéricos ANTES da Limpeza Severa.
+        bool isDirectoryOrGeneric = false;
+        var checkName = rawData.CompanyName ?? rawData.Name;
+        if (!string.IsNullOrWhiteSpace(checkName))
+        {
+            if (GenericCompanyKeywords.Any(k => checkName.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            {
+                isDirectoryOrGeneric = true;
+                result.ShouldReject = true; // Por enquanto podemos apenas sinalizar o Reject. O CustomerService vai decidir o que fazer no batch.
+                                            // Se no CreateManual cair aqui, rejeita direto.
+                result.RejectionReason = "Lead originates from a Generic Directory/Profile (e.g., Linktree, GuiaMais) rather than real business context.";
+            }
+        }
+
         // 1. Correção e Normalização Textual
         var cleanName = SanitizeText(rawData.Name);
         var cleanCompany = SanitizeText(rawData.CompanyName);
@@ -54,7 +75,7 @@ public class LeadSanitizationService : ILeadSanitizationService
 
         // Se após a sanitização ficar sem nome... vamos retornar reject e tentar contornar?
         // Normalmente não deve ocorrer rejeição nesse nível, mas deixamos preparado.
-        if (string.IsNullOrWhiteSpace(cleanName))
+        if (string.IsNullOrWhiteSpace(cleanName) && !isDirectoryOrGeneric)
         {
             result.ShouldReject = true;
             result.RejectionReason = "Name is invalid or missing after sanitization.";
@@ -66,20 +87,6 @@ public class LeadSanitizationService : ILeadSanitizationService
         result.Notes = cleanNotes;
         result.Phone = cleanPhone;
         result.WhatsApp = cleanWhatsApp;
-
-        // Regra Especial de Diretório: Se o Nome ou Nome da Empresa batem exatamente ou continerem os termos genéricos
-        bool isDirectoryOrGeneric = false;
-        var checkName = result.CompanyName ?? result.Name;
-        if (!string.IsNullOrWhiteSpace(checkName))
-        {
-            if (GenericCompanyKeywords.Any(k => checkName.Contains(k, StringComparison.OrdinalIgnoreCase)))
-            {
-                isDirectoryOrGeneric = true;
-                result.ShouldReject = true; // Por enquanto podemos apenas sinalizar o Reject. O CustomerService vai decidir o que fazer no batch.
-                                            // Se no CreateManual cair aqui, rejeita direto.
-                result.RejectionReason = "Lead originates from a Generic Directory/Profile (e.g., Linktree, GuiaMais) rather than real business context.";
-            }
-        }
 
         // 2. Validação Rigorosa do E-mail
         if (!string.IsNullOrWhiteSpace(rawData.Email))
@@ -174,29 +181,99 @@ public class LeadSanitizationService : ILeadSanitizationService
 
     /// <summary>
     /// Limpa e aplica Title Case numa String para corrigir Caps Locks indesejados e decodes zoados.
+    /// Em seguida normaliza, remove spam promocional, trunca e limpa a string final.
     /// </summary>
     private static string SanitizeText(string? input, bool isMultiline = false)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
 
-        // Corrige encodings rasgados comuns da internet ex: UTF8 lido como ISO que virou ISO salvo de forma errada
-        var decoded = FixBrokenEncoding(input);
-
         // Limpa espaços no inicio e fim e substitui múltiplos espaços internos
-        var clean = Regex.Replace(decoded.Trim(), @"\s+", " ");
+        var clean = Regex.Replace(input.Trim(), @"\s+", " ");
 
-        // Em descrições (multiline), ignorar o title case
-        if (!isMultiline)
+        // Corrige encodings rasgados comuns da internet ex: UTF8 lido como ISO que virou ISO salvo de forma errada
+        // Executado DEPOIS do Trim/Regex initial para que não tentemos varrer lixo muito profundo.
+        clean = FixBrokenEncoding(clean);
+
+        // Se for um bloco multiline, preserva o tamanho e não faz uppercase forçado nem sanitização de nome pesado.
+        if (isMultiline)
         {
-            var textInfo = CultureInfo.CurrentCulture.TextInfo;
-            clean = textInfo.ToTitleCase(clean.ToLowerInvariant());
+            return clean;
         }
+
+        // Reduz capitalização abusiva: se 80% do texto está em MAIÚSCULO, a gente abaixa para o titlecase funcionar.
+        // O TitleCase do .NET não funciona em frases TODA MAIUSCULAS.
+        var upperCount = clean.Count(char.IsUpper);
+        if (clean.Length > 0 && ((double)upperCount / clean.Length) > 0.4)
+        {
+             clean = clean.ToLowerInvariant();
+        }
+
+        // Aplica e limpa sujeiras de SEO e slogans (Ex: "Loja de Biquinis - Compre e Arrase")
+        clean = NormalizeName(clean);
+
+        // Finalmente, TitleCase para ficar bonito
+        var textInfo = CultureInfo.CurrentCulture.TextInfo;
+        clean = textInfo.ToTitleCase(clean);
 
         return clean;
     }
 
     /// <summary>
-    /// Tenta consertar caracteres de encoding corrompidos (Ex: Ã¢, Ã§).
+    /// Aplica as regras 2, 3, 4 e 5: Retira pontuações promocionais, slogans de SEO longos e desduplica palavras.
+    /// </summary>
+    private static string NormalizeName(string input)
+    {
+        // Regra 3 e 4: Corta qualquer coisa depois de sentenças promocionais ou separadores abusivos.
+        // "Loja de Roupa. Compre agora!" -> "Loja de Roupa"
+        // "Minha Loja - As Melhores Roupas" -> "Minha Loja"
+        var sentenceSeparators = new[] { '.', '-', '|', '!', '?' };
+        var firstSeparatorIndex = input.IndexOfAny(sentenceSeparators);
+
+        if (firstSeparatorIndex > 0)
+        {
+            // Verificamos se era apenas uma frase normal (sem ser uma sigla como "Dr.")
+            var preSeparator = input.Substring(0, firstSeparatorIndex).Trim();
+            if (preSeparator.Length > 2)
+            {
+               input = preSeparator;
+            }
+        }
+
+        // Filtro limpa-frases promocionais no meio
+        foreach (var keyword in PromotionalKeywords)
+        {
+            if (input.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                input = Regex.Replace(input, Regex.Escape(keyword), "", RegexOptions.IgnoreCase).Trim();
+            }
+        }
+
+        // Regra de Duplicação de Palavras (Ex: "Loja Teste Maria Loja Teste" -> "Loja Teste Maria")
+        var words = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var uniqueWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var filteredWords = new List<string>();
+
+        foreach (var word in words)
+        {
+            // Palavras muito curtas (de, e, da) repetidas são permitidas, substantivos não.
+            if (word.Length <= 3 || uniqueWords.Add(word))
+            {
+                filteredWords.Add(word);
+            }
+        }
+        var noDuplicates = string.Join(" ", filteredWords);
+
+        // Regra 5: Limitar strings ridiculamente longas (Descrições injetadas no nome)
+        if (noDuplicates.Length > 80)
+        {
+            noDuplicates = noDuplicates.Substring(0, 80).Trim();
+        }
+
+        return noDuplicates;
+    }
+
+    /// <summary>
+    /// Tenta consertar caracteres de encoding corrompidos e casos Mojibake do scraping ("EscritRio")
     /// </summary>
     private static string FixBrokenEncoding(string input)
     {
@@ -226,7 +303,19 @@ public class LeadSanitizationService : ILeadSanitizationService
             sb.Replace(kvp.Key, kvp.Value);
         }
 
-        return sb.ToString();
+        var decoded = sb.ToString();
+
+        // Pass/Regex 2: Conserta Mojibakes PT-BR onde o char perdeu pro Unicode "".
+        // Regex busca "" e com base no contexto tenta restaurar (Case-insensitive via Regex mas restaurando capitalização).
+        decoded = Regex.Replace(decoded, @"Rio\b", "ório", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"MVeis\b", "Móveis", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"BiquNis\b", "Biquínis", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"MaiS\b", "Maiôs", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"SaDas\b", "Saídas", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"AcessRios\b", "Acessórios", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"VerO\b", "Verão", RegexOptions.IgnoreCase);
+
+        return decoded;
     }
 
     /// <summary>

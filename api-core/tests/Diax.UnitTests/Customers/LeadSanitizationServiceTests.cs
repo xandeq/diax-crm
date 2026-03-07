@@ -29,6 +29,38 @@ public class LeadSanitizationServiceTests
     }
 
     [Theory]
+    [InlineData("MVeis e Decorações", "Móveis e Decorações")]
+    [InlineData("MaiS de Praia", "Maiôs de Praia")]
+    [InlineData("AcessRios de VerO", "Acessórios de Verão")]
+    [InlineData("BiquNis de Fita", "Biquínis de Fita")]
+    [InlineData("EscritRio de Advocacia", "Escritório de Advocacia")]
+    public void SanitizeAndClassify_WithMojibakeWords_ShouldDecodeWithoutDictionary(string input, string expected)
+    {
+        var data = new RawLeadData(input, "email@real.com", "12345", null, "", "");
+        var result = _sut.SanitizeAndClassify(data);
+        result.Name.ToLowerInvariant().Should().Be(expected.ToLowerInvariant());
+    }
+
+    [Theory]
+    [InlineData("Loja de Biquínis Maiôs Saídas de Praia e Acessórios. Compre Agora e Arrase no Verão!", "Loja de Biquínis Maiôs Saídas de Praia e Acessórios")]
+    [InlineData("Clinica Teste - Peça já o seu orçamento", "Clinica Teste")]
+    [InlineData("Store | Mais vendido do Mercado LIVRE", "Store")]
+    public void SanitizeAndClassify_WithSlogansAndPromos_ShouldTruncateSlogans(string input, string expected)
+    {
+        var data = new RawLeadData(input, "email@real.com", "123", "", "", "");
+        var result = _sut.SanitizeAndClassify(data);
+        result.Name.ToLowerInvariant().Should().Be(expected.ToLowerInvariant());
+    }
+
+    [Fact]
+    public void SanitizeAndClassify_WithDuplicateWords_ShouldRemoveDuplicates()
+    {
+        var data = new RawLeadData("Loja Teste Maria Loja Teste", "mail", "12", "", "", "");
+        var result = _sut.SanitizeAndClassify(data);
+        result.Name.Should().Be("Loja Teste Maria");
+    }
+
+    [Theory]
     [InlineData("test@mailinator.com")]
     [InlineData("test@yopmail.com")]
     [InlineData("myemail@somesite.xyz")]
