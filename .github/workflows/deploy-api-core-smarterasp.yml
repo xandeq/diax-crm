@@ -92,6 +92,13 @@ jobs:
             --arg deepseekKey "${{ secrets.DEEPSEEK_API_KEY }}" \
             --arg geminiKey "${{ secrets.GEMINI_API_KEY }}" \
             --arg openrouterKey "${{ secrets.OPENROUTER_API_KEY }}" \
+            --arg brevoApiKey "${{ secrets.BREVO_API_KEY }}" \
+            --arg brevoWebhookSecret "${{ secrets.BREVO_WEBHOOK_SECRET }}" \
+            --arg smtpHost "${{ secrets.SMTP_HOST }}" \
+            --argjson smtpPort 465 \
+            --arg smtpUsername "${{ secrets.SMTP_USERNAME }}" \
+            --arg smtpPassword "${{ secrets.SMTP_PASSWORD }}" \
+            --arg smtpFromEmail "${{ secrets.SMTP_FROM_EMAIL }}" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
@@ -130,6 +137,22 @@ jobs:
                   "BaseUrl": "https://openrouter.ai/api/v1",
                   "Model": "openai/gpt-4o-mini"
                 }
+              },
+              "Brevo": {
+                "ApiKey": $brevoApiKey,
+                "FromEmail": "contato@alexandrequeiroz.com.br",
+                "FromName": "Alexandre Queiroz Marketing Digital",
+                "ReplyTo": "contato@alexandrequeiroz.com.br",
+                "WebhookSecret": $brevoWebhookSecret
+              },
+              "Email": {
+                "SmtpHost": $smtpHost,
+                "SmtpPort": $smtpPort,
+                "EnableSsl": true,
+                "SmtpUsername": $smtpUsername,
+                "SmtpPassword": $smtpPassword,
+                "FromEmail": $smtpFromEmail,
+                "FromName": "Alexandre Queiroz"
               },
               "Cors": {
                 "AllowedOrigins": [
