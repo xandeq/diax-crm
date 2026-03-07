@@ -53,6 +53,7 @@ import {
     deleteLead,
     getLeads,
     Lead,
+    sanitizeLeadBase,
     updateLead,
 } from '@/services/leads';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -71,6 +72,7 @@ import {
     Search,
     Trash2,
     Upload,
+    Wand2,
     X,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -327,6 +329,36 @@ export default function LeadsPage() {
       setSelectedRows([]);
     } catch {
       alert('Erro ao converter leads.');
+    }
+  };
+
+  const handleBulkSanitize = async () => {
+    const isFiltered = selectedRows.length > 0;
+    const msg = isFiltered
+      ? `Executar sanitização e deduplicação nos ${selectedRows.length} leads selecionados?`
+      : 'Executar sanitização em toda a base de leads? Isso buscará e unificará informações duplicadas demorando alguns segundos.';
+
+    if (!confirm(msg)) return;
+
+    setSubmitting(true);
+    toast.loading('Iniciando sanitização...', { id: 'sanitize-base' });
+    try {
+      const ids = isFiltered ? selectedRows.map((l) => l.id) : undefined;
+      const result = await sanitizeLeadBase(ids);
+
+      toast.success('Sanitização concluída!', { id: 'sanitize-base' });
+      alert(`Resultado da Sanitização:\n` +
+            `- Leads Analisados: ${result.analyzedLeads}\n` +
+            `- Leads Atualizados/Corrigidos: ${result.updatedLeads}\n` +
+            `- Duplicatas Mescladas/Removidas: ${result.duplicatesRemoved}\n` +
+            `- E-mails Inválidos Limpos: ${result.invalidEmailsDetected}`);
+
+      fetchLeads();
+      setSelectedRows([]);
+    } catch {
+      toast.error('Erro ao executar sanitização da base.', { id: 'sanitize-base' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -677,6 +709,10 @@ export default function LeadsPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button variant="outline" onClick={handleBulkSanitize} disabled={submitting} title="Limpar, padronizar e mesclar duplicatas inteligentemente">
+            <Wand2 className="mr-2 h-4 w-4" /> Limpar Base
+          </Button>
 
           <Link href="/leads/import">
             <Button variant="outline">

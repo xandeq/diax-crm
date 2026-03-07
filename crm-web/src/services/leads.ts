@@ -160,3 +160,17 @@ export async function bulkDeleteLeads(ids: string[]): Promise<{ deletedCount: nu
     body: JSON.stringify({ ids })
   });
 }
+
+export interface BulkSanitizationResponse {
+  analyzedLeads: number;
+  updatedLeads: number;
+  duplicatesRemoved: number;
+  invalidEmailsDetected: number;
+}
+
+export async function sanitizeLeadBase(customerIds?: string[]): Promise<BulkSanitizationResponse> {
+  return apiFetch<BulkSanitizationResponse>('/leads/sanitize-base', {
+    method: 'POST',
+    body: JSON.stringify({ customerIds: customerIds && customerIds.length > 0 ? customerIds : null })
+  });
+}

@@ -77,6 +77,20 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         builder.Property(c => c.LastContactAt);
 
+        // ===== CONFIABILIDADE & SANITIZAÇÃO =====
+        builder.Property(c => c.Quality)
+            .HasConversion<int?>();
+
+        builder.Property(c => c.EmailType)
+            .HasConversion<int?>();
+
+        builder.Property(c => c.HasSuspiciousDomain)
+            .HasDefaultValue(false);
+
+        builder.Property(c => c.IsEligibleForCampaigns)
+            .HasDefaultValue(true);
+
+
         // ===== SEGMENTAÇÃO (Outreach) =====
         builder.Property(c => c.LeadScore);
 

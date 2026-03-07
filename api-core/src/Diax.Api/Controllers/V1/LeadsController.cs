@@ -111,4 +111,11 @@ public class LeadsController : BaseApiController
         var result = await apifyService.ImportDatasetAsync(request.DatasetUrl, (int)request.Source);
         return HandleResult(result);
     }
+
+    [HttpPost("sanitize-base")]
+    public async Task<IActionResult> SanitizeBase([FromBody] BulkSanitizationRequest request)
+    {
+        var result = await _service.SanitizeBaseAsync(request);
+        return HandleResult(result);
+    }
 }

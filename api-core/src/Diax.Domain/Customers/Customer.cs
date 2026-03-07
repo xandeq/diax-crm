@@ -137,6 +137,28 @@ public class Customer : AuditableEntity
     /// </summary>
     public int EmailSentCount { get; private set; }
 
+    // ===== CONFIABILIDADE & SANITIZAÇÃO =====
+
+    /// <summary>
+    /// Avaliação da completude e qualidade do lead.
+    /// </summary>
+    public LeadQuality? Quality { get; private set; }
+
+    /// <summary>
+    /// Classificação do formato/tipo de email.
+    /// </summary>
+    public EmailType? EmailType { get; private set; }
+
+    /// <summary>
+    /// Indica se o domínio do e-mail ou dados relacionados foram considerados suspeitos/falsos.
+    /// </summary>
+    public bool HasSuspiciousDomain { get; private set; }
+
+    /// <summary>
+    /// Informa se o lead está elegível para campanhas de marketing em massa (baseado na qualidade e domínios).
+    /// </summary>
+    public bool IsEligibleForCampaigns { get; private set; }
+
     // ===== WHATSAPP (Outreach) =====
 
     /// <summary>
@@ -178,6 +200,21 @@ public class Customer : AuditableEntity
     }
 
     // ===== MÉTODOS DE DOMÍNIO =====
+
+    /// <summary>
+    /// Atualiza as flags de classificação e sanitização do Lead.
+    /// </summary>
+    public void UpdateClassification(
+        LeadQuality? quality,
+        EmailType? emailType,
+        bool hasSuspiciousDomain,
+        bool isEligibleForCampaigns)
+    {
+        Quality = quality;
+        EmailType = emailType;
+        HasSuspiciousDomain = hasSuspiciousDomain;
+        IsEligibleForCampaigns = isEligibleForCampaigns;
+    }
 
     /// <summary>
     /// Atualiza as informações básicas do cliente.

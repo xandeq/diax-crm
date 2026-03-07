@@ -3,6 +3,7 @@ using Diax.Application.Customers.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
+using Diax.Application.Customers.Services;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
 using Diax.Shared.Results;
@@ -17,15 +18,18 @@ public class CustomerService : IApplicationService
     private readonly ICustomerRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEmailQueueRepository _emailQueueRepository;
+    private readonly ILeadSanitizationService _sanitizationService;
 
     public CustomerService(
         ICustomerRepository repository,
         IUnitOfWork unitOfWork,
-        IEmailQueueRepository emailQueueRepository)
+        IEmailQueueRepository emailQueueRepository,
+        ILeadSanitizationService sanitizationService)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
         _emailQueueRepository = emailQueueRepository;
+        _sanitizationService = sanitizationService;
     }
 
     /// <summary>
@@ -78,36 +82,61 @@ public class CustomerService : IApplicationService
         CreateCustomerRequest request,
         CancellationToken cancellationToken = default)
     {
-        // Verifica se e-mail já existe
-        if (await _repository.EmailExistsAsync(request.Email, null, cancellationToken))
+        // 1. Executa o Pipeline de Sanitização e Classificação
+        var rawData = new RawLeadData(
+            request.Name,
+            request.Email,
+            request.Phone,
+            request.WhatsApp,
+            request.CompanyName,
+            request.Notes
+        );
+
+        var sanitizedData = _sanitizationService.SanitizeAndClassify(rawData);
+
+        if (sanitizedData.ShouldReject)
         {
             return Result.Failure<CustomerResponse>(
-                Error.Conflict("Email", $"Já existe um cadastro com o e-mail '{request.Email}'."));
+                Error.Validation("Lead.Invalid", sanitizedData.RejectionReason ?? "O Lead fornecido não possui informações mínimas válidas após sanitização."));
+        }
+
+        // Verifica se e-mail (sanitizado) já existe
+        if (sanitizedData.IsEmailValid && !string.IsNullOrWhiteSpace(sanitizedData.Email) && await _repository.EmailExistsAsync(sanitizedData.Email, null, cancellationToken))
+        {
+            return Result.Failure<CustomerResponse>(
+                Error.Conflict("Email", $"Já existe um cadastro com o e-mail '{sanitizedData.Email}'."));
         }
 
         // Cria a entidade
         var customer = new Customer(
-            request.Name,
-            request.Email,
+            sanitizedData.Name,
+            sanitizedData.Email,
             request.PersonType,
             request.Source);
 
         // Atualiza informações opcionais
         customer.UpdateBasicInfo(
-            request.Name,
-            request.Email,
+            sanitizedData.Name,
+            sanitizedData.Email,
             request.PersonType,
-            request.CompanyName,
+            sanitizedData.CompanyName,
             request.Document);
 
         customer.UpdateContactInfo(
-            request.Phone,
-            request.WhatsApp,
-            request.SecondaryEmail,
+            sanitizedData.Phone,
+            sanitizedData.WhatsApp,
+            request.SecondaryEmail, // secondary email remains untouched for now
             request.Website);
 
+        // Atualiza Status de Qualidade e Flags do Pipeline
+        customer.UpdateClassification(
+            sanitizedData.Quality,
+            sanitizedData.EmailType,
+            sanitizedData.HasSuspiciousDomain,
+            sanitizedData.IsEligibleForCampaigns);
+
         customer.UpdateSource(request.Source, request.SourceDetails);
-        customer.UpdateNotes(request.Notes);
+        customer.UpdateNotes(sanitizedData.Notes);
         customer.UpdateTags(request.Tags);
 
         await _repository.AddAsync(customer, cancellationToken);
@@ -339,5 +368,141 @@ public class CustomerService : IApplicationService
 
         return Result.Success<IEnumerable<LeadActivityDto>>(
             activities.OrderByDescending(a => a.Date).ToList());
+    }
+
+    /// <summary>
+    /// Executa o processo de sanitização e classificação em lote para a base de leads existente.
+    /// </summary>
+    public async Task<Result<BulkSanitizationResponse>> SanitizeBaseAsync(
+        BulkSanitizationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = new BulkSanitizationResponse();
+
+        IEnumerable<Customer> targets;
+        if (request.CustomerIds != null && request.CustomerIds.Any())
+        {
+            targets = await _repository.GetByIdsAsync(request.CustomerIds, cancellationToken);
+        }
+        else
+        {
+            targets = await _repository.GetAllLeadsAsync(cancellationToken);
+        }
+
+        var leadsToUpdate = new List<Customer>();
+        var leadsToDelete = new List<Customer>();
+        var seenEmails = new Dictionary<string, Customer>(StringComparer.OrdinalIgnoreCase);
+
+        // Analisa e deduplica os leads encontrados (mais antigos primeiro para manter o registro inicial como base)
+        foreach (var lead in targets.OrderBy(c => c.CreatedAt))
+        {
+            response.AnalyzedLeads++;
+
+            var rawData = new RawLeadData(lead.Name, lead.Email, lead.Phone, lead.WhatsApp, lead.CompanyName, lead.Notes);
+            var sanitized = _sanitizationService.SanitizeAndClassify(rawData);
+
+            bool wasUpdated = false;
+
+            if (!sanitized.IsEmailValid && !string.IsNullOrWhiteSpace(lead.Email))
+            {
+                response.InvalidEmailsDetected++;
+                // Torna e-mail nulo para não enviar mensagens a leads rejeitados
+                lead.UpdateBasicInfo(lead.Name, null, lead.PersonType, lead.CompanyName, lead.Document);
+                wasUpdated = true;
+            }
+
+            var activeEmail = sanitized.IsEmailValid ? sanitized.Email : null;
+
+            // Lógica de Deduplicação e Enriquecimento pelo E-mail
+            if (!string.IsNullOrWhiteSpace(activeEmail))
+            {
+                if (seenEmails.TryGetValue(activeEmail!, out var primaryLead))
+                {
+                    // Mescla as informações no primaryLead
+                    bool merged = false;
+
+                    if (string.IsNullOrWhiteSpace(primaryLead.Phone) && !string.IsNullOrWhiteSpace(sanitized.Phone)) { primaryLead.UpdateContactInfo(sanitized.Phone, primaryLead.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
+                    if (string.IsNullOrWhiteSpace(primaryLead.WhatsApp) && !string.IsNullOrWhiteSpace(sanitized.WhatsApp)) { primaryLead.UpdateContactInfo(primaryLead.Phone, sanitized.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
+                    if (string.IsNullOrWhiteSpace(primaryLead.CompanyName) && !string.IsNullOrWhiteSpace(sanitized.CompanyName)) { primaryLead.UpdateBasicInfo(primaryLead.Name, primaryLead.Email, PersonType.Company, sanitized.CompanyName, primaryLead.Document); merged = true; }
+
+                    // Combina os notes da duplicata
+                    if (!string.IsNullOrWhiteSpace(sanitized.Notes))
+                    {
+                        var n = primaryLead.Notes + $"\n[Mesclado na Sanitização]: {sanitized.Notes}";
+                        primaryLead.UpdateNotes(n);
+                        merged = true;
+                    }
+
+                    if (merged && !leadsToUpdate.Contains(primaryLead))
+                    {
+                        leadsToUpdate.Add(primaryLead);
+                    }
+
+                    leadsToDelete.Add(lead);
+                    response.DuplicatesRemoved++;
+                    continue; // Pula o resto da execução pois a entidade duplicada será deletada
+                }
+                else
+                {
+                    seenEmails[activeEmail!] = lead;
+                }
+            }
+
+            // Atualiza os campos do Lead Principal em si com os dados refinados (se for necessário)
+            if (lead.Name != sanitized.Name || lead.CompanyName != sanitized.CompanyName)
+            {
+                lead.UpdateBasicInfo(sanitized.Name, activeEmail, string.IsNullOrWhiteSpace(sanitized.CompanyName) ? PersonType.Individual : PersonType.Company, sanitized.CompanyName, lead.Document);
+                wasUpdated = true;
+            }
+
+            if (lead.Phone != sanitized.Phone || lead.WhatsApp != sanitized.WhatsApp)
+            {
+                lead.UpdateContactInfo(sanitized.Phone, sanitized.WhatsApp, lead.SecondaryEmail, lead.Website);
+                wasUpdated = true;
+            }
+
+            if (lead.Notes != sanitized.Notes)
+            {
+                lead.UpdateNotes(sanitized.Notes);
+                wasUpdated = true;
+            }
+
+            // Atualiza Classificações
+            var currentQuality = lead.Quality;
+            var currentEmailType = lead.EmailType;
+            var currentSuspicious = lead.HasSuspiciousDomain;
+            var currentEligible = lead.IsEligibleForCampaigns;
+
+            lead.UpdateClassification(sanitized.Quality, sanitized.EmailType, sanitized.HasSuspiciousDomain, sanitized.IsEligibleForCampaigns);
+
+            if (currentQuality != lead.Quality || currentEmailType != lead.EmailType || currentSuspicious != lead.HasSuspiciousDomain || currentEligible != lead.IsEligibleForCampaigns)
+            {
+                wasUpdated = true;
+            }
+
+            if (wasUpdated && !leadsToUpdate.Contains(lead))
+            {
+                leadsToUpdate.Add(lead);
+                response.UpdatedLeads++; // Apenas contabilizamos as modificadas que não pularam num merge de exclusão
+            }
+        }
+
+        // Aplica mudanças
+        foreach(var update in leadsToUpdate)
+        {
+            await _repository.UpdateAsync(update, cancellationToken);
+        }
+
+        if (leadsToDelete.Any())
+        {
+            await _repository.BulkDeleteAsync(leadsToDelete.Select(l => l.Id), cancellationToken);
+        }
+
+        if (leadsToUpdate.Any() || leadsToDelete.Any())
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        return Result.Success(response);
     }
 }

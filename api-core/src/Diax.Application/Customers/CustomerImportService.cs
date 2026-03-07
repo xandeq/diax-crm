@@ -3,6 +3,7 @@ using Diax.Application.Customers.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
+using Diax.Application.Customers.Services;
 using System.Text.Json;
 
 namespace Diax.Application.Customers;
@@ -15,15 +16,18 @@ public class CustomerImportService : IApplicationService
     private readonly ICustomerRepository _customerRepository;
     private readonly ICustomerImportRepository _importRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILeadSanitizationService _sanitizationService;
 
     public CustomerImportService(
         ICustomerRepository customerRepository,
         ICustomerImportRepository importRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILeadSanitizationService sanitizationService)
     {
         _customerRepository = customerRepository;
         _importRepository = importRepository;
         _unitOfWork = unitOfWork;
+        _sanitizationService = sanitizationService;
     }
 
     /// <summary>
@@ -57,110 +61,171 @@ public class CustomerImportService : IApplicationService
 
             try
             {
-                // Valida campo obrigatório: Nome
-                if (string.IsNullOrWhiteSpace(row.Name))
+                // 1. Aplica o SanitizationService na linha
+                var rawData = new RawLeadData(
+                    row.Name ?? "",
+                    row.Email,
+                    row.Phone,
+                    row.WhatsApp,
+                    row.CompanyName,
+                    row.Notes
+                );
+
+                var sanitized = _sanitizationService.SanitizeAndClassify(rawData);
+
+                // Rejeitar se nome for inválido ou muito curto
+                if (sanitized.ShouldReject)
                 {
                     errors.Add(new ImportError(
                         i + 1,
                         row.Email ?? row.Name ?? "",
-                        "Nome é obrigatório"));
+                        sanitized.RejectionReason ?? "Dados inválidos"));
                     continue;
                 }
 
-                var hasEmail = !string.IsNullOrWhiteSpace(row.Email);
-                var cleanedPhone = CleanPhone(row.Phone);
-                var cleanedWhatsApp = CleanPhone(row.WhatsApp);
-                var primaryPhone = cleanedWhatsApp ?? cleanedPhone;
+                var hasEmail = sanitized.IsEmailValid && !string.IsNullOrWhiteSpace(sanitized.Email);
+                var primaryPhone = sanitized.WhatsApp ?? sanitized.Phone;
+
+                Customer? existingCustomer = null;
 
                 if (hasEmail)
                 {
-                    // Valida formato de email
-                    if (!IsValidEmail(row.Email))
-                    {
-                        errors.Add(new ImportError(
-                            i + 1,
-                            row.Name,
-                            $"Formato de email inválido: '{row.Email}'"));
-                        continue;
-                    }
-
-                    // Dedup por email: verifica no lote atual
-                    if (!seenEmailsInBatch.Add(row.Email!))
+                    // Dedup na memória
+                    if (!seenEmailsInBatch.Add(sanitized.Email!))
                     {
                         skippedCount++;
                         errors.Add(new ImportError(
                             i + 1,
-                            row.Email!,
-                            $"Duplicata no lote: email '{row.Email}' aparece mais de uma vez"));
+                            sanitized.Email!,
+                            $"Duplicata no lote: email '{sanitized.Email}' aparece mais de uma vez"));
                         continue;
                     }
 
-                    // Dedup por email: verifica no banco
-                    if (await _customerRepository.EmailExistsAsync(row.Email, null, cancellationToken))
-                    {
-                        skippedCount++;
-                        errors.Add(new ImportError(
-                            i + 1,
-                            row.Email!,
-                            $"Duplicata: email '{row.Email}' já existe no sistema"));
-                        continue;
-                    }
+                    // Busca customer existente no DB para enriquecimento
+                    existingCustomer = await _customerRepository.GetByEmailAsync(sanitized.Email!, cancellationToken);
                 }
                 else if (primaryPhone != null)
                 {
-                    // Sem email — usa telefone como chave de dedup
-
-                    // Dedup por telefone: verifica no lote atual
+                    // Dedup na memória pelo telefone
                     if (!seenPhonesInBatch.Add(primaryPhone))
                     {
                         skippedCount++;
                         errors.Add(new ImportError(
                             i + 1,
-                            row.Name,
+                            sanitized.Name,
                             $"Duplicata no lote: telefone '{primaryPhone}' aparece mais de uma vez"));
                         continue;
                     }
 
-                    // Dedup por telefone: verifica no banco
-                    if (await _customerRepository.PhoneExistsAsync(primaryPhone, cancellationToken))
+                    // Busca customer existente pelo telefone
+                    existingCustomer = await _customerRepository.GetByPhoneAsync(primaryPhone, cancellationToken);
+                }
+
+                // Se NÃO existe, CRIAR um NOVO
+                if (existingCustomer == null)
+                {
+                    var customer = new Customer(
+                        sanitized.Name,
+                        hasEmail ? sanitized.Email : null,
+                        string.IsNullOrWhiteSpace(sanitized.CompanyName) ? PersonType.Individual : PersonType.Company,
+                        request.Source);
+
+                    customer.UpdateContactInfo(sanitized.Phone, sanitized.WhatsApp);
+
+                    if (!string.IsNullOrWhiteSpace(sanitized.CompanyName))
+                    {
+                        customer.UpdateBasicInfo(
+                            sanitized.Name,
+                            hasEmail ? sanitized.Email : null,
+                            PersonType.Company,
+                            sanitized.CompanyName);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(sanitized.Notes))
+                        customer.UpdateNotes(sanitized.Notes);
+
+                    if (!string.IsNullOrWhiteSpace(row.Tags))
+                        customer.UpdateTags(row.Tags);
+
+                    customer.UpdateClassification(
+                        sanitized.Quality,
+                        sanitized.EmailType,
+                        sanitized.HasSuspiciousDomain,
+                        sanitized.IsEligibleForCampaigns);
+
+                    await _customerRepository.AddAsync(customer, cancellationToken);
+                    successCount++;
+                }
+                else
+                {
+                    // Se EXISTE, ENRIQUECER OS DADOS
+                    bool wasUpdated = false;
+
+                    // Atualiza Nome e Empresa se estiverem vazios no banco e vieram preenchidos
+                    var newName = existingCustomer.Name;
+                    var newCompany = existingCustomer.CompanyName;
+                    var newType = existingCustomer.PersonType;
+
+                    if (string.IsNullOrWhiteSpace(existingCustomer.Name) && !string.IsNullOrWhiteSpace(sanitized.Name)) { newName = sanitized.Name; wasUpdated = true; }
+                    if (string.IsNullOrWhiteSpace(existingCustomer.CompanyName) && !string.IsNullOrWhiteSpace(sanitized.CompanyName))
+                    {
+                        newCompany = sanitized.CompanyName;
+                        newType = PersonType.Company;
+                        wasUpdated = true;
+                    }
+
+                    if (wasUpdated)
+                    {
+                        existingCustomer.UpdateBasicInfo(newName, existingCustomer.Email, newType, newCompany, existingCustomer.Document);
+                    }
+
+                    // Atualiza Telefones se vazio
+                    var newPhone = existingCustomer.Phone;
+                    var newWhatsApp = existingCustomer.WhatsApp;
+                    bool contactUpdated = false;
+
+                    if (string.IsNullOrWhiteSpace(newPhone) && !string.IsNullOrWhiteSpace(sanitized.Phone)) { newPhone = sanitized.Phone; contactUpdated = true; }
+                    if (string.IsNullOrWhiteSpace(newWhatsApp) && !string.IsNullOrWhiteSpace(sanitized.WhatsApp)) { newWhatsApp = sanitized.WhatsApp; contactUpdated = true; }
+
+                    if (contactUpdated)
+                    {
+                        existingCustomer.UpdateContactInfo(newPhone, newWhatsApp, existingCustomer.SecondaryEmail, existingCustomer.Website);
+                        wasUpdated = true;
+                    }
+
+                    // Avaliação reclassificada e mesclada
+                    var newQuality = existingCustomer.Quality ?? sanitized.Quality;
+                    var newEmailType = existingCustomer.EmailType ?? sanitized.EmailType;
+
+                    existingCustomer.UpdateClassification(
+                        newQuality,
+                        newEmailType,
+                        existingCustomer.HasSuspiciousDomain || sanitized.HasSuspiciousDomain, // Mantem flag se algum tiver
+                        existingCustomer.IsEligibleForCampaigns && sanitized.IsEligibleForCampaigns // Mantem falso se qualquer um alertou
+                    );
+
+                    // Adiciona nas notas os detalhes
+                    if (!string.IsNullOrWhiteSpace(sanitized.Notes))
+                    {
+                        var appendedNotes = existingCustomer.Notes + $"\n [Enriquecimento {DateTime.Now:dd/MM}]: {sanitized.Notes}";
+                        existingCustomer.UpdateNotes(appendedNotes);
+                        wasUpdated = true;
+                    }
+
+                    if (wasUpdated)
+                    {
+                        await _customerRepository.UpdateAsync(existingCustomer, cancellationToken);
+                        successCount++;
+                    }
+                    else
                     {
                         skippedCount++;
                         errors.Add(new ImportError(
                             i + 1,
-                            row.Name,
-                            $"Duplicata: telefone '{primaryPhone}' já existe no sistema"));
-                        continue;
+                            sanitized.Email ?? sanitized.Name,
+                            "Duplicata ignorada (nenhuma informação nova para enriquecer)."));
                     }
                 }
-
-                // Cria o customer (email pode ser null)
-                var customer = new Customer(
-                    row.Name,
-                    hasEmail ? row.Email : null,
-                    PersonType.Individual,
-                    request.Source);
-
-                // Atualiza informações de contato
-                customer.UpdateContactInfo(cleanedPhone, cleanedWhatsApp);
-
-                // Se tem CompanyName, assume que é Pessoa Jurídica
-                if (!string.IsNullOrWhiteSpace(row.CompanyName))
-                {
-                    customer.UpdateBasicInfo(
-                        row.Name,
-                        row.Email,
-                        PersonType.Company,
-                        row.CompanyName);
-                }
-
-                if (!string.IsNullOrWhiteSpace(row.Notes))
-                    customer.UpdateNotes(row.Notes);
-
-                if (!string.IsNullOrWhiteSpace(row.Tags))
-                    customer.UpdateTags(row.Tags);
-
-                await _customerRepository.AddAsync(customer, cancellationToken);
-                successCount++;
             }
             catch (Exception ex)
             {

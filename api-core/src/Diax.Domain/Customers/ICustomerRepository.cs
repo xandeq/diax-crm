@@ -19,6 +19,11 @@ public interface ICustomerRepository : IRepository<Customer>
     Task<Customer?> GetByDocumentAsync(string document, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Busca cliente por telefone (buscando em Phone ou WhatsApp).
+    /// </summary>
+    Task<Customer?> GetByPhoneAsync(string phone, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lista clientes por status.
     /// </summary>
     Task<IEnumerable<Customer>> GetByStatusAsync(CustomerStatus status, CancellationToken cancellationToken = default);
@@ -27,6 +32,16 @@ public interface ICustomerRepository : IRepository<Customer>
     /// Lista apenas leads (status < Customer).
     /// </summary>
     Task<IEnumerable<Customer>> GetLeadsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recupera todos os leads da base (Status < Customer). Usado em operações em lote pesado.
+    /// </summary>
+    Task<IEnumerable<Customer>> GetAllLeadsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lista clientes por IDs informados.
+    /// </summary>
+    Task<IEnumerable<Customer>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lista apenas clientes ativos.

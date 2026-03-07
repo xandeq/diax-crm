@@ -14,6 +14,7 @@ using Diax.Application.AI.Services;
 using Diax.Application.ApiKeys;
 using Diax.Application.Blog;
 using Diax.Application.Blog.Services;
+using Diax.Application.Customers.Services;
 using Diax.Application.EmailMarketing;
 using Diax.Application.Outreach;
 using FluentValidation;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Calendar.IAppointmentService, Diax.Application.Calendar.AppointmentService>();
         services.AddScoped<CustomerService>();
         services.AddScoped<CustomerImportService>();
+        services.AddScoped<ILeadSanitizationService, LeadSanitizationService>();
         services.AddScoped<IncomeService>();
         services.AddScoped<IncomeCategoryService>();
         services.AddScoped<ExpenseService>();

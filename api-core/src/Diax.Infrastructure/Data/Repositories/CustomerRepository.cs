@@ -25,6 +25,13 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .FirstOrDefaultAsync(c => c.Document == document, cancellationToken);
     }
 
+    public async Task<Customer?> GetByPhoneAsync(string phone, CancellationToken cancellationToken = default)
+    {
+        var normalized = phone.Trim();
+        return await DbSet
+            .FirstOrDefaultAsync(c => c.Phone == normalized || c.WhatsApp == normalized, cancellationToken);
+    }
+
     public async Task<IEnumerable<Customer>> GetByStatusAsync(
         CustomerStatus status,
         CancellationToken cancellationToken = default)
@@ -40,6 +47,21 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
         return await DbSet
             .Where(c => c.Status < CustomerStatus.Customer)
             .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<Customer>> GetAllLeadsAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(c => c.Status < CustomerStatus.Customer)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<Customer>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await DbSet
+            .Where(c => idList.Contains(c.Id))
             .ToListAsync(cancellationToken);
     }
 
