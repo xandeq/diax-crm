@@ -30,6 +30,8 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -75,6 +77,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import * as z from 'zod';
 
 // ── Schema ───────────────────────────────────────────────────────────────────
@@ -385,6 +388,68 @@ export default function LeadsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const fetchExportAllData = async () => {
+    const status = statusFilter === 'all' ? undefined : (Number(statusFilter) as CustomerStatus);
+    toast.loading('Buscando todos os leads...', { id: 'export-all' });
+    try {
+      const data = await getLeads({
+        page: 1,
+        pageSize: 100000, // Arbitrarily large number
+        search: debouncedSearch || undefined,
+        status,
+        sortBy: sortBy || undefined,
+        sortDescending: sortDirection === 'desc',
+        hasEmail: hasEmailFilter,
+        hasWhatsApp: hasWhatsAppFilter,
+        personType: personTypeFilter,
+        source: sourceFilter,
+        segment: segmentFilter,
+        neverEmailed: neverEmailedFilter || undefined,
+        createdAfter: createdAfterFilter || undefined,
+      });
+      toast.success('Leads carregados!', { id: 'export-all' });
+      return data.items;
+    } catch {
+      toast.error('Erro ao buscar todos os leads.', { id: 'export-all' });
+      return [];
+    }
+  };
+
+  const handleExportAllCsv = async () => {
+    const allLeads = await fetchExportAllData();
+    if (allLeads.length === 0) return;
+
+    exportToCSV(
+      allLeads.map((l) => ({
+        Nome: l.name,
+        Email: l.email || '',
+        Telefone: l.phone || '',
+        WhatsApp: l.whatsApp || '',
+        Empresa: l.companyName || '',
+        Status: CustomerStatus[l.status],
+        'Tipo Pessoa': l.personType === 0 ? 'Física' : 'Jurídica',
+        'Criado em': new Date(l.createdAt).toLocaleDateString('pt-BR'),
+      })),
+      `todos-leads-${new Date().toISOString().split('T')[0]}`
+    );
+  };
+
+  const handleExportAllJson = async () => {
+    const allLeads = await fetchExportAllData();
+    if (allLeads.length === 0) return;
+
+    const jsonString = JSON.stringify(allLeads, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `todos-leads-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const onSubmit = async (data: LeadFormValues) => {
     setSubmitting(true);
     setFormError(null);
@@ -594,12 +659,21 @@ export default function LeadsPage() {
                 <Download className="mr-2 h-4 w-4" /> Exportar
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Página Atual</DropdownMenuLabel>
               <DropdownMenuItem onClick={handleExport}>
                 Formato CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportJson}>
                 Formato JSON
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Todos (da base)</DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleExportAllCsv}>
+                Todos formato CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportAllJson}>
+                Todos formato JSON
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
