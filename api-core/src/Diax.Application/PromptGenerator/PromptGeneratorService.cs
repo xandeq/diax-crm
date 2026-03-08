@@ -53,6 +53,15 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         _modelRepository = modelRepository;
     }
 
+    /// <summary>
+    /// Text LLM fallback order. When the requested provider fails with a retryable error
+    /// (quota exceeded, rate limit, server error, timeout), the next provider in the list is tried automatically.
+    /// </summary>
+    private static readonly string[] TextLlmFallbackOrder = new[]
+    {
+        "deepseek", "openrouter", "gemini", "perplexity", "chatgpt"
+    };
+
     public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType, string? model = null)
     {
         if (string.IsNullOrWhiteSpace(rawPrompt))
@@ -62,21 +71,122 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
         var normalizedProvider = NormalizeProvider(provider);
         var normalizedPromptType = NormalizePromptType(promptType);
-        var settings = GetProviderSettings(normalizedProvider, model);
-
-        _logger.LogInformation("Prompt generation started. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. RawPromptLength: {Length}",
-            normalizedProvider, settings.Model, normalizedPromptType, rawPrompt.Length);
-
         var metaPrompt = BuildMetaPrompt(normalizedPromptType);
 
-        var finalPrompt = normalizedProvider == "gemini"
-            ? await SendGeminiPromptAsync(settings, metaPrompt, rawPrompt)
-            : await SendPromptAsync(settings, metaPrompt, rawPrompt);
+        // Build ordered provider list: requested provider first, then fallbacks (skipping duplicates)
+        var providersToTry = new List<string> { normalizedProvider };
+        foreach (var fallback in TextLlmFallbackOrder)
+        {
+            if (!providersToTry.Contains(fallback))
+                providersToTry.Add(fallback);
+        }
 
-        _logger.LogInformation("Prompt generation completed. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}.",
-            normalizedProvider, settings.Model, normalizedPromptType);
+        Exception? lastException = null;
 
-        return finalPrompt;
+        foreach (var currentProvider in providersToTry)
+        {
+            // Only pass the explicit model for the originally requested provider
+            var currentModel = currentProvider == normalizedProvider ? model : null;
+
+            ProviderSettings settings;
+            try
+            {
+                settings = GetProviderSettings(currentProvider, currentModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to build settings for provider {Provider}, skipping.", currentProvider);
+                lastException = ex;
+                continue;
+            }
+
+            // Skip providers without an API key
+            if (string.IsNullOrWhiteSpace(settings.ApiKey))
+            {
+                _logger.LogDebug("Provider {Provider} has no API key configured, skipping.", currentProvider);
+                continue;
+            }
+
+            try
+            {
+                _logger.LogInformation(
+                    "Prompt generation attempt. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. RawPromptLength: {Length}",
+                    currentProvider, settings.Model, normalizedPromptType, rawPrompt.Length);
+
+                var finalPrompt = currentProvider == "gemini"
+                    ? await SendGeminiPromptAsync(settings, metaPrompt, rawPrompt)
+                    : await SendPromptAsync(settings, metaPrompt, rawPrompt);
+
+                if (currentProvider != normalizedProvider)
+                {
+                    _logger.LogWarning(
+                        "Prompt generation succeeded via FALLBACK provider {FallbackProvider} (original: {OriginalProvider}).",
+                        currentProvider, normalizedProvider);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Prompt generation completed. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}.",
+                        currentProvider, settings.Model, normalizedPromptType);
+                }
+
+                return finalPrompt;
+            }
+            catch (Exception ex) when (IsRetryableProviderError(ex))
+            {
+                lastException = ex;
+                _logger.LogWarning(
+                    "Provider {Provider} failed with retryable error ({ErrorType}): {Message}. Trying next provider...",
+                    currentProvider, ex.GetType().Name, ex.Message);
+            }
+        }
+
+        // All providers failed
+        _logger.LogError(lastException,
+            "All AI providers failed for prompt generation. Last error from final provider.");
+
+        if (lastException is PromptGeneratorException pge)
+            throw pge;
+
+        throw new PromptGeneratorException(
+            normalizedProvider,
+            0,
+            $"All AI providers failed. Last error: {lastException?.Message ?? "unknown"}",
+            null,
+            lastException);
+    }
+
+    /// <summary>
+    /// Determines if an exception from an AI provider call is retryable (i.e., another provider might succeed).
+    /// Quota exceeded, rate limits, server errors, timeouts, and connection issues are retryable.
+    /// </summary>
+    private static bool IsRetryableProviderError(Exception ex)
+    {
+        if (ex is PromptGeneratorException pge)
+        {
+            return pge.StatusCode is 402 or 429 or 500 or 502 or 503 or 408 or 0
+                || pge.Message.Contains("quota", StringComparison.OrdinalIgnoreCase)
+                || pge.Message.Contains("billing", StringComparison.OrdinalIgnoreCase)
+                || pge.Message.Contains("rate limit", StringComparison.OrdinalIgnoreCase)
+                || pge.Message.Contains("insufficient", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (ex is HttpRequestException)
+            return true;
+
+        if (ex is TaskCanceledException)
+            return true;
+
+        if (ex is InvalidOperationException ioe)
+        {
+            // "API key not configured" or "Resposta inválida" or "Erro no Gemini (4xx/5xx)"
+            return ioe.Message.Contains("API key", StringComparison.OrdinalIgnoreCase)
+                || ioe.Message.Contains("Erro no Gemini", StringComparison.OrdinalIgnoreCase)
+                || ioe.Message.Contains("empty response", StringComparison.OrdinalIgnoreCase)
+                || ioe.Message.Contains("Resposta inválida", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
     }
 
     private async Task<string> SendGeminiPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
