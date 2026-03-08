@@ -284,7 +284,23 @@ export function AgendaClient() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingAppointment ? 'Editar Compromisso' : 'Novo Compromisso'}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>{editingAppointment ? 'Editar Compromisso' : 'Novo Compromisso'}</DialogTitle>
+              {editingAppointment && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 -mr-2"
+                  onClick={() => {
+                    handleDelete(editingAppointment.id);
+                    handleCloseForm();
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Excluir
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {isFormOpen && (
             <AppointmentForm
