@@ -5,6 +5,10 @@ import { LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from './Logo';
 
+const menuItemClass = "block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50";
+const dropdownClass = "absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50";
+const separatorClass = "border-t border-slate-100 my-1";
+
 export function Header() {
   const { isAuthenticated, user, isAdmin, logout, isLoading } = useAuth();
 
@@ -31,6 +35,7 @@ export function Header() {
 
         {isAuthenticated && (
           <>
+            {/* ── Core Business: CRM ── */}
             <div className="relative group">
               <button
                 type="button"
@@ -38,29 +43,71 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded="false"
               >
-                Financeiro
+                CRM
               </button>
-              <div
-                role="menu"
-                className="absolute left-0 top-full min-w-[200px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
+              <div role="menu" className={dropdownClass}>
+                <Link href="/customers/" className={menuItemClass} role="menuitem">
+                  Clientes
+                </Link>
+                <Link href="/leads/" className={menuItemClass} role="menuitem">
+                  Leads
+                </Link>
+                <div className={separatorClass}></div>
+                <Link href="/leads/import" className={menuItemClass} role="menuitem">
+                  Importar Leads
+                </Link>
+              </div>
+            </div>
+
+            {/* ── Core Business: Marketing ── */}
+            <div className="relative group">
+              <button
+                type="button"
+                className="hover:text-slate-900"
+                aria-haspopup="menu"
+                aria-expanded="false"
               >
-                <Link
-                  href="/finance"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
+                Marketing
+              </button>
+              <div role="menu" className={dropdownClass}>
+                <Link href="/outreach" className={menuItemClass} role="menuitem">
+                  Outreach
+                </Link>
+                <Link href="/email-marketing" className={menuItemClass} role="menuitem">
+                  Email Marketing
+                </Link>
+                <div className={separatorClass}></div>
+                <Link href="/ads/" className={menuItemClass} role="menuitem">
+                  Anúncios (Meta Ads)
+                </Link>
+                <div className={separatorClass}></div>
+                <Link href="/analytics" className={menuItemClass} role="menuitem">
+                  Analytics
+                </Link>
+              </div>
+            </div>
+
+            {/* ── Operations: Operações ── */}
+            <div className="relative group">
+              <button
+                type="button"
+                className="hover:text-slate-900"
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                Operações
+              </button>
+              <div role="menu" className={dropdownClass}>
+                <Link href="/finance" className={menuItemClass} role="menuitem">
                   Dashboard Financeiro
                 </Link>
-                <Link
-                  href="/finance/planner"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
+                <Link href="/finance/planner" className={menuItemClass} role="menuitem">
                   Planejador Financeiro
                 </Link>
               </div>
             </div>
 
+            {/* ── AI Tools: IA ── */}
             <div className="relative group">
               <button
                 type="button"
@@ -68,99 +115,22 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded="false"
               >
-                Casa e Família
+                IA
               </button>
-              <div
-                role="menu"
-                className="absolute left-0 top-full min-w-[200px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
-              >
-                <Link
-                  href="/household/checklists"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Listas e Compras
+              <div role="menu" className={dropdownClass}>
+                <Link href="/utilities/image-generation" className={menuItemClass} role="menuitem">
+                  Geração de Imagens
                 </Link>
-              </div>
-            </div>
-
-            <div className="relative group">
-              <button
-                type="button"
-                className="hover:text-slate-900"
-                aria-haspopup="menu"
-                aria-expanded="false"
-              >
-                Utilitários
-              </button>
-              <div
-                role="menu"
-                className="absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
-              >
-                <Link
-                  href="/tools/html-extractor"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Extrator de Texto (HTML → Texto)
-                </Link>
-                <Link
-                  href="/tools/html-url-extractor"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Extrator de URLs (HTML → Links)
-                </Link>
-                <Link
-                  href="/utilities/prompt-generator"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
+                <Link href="/utilities/prompt-generator" className={menuItemClass} role="menuitem">
                   Gerador de Prompts
                 </Link>
-                <Link
-                  href="/utilities/humanize-text"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
+                <Link href="/utilities/humanize-text" className={menuItemClass} role="menuitem">
                   Humanizar Texto
-                </Link>
-                <Link
-                  href="/utilities/snippets"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Snippets
-                </Link>
-                <div className="border-t border-slate-100 my-1"></div>
-                <Link
-                  href="/utilities/image-generation"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Geração de Imagens IA
                 </Link>
               </div>
             </div>
-          </>
-        )}
 
-        {!isAuthenticated && (
-          <Link href="/login/" className="hover:text-slate-900">Login</Link>
-        )}
-
-        {isAuthenticated && (
-          <>
-            <Link href="/dashboard/" className="hover:text-slate-900">Dashboard</Link>
-            <Link href="/agenda" className="hover:text-slate-900 font-medium text-blue-600">Agenda</Link>
-
-            <Link href="/ads/" className="hover:text-slate-900 flex items-center gap-1">
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-[#1877F2]" aria-hidden="true">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-              Anúncios
-            </Link>
-
+            {/* ── Personal System: Pessoal ── */}
             <div className="relative group">
               <button
                 type="button"
@@ -168,59 +138,29 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded="false"
               >
-                Clientes
+                Pessoal
               </button>
-              <div
-                role="menu"
-                className="absolute left-0 top-full min-w-[180px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
-              >
-                <Link
-                  href="/customers/"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Clientes
+              <div role="menu" className={dropdownClass}>
+                <Link href="/agenda" className={menuItemClass} role="menuitem">
+                  Agenda
                 </Link>
-                <Link
-                  href="/leads/"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Leads
+                <Link href="/household/checklists" className={menuItemClass} role="menuitem">
+                  Listas e Compras
                 </Link>
-                <div className="border-t border-slate-100 my-1"></div>
-                <Link
-                  href="/outreach"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  Outreach
+                <div className={separatorClass}></div>
+                <Link href="/utilities/snippets" className={menuItemClass} role="menuitem">
+                  Snippets
                 </Link>
-                <div className="border-t border-slate-100 my-1"></div>
-                <Link
-                  href="/email-marketing"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  ✉️ Email Marketing
+                <Link href="/tools/html-extractor" className={menuItemClass} role="menuitem">
+                  Extrator HTML → Texto
                 </Link>
-                <Link
-                  href="/analytics"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  📊 Analytics
-                </Link>
-                <Link
-                  href="/leads/import"
-                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  📥 Importar Leads
+                <Link href="/tools/html-url-extractor" className={menuItemClass} role="menuitem">
+                  Extrator HTML → Links
                 </Link>
               </div>
             </div>
 
+            {/* ── Admin (admin-only) ── */}
             {isAdmin && (
               <div className="relative group">
                 <button
@@ -233,18 +173,20 @@ export function Header() {
                 </button>
                 <div
                   role="menu"
-                  className="absolute right-0 top-full min-w-[200px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
+                  className="absolute right-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50"
                 >
-                  <Link href="/users/" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Usuários</Link>
-                  <Link href="/logs/" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Logs do Sistema</Link>
-                  <div className="border-t border-slate-100 my-1"></div>
-                  <Link href="/admin/groups" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Grupos & Permissões</Link>
-                  <Link href="/admin/ai" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Provedores IA</Link>
-                  <Link href="/admin/blog" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" role="menuitem">Blog</Link>
+                  <Link href="/users/" className={menuItemClass} role="menuitem">Usuários</Link>
+                  <Link href="/admin/groups" className={menuItemClass} role="menuitem">Grupos & Permissões</Link>
+                  <div className={separatorClass}></div>
+                  <Link href="/admin/ai" className={menuItemClass} role="menuitem">Provedores IA</Link>
+                  <Link href="/admin/blog" className={menuItemClass} role="menuitem">Blog</Link>
+                  <div className={separatorClass}></div>
+                  <Link href="/logs/" className={menuItemClass} role="menuitem">Logs do Sistema</Link>
                 </div>
               </div>
             )}
 
+            {/* ── User / Logout ── */}
             <div className="flex items-center gap-3 pl-2 border-l border-slate-200">
               <span className="text-xs text-slate-400 font-normal hidden md:inline">
                 {user?.email}
@@ -258,6 +200,10 @@ export function Header() {
               </button>
             </div>
           </>
+        )}
+
+        {!isAuthenticated && (
+          <Link href="/login/" className="hover:text-slate-900">Login</Link>
         )}
       </nav>
     </header>
