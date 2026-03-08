@@ -6,8 +6,9 @@ import { LogsTable } from '@/components/logs/LogsTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AppLogFilterRequest, AppLogPagedResponse, AppLogStatsResponse, LogLevel, logLevelLabels, logsService } from '@/services/logs';
-import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const levelColorClasses: Record<LogLevel, string> = {
   [LogLevel.Debug]: 'bg-gray-100 text-gray-700',
@@ -26,6 +27,8 @@ export default function LogsPage() {
     pageNumber: 1,
     pageSize: 50
   });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadLogs();
@@ -69,6 +72,21 @@ export default function LogsPage() {
     setTimeout(() => loadLogs(), 0);
   };
 
+  async function handleDeleteAll() {
+    try {
+      setDeleting(true);
+      const result = await logsService.deleteAll();
+      toast.success(`${result.deletedCount.toLocaleString('pt-BR')} logs excluídos com sucesso`);
+      setShowDeleteConfirm(false);
+      loadLogs();
+      loadStats();
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir logs');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <RoleGuard allowedRoles={['Admin']}>
       <div className="space-y-6">
@@ -77,10 +95,21 @@ export default function LogsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Logs do Sistema</h1>
             <p className="text-gray-500 mt-1">Visualize e analise os logs da aplicação</p>
           </div>
-          <Button onClick={() => { loadLogs(); loadStats(); }} variant="outline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="text-red-600 border-red-200 hover:bg-red-50"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={deleting || loading}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir Todos
+            </Button>
+            <Button onClick={() => { loadLogs(); loadStats(); }} variant="outline" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -176,6 +205,48 @@ export default function LogsPage() {
             </div>
           )}
         </div>
+
+        {/* Delete All Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-2 rounded-full">
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Excluir Todos os Logs</h3>
+              </div>
+              <p className="text-gray-600 mb-2">
+                Tem certeza que deseja excluir <strong>todos os {stats?.totalCount?.toLocaleString('pt-BR') || ''} logs</strong> do sistema?
+              </p>
+              <p className="text-sm text-red-600 mb-6">
+                Esta ação é irreversível e não pode ser desfeita.
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAll}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Excluindo...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir Todos
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </RoleGuard>
   );

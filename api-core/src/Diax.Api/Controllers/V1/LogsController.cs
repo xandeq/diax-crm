@@ -95,4 +95,16 @@ public class LogsController : BaseApiController
 
         return Ok(new { DeletedCount = result.Value });
     }
+
+    [HttpDelete("delete-all")]
+    public async Task<IActionResult> DeleteAll(CancellationToken cancellationToken = default)
+    {
+        var result = await _service.DeleteAllAsync(cancellationToken);
+
+        if (!result.IsSuccess)
+            return StatusCode(500, result.Error);
+
+        _logger.LogWarning("All logs deleted by user. Count: {Count}", result.Value);
+        return Ok(new { DeletedCount = result.Value });
+    }
 }

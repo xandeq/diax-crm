@@ -27,6 +27,9 @@ public interface IAppLogService
         int olderThanDays,
         CancellationToken cancellationToken = default);
 
+    Task<Result<int>> DeleteAllAsync(
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Registra um log de requisição HTTP (especialmente para erros 4xx/5xx).
     /// </summary>

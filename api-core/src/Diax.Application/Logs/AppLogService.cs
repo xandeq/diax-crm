@@ -144,6 +144,22 @@ public class AppLogService : IAppLogService, IApplicationService
         }
     }
 
+    public async Task<Result<int>> DeleteAllAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var deletedCount = await _repository.DeleteAllAsync(cancellationToken);
+            _logger.LogInformation("Deleted all {Count} log entries", deletedCount);
+            return Result<int>.Success(deletedCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete all logs");
+            return Result.Failure<int>(
+                new Error("Logs.DeleteAllFailed", "Failed to delete all logs"));
+        }
+    }
+
     public async Task<Result<Guid>> LogAsync(
         DomainLogLevel level,
         LogCategory category,

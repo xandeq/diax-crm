@@ -148,6 +148,12 @@ class LogsService {
       method: 'DELETE'
     });
   }
+
+  async deleteAll(): Promise<{ deletedCount: number }> {
+    return apiFetch<{ deletedCount: number }>('/logs/delete-all', {
+      method: 'DELETE'
+    });
+  }
 }
 
 export const logsService = new LogsService();

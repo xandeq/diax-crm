@@ -91,4 +91,9 @@ public class AppLogRepository : Repository<AppLog>, IAppLogRepository
             .Where(x => x.TimestampUtc < cutoffDate)
             .ExecuteDeleteAsync(cancellationToken);
     }
+
+    public async Task<int> DeleteAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet.ExecuteDeleteAsync(cancellationToken);
+    }
 }

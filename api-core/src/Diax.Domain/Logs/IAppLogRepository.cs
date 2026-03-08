@@ -36,4 +36,9 @@ public interface IAppLogRepository : IRepository<AppLog>
     /// Remove logs anteriores à data especificada.
     /// </summary>
     Task<int> DeleteOlderThanAsync(DateTime cutoffDate, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Remove todos os logs.
+    /// </summary>
+    Task<int> DeleteAllAsync(CancellationToken cancellationToken = default);
 }

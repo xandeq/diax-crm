@@ -2,9 +2,10 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AppLogListItemResponse, AppLogResponse, LogLevel, logLevelLabels, logsService } from '@/services/logs';
-import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { AppLogListItemResponse, AppLogResponse, LogLevel, logLevelLabels, logCategoryLabels as serviceCategoryLabels, logsService } from '@/services/logs';
+import { ChevronDown, ChevronRight, Copy, Loader2, Search, Wrench, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface LogsTableProps {
   logs: AppLogListItemResponse[];
@@ -47,6 +48,152 @@ function StatusCodeBadge({ code }: { code?: number }) {
   else if (code >= 500) color = 'bg-red-100 text-red-800';
 
   return <Badge className={color}>{code}</Badge>;
+}
+
+function buildLogContext(details: AppLogResponse): string {
+  const lines: string[] = [];
+  lines.push(`## Log Entry Details`);
+  lines.push(`- **Level:** ${logLevelLabels[details.level]}`);
+  lines.push(`- **Category:** ${serviceCategoryLabels[details.category]}`);
+  lines.push(`- **Timestamp:** ${details.timestampUtc}`);
+  if (details.environment) lines.push(`- **Environment:** ${details.environment}`);
+  if (details.machineName) lines.push(`- **Machine:** ${details.machineName}`);
+  if (details.requestPath) {
+    lines.push(`\n### HTTP Request`);
+    lines.push(`- **Method:** ${details.httpMethod}`);
+    lines.push(`- **Path:** ${details.requestPath}`);
+    if (details.queryString) lines.push(`- **Query:** ${details.queryString}`);
+    if (details.statusCode) lines.push(`- **Status Code:** ${details.statusCode}`);
+    if (details.responseTimeMs) lines.push(`- **Response Time:** ${details.responseTimeMs}ms`);
+  }
+  lines.push(`\n### Message`);
+  lines.push('```');
+  lines.push(details.message);
+  lines.push('```');
+  if (details.exceptionType) {
+    lines.push(`\n### Exception`);
+    lines.push(`- **Type:** ${details.exceptionType}`);
+    lines.push(`- **Message:** ${details.exceptionMessage}`);
+    if (details.targetSite) lines.push(`- **Target Site:** ${details.targetSite}`);
+    if (details.stackTrace) {
+      lines.push(`\n**Stack Trace:**`);
+      lines.push('```');
+      lines.push(details.stackTrace);
+      lines.push('```');
+    }
+    if (details.innerException) {
+      lines.push(`\n**Inner Exception:**`);
+      lines.push('```');
+      lines.push(details.innerException);
+      lines.push('```');
+    }
+  }
+  if (details.additionalData) {
+    lines.push(`\n### Additional Data`);
+    lines.push('```json');
+    try {
+      lines.push(JSON.stringify(JSON.parse(details.additionalData), null, 2));
+    } catch {
+      lines.push(details.additionalData);
+    }
+    lines.push('```');
+  }
+  return lines.join('\n');
+}
+
+function buildPrompt(action: 'analyze' | 'fix' | 'refactor', details: AppLogResponse): string {
+  const context = buildLogContext(details);
+  const projectInfo = `This is a .NET 8 (ASP.NET Core) backend API with Clean Architecture (Controllers → Application Services → Domain → Infrastructure/EF Core). Database: SQL Server. Frontend: Next.js 14 with TypeScript.`;
+
+  if (action === 'analyze') {
+    return `Analyze the following application log entry and provide a detailed diagnosis. Explain what happened, the root cause, severity assessment, and potential impact on the system.
+
+**Project context:** ${projectInfo}
+
+${context}
+
+Please provide:
+1. **Summary** of what happened
+2. **Root cause** analysis
+3. **Severity** assessment (Critical / High / Medium / Low)
+4. **Impact** on users and system
+5. **Recommended actions** to investigate further`;
+  }
+
+  if (action === 'fix') {
+    return `Fix the issue described in the following application log entry. Provide the exact code changes needed to resolve this error/warning.
+
+**Project context:** ${projectInfo}
+
+${context}
+
+Please provide:
+1. **Root cause** of the issue
+2. **Exact code fix** with before/after code snippets
+3. **File paths** where changes should be made
+4. **Testing steps** to verify the fix
+5. **Prevention** measures to avoid recurrence`;
+  }
+
+  // refactor
+  return `Refactor the code related to the following application log entry. The goal is to improve code quality, error handling, and resilience in the area that generated this log.
+
+**Project context:** ${projectInfo}
+
+${context}
+
+Please provide:
+1. **Current issues** identified from the log
+2. **Refactoring plan** with specific improvements
+3. **Code changes** with before/after snippets
+4. **Better error handling** patterns to apply
+5. **Testing recommendations** for the refactored code`;
+}
+
+async function copyPromptToClipboard(action: 'analyze' | 'fix' | 'refactor', details: AppLogResponse) {
+  const prompt = buildPrompt(action, details);
+  try {
+    await navigator.clipboard.writeText(prompt);
+    const labels = { analyze: 'Análise', fix: 'Correção', refactor: 'Refatoração' };
+    toast.success(`Prompt de ${labels[action]} copiado!`, { description: 'Cole na sua IA/LLM preferida' });
+  } catch {
+    toast.error('Falha ao copiar para área de transferência');
+  }
+}
+
+function PromptButtons({ details }: { details: AppLogResponse }) {
+  return (
+    <div className="flex items-center gap-2 mt-4 pt-3 border-t">
+      <span className="text-xs text-gray-500 mr-1">Copiar prompt para IA:</span>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-xs gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50"
+        onClick={(e) => { e.stopPropagation(); copyPromptToClipboard('analyze', details); }}
+      >
+        <Search className="h-3.5 w-3.5" />
+        Analisar
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50"
+        onClick={(e) => { e.stopPropagation(); copyPromptToClipboard('fix', details); }}
+      >
+        <Wrench className="h-3.5 w-3.5" />
+        Corrigir
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-xs gap-1.5 text-amber-700 border-amber-200 hover:bg-amber-50"
+        onClick={(e) => { e.stopPropagation(); copyPromptToClipboard('refactor', details); }}
+      >
+        <RefreshCw className="h-3.5 w-3.5" />
+        Refatorar
+      </Button>
+    </div>
+  );
 }
 
 function LogRow({ log }: { log: AppLogListItemResponse }) {
@@ -226,6 +373,11 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
                   </div>
                 </div>
               )}
+
+              {/* AI Prompt Buttons */}
+              <div className="md:col-span-2">
+                <PromptButtons details={details} />
+              </div>
             </div>
           </td>
         </tr>
