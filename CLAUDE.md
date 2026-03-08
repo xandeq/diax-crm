@@ -4,12 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DIAX CRM is a monorepo with a Next.js 14 frontend (`crm-web/`), a .NET 8 Clean Architecture backend (`api-core/`), and automation workflows (`automation/`). It is a private CRM for Alexandre Queiroz Marketing Digital.
+DIAX CRM is a monorepo with a Next.js 14 frontend (`crm-web/`), a .NET 8 Clean Architecture backend (`api-core/`), and automation workflows. It is a private CRM for Alexandre Queiroz Marketing Digital — single user, not a SaaS product.
 
 **Default ports:**
 - Frontend: http://localhost:3000
 - API: http://localhost:5062
 - Swagger: http://localhost:5062/swagger (disabled in Production)
+
+**Other root folders:**
+- `n8n-workflows/` — n8n automation JSON exports (email marketing, WhatsApp routing)
+- `scraper-google-email/` — Python Google Maps scraper
 
 ---
 
@@ -58,6 +62,10 @@ cd api-core
 
 The `update-db.ps1` script sets `ASPNETCORE_ENVIRONMENT=Production` and reads the connection string from User Secrets. Run `.\scripts\set-local-db-secret.ps1` first if not yet configured.
 
+### After pushing
+
+Monitor CI/CD: `gh run watch` or `gh run list` to verify deployment.
+
 ---
 
 ## Critical Rules
@@ -85,11 +93,11 @@ The `update-db.ps1` script sets `ASPNETCORE_ENVIRONMENT=Production` and reads th
 
 ```
 api-core/src/
-  Diax.Api/           # Controllers (V1/), Middlewares, Program.cs
+  Diax.Api/           # Controllers (V1/), Middleware/, Configuration/, Program.cs
   Diax.Application/   # Services, DTOs, Interfaces (business logic here)
   Diax.Domain/        # Entities, Enums, Value Objects (no external deps)
-  Diax.Infrastructure/# EF Core DbContext, Migrations (Data/), Repositories
-  Diax.Shared/        # Shared utilities
+  Diax.Infrastructure/# EF Core DbContext, Migrations (Data/), Repositories, AI clients
+  Diax.Shared/        # Result pattern (Result<T>, Error, PagedResult), extensions
 ```
 
 - New endpoints → `Diax.Api/Controllers/V1/`
@@ -98,7 +106,7 @@ api-core/src/
 
 **Controller pattern:** All controllers extend `BaseApiController`, which provides:
 - `ResolveUserIdAsync(db)` — extracts email from JWT claims, resolves to User.Id via DB lookup
-- `HandleResult<T>(Result<T>)` — maps `Result<T>` to HTTP responses (200 on success; 404/400/409/401/403 on error based on error code string matching)
+- `HandleResult<T>(Result<T>)` — maps `Result<T>` to HTTP responses (200 on success; 404/400/409/401/403 on error based on error code string matching: `NotFound`→404, `Validation`→400, `Conflict`→409, `Unauthorized`→401, `Forbidden`→403)
 
 **DB conventions (auto-applied in `DiaxDbContext`):**
 - PascalCase → `snake_case` column names
@@ -107,7 +115,13 @@ api-core/src/
 - String columns default to 256 max length
 - Decimal precision: 18,2
 
-**Multi-tenancy:** Entities implementing `IUserOwnedEntity` get an automatic query filter by `CurrentUserService.UserId`. Financial entities (Income, Expense, CreditCard, Transaction, etc.) are all filtered this way — no manual `WHERE UserId = ...` needed.
+**Multi-tenancy:** Entities implementing `IUserOwnedEntity` get an automatic query filter by `CurrentUserService.UserId`. Financial entities (Income, Expense, CreditCard, Transaction, etc.) are all filtered this way. **Exception:** `Customer` entity has NO query filter — it's shared across the system, filtered by UserId explicitly in service queries.
+
+**Audit logging:** `AuditSaveChangesInterceptor` in `Diax.Infrastructure/Data/Interceptors/` auto-captures DB change history into `AuditLogEntry`.
+
+**Startup seeding:** `UserSeeder.SeedInitialAdmin()` and `AiDataSeeder.SeedAiProviders()` run on every startup (idempotent). On migration failure, writes `App_Data/startup-error.txt` for FTP diagnostics.
+
+**AI provider credentials:** Encrypted in DB via `ApiKeyEncryptionService` using ASP.NET Data Protection API. Full RBAC: `AiProvider` → `AiModel` → `AiProviderCredential` → `GroupAiModelAccess`/`GroupAiProviderAccess`.
 
 **Configuration priority** (Program.cs):
 1. Environment variables (prefix: `DIAX_`)
@@ -118,7 +132,7 @@ api-core/src/
 
 **DB connection:** SqlConnectionStringBuilder forces TCP, `Encrypt=true`, `TrustServerCertificate=true`, retry logic (10 retries, 30s max delay), 60s command timeout.
 
-**Middleware pipeline order:** CORS → CorrelationId → ExceptionLogging → RequestResponseLogging → RateLimiter → Swagger → Serilog → StaticFiles → HTTPS → Auth → Controllers → HealthCheck
+**Middleware pipeline order:** CORS → CORS-header-dedup → CorrelationId → ExceptionLogging → RequestResponseLogging → RateLimiter → Swagger (non-Prod) → Serilog → StaticFiles → HTTPS → Auth → Controllers → HealthCheck (`/health`)
 
 ### Frontend — Next.js App Router (Static Export)
 
@@ -128,7 +142,7 @@ crm-web/src/
   components/        # Reusable components; ui/ for shadcn primitives
   services/          # API clients per domain (api.ts, customers.ts, finance.ts, etc.)
   types/             # TypeScript interfaces matching backend DTOs
-  contexts/          # AuthContext and global state
+  contexts/          # AuthContext (only context)
   lib/               # Utilities (cn(), formatCurrency(), date-utils, CSV export)
 ```
 
@@ -161,26 +175,37 @@ Navigation is header-only (`components/Header.tsx`) — no sidebar. Dropdown gro
 
 **Background email worker** (`EmailQueueProcessorWorker`): 50/hour, 250/day batch size 50, runs every 5 min. Renders template variables (`{{FirstName}}`, `{{Email}}`, `{{Company}}`), calls Brevo SMTP. Marks items as Processing → Sent/Failed.
 
+**WhatsApp:** Integrated via Evolution API (`EvolutionApi` config section) through `WhatsAppController` and `EvolutionApiClient`.
+
 ### Modules at a Glance
 
 | Module | Frontend | Backend |
 |--------|----------|---------|
 | Financeiro | `src/app/finance/` | `Controllers/V1/Financial*`, `CreditCard*`, `Income*`, `Expense*` / `Application/Finance/` |
+| Financial Planner | `src/app/finance/planner/` | `FinancialGoalsController`, `RecurringTransactionsController`, `MonthlySimulationsController` |
 | CRM/Leads | `src/app/leads/`, `customers/` | `CustomersController`, `LeadsController` / `Application/Customers/` |
 | Email Outreach | `src/app/outreach/`, `email-marketing/` | `OutreachController`, `EmailCampaignsController` / `Application/Outreach/`, `EmailMarketing/` |
+| WhatsApp | — | `WhatsAppController` / `Application/WhatsApp/` |
 | AI Tools | `src/app/tools/`, `utilities/` | `AiHumanizeTextController`, `PromptGeneratorController`, `HtmlExtractionController`, `AiInsightsController` |
+| AI Image Gen | `src/app/tools/image-generation/` | `AiImageGenerationController` / clients: FAL, Gemini, OpenAI, OpenRouter |
+| Facebook Ads | `src/app/ads/` | `AdsController` / `Application/Ads/` (Graph API v21.0) |
+| Blog | `src/app/admin/blog/` | `BlogController` / `Application/Blog/` |
+| Agenda | `src/app/agenda/` | `Appointment`, `AppointmentType` entities |
+| Checklists | `src/app/household/checklists/` | `ChecklistsController` / `Application/Household/` |
 | Snippets | `src/app/snippet/` | `SnippetsController` |
 | Admin | `src/app/admin/` | `UsersController`, `GroupsController`, `AiProvidersController` |
-| Logs | `src/app/logs/` | `LogsController` / `Application/Logs/` |
+| Audit / Logs | `src/app/logs/` | `AuditLogsController`, `LogsController` / `Application/Logs/`, `Audit/` |
 
 ---
 
 ## Deploy
 
 Automated via GitHub Actions on push to `main`:
-- `deploy-api-core-smarterasp.yml` — compiles .NET, deploys via FTP to SmarterASP
-- `deploy-crm-web-hostgator.yml` — builds Next.js, deploys to Hostgator/Hostinger
+- `deploy-api-core-smarterasp.yml` — compiles .NET, deploys via FTP to SmarterASP (path-filtered to `api-core/`)
+- `deploy-crm-web-hostgator.yml` — builds Next.js, deploys via FTP to `ftp.alexandrequeiroz.com.br` (path-filtered to `crm-web/`)
+- `reset-remote-db-smarterasp.yml` — **triggered by push to `reset-db` branch** — drops all tables and re-applies migrations. **This deletes all data.**
 
-Required GitHub Secrets: `SMARTERASP_FTP_SERVER`, `SMARTERASP_FTP_USERNAME`, `SMARTERASP_FTP_PASSWORD`, `SMARTERASP_FTP_REMOTE_DIR`, `SMARTERASP_DB_CONNECTIONSTRING`.
-
-> Including `[reset-db]` in a commit message forces schema recreation — **this deletes all data**.
+Required GitHub Secrets:
+- **API deploy:** `SMARTERASP_FTP_SERVER`, `SMARTERASP_FTP_USERNAME`, `SMARTERASP_FTP_PASSWORD`, `SMARTERASP_FTP_REMOTE_DIR`, `SMARTERASP_DB_CONNECTIONSTRING`
+- **Frontend deploy:** `HOSTGATOR_FTP_SERVER`, `HOSTGATOR_FTP_USERNAME`, `HOSTGATOR_FTP_PASSWORD`, `HOSTGATOR_FTP_REMOTE_DIR`, `CRM_WEB_API_BASE_URL`
+- **API runtime:** `DIAX_JWT_KEY`, `DIAX_AUTH_ADMIN_EMAIL`, `DIAX_AUTH_ADMIN_PASSWORD`, AI provider keys (OpenAI, Perplexity, DeepSeek, Gemini, OpenRouter)

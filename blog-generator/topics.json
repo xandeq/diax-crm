@@ -7,8 +7,10 @@
       "category": "Desenvolvimento de Sites",
       "tags": "site,vitoria,es,preco,criacao",
       "city": "Vitória, ES",
-      "status": "pendente",
-      "last_error": "API retornou 400: {\"code\":\"BlogPost.CreateFailed\",\"message\":\"Falha ao criar post.\"}"
+      "status": "publicado",
+      "last_error": "API retornou 400: {\"code\":\"BlogPost.CreateFailed\",\"message\":\"Falha ao criar post.\"}",
+      "post_id": "828ad9a1-9c04-4ba1-934d-54e4d758e5d3",
+      "published_at": "2026-03-07T15:38:01.581104"
     },
     {
       "title": "Agência de marketing digital em Vitória ES",
@@ -17,7 +19,9 @@
       "category": "Marketing Digital",
       "tags": "marketing digital,agencia,vitoria,es",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "f7b7e4dd-583c-458e-84f3-c88373a3fc22",
+      "published_at": "2026-03-07T16:18:05.024328"
     },
     {
       "title": "Como escolher agência de sites em Vila Velha",
@@ -26,7 +30,9 @@
       "category": "Desenvolvimento de Sites",
       "tags": "site,vila velha,agencia,es",
       "city": "Vila Velha, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "3736add4-c093-419b-95bc-fcdbaa59850b",
+      "published_at": "2026-03-07T16:49:01.915623"
     },
     {
       "title": "Quanto custa um logo profissional",
@@ -35,7 +41,9 @@
       "category": "Design",
       "tags": "logo,design,identidade visual,preco",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "c75cebd5-68c6-450d-8b7c-8ed4c2f3c7b6",
+      "published_at": "2026-03-07T16:49:47.203425"
     },
     {
       "title": "Como aumentar as vendas com Google Ads em Vitória ES",
@@ -44,7 +52,9 @@
       "category": "Tráfego Pago",
       "tags": "google ads,trafego pago,vitoria,vendas",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "63f93225-95cd-4832-bc91-eb1664a951a9",
+      "published_at": "2026-03-07T16:50:46.433182"
     },
     {
       "title": "SEO local para empresas em Vitória ES",
@@ -53,7 +63,9 @@
       "category": "SEO",
       "tags": "seo,seo local,vitoria,google",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "e456856b-b647-4f92-a384-55204d8ed544",
+      "published_at": "2026-03-07T16:51:40.275852"
     },
     {
       "title": "Por que sua empresa precisa de presença online em 2025",
@@ -62,7 +74,9 @@
       "category": "Marketing Digital",
       "tags": "presenca online,marketing digital,2025",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "aeb7e257-f147-4666-83bb-293e5a124ba1",
+      "published_at": "2026-03-07T16:52:35.655866"
     },
     {
       "title": "Como criar página de vendas que converte em Vitória ES",
@@ -71,7 +85,9 @@
       "category": "Conversão",
       "tags": "landing page,conversao,vendas,vitoria",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "87a751b8-e327-48d8-abf2-a25813ea01d9",
+      "published_at": "2026-03-07T16:53:22.116923"
     },
     {
       "title": "Tráfego pago para pequenas empresas em Espírito Santo",
@@ -80,7 +96,9 @@
       "category": "Tráfego Pago",
       "tags": "trafego pago,es,espirito santo,pequenas empresas",
       "city": "Espírito Santo",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "7af4996b-061f-45d2-94b2-0f48206c0d44",
+      "published_at": "2026-03-07T16:54:12.627387"
     },
     {
       "title": "Identidade visual para empresas em Vila Velha",
@@ -89,7 +107,9 @@
       "category": "Design",
       "tags": "identidade visual,branding,vila velha,design",
       "city": "Vila Velha, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "f42b7ea9-33dc-46bf-907e-1a09b059862a",
+      "published_at": "2026-03-07T16:54:54.707196"
     },
     {
       "title": "Instagram para negócios locais em Vitória ES",
@@ -98,7 +118,9 @@
       "category": "Redes Sociais",
       "tags": "instagram,redes sociais,negocios locais,vitoria",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "6a82bdef-f464-4de2-9861-1da3aa6b807f",
+      "published_at": "2026-03-07T16:55:43.564323"
     },
     {
       "title": "Como aparecer no Google Meu Negócio em Vitória ES",
@@ -107,7 +129,9 @@
       "category": "SEO",
       "tags": "google meu negocio,seo local,vitoria,google",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "55dc4d51-9c67-4af3-ba49-5240b4090137",
+      "published_at": "2026-03-07T16:57:17.110871"
     },
     {
       "title": "Quanto custa fazer um e-commerce no Brasil em 2025",
@@ -116,7 +140,9 @@
       "category": "Desenvolvimento de Sites",
       "tags": "ecommerce,loja virtual,preco,2025",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "bfd4d20a-0789-4c1b-92e8-51af3e99b0f4",
+      "published_at": "2026-03-07T17:20:52.376794"
     },
     {
       "title": "Marketing de conteúdo para clínicas em Vitória ES",
@@ -125,7 +151,9 @@
       "category": "Marketing Digital",
       "tags": "marketing digital,clinicas,saude,vitoria",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "023919a2-3777-4080-b8ba-6f00d4f18bf3",
+      "published_at": "2026-03-07T17:21:43.093481"
     },
     {
       "title": "Como gerar leads com Facebook Ads no Espírito Santo",
@@ -134,7 +162,9 @@
       "category": "Tráfego Pago",
       "tags": "facebook ads,leads,espirito santo,trafego pago",
       "city": "Espírito Santo",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "7937011a-0436-4edb-837a-75119f0d9e16",
+      "published_at": "2026-03-07T17:22:26.957586"
     },
     {
       "title": "Site responsivo ou aplicativo qual é melhor para minha empresa",
@@ -143,7 +173,9 @@
       "category": "Desenvolvimento de Sites",
       "tags": "site responsivo,aplicativo,desenvolvimento,vitoria",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "e7232ac0-7b5d-4a76-9a05-2c304e849414",
+      "published_at": "2026-03-07T17:23:23.008759"
     },
     {
       "title": "Como fazer WhatsApp Business funcionar como ferramenta de vendas",
@@ -152,7 +184,9 @@
       "category": "Marketing Digital",
       "tags": "whatsapp business,vendas,marketing digital",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "75b8c054-2559-4e56-a35d-b7af6db8e1b9",
+      "published_at": "2026-03-07T17:24:17.537763"
     },
     {
       "title": "Quanto custa anunciar no Google em 2025",
@@ -161,7 +195,9 @@
       "category": "Tráfego Pago",
       "tags": "google ads,anuncio,custo,2025",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "883dc73f-e708-4001-8ecb-f1f798db8f96",
+      "published_at": "2026-03-07T17:25:09.294423"
     },
     {
       "title": "Como escolher a melhor agência de marketing digital",
@@ -170,7 +206,9 @@
       "category": "Marketing Digital",
       "tags": "agencia,marketing digital,como escolher",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "c2ad0da0-7dd2-4582-aed1-4f953140a0da",
+      "published_at": "2026-03-07T17:25:58.957222"
     },
     {
       "title": "Branding para startups e pequenas empresas em Vitória",
@@ -179,7 +217,9 @@
       "category": "Design",
       "tags": "branding,startup,pequenas empresas,vitoria",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "5c6f5562-4ada-4384-9fbf-40d96be3878a",
+      "published_at": "2026-03-07T17:26:58.747663"
     },
     {
       "title": "Email marketing ainda funciona em 2025",
@@ -188,7 +228,9 @@
       "category": "Marketing Digital",
       "tags": "email marketing,2025,marketing digital",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "101727a3-5531-4afd-90af-8cc481049bc9",
+      "published_at": "2026-03-07T17:27:49.574901"
     },
     {
       "title": "Automação de marketing para pequenas empresas",
@@ -197,7 +239,9 @@
       "category": "Automação",
       "tags": "automacao,marketing digital,pequenas empresas",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "dc7e7d96-513f-49b4-b449-6db44232eeba",
+      "published_at": "2026-03-07T17:28:33.882325"
     },
     {
       "title": "Como medir resultados de campanhas de marketing digital",
@@ -206,7 +250,10 @@
       "category": "Marketing Digital",
       "tags": "metricas,resultados,marketing digital,analytics",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "last_error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}",
+      "post_id": "a536174c-58be-42e4-98e7-18dc6bc8dfd9",
+      "published_at": "2026-03-07T17:59:19.317100"
     },
     {
       "title": "Consultoria de marketing digital para advogados em Vitória",
@@ -215,7 +262,9 @@
       "category": "Marketing Digital",
       "tags": "advogados,marketing juridico,vitoria,es",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "f80a515f-1010-4a93-94e2-1a8960f862fe",
+      "published_at": "2026-03-07T18:02:53.644028"
     },
     {
       "title": "Como criar uma estratégia de conteúdo do zero",
@@ -224,7 +273,9 @@
       "category": "Marketing Digital",
       "tags": "conteudo,estrategia,marketing de conteudo,blog",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "6363c8a8-32a0-4a29-a7f3-4c0c05f0947a",
+      "published_at": "2026-03-07T20:24:14.559084"
     },
     {
       "title": "TikTok para empresas locais funciona em Vitória ES",
@@ -233,7 +284,9 @@
       "category": "Redes Sociais",
       "tags": "tiktok,redes sociais,empresas locais,vitoria",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "c4a81cfb-d0c7-419b-bb0e-8a7744813a2d",
+      "published_at": "2026-03-07T20:25:05.047852"
     },
     {
       "title": "Loja virtual para artesãos e produtos regionais do ES",
@@ -242,7 +295,9 @@
       "category": "Desenvolvimento de Sites",
       "tags": "loja virtual,ecommerce,artesaos,espirito santo",
       "city": "Espírito Santo",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "cd144473-5df4-40da-bbf1-dc80348c570c",
+      "published_at": "2026-03-07T20:26:00.491822"
     },
     {
       "title": "Como aparecer na primeira página do Google sem pagar anúncios",
@@ -251,7 +306,9 @@
       "category": "SEO",
       "tags": "seo,google,organico,primeira pagina",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "68e691ce-8a6f-4283-814a-b50a4781cc5d",
+      "published_at": "2026-03-07T20:26:53.811975"
     },
     {
       "title": "Marketing imobiliário digital em Vitória ES",
@@ -260,7 +317,9 @@
       "category": "Marketing Digital",
       "tags": "marketing imobiliario,imoveis,vitoria,es",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "bea88294-2e3d-4a4e-bff1-0e0bf27eaf19",
+      "published_at": "2026-03-07T20:27:43.869418"
     },
     {
       "title": "Por que seu site não aparece no Google",
@@ -269,7 +328,9 @@
       "category": "SEO",
       "tags": "seo,google,indexacao,site",
       "city": "Vitória, ES",
-      "status": "pendente"
+      "status": "publicado",
+      "post_id": "24fd6339-7225-4f1b-805f-175664787160",
+      "published_at": "2026-03-07T20:28:54.843980"
     }
   ]
 }
