@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { UpcomingAgendaWidget } from "@/components/dashboard/agenda/UpcomingAgendaWidget";
+import { EmailSummaryWidget } from "@/components/dashboard/email/EmailSummaryWidget";
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -65,6 +66,7 @@ export default function DashboardPage() {
 
         {/* Next row */}
         <CrmSummaryWidget />
+        <EmailSummaryWidget />
         <SystemHealthWidget />
         <ShoppingListWidget />
         <RecentPromptsWidget />
