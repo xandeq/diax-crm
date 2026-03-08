@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,7 @@ import {
   Calendar,
   Loader2,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -69,6 +71,7 @@ interface AnalyticsSummary {
 }
 
 export default function AnalyticsPage() {
+  const router = useRouter();
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [days, setDays] = useState(30);
@@ -327,11 +330,12 @@ export default function AnalyticsPage() {
                       <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Taxa Abertura</th>
                       <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Taxa Cliques</th>
                       <th className="text-right py-3 px-4 text-sm font-medium text-slate-600">Bounces</th>
+                      <th className="w-8"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {recentCampaigns.map((campaign) => (
-                      <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/campaigns?id=${campaign.id}`)}>
                         <td className="py-3 px-4">
                           <div>
                             <div className="font-medium text-sm">{campaign.name}</div>
@@ -394,6 +398,9 @@ export default function AnalyticsPage() {
                               {campaign.unsubscribeCount} descadastro(s)
                             </div>
                           )}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <ExternalLink className="h-4 w-4 text-slate-400" />
                         </td>
                       </tr>
                     ))}

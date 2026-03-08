@@ -56,7 +56,11 @@ export interface EmailCampaignResponse {
   totalRecipients: number;
   sentCount: number;
   failedCount: number;
+  deliveredCount: number;
   openCount: number;
+  clickCount: number;
+  bounceCount: number;
+  unsubscribeCount: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -145,4 +149,42 @@ export async function queueCampaignRecipients(campaignId: string, data: QueueCam
     method: 'POST',
     body: JSON.stringify(data)
   });
+}
+
+export interface CampaignRecipient {
+  id: string;
+  campaignId: string | null;
+  customerId: string | null;
+  recipientName: string;
+  recipientEmail: string;
+  subject: string;
+  status: number;
+  scheduledAt: string;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  openedAt: string | null;
+  readCount: number;
+  attemptCount: number;
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface PagedCampaignRecipients {
+  items: CampaignRecipient[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export async function getCampaignById(campaignId: string) {
+  return apiFetch<EmailCampaignResponse>(`/email-campaigns/campaigns/${campaignId}`);
+}
+
+export async function getCampaignRecipients(campaignId: string, page = 1, pageSize = 50) {
+  return apiFetch<PagedCampaignRecipients>(
+    `/email-campaigns/campaigns/${campaignId}/recipients?page=${page}&pageSize=${pageSize}`
+  );
 }

@@ -14,6 +14,9 @@ public class EmailQueueItemResponse
     public EmailQueueStatus Status { get; set; }
     public DateTime ScheduledAt { get; set; }
     public DateTime? SentAt { get; set; }
+    public DateTime? DeliveredAt { get; set; }
+    public DateTime? OpenedAt { get; set; }
+    public int ReadCount { get; set; }
     public int AttemptCount { get; set; }
     public string? LastError { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -31,6 +34,9 @@ public class EmailQueueItemResponse
             Status = entity.Status,
             ScheduledAt = entity.ScheduledAt,
             SentAt = entity.SentAt,
+            DeliveredAt = entity.DeliveredAt,
+            OpenedAt = entity.OpenedAt,
+            ReadCount = entity.ReadCount,
             AttemptCount = entity.AttemptCount,
             LastError = entity.LastError,
             CreatedAt = entity.CreatedAt

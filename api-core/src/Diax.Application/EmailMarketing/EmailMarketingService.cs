@@ -518,6 +518,36 @@ public class EmailMarketingService : IApplicationService
         return response;
     }
 
+    public async Task<Result<PagedResponse<EmailQueueItemResponse>>> GetCampaignRecipientsAsync(
+        Guid campaignId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var campaignResult = await GetCampaignOwnedByCurrentUserAsync(campaignId, cancellationToken);
+        if (campaignResult.IsFailure)
+        {
+            return Result.Failure<PagedResponse<EmailQueueItemResponse>>(campaignResult.Error);
+        }
+
+        var safePage = page <= 0 ? 1 : page;
+        var safePageSize = pageSize <= 0 ? 50 : Math.Min(pageSize, 100);
+
+        var (items, totalCount) = await _emailQueueRepository.GetPagedByCampaignIdAsync(
+            campaignId,
+            safePage,
+            safePageSize,
+            cancellationToken);
+
+        var response = PagedResponse<EmailQueueItemResponse>.Create(
+            items.Select(EmailQueueItemResponse.FromEntity),
+            safePage,
+            safePageSize,
+            totalCount);
+
+        return response;
+    }
+
     private static DateTime NormalizeSchedule(DateTime? scheduledAt)
     {
         var now = DateTime.UtcNow;

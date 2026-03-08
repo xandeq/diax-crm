@@ -88,6 +88,18 @@ public class EmailCampaignsController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpGet("campaigns/{campaignId:guid}/recipients")]
+    public async Task<IActionResult> GetCampaignRecipients(
+        [FromRoute] Guid campaignId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _emailMarketingService.GetCampaignRecipientsAsync(
+            campaignId, page, pageSize, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpPost("send-single")]
     public async Task<IActionResult> QueueSingle(
         [FromBody] QueueSingleEmailRequest request,

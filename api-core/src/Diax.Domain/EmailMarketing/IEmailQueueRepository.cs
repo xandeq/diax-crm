@@ -16,4 +16,10 @@ public interface IEmailQueueRepository : IRepository<EmailQueueItem>
     Task<IReadOnlyList<EmailQueueItem>> GetByCustomerIdAsync(
         Guid customerId,
         CancellationToken cancellationToken = default);
+
+    Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByCampaignIdAsync(
+        Guid campaignId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }

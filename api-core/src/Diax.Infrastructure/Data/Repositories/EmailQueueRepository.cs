@@ -70,4 +70,22 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
             .OrderByDescending(item => item.CreatedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByCampaignIdAsync(
+        Guid campaignId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.Where(item => item.CampaignId == campaignId);
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(item => item.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
 }
