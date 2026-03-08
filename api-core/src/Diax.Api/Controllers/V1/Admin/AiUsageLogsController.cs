@@ -87,7 +87,7 @@ public class AiUsageLogsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching AI usage logs");
-            return StatusCode(500, new { Message = "Error fetching usage logs", Detail = ex.Message });
+            return StatusCode(500, new { Message = "Error fetching usage logs"});
         }
     }
 
@@ -132,7 +132,7 @@ public class AiUsageLogsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching AI usage stats");
-            return StatusCode(500, new { Message = "Error fetching usage statistics", Detail = ex.Message });
+            return StatusCode(500, new { Message = "Error fetching usage statistics"});
         }
     }
 
@@ -169,7 +169,7 @@ public class AiUsageLogsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching grouped AI usage stats");
-            return StatusCode(500, new { Message = "Error fetching grouped usage statistics", Detail = ex.Message });
+            return StatusCode(500, new { Message = "Error fetching grouped usage statistics"});
         }
     }
 }
