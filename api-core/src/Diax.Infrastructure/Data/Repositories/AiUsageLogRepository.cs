@@ -102,19 +102,27 @@ public class AiUsageLogRepository : Repository<AiUsageLog>, IAiUsageLogRepositor
         if (endDate.HasValue)
             query = query.Where(x => x.CreatedAt <= endDate.Value);
 
-        var result = await query
+        var logs = await query
             .Where(x => x.Success)
-            .GroupBy(x => new { x.ProviderId, x.Provider.Name })
-            .Select(g => new
+            .Select(x => new
             {
-                ProviderId = g.Key.ProviderId,
-                ProviderName = g.Key.Name,
-                TotalLogs = g.Count(),
-                TotalTokens = g.Sum(x => (x.InputTokens ?? 0) + (x.OutputTokens ?? 0)),
-                TotalCost = g.Sum(x => x.EstimatedCost ?? 0)
+                x.ProviderId,
+                ProviderName = x.Provider.Name,
+                x.InputTokens,
+                x.OutputTokens,
+                x.EstimatedCost
             })
             .ToListAsync(cancellationToken);
 
-        return result.Select(x => (x.ProviderId, x.ProviderName, x.TotalLogs, x.TotalTokens, x.TotalCost)).ToList();
+        return logs
+            .GroupBy(x => new { x.ProviderId, x.ProviderName })
+            .Select(g => (
+                g.Key.ProviderId,
+                g.Key.ProviderName,
+                g.Count(),
+                g.Sum(x => (x.InputTokens ?? 0) + (x.OutputTokens ?? 0)),
+                g.Sum(x => x.EstimatedCost ?? 0)
+            ))
+            .ToList();
     }
 }
