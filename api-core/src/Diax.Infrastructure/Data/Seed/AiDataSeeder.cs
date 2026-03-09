@@ -179,6 +179,8 @@ public static class AiDataSeeder
                 new ModelSeed("black-forest-labs/flux-kontext-pro",          "FLUX Kontext Pro"),
                 new ModelSeed("stability-ai/stable-diffusion-3.5-large",     "SD 3.5 Large"),
                 new ModelSeed("google/gemini-2.0-flash-image-generation",    "Gemini 2.0 Flash Image"),
+                new ModelSeed("google/gemini-2.5-flash-preview-image-generation", "Gemini 2.5 Flash Image"),
+                new ModelSeed("google/imagen-3",                             "Google Imagen 3"),
                 new ModelSeed("openai/gpt-image-1",                          "GPT Image 1 (via OpenRouter)"),
             }),
     };
