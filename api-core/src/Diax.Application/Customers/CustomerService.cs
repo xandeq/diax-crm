@@ -406,17 +406,16 @@ public class CustomerService : IApplicationService
 
             bool wasUpdated = false;
 
-            // Rejeição direta (Sem email e sem telefone, ou ser agregador Linktree)
+            // Rejeição direta (Sem email e sem telefone, ou ser agregador Linktree, ou frase de busca)
             if (sanitized.ShouldReject)
             {
                 if (sanitized.RejectionReason != null && sanitized.RejectionReason.Contains("Directory"))
-                {
                     response.RemovedByDirectoryOrGeneric++;
-                }
+                else if (sanitized.RejectionReason != null && sanitized.RejectionReason.Contains("search phrase"))
+                    response.RemovedBySearchPhrase++;
                 else
-                {
                     response.RemovedByInvalidEmail++;
-                }
+
                 leadsToDelete.Add(lead);
                 continue;
             }

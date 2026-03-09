@@ -35,18 +35,56 @@ public class LeadSanitizationService : ILeadSanitizationService
         ".xyz", ".top", ".club", ".space", ".online", ".site", ".ru", ".tk"
     };
 
-    // Palavras-chave que indicam diretórios ou páginas genéricas
+    // TLDs de países estrangeiros — leads com esses domínios não servem para marketing BR.
+    // Mantemos como válidos: .com, .net, .org, .io, .com.br, .br, .pt (Portugal, mesmo idioma), .us
+    private static readonly HashSet<string> ForeignCountryTLDs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".es", ".de", ".co", ".ar", ".mx", ".cl", ".pe", ".it", ".fr", ".uk",
+        ".jp", ".cn", ".kr", ".in", ".za", ".ng", ".ke", ".pl", ".nl", ".be",
+        ".se", ".no", ".dk", ".fi", ".at", ".ch", ".ie", ".nz", ".au",
+        ".ve", ".ec", ".bo", ".py", ".uy", ".cz", ".hu", ".ro", ".bg",
+        ".hr", ".sk", ".lt", ".lv", ".ee", ".gr", ".tr", ".il", ".ae",
+        ".sa", ".ph", ".th", ".vn", ".id", ".my", ".sg", ".tw", ".hk"
+    };
+
+    // Palavras-chave que indicam diretórios, páginas genéricas ou plataformas/portais conhecidos
     private static readonly HashSet<string> GenericCompanyKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Linktree", "404", "Not Found", "GuiaMais", "Telelistas", "Home", "Página Inicial", "Instagram", "Facebook",
-        "LinkedIn", "Twitter", "TikTok", "YouTube", "Google", "WhatsApp", "Diretório", "Busca", "Erro 404",
-        "Default", "Sem Nome", "Site", "Contato"
+        // Diretórios e páginas genéricas
+        "Linktree", "404", "Not Found", "GuiaMais", "Telelistas", "Home", "Página Inicial", "Diretório", "Busca", "Erro 404",
+        "Default", "Sem Nome", "Site", "Contato",
+        // Redes sociais
+        "Instagram", "Facebook", "LinkedIn", "Twitter", "TikTok", "YouTube", "Google", "WhatsApp", "Telegram", "Pinterest", "Reddit",
+        // Portais e plataformas brasileiras
+        "Jusbrasil", "Reclame Aqui", "Mercado Livre", "OLX", "iFood", "Shopee", "Magazine Luiza", "Magalu",
+        "Americanas", "Casas Bahia", "Submarino", "Buscapé", "Bondfaro", "Zoom", "PagSeguro", "PicPay",
+        "GetNinjas", "Habitissimo", "Elo7", "Enjoei", "QuintoAndar", "Viva Real", "Zap Imóveis",
+        "iCarros", "WebMotors", "Catho", "Infojobs", "Doctoralia", "Glassdoor", "Indeed",
+        // Plataformas internacionais
+        "Amazon", "AliExpress", "Wish", "Yelp", "TripAdvisor", "Booking", "Trivago",
+        "Wikipedia", "WikiHow", "Stack Overflow", "Github", "ZocDoc"
     };
 
     // Regex mais severo (rejeita espaços, obriga TLD válido simples com ao menos 2 letras)
     private static readonly Regex EmailRegex = new(
         @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // Regex para detectar frases de busca do Google Maps: "[Categoria] Em/No/Na [Cidade]"
+    private static readonly Regex SearchPhraseEnding = new(
+        @"\s+(em|no|na|nos|nas|de|do|da|dos|das|para)\s+[A-ZÀ-Ú][a-zà-ú]+(\s+[A-ZÀ-Ú][a-zà-ú]+)*\s*$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Palavras que indicam categorias de busca (plurais comuns de estabelecimentos)
+    private static readonly HashSet<string> SearchCategoryWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "hospitais", "clínicas", "clinicas", "restaurantes", "hotéis", "hoteis", "lojas", "escritórios", "escritorios",
+        "farmácias", "farmacias", "escolas", "academias", "consultórios", "consultorios", "laboratórios", "laboratorios",
+        "mercados", "supermercados", "padarias", "bares", "lanchonetes", "pizzarias", "postos", "oficinas",
+        "dentistas", "médicos", "medicos", "advogados", "contadores", "engenheiros", "veterinários", "veterinarios",
+        "imobiliárias", "imobiliarias", "construtoras", "transportadoras", "distribuidoras", "fábricas", "fabricas",
+        "empresas", "serviços", "servicos", "profissionais", "especialistas", "fornecedores", "clínica", "clinica"
+    };
 
     public SanitizedLeadResult SanitizeAndClassify(RawLeadData rawData)
     {
@@ -64,6 +102,15 @@ public class LeadSanitizationService : ILeadSanitizationService
                                             // Se no CreateManual cair aqui, rejeita direto.
                 result.RejectionReason = "Lead originates from a Generic Directory/Profile (e.g., Linktree, GuiaMais) rather than real business context.";
             }
+        }
+
+        // Regra de Frase de Busca: Detecta nomes que são queries do Google Maps, não nomes de empresa.
+        // Ex: "Hospitais E Clínicas Em Viana", "Restaurantes Em São Paulo"
+        if (!isDirectoryOrGeneric && !string.IsNullOrWhiteSpace(rawData.Name) && IsSearchPhrase(rawData.Name))
+        {
+            isDirectoryOrGeneric = true;
+            result.ShouldReject = true;
+            result.RejectionReason = "Name appears to be a search phrase, not a business name.";
         }
 
         // 1. Correção e Normalização Textual
@@ -112,9 +159,24 @@ public class LeadSanitizationService : ILeadSanitizationService
                 var prefix = parts[0];
                 var domain = parts[1];
 
-                // 3. Detecção de Domínio Suspeito (Agora incluindo sulfixos exóticos)
+                // 3. Detecção de Domínio Suspeito (temporários, exóticos e países estrangeiros)
                 bool isSuspiciousDomain = SuspiciousDomains.Contains(domain) ||
                                           SuspiciousDomainSuffixes.Any(ext => domain.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+
+                // 3b. Detecção de domínio de país estrangeiro (inútil para marketing BR).
+                // Ignora domínios compostos como .com.br, .co.uk, etc. — checa apenas o TLD final.
+                if (!isSuspiciousDomain)
+                {
+                    var tld = "." + domain.Split('.').Last();
+                    // Não rejeitar se for parte de um domínio composto (.com.br, .co.uk)
+                    bool isCompositeDomain = domain.Contains(".com.") || domain.Contains(".co.") ||
+                                             domain.Contains(".org.") || domain.Contains(".net.") ||
+                                             domain.Contains(".gov.") || domain.Contains(".edu.");
+                    if (!isCompositeDomain && ForeignCountryTLDs.Contains(tld))
+                    {
+                        isSuspiciousDomain = true;
+                    }
+                }
 
                 if (isSuspiciousDomain)
                 {
@@ -279,6 +341,14 @@ public class LeadSanitizationService : ILeadSanitizationService
     {
         if (string.IsNullOrWhiteSpace(input)) return input;
 
+        // Pass 0: Remove o caractere de substituição Unicode (U+FFFD "�") que indica encoding corrompido
+        input = input.Replace("\uFFFD", "");
+
+        // Limpa espaços duplos gerados pela remoção do U+FFFD
+        input = Regex.Replace(input, @"\s{2,}", " ").Trim();
+
+        if (string.IsNullOrWhiteSpace(input)) return input;
+
         var replacements = new Dictionary<string, string>
         {
             { "Ã¡", "á" }, { "Ã ", "à" }, { "Ã¢", "â" }, { "Ã£", "ã" }, { "Ã¤", "ä" },
@@ -305,8 +375,11 @@ public class LeadSanitizationService : ILeadSanitizationService
 
         var decoded = sb.ToString();
 
-        // Pass/Regex 2: Conserta Mojibakes PT-BR onde o char perdeu pro Unicode "".
-        // Regex busca "" e com base no contexto tenta restaurar (Case-insensitive via Regex mas restaurando capitalização).
+        // Pass 1.5: Colapsa caracteres repetidos excessivamente (3+ iguais → 1).
+        // Ex: "Óóóóório" → "ório", "aaaa" → "a"
+        decoded = CollapseRepeatedChars(decoded);
+
+        // Pass 2: Conserta Mojibakes PT-BR onde o char acentuado perdeu pro encoding.
         decoded = Regex.Replace(decoded, @"Rio\b", "ório", RegexOptions.IgnoreCase);
         decoded = Regex.Replace(decoded, @"MVeis\b", "Móveis", RegexOptions.IgnoreCase);
         decoded = Regex.Replace(decoded, @"BiquNis\b", "Biquínis", RegexOptions.IgnoreCase);
@@ -315,7 +388,121 @@ public class LeadSanitizationService : ILeadSanitizationService
         decoded = Regex.Replace(decoded, @"AcessRios\b", "Acessórios", RegexOptions.IgnoreCase);
         decoded = Regex.Replace(decoded, @"VerO\b", "Verão", RegexOptions.IgnoreCase);
 
+        // Pass 3: Mais palavras portuguesas com mojibake (char acentuado virou "")
+        decoded = Regex.Replace(decoded, @"\bSade\b", "Saúde", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEstdio\b", "Estúdio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bMdico\b", "Médico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bMdica\b", "Médica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bJrdico\b", "Jurídico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bJrdica\b", "Jurídica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bNegcios\b", "Negócios", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bComrcio\b", "Comércio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bFarmcia\b", "Farmácia", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bMecnica\b", "Mecânica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bClnica\b", "Clínica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPtio\b", "Pátio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bRstico\b", "Rústico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bRstica\b", "Rústica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bAcadmia\b", "Academia", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEdifcio\b", "Edifício", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEletrnica\b", "Eletrônica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bTcnico\b", "Técnico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bTcnica\b", "Técnica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPblica\b", "Pública", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPblico\b", "Público", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPrtica\b", "Prática", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bLgica\b", "Lógica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bOdontolgica\b", "Odontológica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bOdontolgico\b", "Odontológico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bVeterinria\b", "Veterinária", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bVeterinrio\b", "Veterinário", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bImveis\b", "Imóveis", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bServios\b", "Serviços", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bSolues\b", "Soluções", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEducao\b", "Educação", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bInformtica\b", "Informática", RegexOptions.IgnoreCase);
+
         return decoded;
+    }
+
+    /// <summary>
+    /// Colapsa 3+ caracteres repetidos consecutivos (case-insensitive) para 1.
+    /// Ex: "Óóóóório" → "ório", "aaaa" → "a"
+    /// </summary>
+    private static string CollapseRepeatedChars(string input)
+    {
+        if (input.Length < 3) return input;
+
+        var sb = new StringBuilder(input.Length);
+        sb.Append(input[0]);
+        int repeatCount = 1;
+
+        for (int i = 1; i < input.Length; i++)
+        {
+            if (char.ToLowerInvariant(input[i]) == char.ToLowerInvariant(input[i - 1]))
+            {
+                repeatCount++;
+                if (repeatCount <= 2)
+                {
+                    sb.Append(input[i]);
+                }
+            }
+            else
+            {
+                repeatCount = 1;
+                sb.Append(input[i]);
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Detecta se o nome é uma frase de busca do Google Maps em vez de um nome de negócio.
+    /// Ex: "Hospitais E Clínicas Em Viana", "Restaurantes Em São Paulo"
+    /// </summary>
+    private static bool IsSearchPhrase(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return false;
+
+        var trimmed = name.Trim();
+
+        // Padrão 1: Nome termina com preposição geográfica + cidade
+        // "... Em Viana", "... No Rio", "... Na Bahia"
+        if (SearchPhraseEnding.IsMatch(trimmed))
+        {
+            // Se começa com uma palavra de categoria, é quase certamente uma busca
+            var firstWord = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            if (firstWord != null && SearchCategoryWords.Contains(firstWord))
+                return true;
+
+            // Se contém " E " entre palavras de categoria: "Hospitais E Clínicas Em ..."
+            if (trimmed.Contains(" E ", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = trimmed.Split(new[] { " E ", " e " }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 2)
+                {
+                    var firstPart = parts[0].Trim().Split(' ').FirstOrDefault();
+                    if (firstPart != null && SearchCategoryWords.Contains(firstPart))
+                        return true;
+                }
+            }
+        }
+
+        // Padrão 2: "[Categoria Plural] E [Categoria Plural]" sem localidade — ainda parece busca
+        // "Hospitais E Clínicas", "Lojas E Escritórios"
+        var wordsArr = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (wordsArr.Length >= 3 && wordsArr.Length <= 6)
+        {
+            var eIndex = Array.FindIndex(wordsArr, w => w.Equals("E", StringComparison.OrdinalIgnoreCase));
+            if (eIndex > 0 && eIndex < wordsArr.Length - 1)
+            {
+                if (SearchCategoryWords.Contains(wordsArr[0]) && SearchCategoryWords.Contains(wordsArr[eIndex + 1]))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

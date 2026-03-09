@@ -347,14 +347,16 @@ export default function LeadsPage() {
       const result = await sanitizeLeadBase(ids);
 
       toast.success('Sanitização concluída!', { id: 'sanitize-base' });
-      alert(`Resultados da Limpeza Rígida:\n\n` +
-            `🔍 Leads Analisados: ${result.analyzedLeads}\n` +
-            `✨ Leads Corrigidos: ${result.correctedLeads}\n` +
-            `🗑️ Removidos por Email Inválido: ${result.removedByInvalidEmail}\n` +
-            `🚩 Removidos por Domínio Suspeito: ${result.removedBySuspiciousDomain}\n` +
-            `🚫 Removidos como Genéricos/Diretório: ${result.removedByDirectoryOrGeneric}\n` +
-            `🔗 Duplicatas Mescladas/Consolidadas: ${result.duplicatesConsolidated}\n\n` +
-            `✅ Leads Válidos Restantes: ${result.validLeadsRemaining}`);
+      alert(`Resultados da Limpeza:\n\n` +
+            `Leads Analisados: ${result.analyzedLeads}\n` +
+            `Leads Corrigidos: ${result.correctedLeads}\n` +
+            `Removidos por Email Invalido: ${result.removedByInvalidEmail}\n` +
+            `Removidos por Dominio Suspeito: ${result.removedBySuspiciousDomain}\n` +
+            `Removidos por Dominio Estrangeiro: ${result.removedByForeignDomain}\n` +
+            `Removidos como Genericos/Diretorio: ${result.removedByDirectoryOrGeneric}\n` +
+            `Removidos como Frase de Busca: ${result.removedBySearchPhrase}\n` +
+            `Duplicatas Mescladas: ${result.duplicatesConsolidated}\n\n` +
+            `Leads Validos Restantes: ${result.validLeadsRemaining}`);
 
       fetchLeads();
       setSelectedRows([]);

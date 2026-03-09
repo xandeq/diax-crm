@@ -166,7 +166,9 @@ export interface BulkSanitizationResponse {
   correctedLeads: number;
   removedByInvalidEmail: number;
   removedBySuspiciousDomain: number;
+  removedByForeignDomain: number;
   removedByDirectoryOrGeneric: number;
+  removedBySearchPhrase: number;
   duplicatesConsolidated: number;
   validLeadsRemaining: number;
 }

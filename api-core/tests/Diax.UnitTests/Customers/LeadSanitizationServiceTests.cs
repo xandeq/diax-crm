@@ -142,4 +142,126 @@ public class LeadSanitizationServiceTests
         result.EmailType.Should().Be(EmailType.PersonalDirect);
         result.IsEligibleForCampaigns.Should().BeTrue();
     }
+
+    // ===== NOVOS TESTES: Domínios estrangeiros =====
+
+    [Theory]
+    [InlineData("gomeza@vithas.es")]          // Espanha
+    [InlineData("info@forum-pet.de")]          // Alemanha
+    [InlineData("contact@nesx.co")]            // Colômbia
+    [InlineData("user@empresa.ar")]            // Argentina
+    [InlineData("hello@shop.mx")]              // México
+    [InlineData("test@clinic.fr")]             // França
+    public void SanitizeAndClassify_WithForeignCountryDomain_ShouldInvalidateEmail(string email)
+    {
+        var data = new RawLeadData("Foreign Lead", email, "1234567890", null, "Foreign Corp", "");
+        var result = _sut.SanitizeAndClassify(data);
+
+        result.HasSuspiciousDomain.Should().BeTrue();
+        result.IsEmailValid.Should().BeFalse();
+        result.Email.Should().BeNull();
+        result.IsEligibleForCampaigns.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("user@empresa.com.br")]   // Brasil composto
+    [InlineData("user@empresa.com")]      // .com global
+    [InlineData("user@empresa.org")]      // .org global
+    [InlineData("user@empresa.net")]      // .net global
+    [InlineData("user@empresa.io")]       // .io tech
+    [InlineData("user@empresa.pt")]       // Portugal (mesmo idioma)
+    public void SanitizeAndClassify_WithValidDomains_ShouldAcceptEmail(string email)
+    {
+        var data = new RawLeadData("Valid Lead", email, "1234567890", null, "Valid Corp", "");
+        var result = _sut.SanitizeAndClassify(data);
+
+        result.IsEmailValid.Should().BeTrue();
+        result.Email.Should().NotBeNull();
+    }
+
+    // ===== NOVOS TESTES: Plataformas/Portais como nome =====
+
+    [Theory]
+    [InlineData("Jusbrasil")]
+    [InlineData("Mercado Livre")]
+    [InlineData("Doctoralia")]
+    [InlineData("Reclame Aqui")]
+    [InlineData("iFood")]
+    public void SanitizeAndClassify_WithPlatformNames_ShouldReject(string name)
+    {
+        var data = new RawLeadData(name, "user@platform.com", "12345", null, name, "");
+        var result = _sut.SanitizeAndClassify(data);
+
+        result.ShouldReject.Should().BeTrue();
+        result.RejectionReason.Should().Contain("Directory");
+    }
+
+    // ===== NOVOS TESTES: Frases de busca do Google Maps =====
+
+    [Theory]
+    [InlineData("Hospitais E Clínicas Em Viana")]
+    [InlineData("Restaurantes Em São Paulo")]
+    [InlineData("Clínicas E Consultórios Em Curitiba")]
+    [InlineData("Farmácias Em Belo Horizonte")]
+    public void SanitizeAndClassify_WithSearchPhrases_ShouldReject(string name)
+    {
+        var data = new RawLeadData(name, "contact@empresa.com.br", "1199999999", null, "", "");
+        var result = _sut.SanitizeAndClassify(data);
+
+        result.ShouldReject.Should().BeTrue();
+        result.RejectionReason.Should().Contain("search phrase");
+    }
+
+    [Theory]
+    [InlineData("Clínica São Lucas")]           // Nome real de clínica
+    [InlineData("Hospital Santa Maria")]        // Nome real de hospital
+    [InlineData("Restaurante Do João")]          // Nome real
+    public void SanitizeAndClassify_WithRealBusinessNames_ShouldNotRejectAsSearchPhrase(string name)
+    {
+        var data = new RawLeadData(name, "contato@clinica.com.br", "1234567890", null, "", "");
+        var result = _sut.SanitizeAndClassify(data);
+
+        result.ShouldReject.Should().BeFalse();
+    }
+
+    // ===== NOVOS TESTES: U+FFFD e caracteres repetidos =====
+
+    [Fact]
+    public void SanitizeAndClassify_WithReplacementCharacter_ShouldStripAndFix()
+    {
+        // "Casa Escrit\uFFFDÓóóóóório M\uFFFDVeis" → strip FFFD → "Casa EscritÓóóóóório MVeis" → collapse → "Casa Escritório Móveis"
+        var data = new RawLeadData("Casa Escrit\uFFFDÓóóóóório M\uFFFDVeis", "email@test.com", "123", null, "", "");
+        var result = _sut.SanitizeAndClassify(data);
+
+        result.Name.ToLowerInvariant().Should().Contain("escrit");
+        result.Name.ToLowerInvariant().Should().Contain("veis");
+        // Should NOT contain the replacement character
+        result.Name.Should().NotContain("\uFFFD");
+    }
+
+    [Fact]
+    public void SanitizeAndClassify_WithExcessiveRepeatedChars_ShouldCollapse()
+    {
+        var data = new RawLeadData("Testeeeeee Lojaaaaaa", "email@test.com", "123", null, "", "");
+        var result = _sut.SanitizeAndClassify(data);
+
+        // "Testeeeeee" should collapse to "Testee" (max 2 consecutive), "Lojaaaaaa" → "Lojaa"
+        result.Name.Should().NotContain("eee");
+        result.Name.Should().NotContain("aaa");
+    }
+
+    // ===== NOVOS TESTES: Mais mojibake PT-BR =====
+
+    [Theory]
+    [InlineData("Clnica Mdica", "Clínica Médica")]
+    [InlineData("Farmcia Popular", "Farmácia Popular")]
+    [InlineData("Comrcio de Imveis", "Comércio De Imóveis")]
+    [InlineData("Acadmia de Sade", "Academia De Saúde")]
+    [InlineData("Servios de Informtica", "Serviços De Informática")]
+    public void SanitizeAndClassify_WithNewMojibakeWords_ShouldDecode(string input, string expected)
+    {
+        var data = new RawLeadData(input, "email@real.com", "12345", null, "", "");
+        var result = _sut.SanitizeAndClassify(data);
+        result.Name.ToLowerInvariant().Should().Be(expected.ToLowerInvariant());
+    }
 }
