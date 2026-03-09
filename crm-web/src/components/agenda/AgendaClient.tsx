@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { agendaService } from '@/services/agenda';
 import { Appointment, AppointmentType, CreateAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
-import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, parseISO, startOfMonth, startOfWeek, subMonths } from 'date-fns';
+import { addDays, addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, parseISO, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, List as ListIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronLeft, ChevronRight, Copy, List as ListIcon, Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { AppointmentForm } from './AppointmentForm';
@@ -32,6 +32,7 @@ export function AgendaClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
 
+  const [copied, setCopied] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | undefined>();
@@ -102,6 +103,53 @@ export function AgendaClient() {
     }
   };
 
+  const handleCopyWeek = async () => {
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+    const weekAppts = appointments
+      .filter(a => {
+        const d = parseISO(a.date);
+        return d >= weekStart && d <= weekEnd;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const lines: string[] = [
+      `Agenda da Semana (${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')})`,
+    ];
+
+    for (let i = 0; i < 7; i++) {
+      const day = addDays(weekStart, i);
+      const dayAppts = weekAppts.filter(a => isSameDay(parseISO(a.date), day));
+      if (dayAppts.length === 0) continue;
+
+      lines.push('');
+      lines.push(`${dayNames[day.getDay()]} ${format(day, 'dd/MM')}`);
+      for (const appt of dayAppts) {
+        const time = format(parseISO(appt.date), 'HH:mm');
+        lines.push(`  ${time} - ${appt.title} (${TYPE_LABELS[appt.type]})`);
+        if (appt.description) {
+          lines.push(`    ${appt.description}`);
+        }
+      }
+    }
+
+    if (weekAppts.length === 0) {
+      lines.push('');
+      lines.push('Nenhum compromisso nesta semana.');
+    }
+
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopied(true);
+      toast.success('Agenda da semana copiada!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Erro ao copiar.');
+    }
+  };
+
   const getDaysArray = () => {
     const start = startOfWeek(startOfMonth(currentDate));
     const end = endOfWeek(endOfMonth(currentDate));
@@ -158,6 +206,10 @@ export function AgendaClient() {
               </Button>
             </div>
           )}
+          <Button variant="outline" className="font-medium" onClick={handleCopyWeek}>
+            {copied ? <Check className="w-4 h-4 mr-2 text-green-600" /> : <Copy className="w-4 h-4 mr-2" />}
+            {copied ? 'Copiado!' : 'Copiar Semana'}
+          </Button>
           <Button variant="outline" className="border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-medium" onClick={() => setIsImportOpen(true)}>
              <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
              IA Extrair Texto
