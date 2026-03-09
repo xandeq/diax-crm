@@ -94,6 +94,7 @@ jobs:
             --arg openrouterKey "${{ secrets.OPENROUTER_API_KEY }}" \
             --arg grokKey "${{ secrets.GROK_API_KEY }}" \
             --arg hfKey "${{ secrets.HF_API_KEY }}" \
+            --arg falKey "${{ secrets.FALAI_API_KEY }}" \
             --arg brevoApiKey "${{ secrets.BREVO_API_KEY }}" \
             --arg brevoWebhookSecret "${{ secrets.BREVO_WEBHOOK_SECRET }}" \
             --arg smtpHost "${{ secrets.SMTP_HOST }}" \
@@ -148,6 +149,11 @@ jobs:
                   "ApiKey": $hfKey,
                   "BaseUrl": "https://api-inference.huggingface.co",
                   "Model": "black-forest-labs/FLUX.1-schnell"
+                },
+                "FAL": {
+                  "ApiKey": $falKey,
+                  "BaseUrl": "https://fal.run",
+                  "Model": "fal-ai/flux/schnell"
                 }
               },
               "Brevo": {
