@@ -10,6 +10,7 @@ using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using Diax.Application.AI;
 using Diax.Application.AI.ImageGeneration;
+using Diax.Application.AI.VideoGeneration;
 using Diax.Application.AI.Services;
 using Diax.Application.ApiKeys;
 using Diax.Application.Blog;
@@ -88,6 +89,9 @@ public static class DependencyInjection
 
         // AI Image Generation Service
         services.AddScoped<IImageGenerationService, ImageGenerationService>();
+
+        // AI Video Generation Service
+        services.AddScoped<IVideoGenerationService, VideoGenerationService>();
 
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();

@@ -9,6 +9,8 @@ public class PromptGeneratorSettings
     public ProviderConfig Gemini { get; set; } = new();
     public ProviderConfig OpenRouter { get; set; } = new();
     public ProviderConfig FAL { get; set; } = new();
+    public ProviderConfig Grok { get; set; } = new();
+    public ProviderConfig HuggingFace { get; set; } = new();
 
     /// <summary>
     /// Obtém a configuração do provider pelo key do banco de dados.
@@ -24,6 +26,8 @@ public class PromptGeneratorSettings
             "gemini" => Gemini,
             "openrouter" => OpenRouter,
             "fal" or "falai" => FAL,
+            "grok" or "xai" => Grok,
+            "huggingface" or "hf" or "hugging-face" => HuggingFace,
             _ => null
         };
     }

@@ -55,3 +55,47 @@ export async function generateImage(data: ImageGenerationRequest): Promise<Image
     body: JSON.stringify(data),
   });
 }
+
+export interface VideoGenerationRequest {
+  provider: string;
+  model: string;
+  prompt?: string;
+  negativePrompt?: string;
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
+  seed?: string;
+  referenceImageBase64?: string;
+}
+
+export interface VideoGenerationResponse {
+  providerUsed: string;
+  modelUsed: string;
+  requestId: string;
+  durationMs: number;
+  videoUrl: string;
+  thumbnailUrl?: string;
+}
+
+export const videoAspectRatioOptions = [
+  { value: '16:9', label: '16:9 (Paisagem HD)' },
+  { value: '9:16', label: '9:16 (Vertical / Reels)' },
+  { value: '1:1', label: '1:1 (Quadrado)' },
+  { value: '4:3', label: '4:3 (Clássico)' },
+  { value: '3:4', label: '3:4 (Retrato)' },
+];
+
+export const videoDurationOptions = [
+  { value: 3, label: '3 segundos' },
+  { value: 5, label: '5 segundos' },
+  { value: 8, label: '8 segundos' },
+  { value: 10, label: '10 segundos' },
+];
+
+export async function generateVideo(data: VideoGenerationRequest): Promise<VideoGenerationResponse> {
+  return apiFetch<VideoGenerationResponse>('/ai/generate-video', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}

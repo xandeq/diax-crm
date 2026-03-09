@@ -268,7 +268,8 @@ public class AiProviderAdminService : IAiProviderAdminService
             model.OutputCostHint,
             model.MaxTokensHint,
             model.SupportsImageGeneration(),
-            model.SupportsTextGeneration()
+            model.SupportsTextGeneration(),
+            model.SupportsVideoGeneration()
         );
     }
 

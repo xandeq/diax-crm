@@ -1,906 +1,1125 @@
 'use client';
 
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAiCatalog, type AiProvider } from '@/services/aiCatalog';
+import { getAiCatalog, type AiModel, type AiProvider } from '@/services/aiCatalog';
 import {
-    generateImage,
-    imageSizeOptions,
-    type ImageGenerationResponse
+  generateImage,
+  generateVideo,
+  imageSizeOptions,
+  videoAspectRatioOptions,
+  videoDurationOptions,
+  type ImageGenerationResponse,
+  type VideoGenerationResponse,
 } from '@/services/imageGeneration';
 import {
-    AlertCircle,
-    Download,
-    Image as ImageIcon,
-    Loader2,
-    Sparkles,
-    Upload,
-    Wand2,
-    X,
-    ZoomIn
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Download,
+  Film,
+  Image as ImageIcon,
+  Info,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Upload,
+  Wand2,
+  X,
+  ZoomIn,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const IMAGE_MESSAGES = [
+  '✨ Pedindo para a IA criar sua obra...',
+  '🎨 A IA está misturando pixels e criatividade...',
+  '🖌️ Pintando cada detalhe com precisão...',
+  '🔮 Materializando sua visão em pixels...',
+  '⚡ Processando com inteligência artificial...',
+  '🌟 Quase lá! Refinando os detalhes finais...',
+];
+
+const VIDEO_MESSAGES = [
+  '🎬 Iniciando a geração do vídeo...',
+  '🎞️ A IA está calculando cada frame...',
+  '⚙️ Processando movimentos e transições...',
+  '🌊 Animando sua visão quadro a quadro...',
+  '🎥 Montando a sequência final...',
+  '⏳ Vídeos levam de 30s a 5min — pode aguardar!',
+  '🚀 Quase lá! Finalizando seu vídeo...',
+];
+
+const IMAGE_SUGGESTIONS = [
+  'Foto corporativa profissional, fundo desfocado, iluminação de estúdio',
+  'Paisagem montanhosa ao pôr do sol, céu laranja, estilo fotorrealista 8k',
+  'Produto cosmético minimalista em mesa branca, estilo editorial',
+  'Personagem anime guerreira, cabelo azul, cenário fantasia épica',
+  'Cidade futurista cyberpunk à noite, neons roxos e azuis',
+  'Logo estilo flat design, gradiente moderno, fundo escuro',
+];
+
+const VIDEO_SUGGESTIONS = [
+  'Pessoa caminhando em slow motion em parque florido ao amanhecer',
+  'Drone voando sobre cidade ao pôr do sol, movimento suave',
+  'Produto girando 360° em fundo branco limpo, estilo comercial',
+  'Oceano com ondas quebrando na praia, câmera ao nível da água',
+];
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function isModelFree(providerKey: string, modelKey: string): boolean {
+  const pk = providerKey.toLowerCase();
+  const mk = modelKey.toLowerCase();
+  return (
+    pk === 'huggingface' ||
+    pk === 'hf' ||
+    mk.endsWith(':free') ||
+    mk.includes('/free/')
+  );
+}
+
+function formatSeconds(s: number): string {
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+// ─── Sub-components ─────────────────────────────────────────────────────────────
+
+function ProviderBadge({ provider, selected, onClick }: {
+  provider: AiProvider;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
+        selected
+          ? 'bg-violet-500/20 border-violet-500/50 text-violet-300 ring-1 ring-violet-500/30'
+          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white/80 hover:border-white/20'
+      }`}
+    >
+      {provider.name}
+    </button>
+  );
+}
+
+function ModelCard({ model, selected, providerKey, onClick }: {
+  model: AiModel;
+  selected: boolean;
+  providerKey: string;
+  onClick: () => void;
+}) {
+  const free = isModelFree(providerKey, model.modelKey);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
+        selected
+          ? 'bg-violet-500/15 border-violet-500/40 ring-1 ring-violet-500/30'
+          : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className={`text-xs font-medium leading-tight ${selected ? 'text-violet-200' : 'text-white/80'}`}>
+          {model.displayName}
+        </span>
+        {free && (
+          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            GRÁTIS
+          </span>
+        )}
+      </div>
+      {model.inputCostHint != null && (
+        <p className="text-[10px] text-white/30 mt-0.5">
+          ${model.inputCostHint}/1k tokens
+        </p>
+      )}
+    </button>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ImageGenerationPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
-  // AI config
-  const [providers, setProviders] = useState<AiProvider[]>([]);
+  // Mode
+  const [activeTab, setActiveTab] = useState<'image' | 'video'>('image');
+
+  // Catalog
+  const [allProviders, setAllProviders] = useState<AiProvider[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [pageReady, setPageReady] = useState(false);
+
+  // Selection
   const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
-  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [showAllModels, setShowAllModels] = useState(false);
 
-  // Prompt & parameters
+  // Prompt
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Image params
   const [selectedSize, setSelectedSize] = useState('1024x1024');
   const [style, setStyle] = useState('vivid');
   const [quality, setQuality] = useState('standard');
 
-  // Prompt Builder State
-  const [subject, setSubject] = useState('');
-  const [setting, setSetting] = useState('');
-  const [action, setAction] = useState('');
-  const [expression, setExpression] = useState('');
-  const [secondaryElements, setSecondaryElements] = useState('');
-  const [artStyle, setArtStyle] = useState('');
-  const [photoStyle, setPhotoStyle] = useState('');
-  const [theme, setTheme] = useState('');
-  const [cameraAngle, setCameraAngle] = useState('');
-  const [focus, setFocus] = useState('');
-  const [detailLevel, setDetailLevel] = useState('');
-  const [editIntent, setEditIntent] = useState('');
-  const [isAutoUpdating, setIsAutoUpdating] = useState(true);
+  // Video params
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [duration, setDuration] = useState(5);
 
-  // Generation state
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [result, setResult] = useState<ImageGenerationResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pageReady, setPageReady] = useState(false);
-
-  // Lightbox
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-
-  // Reference image (img2img)
+  // Reference image
   const [referenceImageBase64, setReferenceImageBase64] = useState<string | null>(null);
   const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Prompt textarea auto-resize
-  const promptRef = useRef<HTMLTextAreaElement>(null);
+  // Generation state
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [imageResult, setImageResult] = useState<ImageGenerationResponse | null>(null);
+  const [videoResult, setVideoResult] = useState<VideoGenerationResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+  const [elapsedSecs, setElapsedSecs] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const msgTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Derived state — filter to only image-capable models
-  const imageProviders = providers
-    .filter(p => p.models.some(m => m.isEnabled && m.supportsImage))
-    .map(p => ({ ...p, models: p.models.filter(m => m.isEnabled && m.supportsImage) }));
-  const currentProvider = imageProviders.find(p => p.key === selectedProvider);
-  const currentModels = currentProvider?.models || [];
-  const sizeOption = imageSizeOptions.find(s => s.value === selectedSize);
+  // Lightbox
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  // Check if current model supports image-to-image (reference image editing)
-  const modelSupportsImg2Img = (() => {
-    const model = selectedModel.toLowerCase();
-    const provider = selectedProvider.toLowerCase();
-    // dall-e-3: text-only (no edits/variations endpoint)
-    if (model === 'dall-e-3') return false;
-    // Imagen models: text-only (no img2img in the :predict endpoint)
-    if (model.startsWith('imagen')) return false;
-    // OpenRouter: only Gemini image models support img2img (via chat/completions)
-    // FLUX/SD models on OpenRouter are text-to-image only
-    if (provider === 'openrouter') {
-      return model.includes('gemini') && model.includes('image');
-    }
-    // fal.ai: text-only models that have no img2img variant (backend auto-redirects known ones)
-    if (provider === 'falai' && model === 'fal-ai/flux/schnell') return false;
-    if (provider === 'falai' && model === 'fal-ai/flux-realism') return false;
-    return true;
-  })();
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Load providers once on mount — auto-select first image-capable provider/model.
-  // NOTE: selectedProvider is intentionally NOT in the dependency array.
-  // Including it would re-run this effect on every provider change, causing
-  // duplicate API calls and potential race conditions.
-  useEffect(() => {
-    async function loadProviders() {
-      try {
-        const catalog = await getAiCatalog();
-        const enabledProviders = catalog.filter(p => p.isEnabled);
-        setProviders(enabledProviders);
+  // ── Derived ──────────────────────────────────────────────────────────────────
 
-        if (enabledProviders.length > 0) {
-          // Find first provider that has at least one image-capable model
-          const imageProvider = enabledProviders.find(p =>
-            p.models.some(m => m.isEnabled && m.supportsImage)
-          );
-          if (imageProvider) {
-            setSelectedProvider(imageProvider.key);
-            const imageModel = imageProvider.models.find(m => m.isEnabled && m.supportsImage);
-            if (imageModel) {
-              setSelectedModel(imageModel.modelKey);
-            }
-          } else {
-            // Fallback: select first provider even if no image models found
-            setSelectedProvider(enabledProviders[0].key);
-          }
-        }
-      } catch {
-        setError('Erro ao carregar provedores de IA. Recarregue a página.');
-      } finally {
-        setLoadingProviders(false);
-      }
-    }
+  const imageProviders = allProviders.filter(p =>
+    p.isEnabled && p.models.some(m => m.isEnabled && m.supportsImage)
+  );
 
-    if (isAuthenticated) {
-      loadProviders();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  const videoProviders = allProviders.filter(p =>
+    p.isEnabled && p.models.some(m => m.isEnabled && m.supportsVideo)
+  );
 
-  // Auth guard
+  const activeProviders = activeTab === 'image' ? imageProviders : videoProviders;
+
+  const currentProvider = activeProviders.find(p => p.key === selectedProvider);
+
+  const currentModels = (currentProvider?.models ?? []).filter(m =>
+    m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
+  );
+
+  // Free models first, then alphabetical
+  const sortedModels = [...currentModels].sort((a, b) => {
+    const aFree = isModelFree(selectedProvider, a.modelKey);
+    const bFree = isModelFree(selectedProvider, b.modelKey);
+    if (aFree && !bFree) return -1;
+    if (!aFree && bFree) return 1;
+    return a.displayName.localeCompare(b.displayName);
+  });
+
+  const displayedModels = showAllModels ? sortedModels : sortedModels.slice(0, 6);
+
+  const currentLoadingMessages = activeTab === 'image' ? IMAGE_MESSAGES : VIDEO_MESSAGES;
+
+  // ── Effects ───────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (authLoading) return;
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
+    if (!isAuthenticated) { router.push('/login'); return; }
     setPageReady(true);
   }, [isAuthenticated, authLoading, router]);
 
-  // Auto-update prompt logic
   useEffect(() => {
-    if (!isAutoUpdating) return;
+    if (!isAuthenticated) return;
+    async function load() {
+      try {
+        const catalog = await getAiCatalog();
+        setAllProviders(catalog.filter(p => p.isEnabled));
+      } catch {
+        setError('Erro ao carregar provedores. Recarregue a página.');
+      } finally {
+        setLoadingCatalog(false);
+      }
+    }
+    load();
+  }, [isAuthenticated]);
 
-    const parts = [];
+  // Auto-select first provider/model when tab changes or catalog loads
+  useEffect(() => {
+    if (activeProviders.length === 0) return;
 
-    if (referenceImageBase64 && editIntent) {
-      parts.push(`[Intenção: ${editIntent}]`);
+    // Try to keep current provider if it supports this tab
+    if (selectedProvider && activeProviders.find(p => p.key === selectedProvider)) {
+      const prov = activeProviders.find(p => p.key === selectedProvider)!;
+      const models = prov.models.filter(m =>
+        m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
+      );
+      if (models.length > 0 && !models.find(m => m.modelKey === selectedModel)) {
+        // Auto-select free model first
+        const freeModel = models.find(m => isModelFree(prov.key, m.modelKey));
+        setSelectedModel((freeModel ?? models[0]).modelKey);
+      }
+      return;
     }
 
-    const elements = [];
-    if (subject) elements.push(subject);
-    if (action) elements.push(action);
-    if (expression) elements.push(`com expressão ${expression}`);
-    if (secondaryElements) elements.push(`incluindo ${secondaryElements}`);
-
-    if (elements.length > 0) {
-      parts.push(elements.join(', '));
+    // Otherwise select first provider + free model
+    const firstProv = activeProviders[0];
+    setSelectedProvider(firstProv.key);
+    const models = firstProv.models.filter(m =>
+      m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
+    );
+    if (models.length > 0) {
+      const freeModel = models.find(m => isModelFree(firstProv.key, m.modelKey));
+      setSelectedModel((freeModel ?? models[0]).modelKey);
     }
+    setShowAllModels(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, allProviders]);
 
-    if (setting) {
-      parts.push(`Cenário: ${setting}`);
+  // Loading timer
+  useEffect(() => {
+    if (isGenerating) {
+      setElapsedSecs(0);
+      setLoadingMsgIdx(0);
+      timerRef.current = setInterval(() => setElapsedSecs(s => s + 1), 1000);
+      msgTimerRef.current = setInterval(() =>
+        setLoadingMsgIdx(i => (i + 1) % currentLoadingMessages.length),
+        4000
+      );
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (msgTimerRef.current) clearInterval(msgTimerRef.current);
     }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (msgTimerRef.current) clearInterval(msgTimerRef.current);
+    };
+  }, [isGenerating, currentLoadingMessages.length]);
 
-    const styles = [];
-    if (artStyle) styles.push(artStyle);
-    if (photoStyle) styles.push(photoStyle);
-    if (theme) styles.push(theme);
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
-    if (styles.length > 0) {
-      parts.push(`Estilo: ${styles.join(', ')}`);
-    }
-
-    const composition = [];
-    if (cameraAngle) composition.push(`Ângulo: ${cameraAngle}`);
-    if (focus) composition.push(`Foco: ${focus}`);
-
-    if (composition.length > 0) {
-      parts.push(`Composição: ${composition.join(', ')}`);
-    }
-
-    if (detailLevel) {
-      parts.push(`Qualidade: ${detailLevel}`);
-    }
-
-    const generatedPrompt = parts.join('. ');
-    // React bails out of re-render when state value is unchanged (Object.is comparison),
-    // so calling setPrompt with the same string is safe and avoids the stale-closure
-    // problem that came from comparing against a captured `prompt` ref.
-    setPrompt(generatedPrompt);
-  }, [
-    subject, setting, action, expression, secondaryElements,
-    artStyle, photoStyle, theme,
-    cameraAngle, focus,
-    detailLevel,
-    editIntent, referenceImageBase64,
-    isAutoUpdating,
-  ]);
+  const handleSelectProvider = useCallback((key: string) => {
+    setSelectedProvider(key);
+    setShowAllModels(false);
+    const prov = activeProviders.find(p => p.key === key);
+    if (!prov) return;
+    const models = prov.models.filter(m =>
+      m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
+    );
+    const freeModel = models.find(m => isModelFree(key, m.modelKey));
+    setSelectedModel((freeModel ?? models[0])?.modelKey ?? '');
+  }, [activeProviders, activeTab]);
 
   const handleImageUpload = useCallback((file: File) => {
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       setError('Formato inválido. Use PNG, JPEG ou WEBP.');
       return;
     }
-    const maxBytes = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxBytes) {
+    if (file.size > 10 * 1024 * 1024) {
       setError('A imagem deve ter no máximo 10MB.');
       return;
     }
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       const dataUrl = e.target?.result as string;
-      // dataUrl = "data:image/png;base64,XXXX"
-      const base64 = dataUrl.split(',')[1];
-      setReferenceImageBase64(base64);
+      setReferenceImageBase64(dataUrl.split(',')[1]);
       setReferenceImagePreview(dataUrl);
       setError(null);
     };
     reader.readAsDataURL(file);
   }, []);
 
-  const handleRemoveImage = useCallback(() => {
+  const handleRemoveReference = useCallback(() => {
     setReferenceImageBase64(null);
     setReferenceImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) handleImageUpload(file);
   }, [handleImageUpload]);
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
-      setError('Digite um prompt descrevendo a imagem que deseja gerar.');
+      setError('Descreva o que deseja gerar no campo de prompt.');
+      return;
+    }
+    if (!selectedProvider || !selectedModel) {
+      setError('Selecione um provedor e modelo antes de gerar.');
       return;
     }
 
     setIsGenerating(true);
     setError(null);
-    setResult(null);
+    setImageResult(null);
+    setVideoResult(null);
 
     try {
-      const size = imageSizeOptions.find(s => s.value === selectedSize);
-      const response = await generateImage({
-        provider: selectedProvider,
-        model: selectedModel || '',
-        prompt: prompt.trim(),
-        negativePrompt: negativePrompt.trim() || undefined,
-        width: size?.width ?? 1024,
-        height: size?.height ?? 1024,
-        numberOfImages: 1,
-        style,
-        quality,
-        referenceImageBase64: referenceImageBase64 ?? undefined,
-      });
-      setResult(response);
+      if (activeTab === 'image') {
+        const sizeOpt = imageSizeOptions.find(s => s.value === selectedSize);
+        const response = await generateImage({
+          provider: selectedProvider,
+          model: selectedModel,
+          prompt: prompt.trim(),
+          negativePrompt: negativePrompt.trim() || undefined,
+          width: sizeOpt?.width ?? 1024,
+          height: sizeOpt?.height ?? 1024,
+          numberOfImages: 1,
+          style,
+          quality,
+          referenceImageBase64: referenceImageBase64 ?? undefined,
+        });
+        setImageResult(response);
+      } else {
+        const response = await generateVideo({
+          provider: selectedProvider,
+          model: selectedModel,
+          prompt: prompt.trim(),
+          negativePrompt: negativePrompt.trim() || undefined,
+          durationSeconds: duration,
+          aspectRatio,
+          referenceImageBase64: referenceImageBase64 ?? undefined,
+        });
+        setVideoResult(response);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar imagem.');
+      const msg = err instanceof Error ? err.message : 'Erro inesperado ao gerar.';
+      setError(msg);
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, negativePrompt, selectedProvider, selectedModel, selectedSize, style, quality, referenceImageBase64]);
+  }, [
+    prompt, negativePrompt, selectedProvider, selectedModel,
+    activeTab, selectedSize, style, quality,
+    duration, aspectRatio, referenceImageBase64,
+  ]);
 
-  // Keyboard shortcut: Ctrl+Enter to generate
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isGenerating && prompt.trim()) {
-        e.preventDefault();
-        handleGenerate();
-      }
-    },
-    [handleGenerate, isGenerating, prompt]
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isGenerating && prompt.trim()) {
+      e.preventDefault();
+      handleGenerate();
+    }
+  }, [handleGenerate, isGenerating, prompt]);
 
-  if (authLoading || !pageReady || loadingProviders) {
+  // ── Loading state ────────────────────────────────────────────────────────────
+
+  if (authLoading || !pageReady || loadingCatalog) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="h-12 w-12 rounded-2xl bg-violet-500/20 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 text-violet-400 animate-spin" />
+        </div>
+        <p className="text-sm text-white/50">Carregando provedores de IA...</p>
       </div>
     );
   }
 
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  const hasResult = activeTab === 'image' ? !!imageResult : !!videoResult;
+  const imageSrc = imageResult?.images?.[0]?.imageUrl;
+  const revisedPrompt = imageResult?.images?.[0]?.revisedPrompt;
+  const generationMeta = activeTab === 'image'
+    ? imageResult
+      ? { provider: imageResult.providerUsed, model: imageResult.modelUsed, ms: imageResult.durationMs }
+      : null
+    : videoResult
+      ? { provider: videoResult.providerUsed, model: videoResult.modelUsed, ms: videoResult.durationMs }
+      : null;
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <Badge variant="section">Utilitários</Badge>
-          <h2 className="text-3xl font-serif tracking-tight">Geração de Imagens</h2>
-          <p className="text-muted-foreground">
-            Crie imagens únicas com inteligência artificial — descreva e a IA materializa sua visão
-          </p>
+    <div className="min-h-screen bg-[#0c0c0f] text-white">
+      {/* ── Page Header ── */}
+      <div className="border-b border-white/8 bg-[#0f0f13]/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base font-semibold text-white">Gerador com IA</h1>
+              <p className="text-[11px] text-white/40">Imagens &amp; Vídeos — múltiplos providers</p>
+            </div>
+          </div>
+
+          {/* Tab switcher */}
+          <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10">
+            <button
+              type="button"
+              onClick={() => { setActiveTab('image'); setError(null); }}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === 'image'
+                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              Imagens
+            </button>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('video'); setError(null); }}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === 'video'
+                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              <Film className="h-3.5 w-3.5" />
+              Vídeos
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-        {/* Left Column: Config + Prompt (2/5 width) */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Provider & Model */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-serif flex items-center gap-2">
-                <Wand2 className="h-4 w-4 text-accent" />
-                Provedor & Modelo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>IA (Provedor)</Label>
-                <Select
-                  value={selectedProvider}
-                  onValueChange={(val) => {
-                    setSelectedProvider(val);
-                    const prov = imageProviders.find(p => p.key === val);
-                    if (prov) {
-                      setSelectedModel(prov.models.length > 0 ? prov.models[0].modelKey : '');
-                    }
-                  }}
-                  disabled={imageProviders.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={imageProviders.length === 0 ? 'Nenhum provedor com modelo de imagem' : 'Selecione o provedor'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {imageProviders.map(p => (
-                      <SelectItem key={p.key} value={p.key}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+      {/* ── Main Layout ── */}
+      <div className="max-w-screen-2xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-5 items-start">
+
+        {/* ─── LEFT PANEL ────────────────────────────────────────────────────────── */}
+        <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0 space-y-4">
+
+          {/* Provider Selection */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+              Provedor de IA
+            </h3>
+            {activeProviders.length === 0 ? (
+              <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2.5">
+                <Info className="h-3.5 w-3.5 shrink-0" />
+                Nenhum provedor com modelos de {activeTab === 'image' ? 'imagem' : 'vídeo'} habilitado.
+                Configure em Admin → IA.
               </div>
-
-              <div className="space-y-2">
-                <Label>Modelo</Label>
-                <Select
-                  value={selectedModel}
-                  onValueChange={setSelectedModel}
-                  disabled={!currentProvider || currentModels.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={currentModels.length === 0 ? 'Nenhum modelo' : 'Selecione o modelo'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentModels.map(m => (
-                      <SelectItem key={m.modelKey} value={m.modelKey}>{m.displayName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Prompt Builder */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-serif flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-accent" />
-                Construtor de Prompt
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Accordion type="single" collapsible defaultValue="step-1" className="w-full">
-
-                {/* Step 1: Base Image */}
-                <AccordionItem value="step-1">
-                  <AccordionTrigger className="text-sm font-medium">1. Imagem Base (Opcional)</AccordionTrigger>
-                  <AccordionContent className="space-y-4 pt-2">
-                    <div className="space-y-2">
-                      <Label className="text-xs">Imagem de Referência</Label>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        className="hidden"
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImageUpload(file);
-                        }}
-                      />
-                      {referenceImagePreview ? (
-                        <div className="relative group w-full rounded-xl border border-border overflow-hidden bg-muted/30">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={referenceImagePreview}
-                            alt="Imagem de referência"
-                            className="w-full h-40 object-contain"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleRemoveImage}
-                            className="absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
-                            title="Remover imagem"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => fileInputRef.current?.click()}
-                          onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
-                          onDrop={handleDrop}
-                          onDragOver={e => e.preventDefault()}
-                          className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed border-border hover:border-accent hover:bg-accent/5 cursor-pointer transition-all text-muted-foreground hover:text-accent"
-                        >
-                          <Upload className="h-6 w-6" />
-                          <span className="text-xs">Clique ou arraste uma imagem aqui</span>
-                          <span className="text-[10px] opacity-60">PNG, JPEG, WEBP — máx. 10MB</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {referenceImageBase64 && !modelSupportsImg2Img && (
-                      <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                        <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-                        <span>
-                          O modelo <strong>{selectedModel}</strong> não suporta edição de imagem (img2img).
-                          A imagem de referência será <strong>ignorada</strong> e apenas o prompt será usado.
-                          Modelos que suportam imagem + prompt: <strong>gpt-image-1</strong> (OpenAI),{' '}
-                          <strong>Gemini Flash Image</strong> (Gemini),{' '}
-                          <strong>FLUX Kontext</strong> / <strong>FLUX img2img</strong> (fal.ai),{' '}
-                          <strong>Gemini Image</strong> (OpenRouter).
-                        </span>
-                      </div>
-                    )}
-
-                    {referenceImageBase64 && (
-                      <div className="space-y-2">
-                        <Label className="text-xs">Intenção de Edição</Label>
-                        <Select value={editIntent} onValueChange={setEditIntent}>
-                          <SelectTrigger className="h-9 text-xs">
-                            <SelectValue placeholder="O que deseja fazer com a imagem?" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Manter a estrutura e alterar o estilo">Alterar Estilo</SelectItem>
-                            <SelectItem value="Alterar o fundo da imagem">Alterar Fundo</SelectItem>
-                            <SelectItem value="Criar uma variação semelhante">Criar Variação</SelectItem>
-                            <SelectItem value="Transformar em personagem/avatar">Transformar em Avatar</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-
-                {/* Step 2: Elements */}
-                <AccordionItem value="step-2">
-                  <AccordionTrigger className="text-sm font-medium">2. Elementos da Imagem</AccordionTrigger>
-                  <AccordionContent className="space-y-3 pt-2">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Sujeito Principal</Label>
-                      <Input
-                        placeholder="Ex: Um cachorro golden retriever, Uma mulher jovem..."
-                        value={subject} onChange={e => setSubject(e.target.value)}
-                        className="h-9 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Ação / Atividade</Label>
-                      <Input
-                        placeholder="Ex: correndo no parque, tomando café..."
-                        value={action} onChange={e => setAction(e.target.value)}
-                        className="h-9 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Cenário / Fundo</Label>
-                      <Input
-                        placeholder="Ex: em uma floresta mágica, estúdio com fundo branco..."
-                        value={setting} onChange={e => setSetting(e.target.value)}
-                        className="h-9 text-xs"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Expressão / Pose</Label>
-                        <Input
-                          placeholder="Ex: sorrindo, de perfil..."
-                          value={expression} onChange={e => setExpression(e.target.value)}
-                          className="h-9 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Elementos Secundários</Label>
-                        <Input
-                          placeholder="Ex: usando óculos, pássaros voando..."
-                          value={secondaryElements} onChange={e => setSecondaryElements(e.target.value)}
-                          className="h-9 text-xs"
-                        />
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                {/* Step 3: Style */}
-                <AccordionItem value="step-3">
-                  <AccordionTrigger className="text-sm font-medium">3. Estilo e Visual</AccordionTrigger>
-                  <AccordionContent className="space-y-3 pt-2">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Estilo Artístico</Label>
-                        <Select value={artStyle} onValueChange={setArtStyle}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
-                            <SelectItem value="Pintura a óleo">Pintura a óleo</SelectItem>
-                            <SelectItem value="Aquarela">Aquarela</SelectItem>
-                            <SelectItem value="Pixel Art">Pixel Art</SelectItem>
-                            <SelectItem value="Ilustração 2D">Ilustração 2D</SelectItem>
-                            <SelectItem value="Anime / Mangá">Anime / Mangá</SelectItem>
-                            <SelectItem value="3D Render (Unreal Engine)">3D Render</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Estilo Fotográfico</Label>
-                        <Select value={photoStyle} onValueChange={setPhotoStyle}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
-                            <SelectItem value="Retrato de estúdio">Retrato de estúdio</SelectItem>
-                            <SelectItem value="Foto Polaroid">Foto Polaroid</SelectItem>
-                            <SelectItem value="Macro (Close-up extremo)">Macro</SelectItem>
-                            <SelectItem value="Fotografia de rua">Fotografia de rua</SelectItem>
-                            <SelectItem value="Cinematic (Estilo cinema)">Cinematic</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Temática Visual</Label>
-                      <Select value={theme} onValueChange={setTheme}>
-                        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">Nenhuma</SelectItem>
-                          <SelectItem value="Cyberpunk">Cyberpunk</SelectItem>
-                          <SelectItem value="Steampunk">Steampunk</SelectItem>
-                          <SelectItem value="Retrô Anos 90">Retrô Anos 90</SelectItem>
-                          <SelectItem value="Sci-Fi Futurista">Sci-Fi Futurista</SelectItem>
-                          <SelectItem value="Fantasia Épica">Fantasia Épica</SelectItem>
-                          <SelectItem value="Minimalista">Minimalista</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                {/* Step 4: Composition */}
-                <AccordionItem value="step-4">
-                  <AccordionTrigger className="text-sm font-medium">4. Composição e Qualidade</AccordionTrigger>
-                  <AccordionContent className="space-y-3 pt-2">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Ângulo da Câmera</Label>
-                        <Select value={cameraAngle} onValueChange={setCameraAngle}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Padrão" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Padrão</SelectItem>
-                            <SelectItem value="Visão frontal">Frontal</SelectItem>
-                            <SelectItem value="Visão de cima (Top-down)">De cima</SelectItem>
-                            <SelectItem value="Visão de baixo (Low angle)">De baixo</SelectItem>
-                            <SelectItem value="Plano geral (Wide shot)">Plano geral</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Foco e Profundidade</Label>
-                        <Select value={focus} onValueChange={setFocus}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Padrão" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Padrão</SelectItem>
-                            <SelectItem value="Fundo desfocado (Bokeh)">Fundo desfocado</SelectItem>
-                            <SelectItem value="Foco nítido em toda a cena">Foco total</SelectItem>
-                            <SelectItem value="Foco no rosto">Foco no rosto</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Nível de Detalhe</Label>
-                        <Select value={detailLevel} onValueChange={setDetailLevel}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Padrão" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">Padrão</SelectItem>
-                            <SelectItem value="Fotorrealista, alta definição">Fotorrealista</SelectItem>
-                            <SelectItem value="Altamente detalhado, 8k">Altamente detalhado</SelectItem>
-                            <SelectItem value="Traços simples, rascunho">Traços simples</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Dimensão (Proporção)</Label>
-                        <Select value={selectedSize} onValueChange={setSelectedSize}>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {imageSizeOptions.map(s => (
-                              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-
-          {/* Final Prompt Area */}
-          <Card className="border-accent/20 bg-accent/5">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-serif flex items-center gap-2">
-                  Prompt Final
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="auto-update" className="text-[10px] text-muted-foreground cursor-pointer">Auto-atualizar</Label>
-                  <input
-                    id="auto-update"
-                    type="checkbox"
-                    checked={isAutoUpdating}
-                    onChange={(e) => setIsAutoUpdating(e.target.checked)}
-                    className="rounded border-input"
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {activeProviders.map(p => (
+                  <ProviderBadge
+                    key={p.key}
+                    provider={p}
+                    selected={selectedProvider === p.key}
+                    onClick={() => handleSelectProvider(p.key)}
                   />
-                </div>
+                ))}
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <textarea
-                ref={promptRef}
-                value={prompt}
-                onChange={e => {
-                  setPrompt(e.target.value);
-                  if (isAutoUpdating) setIsAutoUpdating(false); // Disable auto-update if user manually edits
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="O prompt gerado aparecerá aqui. Você pode editá-livremente..."
-                className="w-full min-h-[120px] p-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-y leading-relaxed"
-              />
+            )}
+          </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Prompt Negativo (Opcional)</Label>
-                <Input
-                  value={negativePrompt}
-                  onChange={e => setNegativePrompt(e.target.value)}
-                  placeholder="O que evitar: baixa qualidade, desfocado, texto..."
-                  className="h-9 text-xs bg-background"
-                />
+          {/* Model Selection */}
+          {currentProvider && sortedModels.length > 0 && (
+            <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                  Modelo
+                </h3>
+                <span className="text-[10px] text-white/30">
+                  {sortedModels.filter(m => isModelFree(selectedProvider, m.modelKey)).length} grátis
+                </span>
               </div>
-
-              {/* Generate Button */}
-              <Button
-                className="w-full py-6 text-base font-medium mt-2"
-                onClick={handleGenerate}
-                disabled={isGenerating || !prompt.trim()}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    {referenceImageBase64 ? 'Processando imagem...' : 'Gerando imagem...'}
-                  </>
-                ) : referenceImageBase64 ? (
-                  <>
-                    <Wand2 className="mr-2 h-5 w-5" />
-                    Processar Imagem
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="mr-2 h-5 w-5" />
-                    Gerar Imagem
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Generation info */}
-          {result && (
-            <div className="px-4 py-3 rounded-xl bg-muted/50 border border-border text-xs text-muted-foreground space-y-1">
-              <div className="flex justify-between">
-                <span>Provedor</span>
-                <span className="font-medium text-foreground">{result.providerUsed}</span>
+              <div className="space-y-1.5">
+                {displayedModels.map(m => (
+                  <ModelCard
+                    key={m.modelKey}
+                    model={m}
+                    selected={selectedModel === m.modelKey}
+                    providerKey={selectedProvider}
+                    onClick={() => setSelectedModel(m.modelKey)}
+                  />
+                ))}
               </div>
-              <div className="flex justify-between">
-                <span>Modelo</span>
-                <span className="font-medium text-foreground">{result.modelUsed}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tempo</span>
-                <span className="font-medium text-foreground">{(result.durationMs / 1000).toFixed(1)}s</span>
-              </div>
-              {sizeOption && (
-                <div className="flex justify-between">
-                  <span>Dimensão</span>
-                  <span className="font-medium text-foreground">{sizeOption.width} x {sizeOption.height}</span>
-                </div>
+              {sortedModels.length > 6 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllModels(v => !v)}
+                  className="mt-2.5 w-full flex items-center justify-center gap-1.5 text-[11px] text-white/40 hover:text-white/70 transition-colors py-1"
+                >
+                  {showAllModels ? (
+                    <><ChevronDown className="h-3 w-3" /> Mostrar menos</>
+                  ) : (
+                    <><ChevronRight className="h-3 w-3" /> Ver todos os {sortedModels.length} modelos</>
+                  )}
+                </button>
               )}
             </div>
           )}
+
+          {/* Prompt */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                {activeTab === 'image' ? 'Descrição da Imagem' : 'Descrição do Vídeo'}
+              </h3>
+              <span className="text-[10px] text-white/30">Ctrl+Enter para gerar</span>
+            </div>
+            <textarea
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                activeTab === 'image'
+                  ? 'Descreva a imagem que deseja criar em detalhes...\nEx: "Retrato profissional de mulher executiva, fundo desfocado, iluminação natural"'
+                  : 'Descreva o vídeo que deseja criar...\nEx: "Câmera lenta, flores abrindo ao amanhecer, luz dourada"'
+              }
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/40 resize-none leading-relaxed transition-all"
+            />
+
+            {/* Prompt suggestions */}
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {(activeTab === 'image' ? IMAGE_SUGGESTIONS : VIDEO_SUGGESTIONS).slice(0, 3).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setPrompt(s)}
+                  className="text-[10px] text-white/35 hover:text-white/65 bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 rounded-lg px-2.5 py-1 transition-all text-left line-clamp-1 max-w-[130px]"
+                  title={s}
+                >
+                  {s.split(',')[0]}...
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reference Image */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+              {activeTab === 'image' ? 'Imagem de Referência' : 'Imagem para Animar'}
+              <span className="ml-1.5 text-[10px] font-normal text-white/25 normal-case">Opcional</span>
+            </h3>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }}
+            />
+            {referenceImagePreview ? (
+              <div className="relative group rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={referenceImagePreview}
+                  alt="Referência"
+                  className="w-full h-32 object-contain"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={handleRemoveReference}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/80 hover:bg-red-500 text-white text-xs font-medium transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" /> Remover
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+                onDrop={handleDrop}
+                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                className={`flex flex-col items-center justify-center gap-2 h-24 rounded-xl border-2 border-dashed cursor-pointer transition-all ${
+                  isDragging
+                    ? 'border-violet-500/60 bg-violet-500/10 text-violet-400'
+                    : 'border-white/15 hover:border-violet-500/40 hover:bg-violet-500/5 text-white/30 hover:text-white/60'
+                }`}
+              >
+                <Upload className="h-5 w-5" />
+                <span className="text-xs">Arraste ou clique para enviar</span>
+                <span className="text-[10px] opacity-60">PNG, JPEG, WEBP — máx 10MB</span>
+              </div>
+            )}
+            {activeTab === 'image' && referenceImageBase64 && (
+              <p className="mt-2 text-[10px] text-white/35 leading-relaxed">
+                💡 Alguns modelos usam esta imagem como base para edição (img2img).
+                Modelos que não suportam ignorarão a referência.
+              </p>
+            )}
+            {activeTab === 'video' && referenceImageBase64 && (
+              <p className="mt-2 text-[10px] text-emerald-400/70 leading-relaxed">
+                ✅ Imagem carregada! Ela será animada pelo modelo de vídeo.
+              </p>
+            )}
+          </div>
+
+          {/* Advanced Options */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(v => !v)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
+            >
+              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                Opções Avançadas
+              </h3>
+              <ChevronDown className={`h-4 w-4 text-white/30 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showAdvanced && (
+              <div className="px-5 pb-5 space-y-4 border-t border-white/8">
+                <div className="pt-4" />
+
+                {activeTab === 'image' && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[11px] text-white/40 font-medium">Dimensão</label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {imageSizeOptions.map(s => (
+                          <button
+                            key={s.value}
+                            type="button"
+                            onClick={() => setSelectedSize(s.value)}
+                            className={`px-3 py-2 rounded-lg text-xs border transition-all ${
+                              selectedSize === s.value
+                                ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80'
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="text-[11px] text-white/40 font-medium">Estilo</label>
+                        <div className="flex gap-1.5">
+                          {['vivid', 'natural'].map(v => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => setStyle(v)}
+                              className={`flex-1 py-2 rounded-lg text-xs border transition-all capitalize ${
+                                style === v
+                                  ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                  : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+                              }`}
+                            >
+                              {v === 'vivid' ? 'Vívido' : 'Natural'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] text-white/40 font-medium">Qualidade</label>
+                        <div className="flex gap-1.5">
+                          {['standard', 'hd'].map(v => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => setQuality(v)}
+                              className={`flex-1 py-2 rounded-lg text-xs border transition-all uppercase ${
+                                quality === v
+                                  ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                  : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+                              }`}
+                            >
+                              {v === 'standard' ? 'Padrão' : 'HD'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {activeTab === 'video' && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[11px] text-white/40 font-medium">Proporção</label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {videoAspectRatioOptions.map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setAspectRatio(opt.value)}
+                            className={`py-2 rounded-lg text-xs border transition-all ${
+                              aspectRatio === opt.value
+                                ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+                            }`}
+                          >
+                            {opt.value}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[11px] text-white/40 font-medium">Duração</label>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {videoDurationOptions.map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setDuration(opt.value)}
+                            className={`py-2 rounded-lg text-xs border transition-all ${
+                              duration === opt.value
+                                ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-[11px] text-white/40 font-medium">Prompt Negativo</label>
+                  <input
+                    type="text"
+                    value={negativePrompt}
+                    onChange={e => setNegativePrompt(e.target.value)}
+                    placeholder="O que evitar: baixa qualidade, desfocado, texto..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-violet-500/50 transition-all"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Generate Button */}
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={isGenerating || !prompt.trim() || !selectedModel}
+            className={`w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-sm font-semibold transition-all duration-200 ${
+              isGenerating || !prompt.trim() || !selectedModel
+                ? 'bg-white/5 text-white/25 cursor-not-allowed'
+                : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 active:scale-[0.98]'
+            }`}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {activeTab === 'image' ? 'Gerando imagem...' : 'Gerando vídeo...'}
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4" />
+                {activeTab === 'image'
+                  ? (referenceImageBase64 ? 'Processar Imagem' : 'Gerar Imagem')
+                  : (referenceImageBase64 ? 'Animar Imagem' : 'Gerar Vídeo')
+                }
+              </>
+            )}
+          </button>
+
+          {!prompt.trim() && (
+            <p className="text-center text-[11px] text-white/25">
+              ↑ Escreva um prompt para habilitar o botão
+            </p>
+          )}
         </div>
 
-        {/* Right Column: Result (3/5 width) */}
-        <div className="lg:col-span-3">
-          <Card className="min-h-[600px] overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg font-serif">Resultado</CardTitle>
-              {result && result.images.length > 0 && (
+        {/* ─── RIGHT PANEL ───────────────────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0">
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 overflow-hidden min-h-[600px] flex flex-col">
+
+            {/* Result header */}
+            {hasResult && !isGenerating && (
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                <div className="flex items-center gap-2 text-xs text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Gerado com sucesso
+                </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => {
-                      setLightboxUrl(result.images[0].imageUrl);
-                    }}
-                  >
-                    <ZoomIn className="h-3.5 w-3.5 mr-1.5" />
-                    Ampliar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    asChild
-                  >
+                  {generationMeta && (
+                    <span className="flex items-center gap-1 text-[11px] text-white/30">
+                      <Clock className="h-3 w-3" />
+                      {(generationMeta.ms / 1000).toFixed(1)}s · {generationMeta.provider} · {generationMeta.model}
+                    </span>
+                  )}
+                  {activeTab === 'image' && imageSrc && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setLightboxUrl(imageSrc)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-white/60 hover:text-white bg-white/8 hover:bg-white/12 border border-white/10 transition-all"
+                      >
+                        <ZoomIn className="h-3 w-3" /> Ampliar
+                      </button>
+                      <a
+                        href={imageSrc}
+                        download={`diax-image-${Date.now()}.png`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-white/60 hover:text-white bg-white/8 hover:bg-white/12 border border-white/10 transition-all"
+                      >
+                        <Download className="h-3 w-3" /> Download
+                      </a>
+                    </div>
+                  )}
+                  {activeTab === 'video' && videoResult?.videoUrl && (
                     <a
-                      href={result.images[0].imageUrl}
-                      download={`diax-image-${Date.now()}.png`}
+                      href={videoResult.videoUrl}
+                      download={`diax-video-${Date.now()}.mp4`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-white/60 hover:text-white bg-white/8 hover:bg-white/12 border border-white/10 transition-all"
                     >
-                      <Download className="h-3.5 w-3.5 mr-1.5" />
-                      Download
+                      <Download className="h-3 w-3" /> Baixar Vídeo
                     </a>
-                  </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Content area */}
+            <div className="flex-1 flex flex-col items-center justify-center p-6">
+
+              {/* ── Error ── */}
+              {error && !isGenerating && (
+                <div className="w-full max-w-lg">
+                  <div className="rounded-2xl bg-red-500/10 border border-red-500/20 p-6 text-center space-y-4">
+                    <div className="h-12 w-12 mx-auto rounded-2xl bg-red-500/20 flex items-center justify-center">
+                      <AlertCircle className="h-6 w-6 text-red-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-red-300 mb-1">Ops! Algo deu errado</p>
+                      <p className="text-sm text-red-400/80 leading-relaxed">{error}</p>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleGenerate}
+                        disabled={!prompt.trim() || !selectedModel}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm font-medium border border-red-500/30 transition-all"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" /> Tentar Novamente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setError(null)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-white/50 text-sm border border-white/10 transition-all"
+                      >
+                        <X className="h-3.5 w-3.5" /> Fechar
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
-            </CardHeader>
-            <CardContent>
-              {error ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 bg-destructive/10 rounded-xl border border-destructive/20 text-destructive">
-                  <AlertCircle className="h-10 w-10" />
-                  <div className="space-y-1">
-                    <p className="font-semibold">Erro na geração</p>
-                    <p className="text-sm opacity-90">{error}</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={handleGenerate} className="mt-2">
-                    Tentar Novamente
-                  </Button>
-                </div>
-              ) : isGenerating ? (
-                <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6">
-                  {/* Animated generation indicator */}
+
+              {/* ── Generating ── */}
+              {isGenerating && (
+                <div className="w-full flex flex-col items-center justify-center gap-8 py-12">
+                  {/* Animated orb */}
                   <div className="relative">
-                    <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-accent/20 to-accent-secondary/20 flex items-center justify-center">
-                      <Wand2 className="h-10 w-10 text-accent animate-pulse" />
+                    <div className="h-28 w-28 rounded-3xl bg-gradient-to-br from-violet-500/30 to-indigo-600/30 flex items-center justify-center border border-violet-500/20">
+                      <Wand2 className="h-12 w-12 text-violet-400" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
                     </div>
-                    <div className="absolute -inset-2 rounded-3xl border-2 border-accent/20 animate-ping" style={{ animationDuration: '2s' }} />
+                    <div className="absolute -inset-3 rounded-[2rem] border-2 border-violet-500/15"
+                      style={{ animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' }} />
+                    <div className="absolute -inset-6 rounded-[2.5rem] border border-violet-500/8"
+                      style={{ animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite', animationDelay: '0.5s' }} />
                   </div>
-                  <div className="text-center space-y-2">
-                    <p className="font-medium text-foreground">Criando sua imagem...</p>
-                    <p className="text-sm text-muted-foreground">
-                      Isso pode levar de 5 a 30 segundos dependendo do provedor
+
+                  {/* Message */}
+                  <div className="text-center space-y-2 max-w-sm">
+                    <p className="text-base font-medium text-white">
+                      {currentLoadingMessages[loadingMsgIdx]}
+                    </p>
+                    <p className="text-sm text-white/40">
+                      {activeTab === 'video'
+                        ? 'Vídeos podem levar de 30 segundos a 5 minutos'
+                        : 'Imagens ficam prontas em 5 a 30 segundos'
+                      }
                     </p>
                   </div>
-                  {/* Animated progress dots */}
-                  <div className="flex gap-1.5">
+
+                  {/* Timer */}
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                    <Clock className="h-3.5 w-3.5 text-white/40" />
+                    <span className="text-xs text-white/50 font-mono">{formatSeconds(elapsedSecs)}</span>
+                  </div>
+
+                  {/* Progress dots */}
+                  <div className="flex gap-2">
                     {[0, 1, 2, 3, 4].map(i => (
                       <div
                         key={i}
-                        className="h-1.5 w-1.5 rounded-full bg-accent"
+                        className="h-1.5 w-1.5 rounded-full bg-violet-500"
                         style={{
-                          animation: 'pulse 1.4s ease-in-out infinite',
+                          animation: 'pulse 1.5s ease-in-out infinite',
                           animationDelay: `${i * 0.2}s`,
                         }}
                       />
                     ))}
                   </div>
                 </div>
-              ) : result && result.images.length > 0 ? (
-                <div className="space-y-4">
-                  {result.images.map((img, index) => {
-                    // imageUrl from backend is always a complete URL or full data-URL
-                    // (e.g. "https://..." for OpenAI/fal.ai, "data:image/png;base64,..." for Gemini/Imagen)
-                    const src = img.imageUrl;
+              )}
 
-                    return (
-                      <div key={index} className="relative group">
-                        <div
-                          className="rounded-xl overflow-hidden border border-border/50 cursor-pointer bg-muted/30"
-                          onClick={() => setLightboxUrl(src)}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={src}
-                            alt={img.revisedPrompt || prompt}
-                            className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
-                            style={{ maxHeight: '70vh' }}
-                          />
-                        </div>
-
-                        {/* Revised prompt display */}
-                        {img.revisedPrompt && img.revisedPrompt !== prompt && (
-                          <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border/50">
-                            <p className="text-xs text-muted-foreground mb-1 font-medium">Prompt revisado pela IA:</p>
-                            <p className="text-xs text-foreground/80 leading-relaxed">{img.revisedPrompt}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* Empty state */
-                <div className="flex flex-col items-center justify-center min-h-[500px] text-center p-8 space-y-6">
-                  <div className="relative">
-                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                      <ImageIcon className="h-9 w-9 text-muted-foreground/60" />
+              {/* ── Image Result ── */}
+              {!isGenerating && !error && activeTab === 'image' && imageSrc && (
+                <div className="w-full space-y-4">
+                  <div
+                    className="rounded-2xl overflow-hidden border border-white/10 cursor-zoom-in group"
+                    onClick={() => setLightboxUrl(imageSrc)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageSrc}
+                      alt={revisedPrompt ?? prompt}
+                      className="w-full h-auto object-contain max-h-[70vh] transition-transform duration-300 group-hover:scale-[1.01]"
+                    />
+                  </div>
+                  {revisedPrompt && revisedPrompt !== prompt && (
+                    <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+                      <p className="text-[11px] text-white/40 mb-1 font-medium uppercase tracking-wider">Prompt revisado pela IA</p>
+                      <p className="text-xs text-white/60 leading-relaxed">{revisedPrompt}</p>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Video Result ── */}
+              {!isGenerating && !error && activeTab === 'video' && videoResult?.videoUrl && (
+                <div className="w-full space-y-4">
+                  <div className="rounded-2xl overflow-hidden border border-white/10 bg-black">
+                    <video
+                      controls
+                      src={videoResult.videoUrl}
+                      poster={videoResult.thumbnailUrl}
+                      className="w-full max-h-[70vh]"
+                    >
+                      Seu navegador não suporta reprodução de vídeo.
+                    </video>
                   </div>
-                  <div className="space-y-2 max-w-xs">
-                    <p className="font-medium text-foreground">Sua imagem aparecerá aqui</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Descreva o que deseja no prompt ao lado e clique em &ldquo;Gerar Imagem&rdquo; para começar.
-                    </p>
-                  </div>
-                  {/* Prompt suggestions */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
-                    {[
-                      'Foto profissional de retrato corporativo',
-                      'Paisagem montanhosa ao pôr do sol',
-                      'Design abstrato minimalista moderno',
-                      'Produto em cenário lifestyle elegante',
-                    ].map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        type="button"
-                        onClick={() => {
-                          setPrompt(suggestion);
-                          setIsAutoUpdating(false); // Prevent builder fields from overwriting suggestion
-                        }}
-                        className="px-3 py-2.5 text-xs text-left text-muted-foreground rounded-lg border border-border/50 bg-muted/30 hover:bg-muted/60 hover:text-foreground hover:border-border transition-all"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-center">
+                    <a
+                      href={videoResult.videoUrl}
+                      download={`diax-video-${Date.now()}.mp4`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 text-sm font-medium border border-violet-500/30 transition-all"
+                    >
+                      <Download className="h-4 w-4" /> Baixar Vídeo em MP4
+                    </a>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+
+              {/* ── Empty State ── */}
+              {!isGenerating && !error && !hasResult && (
+                <div className="w-full flex flex-col items-center justify-center gap-8 py-16 text-center">
+                  {/* Icon */}
+                  <div className="relative">
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-violet-500/15 to-indigo-600/15 border border-violet-500/15 flex items-center justify-center">
+                      {activeTab === 'image'
+                        ? <ImageIcon className="h-9 w-9 text-violet-500/50" />
+                        : <Film className="h-9 w-9 text-violet-500/50" />
+                      }
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-w-sm">
+                    <p className="text-base font-medium text-white/60">
+                      {activeTab === 'image' ? 'Sua imagem aparecerá aqui' : 'Seu vídeo aparecerá aqui'}
+                    </p>
+                    <p className="text-sm text-white/30 leading-relaxed">
+                      {activeTab === 'image'
+                        ? 'Escolha um provider, selecione um modelo e descreva sua ideia no prompt ao lado.'
+                        : 'Escolha um provider de vídeo, selecione um modelo e descreva o vídeo que deseja criar.'
+                      }
+                    </p>
+                  </div>
+
+                  {/* Quick suggestions */}
+                  <div className="w-full max-w-md space-y-2">
+                    <p className="text-[11px] text-white/25 font-medium uppercase tracking-wider">Sugestões rápidas</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(activeTab === 'image' ? IMAGE_SUGGESTIONS : VIDEO_SUGGESTIONS).map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setPrompt(s)}
+                          className="text-xs text-left text-white/40 hover:text-white/70 bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 rounded-xl px-4 py-3 transition-all leading-relaxed"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Provider summary */}
+                  {activeProviders.length > 0 && (
+                    <div className="w-full max-w-md">
+                      <p className="text-[11px] text-white/25 font-medium uppercase tracking-wider mb-2">
+                        {activeProviders.length} provedores disponíveis
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-1.5">
+                        {activeProviders.map(p => {
+                          const freeCount = p.models.filter(m =>
+                            m.isEnabled &&
+                            (activeTab === 'image' ? m.supportsImage : m.supportsVideo) &&
+                            isModelFree(p.key, m.modelKey)
+                          ).length;
+                          return (
+                            <span key={p.key} className="text-[10px] text-white/30 bg-white/5 border border-white/8 rounded-lg px-2.5 py-1">
+                              {p.name}
+                              {freeCount > 0 && (
+                                <span className="ml-1 text-emerald-500/70">·{freeCount} grátis</span>
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Lightbox overlay */}
+      {/* ── Lightbox ── */}
       {lightboxUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md"
           onClick={() => setLightboxUrl(null)}
         >
           <button
             type="button"
-            className="absolute top-6 right-6 text-white/80 hover:text-white transition-colors"
             onClick={() => setLightboxUrl(null)}
+            className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
           >
-            <X className="h-8 w-8" />
+            <X className="h-5 w-5" />
           </button>
+          <a
+            href={lightboxUrl}
+            download={`diax-image-${Date.now()}.png`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute top-6 right-20 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            onClick={e => e.stopPropagation()}
+          >
+            <Download className="h-4 w-4" />
+          </a>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightboxUrl}
-            alt="Imagem ampliada"
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
+            alt="Visualização"
+            className="max-w-[92vw] max-h-[92vh] object-contain rounded-2xl shadow-2xl"
             onClick={e => e.stopPropagation()}
           />
         </div>

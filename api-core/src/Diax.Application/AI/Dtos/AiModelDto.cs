@@ -10,5 +10,6 @@ public record AiModelDto(
     decimal? OutputCostHint,
     int? MaxTokensHint,
     bool SupportsImage,
-    bool SupportsText
+    bool SupportsText,
+    bool SupportsVideo
 );

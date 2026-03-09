@@ -235,7 +235,8 @@ public class AiCatalogService : IAiCatalogService
             model.OutputCostHint,
             model.MaxTokensHint,
             model.SupportsImageGeneration(),
-            model.SupportsTextGeneration()
+            model.SupportsTextGeneration(),
+            model.SupportsVideoGeneration()
         );
     }
 }

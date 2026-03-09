@@ -85,12 +85,143 @@ public class AiModel : AuditableEntity
         "fal-ai/fast-sdxl/image-to-image",
         "fal-ai/ideogram/v2/remix",
         // Note: fal-ai/luma-dream-machine is a VIDEO model — intentionally excluded
+
+        // Grok / xAI — image generation (free tier available)
+        "grok-2-image-1212",
+        "grok-2-aurora",
+        "aurora",
+
+        // HuggingFace — free text-to-image models (FLUX)
+        "black-forest-labs/FLUX.1-schnell",
+        "black-forest-labs/FLUX.1-dev",
+        "black-forest-labs/FLUX.1-kontext-dev",
+        "black-forest-labs/FLUX.2-dev",
+        "black-forest-labs/FLUX.2-max",
+        "black-forest-labs/FLUX.2-flex",
+
+        // HuggingFace — Stable Diffusion family
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        "stabilityai/stable-diffusion-xl-refiner-1.0",
+        "runwayml/stable-diffusion-v1-5",
+        "stabilityai/stable-diffusion-3-medium-diffusers",
+        "stabilityai/stable-diffusion-3.5-large",
+        "stabilityai/stable-diffusion-3.5-medium",
+        "stabilityai/stable-diffusion-3.5-large-turbo",
+
+        // HuggingFace — ByteDance Hyper-SD (very fast)
+        "ByteDance/Hyper-SD",
+        "ByteDance/Hyper-SDXL",
+
+        // HuggingFace — DeepFloyd IF (great for text in images)
+        "deepfloyd/IF-I-XL-v1.0",
+        "deepfloyd/IF",
+
+        // HuggingFace — Qwen Image
+        "Qwen/Qwen-Image",
+        "Qwen/Qwen-Image-2512",
+        "Qwen/Qwen-Image-Edit",
+
+        // HuggingFace — Z-Image (Tongyi-MAI / Alibaba)
+        "Tongyi-MAI/Z-Image",
+        "Tongyi-MAI/Z-Image-Turbo",
+        "Tongyi-MAI/Z-Image-Edit",
+
+        // HuggingFace — GLM Image (ZhipuAI)
+        "zai-org/glm-image",
+        "THUDM/glm-image",
+
+        // HuggingFace — Tencent Hunyuan Image
+        "tencent/Hunyuan-DiT",
+        "tencent/HunyuanImage-2.1",
+        "tencent/HunyuanImage-3",
+        "tencent/HunyuanImage",
+
+        // HuggingFace — HiDream Image
+        "HiDream-ai/HiDream-I1",
+        "HiDream-ai/HiDream-I1-Fast",
+        "HiDream-ai/HiDream-I1-Dev",
+    };
+
+    // Well-known video generation model keys (text-to-video and image-to-video via fal.ai)
+    private static readonly HashSet<string> KnownVideoModelKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Fal.ai — Kling video models
+        "fal-ai/kling-video/v2.1/standard/text-to-video",
+        "fal-ai/kling-video/v2.1/standard/image-to-video",
+        "fal-ai/kling-video/v1.6/pro/text-to-video",
+        "fal-ai/kling-video/v1.6/pro/image-to-video",
+        "fal-ai/kling-video/v1.5/pro/text-to-video",
+        "fal-ai/kling-video/v1.5/pro/image-to-video",
+
+        // Fal.ai — WAN video models
+        "fal-ai/wan/v1.3/text-to-video",
+        "fal-ai/wan/v1.3/image-to-video",
+        "fal-ai/wan-i2v",
+        "fal-ai/wan-t2v",
+
+        // Fal.ai — Luma Dream Machine
+        "fal-ai/luma-dream-machine",
+        "fal-ai/luma-dream-machine/image-to-video",
+        "fal-ai/luma-photon",
+        "fal-ai/luma-photon/flash",
+
+        // Fal.ai — Minimax video
+        "fal-ai/minimax/video-01",
+        "fal-ai/minimax/video-01-live",
+
+        // Fal.ai — CogVideoX
+        "fal-ai/cogvideox-5b",
+
+        // Fal.ai — other video models
+        "fal-ai/hunyuan-video",
+        "fal-ai/hunyuan-video-image-to-video",
+        "fal-ai/mochi-v1",
+
+        // Fal.ai — LTX Video (Lightricks)
+        "fal-ai/ltx-video",
+        "fal-ai/ltx-video/image-to-video",
+
+        // Fal.ai — CogVideoX (THUDM)
+        "fal-ai/cogvideox-5b-img2vid",
+
+        // HuggingFace / HF-based — Stable Video Diffusion
+        "stabilityai/stable-video-diffusion-img2vid",
+        "stabilityai/stable-video-diffusion-img2vid-xt",
+        "stabilityai/stable-video-diffusion",
+        "stabilityai/svd-xt",
+
+        // HuggingFace — CogVideoX
+        "THUDM/CogVideoX-5B",
+        "THUDM/CogVideoX-2B",
+        "THUDM/CogVideoX-1.5",
+
+        // HuggingFace — LTX-Video (Lightricks)
+        "Lightricks/LTX-Video",
+
+        // HuggingFace — Stable Video Diffusion (short aliases)
+        "stabilityai/svd",
+        "stabilityai/stable-video-diffusion-img2vid",
+
+        // HuggingFace — Wan video models
+        "Wan-AI/Wan2.1-T2V-14B",
+        "Wan-AI/Wan2.1-I2V-14B",
+        "Wan-AI/Wan2.1-T2V-1.3B",
+
+        // HuggingFace — VideoCrafter
+        "VideoCrafter/VideoCrafter2",
+        "VideoCrafter/VideoCrafter1",
+        "THUDM/VideoCrafter2",
     };
 
     public bool SupportsImageGeneration() =>
         KnownImageModelKeys.Contains(ModelKey) ||
         (!string.IsNullOrEmpty(CapabilitiesJson) &&
          CapabilitiesJson.Contains("\"supportsImage\":true", StringComparison.OrdinalIgnoreCase));
+
+    public bool SupportsVideoGeneration() =>
+        KnownVideoModelKeys.Contains(ModelKey) ||
+        (!string.IsNullOrEmpty(CapabilitiesJson) &&
+         CapabilitiesJson.Contains("\"supportsVideo\":true", StringComparison.OrdinalIgnoreCase));
 
     public bool SupportsTextGeneration() =>
         string.IsNullOrEmpty(CapabilitiesJson) ||

@@ -285,6 +285,16 @@ public static class DependencyInjection
         services.AddHttpClient<FalAiImageClient>();
         services.AddScoped<IAiImageGenerationClient, FalAiImageClient>();
 
+        services.AddHttpClient<GrokImageClient>();
+        services.AddScoped<IAiImageGenerationClient, GrokImageClient>();
+
+        services.AddHttpClient<HuggingFaceImageClient>();
+        services.AddScoped<IAiImageGenerationClient, HuggingFaceImageClient>();
+
+        // ===== AI VIDEO GENERATION CLIENTS =====
+        services.AddHttpClient<FalAiVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, FalAiVideoClient>();
+
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
         services.Configure<BrevoSettings>(configuration.GetSection("Brevo"));

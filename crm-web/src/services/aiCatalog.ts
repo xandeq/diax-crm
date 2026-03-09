@@ -11,6 +11,7 @@ export interface AiModel {
   maxTokensHint?: number;
   supportsImage: boolean;
   supportsText: boolean;
+  supportsVideo: boolean;
 }
 
 export interface AiProvider {

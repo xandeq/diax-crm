@@ -72,6 +72,11 @@ promptGeneratorSettings.OpenRouter.ApiKey ??= builder.Configuration["OPENROUTER_
     ?? builder.Configuration["OpenRouter:ApiKey"];
 promptGeneratorSettings.FAL.ApiKey ??= builder.Configuration["FAL_API_KEY"]
     ?? builder.Configuration["FAL:ApiKey"];
+promptGeneratorSettings.Grok.ApiKey ??= builder.Configuration["XAI_API_KEY"]
+    ?? builder.Configuration["Grok:ApiKey"];
+promptGeneratorSettings.HuggingFace.ApiKey ??= builder.Configuration["HF_API_KEY"]
+    ?? builder.Configuration["HUGGINGFACE_API_KEY"]
+    ?? builder.Configuration["HuggingFace:ApiKey"];
 
 builder.Services.AddSingleton(promptGeneratorSettings);
 
