@@ -295,6 +295,9 @@ public static class DependencyInjection
         services.AddHttpClient<FalAiVideoClient>();
         services.AddScoped<IAiVideoGenerationClient, FalAiVideoClient>();
 
+        services.AddHttpClient<HuggingFaceVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, HuggingFaceVideoClient>();
+
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
         services.Configure<BrevoSettings>(configuration.GetSection("Brevo"));
