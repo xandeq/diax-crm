@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace Diax.Infrastructure.Ai;
 
 /// <summary>
-/// Image generation client for Hugging Face Inference API (free tier).
-/// Calls POST https://api-inference.huggingface.co/models/{model_id}
+/// Image generation client for Hugging Face Inference Router API.
+/// Calls POST https://router.huggingface.co/models/{model_id}
 /// Auth: Authorization: Bearer {hf_token}
 /// Response: binary PNG → converted to base64 data URL
 /// Free models: black-forest-labs/FLUX.1-schnell, stabilityai/stable-diffusion-xl-base-1.0, etc.
@@ -48,7 +48,7 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
             throw new InvalidOperationException("API key not configured for Hugging Face.");
 
         var modelId = options.Model;
-        var endpoint = $"https://api-inference.huggingface.co/models/{modelId}";
+        var endpoint = $"https://router.huggingface.co/models/{modelId}";
 
         // HF Inference API accepts JSON with "inputs" key
         var payload = new Dictionary<string, object>

@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace Diax.Infrastructure.Ai;
 
 /// <summary>
-/// Video generation client for Hugging Face Inference API (free tier).
-/// Calls POST https://api-inference.huggingface.co/models/{model_id}
+/// Video generation client for Hugging Face Inference Router API.
+/// Calls POST https://router.huggingface.co/models/{model_id}
 /// Auth: Authorization: Bearer {hf_token}
 /// Response: binary video (MP4/WebM) → returned as data URL
 /// Supported models: damo-vilab/text-to-video-ms-1.7b, stabilityai/stable-video-diffusion-img2vid-xt, etc.
@@ -66,7 +66,7 @@ public class HuggingFaceVideoClient : IAiVideoGenerationClient
             throw new InvalidOperationException("API key not configured for Hugging Face video.");
 
         var modelId = options.Model;
-        var endpoint = $"https://api-inference.huggingface.co/models/{modelId}";
+        var endpoint = $"https://router.huggingface.co/models/{modelId}";
 
         var payload = BuildPayload(modelId, prompt, options, referenceImageBase64);
         var json = JsonSerializer.Serialize(payload);
