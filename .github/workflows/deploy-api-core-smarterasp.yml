@@ -149,8 +149,8 @@ jobs:
                 },
                 "HuggingFace": {
                   "ApiKey": $hfKey,
-                  "BaseUrl": "https://api-inference.huggingface.co",
-                  "Model": "black-forest-labs/FLUX.1-schnell"
+                  "BaseUrl": "https://api-inference.huggingface.co/v1",
+                  "Model": "meta-llama/Meta-Llama-3.1-8B-Instruct"
                 },
                 "FAL": {
                   "ApiKey": $falKey,

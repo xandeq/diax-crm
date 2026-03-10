@@ -280,6 +280,10 @@ public static class DependencyInjection
         services.AddHttpClient<CerebrasClient>();
         services.AddScoped<IAiTextTransformClient, CerebrasClient>();
 
+        // Register HuggingFaceTextClient (text generation via Serverless Inference API)
+        services.AddHttpClient<HuggingFaceTextClient>();
+        services.AddScoped<IAiTextTransformClient, HuggingFaceTextClient>();
+
         // ===== AI IMAGE GENERATION CLIENTS =====
         services.AddHttpClient<OpenAiImageClient>();
         services.AddScoped<IAiImageGenerationClient, OpenAiImageClient>();

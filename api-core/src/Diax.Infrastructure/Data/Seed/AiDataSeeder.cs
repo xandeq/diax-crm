@@ -134,6 +134,14 @@ public static class AiDataSeeder
                 new ModelSeed("Tongyi-MAI/Z-Image-Turbo", "Z-Image Turbo"),
                 new ModelSeed("Tongyi-MAI/Z-Image-Edit",  "Z-Image Edit"),
 
+                // --- Text generation (Serverless Inference API) ---
+                new ModelSeed("meta-llama/Meta-Llama-3.1-8B-Instruct",  "LLaMA 3.1 8B Instruct (gratuito)"),
+                new ModelSeed("meta-llama/Meta-Llama-3.1-70B-Instruct", "LLaMA 3.1 70B Instruct"),
+                new ModelSeed("Qwen/Qwen2.5-72B-Instruct",              "Qwen 2.5 72B Instruct"),
+                new ModelSeed("mistralai/Mistral-7B-Instruct-v0.3",     "Mistral 7B Instruct v0.3 (gratuito)"),
+                new ModelSeed("microsoft/Phi-3.5-mini-instruct",        "Phi 3.5 Mini Instruct (gratuito)"),
+                new ModelSeed("google/gemma-2-9b-it",                   "Gemma 2 9B Instruct (gratuito)"),
+
                 // GLM Image (ZhipuAI)
                 new ModelSeed("zai-org/glm-image", "GLM Image (ZhipuAI)"),
                 new ModelSeed("THUDM/glm-image",   "GLM Image (THUDM)"),
