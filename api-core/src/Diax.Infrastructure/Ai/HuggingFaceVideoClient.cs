@@ -88,9 +88,8 @@ public class HuggingFaceVideoClient : IAiVideoGenerationClient
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
             // Tell HF to wait for model to load instead of returning 503 immediately
             request.Headers.TryAddWithoutValidation("x-wait-for-model", "true");
+            // HF router requires a single Accept value — multi-value causes 400
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("video/mp4"));
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("video/webm"));
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             HttpResponseMessage response;
             try

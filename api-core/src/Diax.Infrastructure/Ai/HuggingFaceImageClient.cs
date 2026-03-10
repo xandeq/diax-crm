@@ -79,10 +79,8 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
-        // Ask for JSON response format where supported
+        // HF router requires a single Accept value — multi-value causes 400
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/png"));
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/jpeg"));
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         HttpResponseMessage response;
         try
