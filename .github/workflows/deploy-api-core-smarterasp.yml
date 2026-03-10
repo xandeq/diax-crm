@@ -95,6 +95,8 @@ jobs:
             --arg grokKey "${{ secrets.GROK_API_KEY }}" \
             --arg hfKey "${{ secrets.HF_API_KEY }}" \
             --arg falKey "${{ secrets.FALAI_API_KEY }}" \
+            --arg groqKey "${{ secrets.GROQ_API_KEY }}" \
+            --arg cerebrasKey "${{ secrets.CEREBRAS_API_KEY }}" \
             --arg brevoApiKey "${{ secrets.BREVO_API_KEY }}" \
             --arg brevoWebhookSecret "${{ secrets.BREVO_WEBHOOK_SECRET }}" \
             --arg smtpHost "${{ secrets.SMTP_HOST }}" \
@@ -154,6 +156,16 @@ jobs:
                   "ApiKey": $falKey,
                   "BaseUrl": "https://fal.run",
                   "Model": "fal-ai/flux/schnell"
+                },
+                "Groq": {
+                  "ApiKey": $groqKey,
+                  "BaseUrl": "https://api.groq.com/openai/v1",
+                  "Model": "llama-3.3-70b-versatile"
+                },
+                "Cerebras": {
+                  "ApiKey": $cerebrasKey,
+                  "BaseUrl": "https://api.cerebras.ai/v1",
+                  "Model": "llama-3.3-70b"
                 }
               },
               "Brevo": {

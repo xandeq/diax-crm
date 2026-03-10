@@ -68,6 +68,10 @@ public class AiModel : AuditableEntity
         "google/gemini-2.5-flash-image",
         "google/gemini-2.5-flash-preview-image-generation",
 
+        // OpenRouter — Imagen and GPT Image
+        "google/imagen-3",
+        "openai/gpt-image-1",
+
         // Fal.ai — text-to-image models
         "fal-ai/flux/dev",
         "fal-ai/flux/schnell",

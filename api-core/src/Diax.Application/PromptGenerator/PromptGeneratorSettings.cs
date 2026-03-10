@@ -11,6 +11,8 @@ public class PromptGeneratorSettings
     public ProviderConfig FAL { get; set; } = new();
     public ProviderConfig Grok { get; set; } = new();
     public ProviderConfig HuggingFace { get; set; } = new();
+    public ProviderConfig Groq { get; set; } = new();
+    public ProviderConfig Cerebras { get; set; } = new();
 
     /// <summary>
     /// Obtém a configuração do provider pelo key do banco de dados.
@@ -28,6 +30,8 @@ public class PromptGeneratorSettings
             "fal" or "falai" => FAL,
             "grok" or "xai" => Grok,
             "huggingface" or "hf" or "hugging-face" => HuggingFace,
+            "groq" => Groq,
+            "cerebras" => Cerebras,
             _ => null
         };
     }

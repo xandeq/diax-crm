@@ -167,6 +167,35 @@ public static class AiDataSeeder
             }),
 
         new ProviderSeed(
+            Key: "groq",
+            Name: "Groq",
+            BaseUrl: "https://api.groq.com/openai/v1",
+            SupportsListModels: true,
+            Models: new()
+            {
+                new ModelSeed("llama-3.3-70b-versatile",           "LLaMA 3.3 70B Versatile"),
+                new ModelSeed("llama-3.1-8b-instant",              "LLaMA 3.1 8B Instant"),
+                new ModelSeed("llama3-70b-8192",                   "LLaMA 3 70B"),
+                new ModelSeed("llama3-8b-8192",                    "LLaMA 3 8B"),
+                new ModelSeed("mixtral-8x7b-32768",                "Mixtral 8x7B"),
+                new ModelSeed("gemma2-9b-it",                      "Gemma 2 9B"),
+                new ModelSeed("gemma-7b-it",                       "Gemma 7B"),
+            }),
+
+        new ProviderSeed(
+            Key: "cerebras",
+            Name: "Cerebras",
+            BaseUrl: "https://api.cerebras.ai/v1",
+            SupportsListModels: false,
+            Models: new()
+            {
+                new ModelSeed("llama-3.3-70b",   "LLaMA 3.3 70B (Cerebras)"),
+                new ModelSeed("llama3.1-70b",    "LLaMA 3.1 70B (Cerebras)"),
+                new ModelSeed("llama3.1-8b",     "LLaMA 3.1 8B (Cerebras)"),
+                new ModelSeed("llama-4-scout-17b-16e-instruct", "LLaMA 4 Scout 17B (Cerebras)"),
+            }),
+
+        new ProviderSeed(
             Key: "openrouter",
             Name: "OpenRouter",
             BaseUrl: "https://openrouter.ai/api/v1",
