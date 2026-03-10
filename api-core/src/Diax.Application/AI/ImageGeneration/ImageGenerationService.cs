@@ -95,7 +95,21 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         {
             _logger.LogDebug(
                 "ImageGeneration: using DB credential for provider '{Provider}'", providerKey);
-            apiKey = _encryptionService.Decrypt(credential.ApiKeyEncrypted);
+            try
+            {
+                apiKey = _encryptionService.Decrypt(credential.ApiKeyEncrypted);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "ImageGeneration: credential decryption failed for '{Provider}' (keys may have been rotated), trying appsettings fallback",
+                    providerKey);
+                var providerConfig = _promptSettings.GetProviderConfig(providerKey);
+                if (providerConfig == null || string.IsNullOrWhiteSpace(providerConfig.ApiKey))
+                    throw new InvalidOperationException(
+                        $"API Key inválida para '{providerKey}': falha na descriptografia e nenhum fallback configurado.");
+                apiKey = providerConfig.ApiKey;
+            }
         }
         else
         {

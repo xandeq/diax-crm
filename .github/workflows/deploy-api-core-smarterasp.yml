@@ -290,6 +290,14 @@ jobs:
             --upload-file /dev/null \
             "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}logs/.keep" || true
 
+          # Create App_Data/DataProtection-Keys for ASP.NET Core Data Protection key persistence
+          # This prevents "Failed to decrypt API key" after deploys (ephemeral keys lost on restart)
+          curl --silent --show-error \
+            --user "${{ secrets.SMARTERASP_FTP_USERNAME }}:${{ secrets.SMARTERASP_FTP_PASSWORD }}" \
+            --ftp-create-dirs \
+            --upload-file /dev/null \
+            "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}App_Data/DataProtection-Keys/.keep" || true
+
       - name: Put app_offline.htm on server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:

@@ -52,9 +52,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 
 // Data Protection API (for encrypting API keys)
-// NOTE: Em produção, chaves são armazenadas no AppDomain por padrão (IIS)
-// Considerar migração para Azure Key Vault ou similar se escalar
-builder.Services.AddDataProtection();
+// Keys are persisted to App_Data/DataProtection-Keys so they survive app restarts and deploys.
+// Without persistence, every restart generates new keys and all DB-encrypted values become undecryptable.
+var keyRingPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtection-Keys");
+Directory.CreateDirectory(keyRingPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new System.IO.DirectoryInfo(keyRingPath))
+    .SetApplicationName("DiaxCRM");
 
 // Prompt Generator settings (API keys from env vars or config)
 var promptGeneratorSettings = new PromptGeneratorSettings();
