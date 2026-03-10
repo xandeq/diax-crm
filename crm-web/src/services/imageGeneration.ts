@@ -49,11 +49,21 @@ export const imageQualityOptions = [
   { value: 'hd', label: 'HD' },
 ];
 
+function normalizeImageUrl(url: string): string {
+  if (!url || url.startsWith('http') || url.startsWith('data:')) return url;
+  return `data:image/png;base64,${url}`;
+}
+
 export async function generateImage(data: ImageGenerationRequest): Promise<ImageGenerationResponse> {
-  return apiFetch<ImageGenerationResponse>('/ai/generate-image', {
+  const response = await apiFetch<ImageGenerationResponse>('/ai/generate-image', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  response.images = response.images.map(img => ({
+    ...img,
+    imageUrl: normalizeImageUrl(img.imageUrl),
+  }));
+  return response;
 }
 
 export interface VideoGenerationRequest {
