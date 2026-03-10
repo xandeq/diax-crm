@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Microsoft.AspNetCore.DataProtection;
 using Diax.Api.Configuration;
 using Diax.Api.Middleware;
 using Diax.Application;
