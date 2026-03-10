@@ -131,7 +131,8 @@ public class AiProviderAdminService : IAiProviderAdminService
         if (provider == null) throw new KeyNotFoundException($"Provider with ID {providerId} not found.");
 
         var model = new AiModel(providerId, modelDto.ModelKey, modelDto.DisplayName, modelDto.IsDiscovered);
-        model.UpdateDetails(modelDto.DisplayName, modelDto.InputCostHint, modelDto.OutputCostHint, modelDto.MaxTokensHint, null);
+        var capJson = BuildCapabilitiesJson(modelDto.SupportsImage, modelDto.SupportsText, modelDto.SupportsVideo);
+        model.UpdateDetails(modelDto.DisplayName, modelDto.InputCostHint, modelDto.OutputCostHint, modelDto.MaxTokensHint, capJson);
 
         if (modelDto.IsEnabled) model.Enable();
         else model.Disable();
@@ -199,13 +200,21 @@ public class AiProviderAdminService : IAiProviderAdminService
         var model = await _modelRepository.GetByIdAsync(modelId, cancellationToken);
         if (model == null) throw new KeyNotFoundException($"Model with ID {modelId} not found.");
 
-        model.UpdateDetails(modelDto.DisplayName, modelDto.InputCostHint, modelDto.OutputCostHint, modelDto.MaxTokensHint, null);
+        var capJson = BuildCapabilitiesJson(modelDto.SupportsImage, modelDto.SupportsText, modelDto.SupportsVideo);
+        model.UpdateDetails(modelDto.DisplayName, modelDto.InputCostHint, modelDto.OutputCostHint, modelDto.MaxTokensHint, capJson);
 
         if (modelDto.IsEnabled) model.Enable();
         else model.Disable();
 
         await _modelRepository.UpdateAsync(model, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string? BuildCapabilitiesJson(bool supportsImage, bool supportsText, bool supportsVideo)
+    {
+        // Default: text-only model, no need to persist capabilities (KnownImageModelKeys handles known image models)
+        if (!supportsImage && supportsText && !supportsVideo) return null;
+        return System.Text.Json.JsonSerializer.Serialize(new { supportsImage, supportsText, supportsVideo });
     }
 
     public async Task DeleteModelAsync(Guid modelId, CancellationToken cancellationToken = default)
