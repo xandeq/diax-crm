@@ -77,6 +77,10 @@ promptGeneratorSettings.Grok.ApiKey ??= builder.Configuration["XAI_API_KEY"]
 promptGeneratorSettings.HuggingFace.ApiKey ??= builder.Configuration["HF_API_KEY"]
     ?? builder.Configuration["HUGGINGFACE_API_KEY"]
     ?? builder.Configuration["HuggingFace:ApiKey"];
+promptGeneratorSettings.Groq.ApiKey ??= builder.Configuration["GROQ_API_KEY"]
+    ?? builder.Configuration["Groq:ApiKey"];
+promptGeneratorSettings.Cerebras.ApiKey ??= builder.Configuration["CEREBRAS_API_KEY"]
+    ?? builder.Configuration["Cerebras:ApiKey"];
 
 builder.Services.AddSingleton(promptGeneratorSettings);
 

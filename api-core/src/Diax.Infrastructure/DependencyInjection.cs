@@ -272,6 +272,14 @@ public static class DependencyInjection
         services.AddHttpClient<GrokTextTransformClient>();
         services.AddScoped<IAiTextTransformClient, GrokTextTransformClient>();
 
+        // Register GroqClient (text generation via OpenAI-compatible API)
+        services.AddHttpClient<GroqClient>();
+        services.AddScoped<IAiTextTransformClient, GroqClient>();
+
+        // Register CerebrasClient (text generation via OpenAI-compatible API)
+        services.AddHttpClient<CerebrasClient>();
+        services.AddScoped<IAiTextTransformClient, CerebrasClient>();
+
         // ===== AI IMAGE GENERATION CLIENTS =====
         services.AddHttpClient<OpenAiImageClient>();
         services.AddScoped<IAiImageGenerationClient, OpenAiImageClient>();
