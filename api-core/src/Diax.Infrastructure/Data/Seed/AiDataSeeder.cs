@@ -202,15 +202,21 @@ public static class AiDataSeeder
             SupportsListModels: true,
             Models: new()
             {
-                new ModelSeed("black-forest-labs/flux-1.1-pro",              "FLUX 1.1 Pro"),
-                new ModelSeed("black-forest-labs/flux-schnell",              "FLUX Schnell (gratuito)"),
-                new ModelSeed("black-forest-labs/flux-dev",                  "FLUX Dev"),
-                new ModelSeed("black-forest-labs/flux-kontext-pro",          "FLUX Kontext Pro"),
-                new ModelSeed("stability-ai/stable-diffusion-3.5-large",     "SD 3.5 Large"),
-                new ModelSeed("google/gemini-2.0-flash-image-generation",    "Gemini 2.0 Flash Image"),
-                new ModelSeed("google/gemini-2.5-flash-preview-image-generation", "Gemini 2.5 Flash Image"),
-                new ModelSeed("google/imagen-3",                             "Google Imagen 3"),
-                new ModelSeed("openai/gpt-image-1",                          "GPT Image 1 (via OpenRouter)"),
+                // --- Free image models ---
+                new ModelSeed("black-forest-labs/flux-schnell",                       "FLUX Schnell (gratuito)"),
+                new ModelSeed("black-forest-labs/flux-1-schnell:free",                "FLUX 1 Schnell Free"),
+                new ModelSeed("black-forest-labs/flux-1-dev:free",                    "FLUX 1 Dev (gratuito)"),
+                new ModelSeed("stabilityai/stable-diffusion-xl-base-1.0:free",        "SDXL Base (gratuito)"),
+
+                // --- Paid image models ---
+                new ModelSeed("black-forest-labs/flux-1.1-pro",                       "FLUX 1.1 Pro"),
+                new ModelSeed("black-forest-labs/flux-dev",                           "FLUX Dev"),
+                new ModelSeed("black-forest-labs/flux-kontext-pro",                   "FLUX Kontext Pro"),
+                new ModelSeed("stability-ai/stable-diffusion-3.5-large",              "SD 3.5 Large"),
+                new ModelSeed("google/gemini-2.0-flash-image-generation",             "Gemini 2.0 Flash Image"),
+                new ModelSeed("google/gemini-2.5-flash-preview-image-generation",     "Gemini 2.5 Flash Image"),
+                new ModelSeed("google/imagen-3",                                      "Google Imagen 3"),
+                new ModelSeed("openai/gpt-image-1",                                   "GPT Image 1 (via OpenRouter)"),
             }),
     };
 
@@ -218,74 +224,93 @@ public static class AiDataSeeder
     {
         logger?.LogInformation("[AiDataSeeder] Starting upsert of AI providers and models...");
 
-        // Find admin group to grant access
+        // --- Preload everything in bulk to minimize round-trips ---
         var adminGroup = db.UserGroups.FirstOrDefault(g => g.Key == "system-admin");
         if (adminGroup == null)
             logger?.LogWarning("[AiDataSeeder] system-admin group not found — skipping access grants. Run UserSeeder first.");
+
+        var existingProviders = db.AiProviders
+            .Select(p => new { p.Id, p.Key })
+            .ToList();
+
+        var existingModelKeysByProvider = db.AiModels
+            .GroupBy(m => m.ProviderId)
+            .ToDictionary(g => g.Key, g => g.Select(m => m.ModelKey).ToHashSet());
+
+        var existingProviderAccesses = adminGroup != null
+            ? db.GroupAiProviderAccesses.Where(a => a.GroupId == adminGroup.Id).Select(a => a.ProviderId).ToHashSet()
+            : new HashSet<Guid>();
+
+        var existingModelAccesses = adminGroup != null
+            ? db.GroupAiModelAccesses.Where(a => a.GroupId == adminGroup.Id).Select(a => a.AiModelId).ToHashSet()
+            : new HashSet<Guid>();
 
         int addedProviders = 0, addedModels = 0, grantedProviderAccess = 0, grantedModelAccess = 0;
 
         foreach (var seed in KnownProviders)
         {
-            // Upsert provider
-            var provider = db.AiProviders.Include(p => p.Models)
-                .FirstOrDefault(p => p.Key == seed.Key);
+            // --- Upsert provider ---
+            var existingProvider = existingProviders.FirstOrDefault(p => p.Key == seed.Key);
+            Guid providerId;
 
-            if (provider == null)
+            if (existingProvider == null)
             {
-                provider = new AiProvider(seed.Key, seed.Name, seed.SupportsListModels, seed.BaseUrl);
+                var provider = new AiProvider(seed.Key, seed.Name, seed.SupportsListModels, seed.BaseUrl);
                 provider.Enable();
                 db.AiProviders.Add(provider);
-                db.SaveChanges(); // flush to get generated ID
+                db.SaveChanges(); // flush once to get real ID
+                providerId = provider.Id;
+                existingProviders.Add(new { provider.Id, provider.Key });
                 addedProviders++;
                 logger?.LogInformation("[AiDataSeeder] ✅ Added provider: {Key}", seed.Key);
             }
-
-            // Grant admin group access to provider
-            if (adminGroup != null)
+            else
             {
-                var hasProviderAccess = db.GroupAiProviderAccesses
-                    .Any(a => a.GroupId == adminGroup.Id && a.ProviderId == provider.Id);
+                providerId = existingProvider.Id;
+            }
 
-                if (!hasProviderAccess)
+            // --- Grant provider access ---
+            if (adminGroup != null && !existingProviderAccesses.Contains(providerId))
+            {
+                db.GroupAiProviderAccesses.Add(new GroupAiProviderAccess(adminGroup.Id, providerId));
+                existingProviderAccesses.Add(providerId);
+                grantedProviderAccess++;
+            }
+
+            // --- Batch-add all new models (no SaveChanges per model) ---
+            var knownKeys = existingModelKeysByProvider.GetValueOrDefault(providerId) ?? new HashSet<string>();
+            var newModels = new List<AiModel>();
+
+            foreach (var modelSeed in seed.Models)
+            {
+                if (!knownKeys.Contains(modelSeed.Key))
                 {
-                    db.GroupAiProviderAccesses.Add(new GroupAiProviderAccess(adminGroup.Id, provider.Id));
-                    grantedProviderAccess++;
+                    var model = new AiModel(providerId, modelSeed.Key, modelSeed.DisplayName, isDiscovered: false);
+                    model.Enable();
+                    db.AiModels.Add(model);
+                    newModels.Add(model);
+                    knownKeys.Add(modelSeed.Key);
+                    addedModels++;
                 }
             }
 
-            // Upsert models
-            foreach (var modelSeed in seed.Models)
+            // Flush all new models + provider access grant in one shot
+            db.SaveChanges();
+
+            // --- Grant model access for newly added models (IDs now available) ---
+            if (adminGroup != null && newModels.Count > 0)
             {
-                var existingModel = db.AiModels
-                    .FirstOrDefault(m => m.ProviderId == provider.Id && m.ModelKey == modelSeed.Key);
-
-                if (existingModel == null)
+                foreach (var model in newModels)
                 {
-                    var model = new AiModel(provider.Id, modelSeed.Key, modelSeed.DisplayName, isDiscovered: false);
-                    model.Enable();
-                    db.AiModels.Add(model);
-                    db.SaveChanges(); // flush to get generated ID
-                    existingModel = model;
-                    addedModels++;
-                    logger?.LogDebug("[AiDataSeeder] Added model: {Key} ({Provider})", modelSeed.Key, seed.Key);
-                }
-
-                // Grant admin group access to model
-                if (adminGroup != null)
-                {
-                    var hasModelAccess = db.GroupAiModelAccesses
-                        .Any(a => a.GroupId == adminGroup.Id && a.AiModelId == existingModel.Id);
-
-                    if (!hasModelAccess)
+                    if (!existingModelAccesses.Contains(model.Id))
                     {
-                        db.GroupAiModelAccesses.Add(new GroupAiModelAccess(adminGroup.Id, existingModel.Id));
+                        db.GroupAiModelAccesses.Add(new GroupAiModelAccess(adminGroup.Id, model.Id));
+                        existingModelAccesses.Add(model.Id);
                         grantedModelAccess++;
                     }
                 }
+                db.SaveChanges(); // flush model access grants
             }
-
-            db.SaveChanges();
         }
 
         logger?.LogInformation(
