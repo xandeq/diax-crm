@@ -17,6 +17,7 @@ using Diax.Domain.Blog;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.ImageGeneration;
 using Diax.Domain.Outreach;
+using Diax.Domain.TaxDocuments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -113,6 +114,9 @@ public class DiaxDbContext : DbContext
     // Outreach
     public DbSet<OutreachConfig> OutreachConfigs => Set<OutreachConfig>();
 
+    // Tax Documents
+    public DbSet<TaxDocument> TaxDocuments => Set<TaxDocument>();
+
     // Facebook Ads
     public DbSet<FacebookAdAccount> FacebookAdAccounts => Set<FacebookAdAccount>();
 
@@ -199,6 +203,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<ImportedTransaction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<FacebookAdAccount>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<Appointment>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<TaxDocument>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.

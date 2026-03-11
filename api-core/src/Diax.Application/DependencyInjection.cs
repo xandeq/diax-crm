@@ -18,6 +18,7 @@ using Diax.Application.Blog.Services;
 using Diax.Application.Customers.Services;
 using Diax.Application.EmailMarketing;
 using Diax.Application.Outreach;
+using Diax.Application.TaxDocuments;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -101,6 +102,9 @@ public static class DependencyInjection
         services.AddScoped<BlogPostService>();
         services.AddScoped<IHtmlSanitizerService, HtmlSanitizerService>();
         services.AddScoped<ISlugGeneratorService, SlugGeneratorService>();
+
+        // ===== TAX DOCUMENTS =====
+        services.AddScoped<ITaxDocumentService, TaxDocumentService>();
 
         // ===== FINANCIAL PLANNER SERVICES =====
         services.AddScoped<Diax.Application.Finance.Planner.FinancialGoalService>();

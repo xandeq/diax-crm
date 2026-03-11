@@ -104,6 +104,10 @@ export function Header() {
                 <Link href="/finance/planner" className={menuItemClass} role="menuitem">
                   Planejador Financeiro
                 </Link>
+                <div className={separatorClass}></div>
+                <Link href="/finance/tax-documents" className={menuItemClass} role="menuitem">
+                  Imposto de Renda
+                </Link>
               </div>
             </div>
 
