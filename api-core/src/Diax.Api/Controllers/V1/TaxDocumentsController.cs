@@ -9,7 +9,7 @@ namespace Diax.Api.Controllers.V1;
 
 [Authorize]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/tax-documents")]
 [Produces("application/json")]
 public class TaxDocumentsController : BaseApiController
 {
