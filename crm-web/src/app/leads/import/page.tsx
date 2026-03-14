@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/services/api';
-import { ArrowLeft, Code2, FileText, Loader2, Upload, Search, Cloud, Check } from 'lucide-react';
+import { ArrowLeft, Code2, FileText, Loader2, Upload, Search, Cloud, Check, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ImportCustomerRow {
   name: string;
@@ -70,6 +70,8 @@ export default function LeadsImportPage() {
   // ── Extrator Integration States ───────────────────────────────────────────
   const [extractorUrl, setExtractorUrl] = useState('');
   const [extractorToken, setExtractorToken] = useState('');
+  const [extractorConfigLoading, setExtractorConfigLoading] = useState(true);
+  const [extractorConfigError, setExtractorConfigError] = useState('');
   const [extractorFilters, setExtractorFilters] = useState({
     search: '',
     status: '',
@@ -79,6 +81,30 @@ export default function LeadsImportPage() {
   const [extractorLeads, setExtractorLeads] = useState<any[]>([]);
   const [extractorLoading, setExtractorLoading] = useState(false);
   const [extractorSelectedIds, setExtractorSelectedIds] = useState<Set<number>>(new Set());
+
+  // ── Load Extrator config on component mount ───────────────────────────────
+  useEffect(() => {
+    const loadExtractorConfig = async () => {
+      try {
+        setExtractorConfigLoading(true);
+        const response = await apiFetch<{ url: string; token: string }>('/leads/extrator-config', {
+          method: 'GET',
+        });
+        setExtractorUrl(response.url);
+        setExtractorToken(response.token);
+        setExtractorConfigError('');
+      } catch (error: any) {
+        setExtractorConfigError(error.message || 'Falha ao carregar configuração do Extrator');
+        console.error('Erro ao carregar config do Extrator:', error);
+      } finally {
+        setExtractorConfigLoading(false);
+      }
+    };
+
+    if (importMode === 'extrator') {
+      loadExtractorConfig();
+    }
+  }, [importMode]);
 
   // ── Parsers ──────────────────────────────────────────────────────────────
 
@@ -622,37 +648,56 @@ export default function LeadsImportPage() {
             {/* ── Extrator Integration Mode ── */}
             {importMode === 'extrator' && (
               <div className="space-y-4">
+                {/* Config Status */}
+                {extractorConfigLoading && (
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-blue-800">Carregando configuração do Extrator...</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {extractorConfigError && (
+                  <Card className="border-red-200 bg-red-50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-red-800">Erro ao conectar</p>
+                          <p className="text-xs text-red-700 mt-1">{extractorConfigError}</p>
+                          <p className="text-xs text-red-700 mt-2">
+                            Contate um administrador para configurar as credenciais do Extrator.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {!extractorConfigLoading && !extractorConfigError && (
+                  <Card className="border-green-200 bg-green-50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-5 w-5 text-green-600" />
+                          <span className="text-sm text-green-800 font-medium">Extrator configurado e pronto</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Conexão com Extrator */}
-                <Card className="border-blue-200 bg-blue-50">
-                  <CardHeader>
-                    <CardTitle className="text-base">Conectar ao Extrator de Dados</CardTitle>
-                    <CardDescription>Digite a URL e token de autenticação do seu Extrator</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="extractorUrl">URL do Extrator</Label>
-                        <Input
-                          id="extractorUrl"
-                          type="url"
-                          placeholder="https://extratordedados.com.br"
-                          value={extractorUrl}
-                          onChange={e => setExtractorUrl(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="extractorToken">Token de Autenticação</Label>
-                        <Input
-                          id="extractorToken"
-                          type="password"
-                          placeholder="eyJ..."
-                          value={extractorToken}
-                          onChange={e => setExtractorToken(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
+                {!extractorConfigLoading && !extractorConfigError && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Buscar Leads do Extrator</CardTitle>
+                      <CardDescription>Configure filtros opcionais e busque seus leads</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
 
                     {/* Filtros */}
                     <div className="border-t pt-4">
@@ -703,8 +748,9 @@ export default function LeadsImportPage() {
                         </>
                       )}
                     </Button>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Lista de Leads */}
                 {extractorLeads.length > 0 && (

@@ -118,4 +118,18 @@ public class LeadsController : BaseApiController
         var result = await _service.SanitizeBaseAsync(request);
         return HandleResult(result);
     }
+
+    [HttpGet("extrator-config")]
+    public IActionResult GetExtractorConfig([FromServices] IConfiguration configuration)
+    {
+        var url = configuration["EXTRATOR_URL"] ?? configuration["Extrator:Url"] ?? "";
+        var token = configuration["EXTRATOR_API_TOKEN"] ?? configuration["Extrator:ApiToken"] ?? "";
+
+        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest(new { message = "Extrator configuration not found. Please contact an administrator." });
+        }
+
+        return Ok(new { url, token });
+    }
 }
