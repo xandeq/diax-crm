@@ -88,6 +88,25 @@ public class EmailQueueProcessorWorker : BackgroundService
             return;
         }
 
+        // Transition any Scheduled campaigns to Processing now that their items are being sent
+        var campaignIdsToStart = pendingItems
+            .Where(i => i.CampaignId.HasValue)
+            .Select(i => i.CampaignId!.Value)
+            .Distinct()
+            .ToList();
+
+        foreach (var campaignId in campaignIdsToStart)
+        {
+            var campaign = await campaignRepository.GetByIdAsync(campaignId, cancellationToken);
+            if (campaign is { Status: Domain.EmailMarketing.Enums.EmailCampaignStatus.Scheduled })
+            {
+                campaign.StartProcessing();
+                await campaignRepository.UpdateAsync(campaign, cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Campaign {CampaignId} transitioned from Scheduled to Processing", campaignId);
+            }
+        }
+
         foreach (var item in pendingItems)
         {
             item.MarkProcessing();
