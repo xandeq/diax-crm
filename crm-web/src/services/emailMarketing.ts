@@ -188,3 +188,40 @@ export async function getCampaignRecipients(campaignId: string, page = 1, pageSi
     `/email-campaigns/campaigns/${campaignId}/recipients?page=${page}&pageSize=${pageSize}`
   );
 }
+
+export interface CampaignRecipientCustomerIdsResponse {
+  customerIds: string[];
+  count: number;
+}
+
+export async function getCampaignRecipientsByFilter(
+  campaignId: string,
+  filter: string | null,
+  page = 1,
+  pageSize = 50
+) {
+  const filterParam = filter ? `&filter=${filter}` : '';
+  return apiFetch<PagedCampaignRecipients>(
+    `/email-campaigns/campaigns/${campaignId}/recipients?page=${page}&pageSize=${pageSize}${filterParam}`
+  );
+}
+
+export async function getCampaignRecipientCustomerIds(
+  campaignId: string,
+  filter: string | null
+) {
+  const filterParam = filter ? `?filter=${filter}` : '';
+  return apiFetch<CampaignRecipientCustomerIdsResponse>(
+    `/email-campaigns/campaigns/${campaignId}/recipients/customer-ids${filterParam}`
+  );
+}
+
+export async function sendTestEmail(
+  campaignId: string,
+  data: { subjectOverride?: string; bodyHtmlOverride?: string }
+) {
+  return apiFetch(`/email-campaigns/campaigns/${campaignId}/send-test`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
