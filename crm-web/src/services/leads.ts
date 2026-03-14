@@ -22,7 +22,11 @@ export interface Lead {
   tags?: string;
   status: CustomerStatus;
   createdAt: string;
+  updatedAt?: string;
+  convertedAt?: string;
+  lastContactAt?: string;
   personType: number; // 0 = Individual, 1 = Company
+  document?: string;
 
   // Origem
   source?: number;
@@ -39,6 +43,10 @@ export interface Lead {
   lastWhatsAppSentAt?: string;
   emailOptOut?: boolean;
   whatsAppOptOut?: boolean;
+
+  // Status helpers
+  isLead?: boolean;
+  isActiveCustomer?: boolean;
 }
 
 export interface PagedResponse<T> {
@@ -71,6 +79,7 @@ export interface UpdateLeadRequest {
   notes?: string;
   tags?: string;
   source?: number;
+  status?: CustomerStatus;
 }
 
 export interface LeadListParams {

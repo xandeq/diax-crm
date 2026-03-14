@@ -55,3 +55,36 @@ export function getTodayInputString(): string {
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
+/**
+ * Formata uma data em tempo relativo (ex: "há 2 dias", "há 1 hora")
+ * @param dateString String de data ISO (ex: 2026-01-02T00:00:00Z)
+ * @returns Tempo relativo em português (ex: "há 2 dias", "hoje", "há 1 hora")
+ */
+export function formatRelativeTime(dateString: string | null | undefined): string {
+    if (!dateString) return 'Nunca';
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+
+    if (diffMs < 0) return 'No futuro';
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    const diffWeeks = Math.floor(diffMs / 604800000);
+    const diffMonths = Math.floor(diffMs / 2592000000); // 30 dias
+
+    if (diffMinutes < 1) return 'Agora';
+    if (diffMinutes < 60) return `há ${diffMinutes}min`;
+    if (diffHours < 24) return `há ${diffHours}h`;
+    if (diffDays === 0) return 'Hoje';
+    if (diffDays === 1) return 'Ontem';
+    if (diffDays < 7) return `há ${diffDays}d`;
+    if (diffWeeks < 4) return `há ${diffWeeks}sem`;
+    if (diffMonths < 12) return `há ${diffMonths}mês`;
+
+    const years = Math.floor(diffMonths / 12);
+    return `há ${years}ano`;
+}

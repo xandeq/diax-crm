@@ -3,6 +3,7 @@
 import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
 import { EmailTimeline } from '@/components/EmailTimeline';
 import { EngagementBadge } from '@/components/EngagementBadge';
+import { ContactProfilePanel } from '@/components/customers/ContactProfilePanel';
 import {
   Avatar,
   ChannelIcons,
@@ -476,6 +477,33 @@ export default function CustomersPage() {
         ),
       },
       {
+        id: 'lastActivity',
+        header: 'Última Atividade',
+        sortable: true,
+        cell: (row) => {
+          const lastActivity = row.lastContactAt || row.lastEmailSentAt;
+          if (!lastActivity) {
+            return <span className="text-sm text-slate-400">Nunca</span>;
+          }
+          const lastActivityDate = new Date(lastActivity);
+          const now = new Date();
+          const diffDays = Math.floor((now.getTime() - lastActivityDate.getTime()) / 86400000);
+
+          let displayText = '';
+          if (diffDays === 0) displayText = 'Hoje';
+          else if (diffDays === 1) displayText = 'Ontem';
+          else if (diffDays < 7) displayText = `há ${diffDays}d`;
+          else if (diffDays < 30) displayText = `há ${Math.floor(diffDays/7)}sem`;
+          else displayText = `há ${Math.floor(diffDays/30)}mês`;
+
+          return (
+            <div className="text-sm" title={lastActivityDate.toLocaleString('pt-BR')}>
+              <span className="text-slate-600">📧 {displayText}</span>
+            </div>
+          );
+        },
+      },
+      {
         id: 'actions',
         header: '',
         headerClassName: 'w-[1%]',
@@ -928,29 +956,58 @@ export default function CustomersPage() {
           if (!open) setTimelineCustomer(null);
         }}
       >
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader className="mb-4">
-            <SheetTitle>Histórico do Cliente</SheetTitle>
             {timelineCustomer && (
-              <div className="flex items-center gap-3 mt-2">
-                <Avatar name={timelineCustomer.name} size="sm" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {timelineCustomer.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {timelineCustomer.email || timelineCustomer.companyName || ''}
-                  </p>
+              <div>
+                <SheetTitle>Detalhes do Cliente</SheetTitle>
+                <div className="flex items-center gap-3 mt-3">
+                  <Avatar name={timelineCustomer.name} size="sm" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">
+                      {timelineCustomer.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {timelineCustomer.email || timelineCustomer.companyName || ''}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
           </SheetHeader>
           {timelineCustomer && (
-            <Tabs defaultValue="activities" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="profile" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="profile">Perfil</TabsTrigger>
                 <TabsTrigger value="activities">Atividades</TabsTrigger>
                 <TabsTrigger value="emails">Histórico de Emails</TabsTrigger>
               </TabsList>
+              <TabsContent value="profile" className="mt-4">
+                <ContactProfilePanel
+                  customer={timelineCustomer}
+                  onEdit={() => {
+                    setEditingCustomer(timelineCustomer);
+                    setTimelineCustomer(null);
+                  }}
+                  onSendEmail={() => {
+                    setComposerRecipients([timelineCustomer]);
+                    setIsComposerOpen(true);
+                    setTimelineCustomer(null);
+                  }}
+                  onStatusChange={async (newStatus) => {
+                    try {
+                      await updateCustomer(timelineCustomer.id, {
+                        ...timelineCustomer,
+                        status: newStatus,
+                      });
+                      setTimelineCustomer({ ...timelineCustomer, status: newStatus });
+                      fetchCustomers();
+                    } catch (error) {
+                      alert('Erro ao atualizar status');
+                    }
+                  }}
+                />
+              </TabsContent>
               <TabsContent value="activities" className="mt-4">
                 <LeadTimeline customerId={timelineCustomer.id} />
               </TabsContent>

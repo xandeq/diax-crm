@@ -28,6 +28,9 @@ export interface Customer {
   website?: string;
   status: CustomerStatus;
   createdAt: string;
+  updatedAt?: string;
+  convertedAt?: string;
+  lastContactAt?: string;
   notes?: string;
   tags?: string;
 
@@ -46,6 +49,10 @@ export interface Customer {
   lastWhatsAppSentAt?: string;
   emailOptOut?: boolean;
   whatsAppOptOut?: boolean;
+
+  // Status helpers
+  isLead?: boolean;
+  isActiveCustomer?: boolean;
 }
 
 export interface PagedResponse<T> {
@@ -86,6 +93,7 @@ export interface UpdateCustomerRequest {
   notes?: string;
   tags?: string;
   source?: number;
+  status?: CustomerStatus;
 }
 
 export interface CustomerListParams {

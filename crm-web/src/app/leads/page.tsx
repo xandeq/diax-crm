@@ -1,6 +1,7 @@
 'use client';
 
 import { LeadTimeline } from '@/components/customers/LeadTimeline';
+import { ContactProfilePanel } from '@/components/customers/ContactProfilePanel';
 import {
     Avatar,
     ChannelIcons,
@@ -619,6 +620,33 @@ export default function LeadsPage() {
         ),
       },
       {
+        id: 'lastActivity',
+        header: 'Última Atividade',
+        sortable: true,
+        cell: (row) => {
+          const lastActivity = row.lastContactAt || row.lastEmailSentAt;
+          if (!lastActivity) {
+            return <span className="text-sm text-slate-400">Nunca</span>;
+          }
+          const lastActivityDate = new Date(lastActivity);
+          const now = new Date();
+          const diffDays = Math.floor((now.getTime() - lastActivityDate.getTime()) / 86400000);
+
+          let displayText = '';
+          if (diffDays === 0) displayText = 'Hoje';
+          else if (diffDays === 1) displayText = 'Ontem';
+          else if (diffDays < 7) displayText = `há ${diffDays}d`;
+          else if (diffDays < 30) displayText = `há ${Math.floor(diffDays/7)}sem`;
+          else displayText = `há ${Math.floor(diffDays/30)}mês`;
+
+          return (
+            <div className="text-sm" title={lastActivityDate.toLocaleString('pt-BR')}>
+              <span className="text-slate-600">📧 {displayText}</span>
+            </div>
+          );
+        },
+      },
+      {
         id: 'actions',
         header: '',
         headerClassName: 'w-[1%]',
@@ -1113,29 +1141,60 @@ export default function LeadsPage() {
           if (!open) setTimelineLead(null);
         }}
       >
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader className="mb-4">
-            <SheetTitle>Histórico do Lead</SheetTitle>
             {timelineLead && (
-              <div className="flex items-center gap-3 mt-2">
-                <Avatar name={timelineLead.name} size="sm" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {timelineLead.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {timelineLead.email || timelineLead.companyName || ''}
-                  </p>
+              <div>
+                <SheetTitle>Detalhes do Lead</SheetTitle>
+                <div className="flex items-center gap-3 mt-3">
+                  <Avatar name={timelineLead.name} size="sm" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">
+                      {timelineLead.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {timelineLead.email || timelineLead.companyName || ''}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
           </SheetHeader>
           {timelineLead && (
-            <Tabs defaultValue="activities" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="profile" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="profile">Perfil</TabsTrigger>
                 <TabsTrigger value="activities">Atividades</TabsTrigger>
                 <TabsTrigger value="emails">Histórico de Emails</TabsTrigger>
               </TabsList>
+              <TabsContent value="profile" className="mt-4">
+                <ContactProfilePanel
+                  customer={timelineLead as any}
+                  onEdit={() => {
+                    setEditingLead(timelineLead);
+                    setTimelineLead(null);
+                  }}
+                  onSendEmail={() => {
+                    setComposerRecipients([
+                      { id: timelineLead.id, name: timelineLead.name, email: timelineLead.email }
+                    ]);
+                    setIsComposerOpen(true);
+                    setTimelineLead(null);
+                  }}
+                  onStatusChange={async (newStatus) => {
+                    try {
+                      await updateLead(timelineLead.id, {
+                        ...timelineLead,
+                        status: newStatus,
+                      });
+                      setTimelineLead({ ...timelineLead, status: newStatus });
+                      fetchLeads();
+                    } catch (error) {
+                      alert('Erro ao atualizar status');
+                    }
+                  }}
+                />
+              </TabsContent>
               <TabsContent value="activities" className="mt-4">
                 <LeadTimeline customerId={timelineLead.id} />
               </TabsContent>
