@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/services/api';
-import { ArrowLeft, Code2, FileText, Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, Code2, FileText, Loader2, Upload, Search, Cloud, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -55,7 +55,7 @@ interface ApifyGoogleMapsItem {
   imageUrl?: string;
 }
 
-type ImportMode = 'csv' | 'text' | 'apify' | 'apify-url';
+type ImportMode = 'csv' | 'text' | 'apify' | 'apify-url' | 'extrator';
 
 export default function LeadsImportPage() {
   const router = useRouter();
@@ -66,6 +66,19 @@ export default function LeadsImportPage() {
   const [apifyUrl, setApifyUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BulkImportResponse | null>(null);
+
+  // ── Extrator Integration States ───────────────────────────────────────────
+  const [extractorUrl, setExtractorUrl] = useState('');
+  const [extractorToken, setExtractorToken] = useState('');
+  const [extractorFilters, setExtractorFilters] = useState({
+    search: '',
+    status: '',
+    tag: '',
+    city: '',
+  });
+  const [extractorLeads, setExtractorLeads] = useState<any[]>([]);
+  const [extractorLoading, setExtractorLoading] = useState(false);
+  const [extractorSelectedIds, setExtractorSelectedIds] = useState<Set<number>>(new Set());
 
   // ── Parsers ──────────────────────────────────────────────────────────────
 
@@ -277,11 +290,120 @@ export default function LeadsImportPage() {
     }
   };
 
+  // ── Extrator Integration Functions ────────────────────────────────────────
+  const fetchExtractorLeads = async () => {
+    if (!extractorUrl.trim() || !extractorToken.trim()) {
+      alert('URL e token do Extrator são obrigatórios');
+      return;
+    }
+
+    setExtractorLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: '1',
+        per_page: '100',
+        search: extractorFilters.search || '',
+        status: extractorFilters.status || '',
+        tag: extractorFilters.tag || '',
+        city: extractorFilters.city || '',
+      });
+
+      const url = extractorUrl.replace(/\/$/, '') + `/api/leads?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${extractorToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao conectar ao Extrator: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setExtractorLeads(data.leads || []);
+
+      if (!data.leads || data.leads.length === 0) {
+        alert('Nenhum lead encontrado com os filtros aplicados');
+      }
+    } catch (error: any) {
+      alert(error.message || 'Erro ao conectar ao Extrator');
+    } finally {
+      setExtractorLoading(false);
+    }
+  };
+
+  const toggleExtractorLeadSelection = (leadId: number) => {
+    const newSelection = new Set(extractorSelectedIds);
+    if (newSelection.has(leadId)) {
+      newSelection.delete(leadId);
+    } else {
+      newSelection.add(leadId);
+    }
+    setExtractorSelectedIds(newSelection);
+  };
+
+  const selectAllExtractorLeads = () => {
+    if (extractorSelectedIds.size === extractorLeads.length) {
+      setExtractorSelectedIds(new Set());
+    } else {
+      setExtractorSelectedIds(new Set(extractorLeads.map((l: any) => l.id)));
+    }
+  };
+
+  const importFromExtrator = async () => {
+    if (extractorSelectedIds.size === 0) {
+      alert('Selecione ao menos um lead');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const customersToImport: ImportCustomerRow[] = extractorLeads
+        .filter((lead: any) => extractorSelectedIds.has(lead.id))
+        .map((lead: any) => ({
+          name: lead.contact_name || lead.company_name || 'Lead sem nome',
+          email: lead.email || '',
+          phone: lead.phone,
+          whatsApp: lead.whatsapp || lead.phone,
+          companyName: lead.company_name,
+          notes: `Importado do Extrator - ${lead.crm_status || 'novo'}`,
+          tags: `extrator,${lead.tags || ''}`.replace(/,+/g, ',').replace(/^,|,$/g, ''),
+        }));
+
+      const response = await apiFetch<BulkImportResponse>('/customers/import', {
+        method: 'POST',
+        body: JSON.stringify({ customers: customersToImport, source: 'ExtractorImport' }),
+      });
+
+      setResult(response);
+
+      if (response.successCount > 0) {
+        setExtractorLeads([]);
+        setExtractorSelectedIds(new Set());
+        setExtractorUrl('');
+        setExtractorToken('');
+        setExtractorFilters({ search: '', status: '', tag: '', city: '' });
+
+        setTimeout(() => {
+          router.push('/leads');
+        }, 3500);
+      }
+    } catch (error: any) {
+      alert(`Erro ao importar: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const canImport =
     (importMode === 'csv' && !!file) ||
     (importMode === 'text' && !!textData.trim()) ||
     (importMode === 'apify' && !!apifyJson.trim()) ||
-    (importMode === 'apify-url' && !!apifyUrl.trim());
+    (importMode === 'apify-url' && !!apifyUrl.trim()) ||
+    (importMode === 'extrator' && extractorSelectedIds.size > 0);
 
   // ── Preview Apify count ───────────────────────────────────────────────────
   let apifyPreviewCount: number | null = null;
@@ -364,6 +486,16 @@ export default function LeadsImportPage() {
                 <Loader2 className="h-4 w-4 xl:mr-2" />
                 <span className="hidden xl:inline">URL da Run (Automático)</span>
                 <span className="xl:hidden">Apify URL</span>
+              </Button>
+              <Button
+                variant={importMode === 'extrator' ? 'default' : 'outline'}
+                onClick={() => setImportMode('extrator')}
+                className="flex-1"
+                title="Importar do Extrator de Dados"
+              >
+                <Cloud className="h-4 w-4 xl:mr-2" />
+                <span className="hidden xl:inline">Do Extrator</span>
+                <span className="xl:hidden">Extrator</span>
               </Button>
             </div>
 
@@ -487,11 +619,184 @@ export default function LeadsImportPage() {
               </div>
             )}
 
-            {/* Import button */}
-            <Button onClick={handleImport} disabled={loading || !canImport} className="w-full" size="lg">
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? 'Importando...' : 'Importar Leads'}
-            </Button>
+            {/* ── Extrator Integration Mode ── */}
+            {importMode === 'extrator' && (
+              <div className="space-y-4">
+                {/* Conexão com Extrator */}
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardHeader>
+                    <CardTitle className="text-base">Conectar ao Extrator de Dados</CardTitle>
+                    <CardDescription>Digite a URL e token de autenticação do seu Extrator</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="extractorUrl">URL do Extrator</Label>
+                        <Input
+                          id="extractorUrl"
+                          type="url"
+                          placeholder="https://extratordedados.com.br"
+                          value={extractorUrl}
+                          onChange={e => setExtractorUrl(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="extractorToken">Token de Autenticação</Label>
+                        <Input
+                          id="extractorToken"
+                          type="password"
+                          placeholder="eyJ..."
+                          value={extractorToken}
+                          onChange={e => setExtractorToken(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Filtros */}
+                    <div className="border-t pt-4">
+                      <Label className="text-sm font-semibold">Filtros (opcional)</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+                        <Input
+                          placeholder="Buscar..."
+                          value={extractorFilters.search}
+                          onChange={e => setExtractorFilters({ ...extractorFilters, search: e.target.value })}
+                          className="text-xs"
+                        />
+                        <Input
+                          placeholder="Status"
+                          value={extractorFilters.status}
+                          onChange={e => setExtractorFilters({ ...extractorFilters, status: e.target.value })}
+                          className="text-xs"
+                        />
+                        <Input
+                          placeholder="Tag"
+                          value={extractorFilters.tag}
+                          onChange={e => setExtractorFilters({ ...extractorFilters, tag: e.target.value })}
+                          className="text-xs"
+                        />
+                        <Input
+                          placeholder="Cidade"
+                          value={extractorFilters.city}
+                          onChange={e => setExtractorFilters({ ...extractorFilters, city: e.target.value })}
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={fetchExtractorLeads}
+                      disabled={extractorLoading || !extractorUrl.trim() || !extractorToken.trim()}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      size="lg"
+                    >
+                      {extractorLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Buscando...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 mr-2" />
+                          Buscar Leads
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Lista de Leads */}
+                {extractorLeads.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">
+                          Leads do Extrator ({extractorLeads.length})
+                        </CardTitle>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={selectAllExtractorLeads}
+                          className="text-xs"
+                        >
+                          {extractorSelectedIds.size === extractorLeads.length
+                            ? '⊘ Desselecionar tudo'
+                            : '✓ Selecionar tudo'}
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {extractorLeads.map((lead: any) => (
+                          <div
+                            key={lead.id}
+                            className="flex items-center p-3 border rounded hover:bg-slate-50 cursor-pointer transition"
+                            onClick={() => toggleExtractorLeadSelection(lead.id)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={extractorSelectedIds.has(lead.id)}
+                              onChange={() => {}}
+                              className="mr-3 w-4 h-4"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {lead.contact_name || lead.company_name || 'Lead sem nome'}
+                              </p>
+                              <p className="text-xs text-slate-500 truncate">
+                                {lead.email || lead.phone || 'Sem contato'}
+                              </p>
+                            </div>
+                            {lead.company_name && (
+                              <div className="text-xs text-slate-400 ml-2 hidden sm:block truncate">
+                                {lead.company_name}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <p className="text-sm text-slate-600">
+                          {extractorSelectedIds.size} de {extractorLeads.length} selecionados
+                        </p>
+                        <Button
+                          onClick={() => {
+                            if (extractorSelectedIds.size > 0) {
+                              importFromExtrator();
+                            }
+                          }}
+                          disabled={loading || extractorSelectedIds.size === 0}
+                          size="lg"
+                          className="bg-green-600 hover:bg-green-700 sm:w-auto w-full"
+                        >
+                          {loading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Importando...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-4 w-4 mr-2" />
+                              Importar {extractorSelectedIds.size}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Import button - não mostra para extrator (tem botão dentro da lista) */}
+            {importMode !== 'extrator' && (
+              <Button onClick={handleImport} disabled={loading || !canImport} className="w-full" size="lg">
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading ? 'Importando...' : 'Importar Leads'}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
