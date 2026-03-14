@@ -2,6 +2,7 @@ using System.Net.Mail;
 using System.Text.Json;
 using Diax.Application.Common;
 using Diax.Application.EmailMarketing.Dtos;
+using Diax.Domain.Auth;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
@@ -23,6 +24,8 @@ public class EmailMarketingService : IApplicationService
     private readonly IEmailTemplateEngine _emailTemplateEngine;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserRepository _userRepository;
+    private readonly IEmailSender _emailSender;
 
     public EmailMarketingService(
         IEmailQueueRepository emailQueueRepository,
@@ -31,7 +34,9 @@ public class EmailMarketingService : IApplicationService
         ISnippetRepository snippetRepository,
         IEmailTemplateEngine emailTemplateEngine,
         ICurrentUserService currentUserService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IUserRepository userRepository,
+        IEmailSender emailSender)
     {
         _emailQueueRepository = emailQueueRepository;
         _emailCampaignRepository = emailCampaignRepository;
@@ -40,6 +45,8 @@ public class EmailMarketingService : IApplicationService
         _emailTemplateEngine = emailTemplateEngine;
         _currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
+        _userRepository = userRepository;
+        _emailSender = emailSender;
     }
 
     public async Task<Result<PreviewCampaignResponse>> PreviewCampaignAsync(
@@ -88,6 +95,66 @@ public class EmailMarketingService : IApplicationService
             RenderedBodyHtml = renderedBody,
             Variables = variables
         };
+    }
+
+    public async Task<Result> SendTestEmailAsync(
+        Guid campaignId,
+        SendTestEmailRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var campaignResult = await GetCampaignOwnedByCurrentUserAsync(campaignId, cancellationToken);
+        if (campaignResult.IsFailure)
+        {
+            return Result.Failure(campaignResult.Error);
+        }
+
+        var campaign = campaignResult.Value;
+
+        var user = await _userRepository.GetByIdAsync(_currentUserService.UserId!.Value, cancellationToken);
+        if (user is null)
+        {
+            return Result.Failure(Error.NotFound("User", _currentUserService.UserId.Value));
+        }
+
+        var userEmail = user.Email;
+        var userName = userEmail;
+
+        var templateResult = await ResolveCampaignTemplateSnapshotAsync(
+            campaign,
+            request.BodyHtmlOverride,
+            null,
+            cancellationToken);
+
+        if (templateResult.IsFailure)
+        {
+            return Result.Failure(templateResult.Error);
+        }
+
+        var subjectTemplate = string.IsNullOrWhiteSpace(request.SubjectOverride)
+            ? campaign.Subject
+            : request.SubjectOverride.Trim();
+
+        var variables = BuildTemplateVariables("Teste", userEmail, "Empresa Teste", "Lead");
+
+        var renderedSubject = "[TESTE] " + _emailTemplateEngine.Render(subjectTemplate, variables);
+        var renderedBody = _emailTemplateEngine.Render(templateResult.Value.TemplateBody, variables);
+
+        var message = new EmailSendMessage
+        {
+            RecipientName = userName,
+            RecipientEmail = userEmail,
+            Subject = renderedSubject,
+            HtmlBody = renderedBody
+        };
+
+        var sendResult = await _emailSender.SendAsync(message, cancellationToken);
+        if (!sendResult.Success)
+        {
+            return Result.Failure(
+                Error.Validation("EmailSend", sendResult.ErrorMessage ?? "Falha ao enviar e-mail de teste."));
+        }
+
+        return Result.Success();
     }
 
     public async Task<Result<EmailCampaignResponse>> CreateCampaignAsync(
@@ -522,6 +589,7 @@ public class EmailMarketingService : IApplicationService
         Guid campaignId,
         int page,
         int pageSize,
+        string? filter = null,
         CancellationToken cancellationToken = default)
     {
         var campaignResult = await GetCampaignOwnedByCurrentUserAsync(campaignId, cancellationToken);
@@ -533,8 +601,9 @@ public class EmailMarketingService : IApplicationService
         var safePage = page <= 0 ? 1 : page;
         var safePageSize = pageSize <= 0 ? 50 : Math.Min(pageSize, 100);
 
-        var (items, totalCount) = await _emailQueueRepository.GetPagedByCampaignIdAsync(
+        var (items, totalCount) = await _emailQueueRepository.GetPagedByCampaignIdFilteredAsync(
             campaignId,
+            filter,
             safePage,
             safePageSize,
             cancellationToken);
@@ -546,6 +615,25 @@ public class EmailMarketingService : IApplicationService
             totalCount);
 
         return response;
+    }
+
+    public async Task<Result<CampaignRecipientCustomerIdsResponse>> GetCampaignRecipientCustomerIdsAsync(
+        Guid campaignId,
+        string? filter,
+        CancellationToken cancellationToken = default)
+    {
+        var campaignResult = await GetCampaignOwnedByCurrentUserAsync(campaignId, cancellationToken);
+        if (campaignResult.IsFailure)
+            return Result.Failure<CampaignRecipientCustomerIdsResponse>(campaignResult.Error);
+
+        var customerIds = await _emailQueueRepository.GetCustomerIdsByCampaignFilterAsync(
+            campaignId, filter, cancellationToken);
+
+        return new CampaignRecipientCustomerIdsResponse
+        {
+            CustomerIds = customerIds.Select(id => id.ToString()).ToList(),
+            Count = customerIds.Count
+        };
     }
 
     private static DateTime NormalizeSchedule(DateTime? scheduledAt)

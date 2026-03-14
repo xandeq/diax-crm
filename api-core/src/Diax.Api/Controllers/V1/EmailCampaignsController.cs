@@ -59,6 +59,16 @@ public class EmailCampaignsController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPost("campaigns/{campaignId:guid}/send-test")]
+    public async Task<IActionResult> SendTestEmail(
+        [FromRoute] Guid campaignId,
+        [FromBody] SendTestEmailRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _emailMarketingService.SendTestEmailAsync(campaignId, request, cancellationToken);
+        return HandleResult(result);
+    }
+
     [HttpPost("campaigns/{campaignId:guid}/preview")]
     public async Task<IActionResult> PreviewCampaign(
         [FromRoute] Guid campaignId,
@@ -93,10 +103,22 @@ public class EmailCampaignsController : BaseApiController
         [FromRoute] Guid campaignId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
+        [FromQuery] string? filter = null,
         CancellationToken cancellationToken = default)
     {
         var result = await _emailMarketingService.GetCampaignRecipientsAsync(
-            campaignId, page, pageSize, cancellationToken);
+            campaignId, page, pageSize, filter, cancellationToken);
+        return HandleResult(result);
+    }
+
+    [HttpGet("campaigns/{campaignId:guid}/recipients/customer-ids")]
+    public async Task<IActionResult> GetCampaignRecipientCustomerIds(
+        [FromRoute] Guid campaignId,
+        [FromQuery] string? filter = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _emailMarketingService.GetCampaignRecipientCustomerIdsAsync(
+            campaignId, filter, cancellationToken);
         return HandleResult(result);
     }
 

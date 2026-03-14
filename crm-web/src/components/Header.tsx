@@ -76,6 +76,9 @@ export function Header() {
                 <Link href="/email-marketing" className={menuItemClass} role="menuitem">
                   Email Marketing
                 </Link>
+                <Link href="/campanhas" className={menuItemClass} role="menuitem">
+                  Campanhas
+                </Link>
                 <div className={separatorClass}></div>
                 <Link href="/ads/" className={menuItemClass} role="menuitem">
                   Anúncios (Meta Ads)

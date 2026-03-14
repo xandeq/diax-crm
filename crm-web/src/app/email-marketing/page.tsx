@@ -23,7 +23,8 @@ import {
     EmailCampaignResponse,
     getEmailCampaigns,
     queueCampaignRecipients,
-    QueueCampaignRecipientsResponse
+    QueueCampaignRecipientsResponse,
+    sendTestEmail,
 } from '@/services/emailMarketing';
 import {
     AlertCircle,
@@ -97,7 +98,13 @@ export default function EmailMarketingPage() {
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
 
   const [sending, setSending] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const [result, setResult] = useState<QueueCampaignRecipientsResponse | null>(null);
+  const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
+
+  // Remarketing pre-selection
+  const [remarketingIds, setRemarketingIds] = useState<string[]>([]);
+  const [remarketingLabel, setRemarketingLabel] = useState<string>('');
 
   // Image upload and Editor Ref
   const editorRef = useRef<any>(null);
@@ -152,6 +159,23 @@ export default function EmailMarketingPage() {
     setPage(1);
   }, [search, segment, contactType, pageSize]);
 
+  // Remarketing pre-selection from sessionStorage (set by campaign report page)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = sessionStorage.getItem('remarketing_customer_ids');
+    const label = sessionStorage.getItem('remarketing_label') ?? '';
+    if (raw) {
+      try {
+        const ids: string[] = JSON.parse(raw);
+        setRemarketingIds(ids);
+        setRemarketingLabel(label);
+        setSelectedIds(new Set(ids));
+      } catch {
+        // ignore malformed data
+      }
+    }
+  }, []);
+
   const handleLoadCampaign = (campaignId: string) => {
     const campaign = savedCampaigns.find(c => c.id === campaignId);
     if (!campaign) return;
@@ -181,6 +205,44 @@ export default function EmailMarketingPage() {
   };
 
   const clearSelection = () => setSelectedIds(new Set());
+
+  const clearRemarketing = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('remarketing_customer_ids');
+      sessionStorage.removeItem('remarketing_label');
+    }
+    setRemarketingIds([]);
+    setRemarketingLabel('');
+    setSelectedIds(new Set());
+  };
+
+  const handleSendTest = async () => {
+    if (!subject.trim() && !htmlBody.trim()) {
+      toast.error('Preencha o assunto ou o corpo do email antes de enviar o teste.');
+      return;
+    }
+    setSendingTest(true);
+    try {
+      let campaignId = currentCampaignId;
+      if (!campaignId) {
+        const finalName = campaignName.trim() || `Rascunho - ${new Date().toLocaleString('pt-BR')}`;
+        const campaign = await createEmailCampaign({
+          name: finalName,
+          subject: subject || '(sem assunto)',
+          bodyHtml: htmlBody,
+        });
+        campaignId = campaign.id;
+        setCurrentCampaignId(campaign.id);
+        getEmailCampaigns(1, 20).then(data => setSavedCampaigns(data.items));
+      }
+      await sendTestEmail(campaignId, { subjectOverride: subject, bodyHtmlOverride: htmlBody });
+      toast.success('E-mail de teste enviado para seu e-mail!');
+    } catch (e: any) {
+      toast.error('Erro ao enviar teste: ' + e.message);
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   /** Insere texto/HTML na posição atual do cursor no editor TipTap */
   const insertAtCursor = (content: string) => {
@@ -318,6 +380,7 @@ export default function EmailMarketingPage() {
         subject,
         bodyHtml: htmlBody,
       });
+      setCurrentCampaignId(campaign.id);
 
       // 2. Enfileirar na campanha criada
       const res = await queueCampaignRecipients(campaign.id, {
@@ -369,6 +432,26 @@ export default function EmailMarketingPage() {
           <Link href="/outreach" className="underline hover:text-blue-900">Outreach → Dashboard</Link>.
         </div>
       </div>
+
+      {/* Remarketing banner */}
+      {remarketingIds.length > 0 && (
+        <div className="mb-5 flex items-start justify-between gap-2 rounded-lg border border-blue-300 bg-blue-100 px-4 py-3 text-sm text-blue-900">
+          <div className="flex items-start gap-2">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              <strong>Campanha de remarketing:</strong> enviando para{' '}
+              <strong>{remarketingIds.length}</strong> contatos{' '}
+              {remarketingLabel && <span>{remarketingLabel}</span>}.
+            </span>
+          </div>
+          <button
+            onClick={clearRemarketing}
+            className="shrink-0 text-xs font-medium underline hover:text-blue-700"
+          >
+            Limpar
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col-reverse gap-6">
         {/* ── LEFT: Contact selector ───────────────────────── */}
@@ -663,12 +746,27 @@ export default function EmailMarketingPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="htmlBody">Corpo do Email (HTML) *</Label>
-                <button
-                  onClick={() => setShowPreview(v => !v)}
-                  className="flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  {showPreview ? <><EyeOff className="h-3 w-3" /> Editar</> : <><Eye className="h-3 w-3" /> Preview com dados reais</>}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSendTest}
+                    disabled={sendingTest}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    title="Envia o email para o seu endereço cadastrado"
+                  >
+                    {sendingTest ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" /> Enviando...</>
+                    ) : (
+                      <><Send className="h-3 w-3" /> Enviar teste</>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowPreview(v => !v)}
+                    className="flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    {showPreview ? <><EyeOff className="h-3 w-3" /> Editar</> : <><Eye className="h-3 w-3" /> Preview com dados reais</>}
+                  </button>
+                </div>
               </div>
               {showPreview ? (
                 <div className="space-y-2">
@@ -770,6 +868,14 @@ export default function EmailMarketingPage() {
                   </Link>
                   .
                 </p>
+                {result.campaignId && (
+                  <Link
+                    href={`/campanhas/${result.campaignId}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-green-800 underline hover:text-green-900"
+                  >
+                    Ver Relatório da Campanha →
+                  </Link>
+                )}
               </div>
             )}
           </CardContent>

@@ -88,4 +88,50 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
 
         return (items, totalCount);
     }
+
+    public async Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByCampaignIdFilteredAsync(
+        Guid campaignId,
+        string? filter,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.Where(item => item.CampaignId == campaignId);
+        query = ApplyBehaviorFilter(query, filter);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(item => item.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetCustomerIdsByCampaignFilterAsync(
+        Guid campaignId,
+        string? filter,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.Where(item => item.CampaignId == campaignId && item.CustomerId.HasValue);
+        query = ApplyBehaviorFilter(query, filter);
+
+        return await query
+            .Select(item => item.CustomerId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    private static IQueryable<EmailQueueItem> ApplyBehaviorFilter(IQueryable<EmailQueueItem> query, string? filter)
+    {
+        return filter?.ToLowerInvariant() switch
+        {
+            "opened" => query.Where(item => item.OpenedAt != null),
+            "not_opened" => query.Where(item => item.Status == EmailQueueStatus.Sent && item.OpenedAt == null),
+            "problems" => query.Where(item => item.Status == EmailQueueStatus.Failed),
+            _ => query
+        };
+    }
 }

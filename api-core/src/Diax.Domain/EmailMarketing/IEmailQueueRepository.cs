@@ -22,4 +22,16 @@ public interface IEmailQueueRepository : IRepository<EmailQueueItem>
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);
+
+    Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByCampaignIdFilteredAsync(
+        Guid campaignId,
+        string? filter,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Guid>> GetCustomerIdsByCampaignFilterAsync(
+        Guid campaignId,
+        string? filter,
+        CancellationToken cancellationToken = default);
 }
