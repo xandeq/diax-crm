@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Diax.Application.Common.Services;
 using Diax.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.Customers.Services;
 
