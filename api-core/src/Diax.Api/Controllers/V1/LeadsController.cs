@@ -137,7 +137,7 @@ public class LeadsController : BaseApiController
             });
         }
 
-        var (url, _) = result.Value;
+        var (url, token) = result.Value;
 
         // ✅ Return only URL; token stays server-side for security
         return Ok(new { url });
