@@ -209,3 +209,15 @@ Required GitHub Secrets:
 - **API deploy:** `SMARTERASP_FTP_SERVER`, `SMARTERASP_FTP_USERNAME`, `SMARTERASP_FTP_PASSWORD`, `SMARTERASP_FTP_REMOTE_DIR`, `SMARTERASP_DB_CONNECTIONSTRING`
 - **Frontend deploy:** `HOSTGATOR_FTP_SERVER`, `HOSTGATOR_FTP_USERNAME`, `HOSTGATOR_FTP_PASSWORD`, `HOSTGATOR_FTP_REMOTE_DIR`, `CRM_WEB_API_BASE_URL`
 - **API runtime:** `DIAX_JWT_KEY`, `DIAX_AUTH_ADMIN_EMAIL`, `DIAX_AUTH_ADMIN_PASSWORD`, AI provider keys (OpenAI, Perplexity, DeepSeek, Gemini, OpenRouter)
+
+### Extrator de Dados Integration
+
+The CRM connects to the Extrator de Dados API for lead scraping. Configuration is auto-loaded from AWS Secrets Manager.
+
+**AWS Secret:** `tools/diax-extrator` (keys: `EXTRATOR_URL`, `EXTRATOR_API_TOKEN`)
+- **URL:** `http://185.173.110.180` (Hostinger VPS, Flask backend)
+- **Token:** Auto-loaded at `/leads/import` page load via `GET /api/v1/leads/extrator-config`
+- **No manual configuration needed** — users see a "Buscar Leads" button directly after authenticating
+
+**Backend endpoint:** `LeadsController.GetExtractorConfig()` reads from env vars or AWS SM (path: `/diax-crm/`), returns `{ url, token }`
+**Frontend flow:** `useEffect` on `/leads/import?tab=extrator` calls `apiFetch('/leads/extrator-config')`, populates hidden state, shows ready status
