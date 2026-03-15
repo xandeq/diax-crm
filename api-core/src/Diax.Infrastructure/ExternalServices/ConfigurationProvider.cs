@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Diax.Infrastructure.ExternalServices;
 
-public class ConfigurationProvider : IConfigurationProvider
+public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvider
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<ConfigurationProvider> _logger;
