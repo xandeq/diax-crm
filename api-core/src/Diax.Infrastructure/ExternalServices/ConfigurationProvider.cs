@@ -45,12 +45,12 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
     /// </summary>
     public async Task<Result<(string url, string token)>> GetExtractorConfigAsync()
     {
-        // ✅ Check cache first
-        if (_cache.TryGetValue(CACHE_KEY, out var cached))
+        // ✅ Check cache first (defensive: _cache may be null if DI not configured)
+        if (_cache != null && _cache.TryGetValue(CACHE_KEY, out var cached))
         {
             var (cachedUrl, cachedToken, cachedSource) = ((string, string, string))cached;
             _lastSource = cachedSource;
-            _logger.LogDebug("✓ Extrator config loaded from CACHE (source: {Source})", _lastSource);
+            _logger?.LogDebug("✓ Extrator config loaded from CACHE (source: {Source})", _lastSource);
             return Result.Success<(string, string)>((cachedUrl, cachedToken));
         }
 
@@ -60,8 +60,9 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
         {
             var (url, token) = awsResult.Value;
             _lastSource = "AWS Secrets Manager (tools/diax-extrator)";
-            _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
-            _logger.LogInformation("✓ Extrator config loaded from {Source}", _lastSource);
+            if (_cache != null)
+                _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
+            _logger?.LogInformation("✓ Extrator config loaded from {Source}", _lastSource);
             return awsResult;
         }
 
@@ -71,8 +72,9 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
         {
             var (url, token) = configResult.Value;
             _lastSource = DetermineConfigurationSource();
-            _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
-            _logger.LogInformation("✓ Extrator config loaded from {Source} (AWS SM unavailable, using fallback)", _lastSource);
+            if (_cache != null)
+                _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
+            _logger?.LogInformation("✓ Extrator config loaded from {Source} (AWS SM unavailable, using fallback)", _lastSource);
             return configResult;
         }
 
@@ -92,7 +94,7 @@ Configure em pelo menos UMA dessas fontes:
   - appsettings.json: adicione 'Extrator': { 'Url': '...', 'ApiToken': '...' }
 ";
 
-        _logger.LogError(errorMessage);
+        _logger?.LogError(errorMessage);
         return Result.Failure<(string url, string token)>(new Error(
             "ExtractorConfigNotFound",
             errorMessage.Trim()));
@@ -116,7 +118,7 @@ Configure em pelo menos UMA dessas fontes:
 
             if (string.IsNullOrEmpty(response.SecretString))
             {
-                _logger.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' is empty");
+                _logger?.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' is empty");
                 return null; // Continue para próxima camada
             }
 
@@ -126,7 +128,7 @@ Configure em pelo menos UMA dessas fontes:
 
             if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(token))
             {
-                _logger.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' missing required keys (EXTRATOR_URL, EXTRATOR_API_TOKEN)");
+                _logger?.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' missing required keys (EXTRATOR_URL, EXTRATOR_API_TOKEN)");
                 return null; // Continue para próxima camada
             }
 
@@ -134,12 +136,12 @@ Configure em pelo menos UMA dessas fontes:
         }
         catch (ResourceNotFoundException)
         {
-            _logger.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' not found");
+            _logger?.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' not found");
             return null; // Continue para próxima camada
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "⚠️ AWS Secrets Manager unavailable ({Message}), falling back to configuration cascade", ex.Message);
+            _logger?.LogWarning(ex, "⚠️ AWS Secrets Manager unavailable ({Message}), falling back to configuration cascade", ex.Message);
             return null; // Continue para próxima camada
         }
     }

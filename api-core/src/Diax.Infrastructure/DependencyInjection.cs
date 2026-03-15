@@ -82,6 +82,9 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         // ===== CACHE =====
+        // AddMemoryCache() — for IMemoryCache (used by ConfigurationProvider)
+        // AddDistributedMemoryCache() — for IDistributedCache (if needed later)
+        services.AddMemoryCache();
         services.AddDistributedMemoryCache();
 
         // ===== CONNECTION STRING =====
