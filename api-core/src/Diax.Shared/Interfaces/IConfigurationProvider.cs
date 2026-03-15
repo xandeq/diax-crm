@@ -1,4 +1,4 @@
-using Diax.Shared;
+using Diax.Shared.Results;
 
 namespace Diax.Shared.Interfaces;
 

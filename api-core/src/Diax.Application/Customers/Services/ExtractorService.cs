@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Diax.Shared;
 using Diax.Shared.Interfaces;
+using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.Customers.Services;
