@@ -48,11 +48,11 @@ public class ExtractorService : IExtractorService
         {
             // ✅ Fetch config from cascade (secure)
             var configResult = await _configProvider.GetExtractorConfigAsync();
-            if (configResult.IsFailed)
+            if (configResult.IsFailure)
             {
                 _logger.LogError("Failed to load Extrator config: {Error}",
-                    configResult.FirstError.Description);
-                return Result.Failure(configResult.FirstError);
+                    configResult.Error.Message);
+                return Result.Failure<ExtractorLeadsResponse>(configResult.Error);
             }
 
             var (extractorUrl, extractorToken) = configResult.Value;
@@ -96,9 +96,9 @@ public class ExtractorService : IExtractorService
                     response.StatusCode,
                     errorContent);
 
-                return Result.Failure(new Error(
-                    code: "ExtractorApiError",
-                    description: $"Extrator retornou erro {response.StatusCode}. Verifique a configuração e tente novamente."));
+                return Result.Failure<ExtractorLeadsResponse>(new Error(
+                    "ExtractorApiError",
+                    $"Extrator retornou erro {response.StatusCode}. Verifique a configuração e tente novamente."));
             }
 
             var content = await response.Content.ReadAsStringAsync();
@@ -109,9 +109,9 @@ public class ExtractorService : IExtractorService
             if (leadsResponse == null)
             {
                 _logger.LogWarning("Extrator returned null response");
-                return Result.Failure(new Error(
-                    code: "ExtractorInvalidResponse",
-                    description: "Resposta inválida do Extrator"));
+                return Result.Failure<ExtractorLeadsResponse>(new Error(
+                    "ExtractorInvalidResponse",
+                    "Resposta inválida do Extrator"));
             }
 
             _logger.LogInformation(
@@ -125,16 +125,16 @@ public class ExtractorService : IExtractorService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "HTTP error connecting to Extrator");
-            return Result.Failure(new Error(
-                code: "ExtractorConnectionError",
-                description: $"Erro ao conectar com Extrator: {ex.Message}"));
+            return Result.Failure<ExtractorLeadsResponse>(new Error(
+                "ExtractorConnectionError",
+                $"Erro ao conectar com Extrator: {ex.Message}"));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error fetching from Extrator");
-            return Result.Failure(new Error(
-                code: "ExtractorError",
-                description: $"Erro inesperado: {ex.Message}"));
+            return Result.Failure<ExtractorLeadsResponse>(new Error(
+                "ExtractorError",
+                $"Erro inesperado: {ex.Message}"));
         }
     }
 }

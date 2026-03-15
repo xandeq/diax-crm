@@ -99,9 +99,9 @@ Cascata testada (em ordem):
 Configure em pelo menos UMA dessas fontes.";
 
         _logger.LogError(errorMessage);
-        return Result.Failure(new Error(
-            code: "ExtractorConfigNotFound",
-            description: errorMessage.Trim()));
+        return Result.Failure<(string url, string token)>(new Error(
+            "ExtractorConfigNotFound",
+            errorMessage.Trim()));
     }
 
     public string GetConfigSource() => _lastSource;
@@ -131,7 +131,9 @@ Configure em pelo menos UMA dessas fontes.";
             return Result.Success((url, token));
         }
 
-        return Result.Failure(new Error("ConfigurationNotFound"));
+        return Result.Failure<(string url, string token)>(new Error(
+            "ConfigurationNotFound",
+            "Configuration not found in IConfiguration sources"));
     }
 
     /// <summary>
@@ -185,7 +187,9 @@ Configure em pelo menos UMA dessas fontes.";
                 return Result.Success((urlConfig.Value, tokenConfig.Value));
             }
 
-            return Result.Failure(new Error("ConfigNotInDatabase"));
+            return Result.Failure<(string url, string token)>(new Error(
+                "ConfigNotInDatabase",
+                "Configuration not found in database"));
         }
         catch (Exception ex)
         {
