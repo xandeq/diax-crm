@@ -1,7 +1,5 @@
-using Diax.Infrastructure.Data;
 using Diax.Shared.Interfaces;
 using Diax.Shared.Results;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -12,7 +10,6 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<ConfigurationProvider> _logger;
-    private readonly DiaxDbContext _dbContext;
     private readonly IMemoryCache _cache;
     private string _lastSource = "";
 
@@ -22,12 +19,10 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
     public ConfigurationProvider(
         IConfiguration configuration,
         ILogger<ConfigurationProvider> logger,
-        DiaxDbContext dbContext,
         IMemoryCache cache)
     {
         _configuration = configuration;
         _logger = logger;
-        _dbContext = dbContext;
         _cache = cache;
     }
 
@@ -36,10 +31,9 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
     ///
     /// Cascata (ordem de prioridade):
     /// 1. Environment Variables (DIAX_EXTRATOR_URL, DIAX_EXTRATOR_API_TOKEN)
-    /// 2. appsettings.{Environment}.json
-    /// 3. appsettings.json
+    /// 2. appsettings.{Environment}.json (Extrator:Url, Extrator:ApiToken)
+    /// 3. appsettings.json (Extrator:Url, Extrator:ApiToken)
     /// 4. .NET User Secrets (desenvolvimento)
-    /// 5. Database Config table (runtime alterável)
     ///
     /// Notas:
     /// - DotNetEnv carrega .env automaticamente → Environment Variables
@@ -55,7 +49,7 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
             var (cachedUrl, cachedToken, cachedSource) = ((string, string, string))cached;
             _lastSource = cachedSource;
             _logger.LogDebug("✓ Extrator config loaded from CACHE (source: {Source})", _lastSource);
-            return Result.Success((cachedUrl, cachedToken));
+            return Result.Success<(string, string)>((cachedUrl, cachedToken));
         }
 
         // 1️⃣ IConfiguration (Environment Variables + appsettings + User Secrets)
@@ -71,19 +65,6 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
             return result;
         }
 
-        // 2️⃣ Database Config table (último recurso, runtime alterável)
-        var dbResult = await TryLoadFromDatabaseAsync();
-        if (dbResult.IsSuccess)
-        {
-            var (url, token) = dbResult.Value;
-            _lastSource = "Database (ApplicationConfig)";
-
-            // ✅ Cache the result
-            _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
-            _logger.LogInformation("✓ Extrator config loaded from {Source}", _lastSource);
-            return dbResult;
-        }
-
         // ❌ Nenhuma fonte disponível
         _lastSource = "NOT_FOUND";
         var errorMessage = @"
@@ -94,7 +75,6 @@ Cascata testada (em ordem):
   2. appsettings.{Environment}.json (Extrator:Url, Extrator:ApiToken)
   3. appsettings.json (Extrator:Url, Extrator:ApiToken)
   4. .NET User Secrets (dotnet user-secrets set ...)
-  5. Database (ApplicationConfig table)
 
 Configure em pelo menos UMA dessas fontes.";
 
@@ -128,7 +108,7 @@ Configure em pelo menos UMA dessas fontes.";
 
         if (!string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(token))
         {
-            return Result.Success((url, token));
+            return Result.Success<(string, string)>((url, token));
         }
 
         return Result.Failure<(string url, string token)>(new Error(
@@ -157,47 +137,4 @@ Configure em pelo menos UMA dessas fontes.";
         return "IConfiguration (User Secrets / Web.config)";
     }
 
-    /// <summary>
-    /// Carrega do banco de dados como último recurso.
-    /// Permite alterar config em runtime sem redeploy.
-    /// </summary>
-    private async Task<Result<(string url, string token)>> TryLoadFromDatabaseAsync()
-    {
-        try
-        {
-            // Busca ambas as configs da DB
-            var configs = await _dbContext.ApplicationConfigs
-                .AsNoTracking()
-                .Where(x => (x.Key == "ExtractorUrl" || x.Key == "ExtractorApiToken")
-                    && x.IsActive
-                    && (x.Environment == null || x.Environment == GetCurrentEnvironment()))
-                .ToListAsync();
-
-            var urlConfig = configs.FirstOrDefault(x => x.Key == "ExtractorUrl");
-            var tokenConfig = configs.FirstOrDefault(x => x.Key == "ExtractorApiToken");
-
-            if (urlConfig != null && tokenConfig != null
-                && !string.IsNullOrWhiteSpace(urlConfig.Value)
-                && !string.IsNullOrWhiteSpace(tokenConfig.Value))
-            {
-                _logger.LogInformation(
-                    "Config loaded from DB. LastUpdated: {UrlUpdated} (URL), {TokenUpdated} (Token)",
-                    urlConfig.UpdatedAt, tokenConfig.UpdatedAt);
-
-                return Result.Success((urlConfig.Value, tokenConfig.Value));
-            }
-
-            return Result.Failure<(string url, string token)>(new Error(
-                "ConfigNotInDatabase",
-                "Configuration not found in database"));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error loading config from database");
-            return Result.Failure(new Error("DatabaseError", ex.Message));
-        }
-    }
-
-    private string GetCurrentEnvironment() =>
-        Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 }
