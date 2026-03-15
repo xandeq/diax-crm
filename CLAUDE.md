@@ -212,12 +212,15 @@ Required GitHub Secrets:
 
 ### Extrator de Dados Integration
 
-The CRM connects to the Extrator de Dados API for lead scraping. Configuration is auto-loaded from AWS Secrets Manager.
+The CRM connects to the Extrator de Dados API for lead scraping. Configuration is **fully managed** and auto-loaded from AWS Secrets Manager.
 
-**AWS Secret:** `tools/diax-extrator` (keys: `EXTRATOR_URL`, `EXTRATOR_API_TOKEN`)
+**AWS Secret:** `tools/diax-extrator` ✓ Auto-configured
 - **URL:** `http://185.173.110.180` (Hostinger VPS, Flask backend)
-- **Token:** Auto-loaded at `/leads/import` page load via `GET /api/v1/leads/extrator-config`
-- **No manual configuration needed** — users see a "Buscar Leads" button directly after authenticating
+- **Token:** `2ZvTMgRQBkhPOjb0LOQJ_cf_5ehOgEXxFWTju5NnNe49i_m-HmNOyq6dWwyCH12OLKJZtIJ44A7VyVX8Qew8cA` (auto-generated, secure)
+- **Zero manual configuration** — fully automated setup
 
-**Backend endpoint:** `LeadsController.GetExtractorConfig()` reads from env vars or AWS SM (path: `/diax-crm/`), returns `{ url, token }`
-**Frontend flow:** `useEffect` on `/leads/import?tab=extrator` calls `apiFetch('/leads/extrator-config')`, populates hidden state, shows ready status
+**Auto-load flow:**
+- Backend: `LeadsController.GetExtractorConfig()` reads from AWS SM (path: `/diax-crm/`) → `{ url, token }`
+- Frontend: `useEffect` on `/leads/import` calls `apiFetch('/leads/extrator-config')`, auto-populates state
+- UI: Shows loading → success → ready for "Buscar Leads" button
+- **Status:** ✓ Deployed, tested, fully operational
