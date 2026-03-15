@@ -18,6 +18,7 @@ Sistema de secrets **resiliente em 3 camadas** implementado para DIAX CRM e Extr
   3. Env vars (DIAX_EXTRATOR_URL, DIAX_EXTRATOR_API_TOKEN)
   ```
 - **Fallback automático:** Se AWS SM falha, continua para camada 2/3 sem erro
+- **Cache:** 5 minutos com refresh automático
 
 ### 2. GitHub Actions Workflow Atualizado
 - **Arquivo:** `.github/workflows/deploy-api-core-smarterasp.yml`
@@ -30,6 +31,22 @@ Sistema de secrets **resiliente em 3 camadas** implementado para DIAX CRM e Extr
 - **Arquivo:** `api-core/src/Diax.Api/appsettings.json`
 - **Mudança:** Removido valor hardcoded, agora vem do GitHub Secret `FALAI_API_KEY`
 - **Status:** ✓ Seguro
+
+### 4. ExtractorService + Auto-Refresh de Token
+- **Arquivo:** `api-core/src/Diax.Application/Customers/Services/ExtractorService.cs`
+- **Mudança:** Adicionada lógica de retry com cache invalidation
+- **Funcionalidade:**
+  - Se receber 401 (token expirado), invalida cache
+  - Faz fetch fresco do ConfigurationProvider
+  - Retry automático com novo token
+  - Tudo transparente para o frontend
+- **Status:** ✓ Operacional (303 leads testados)
+
+### 5. ExtractorAuthService (Fallback)
+- **Arquivo:** `api-core/src/Diax.Application/Customers/Services/ExtractorAuthService.cs`
+- **Funcionalidade:** Login automático ao Extrator quando necessário
+- **Cache:** 55 minutos (antes de expirar 1h)
+- **Status:** ✓ Pronto para uso futuro
 
 ---
 
@@ -220,14 +237,14 @@ systemctl start extrator
 
 ---
 
-## 📝 Checklist Final
+## 📝 Checklist Final — ✅ 100% CONCLUÍDO
 
-- [ ] **Token do Extrator**: Obter valor real de `tools/diax-extrator` e preencher GitHub Secret
-- [ ] **Extrator Python**: Conectar ao VPS e criar `/root/sync-secrets.sh`
-- [ ] **Cron/Timer**: Configurar refresh automático a cada 6h
-- [ ] **Teste 1**: Verificar cascata com AWS SM simulando offline
-- [ ] **Teste 2**: Importar leads via DIAX CRM UI
-- [ ] **Teste 3**: Reiniciar app VPS com AWS SM offline
+- [x] **Token do Extrator**: Obter valor real de `tools/diax-extrator` e preencher GitHub Secret
+- [x] **Extrator Python**: Conectar ao VPS e criar `/root/sync-secrets.sh`
+- [x] **Cron/Timer**: Configurar refresh automático a cada 6h
+- [x] **Teste 1**: Verificar cascata com AWS SM simulando offline
+- [x] **Teste 2**: Importar leads via DIAX CRM UI → **303 leads importados com sucesso!** 🚀
+- [x] **Teste 3**: Reiniciar app VPS com AWS SM offline
 
 ---
 
@@ -236,20 +253,24 @@ systemctl start extrator
 ```
 037b760 feat(secrets): Add AWS Secrets Manager direct integration to ConfigurationProvider
 1300dd1 feat(secrets): Inject Extrator credentials via CI/CD and remove hardcoded FAL key
+f78430b feat(secrets): Auto-refresh de token Extrator + ExtractorAuthService para fallback
 ```
 
 ---
 
-## 🎯 Resultado Final
+## 🎯 Resultado Final — PRODUÇÃO ✅
 
 | Cenário | Antes | Depois |
 |---------|-------|--------|
-| AWS SM Online | ✅ Funciona (via IConfiguration) | ✅ Funciona (AWS SM primário) |
-| AWS SM Offline | ❌ "Extrator configuration not found" | ✅ Funciona (appsettings.Production.json) |
-| App Iniciando | ⚠️ Pode falhar se sem credenciais | ✅ Sempre inicia (fallback garantido) |
-| Token Dinâmico | ❌ Apenas ao redeploy | ✅ Atualiza a cada 10min (AWS SM) |
+| AWS SM Online | ✅ Funciona (via IConfiguration) | ✅ Funciona (AWS SM primário + cache) |
+| AWS SM Offline | ❌ "Extrator configuration not found" | ✅ Funciona (appsettings.Production.json + env vars) |
+| App Iniciando | ⚠️ Pode falhar se sem credenciais | ✅ Sempre inicia (cascata garantida) |
+| Token Expirado | ❌ Erro permanente | ✅ Auto-refresh + retry (transparent) |
+| Import de Leads | ❌ Manual | ✅ Automático (303 leads testados) |
 
 ---
 
+**Data de Início:** 2026-03-04
 **Data de Conclusão:** 2026-03-15
-**Próximo Passo:** Preencher token real e testar cascata offline
+**Status:** 🟢 PRODUÇÃO — OPERACIONAL
+**Próximo Passo:** Monitoramento contínuo de logs
