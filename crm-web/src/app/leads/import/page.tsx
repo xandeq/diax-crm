@@ -323,21 +323,24 @@ export default function LeadsImportPage() {
     try {
       // ✅ Call backend proxy instead of calling Extrator directly
       // Token is kept secure server-side
+      const params = new URLSearchParams();
+      if (extractorFilters.search) params.append('search', extractorFilters.search);
+      if (extractorFilters.status) params.append('status', extractorFilters.status);
+      if (extractorFilters.tag) params.append('tag', extractorFilters.tag);
+      if (extractorFilters.city) params.append('city', extractorFilters.city);
+      params.append('page', '1');
+      params.append('perPage', '100');
+
+      const queryString = params.toString();
+      const url = `/leads/extrator-leads${queryString ? `?${queryString}` : ''}`;
+
       const response = await apiFetch<{
         leads: any[];
         total?: number;
         page?: number;
         perPage?: number;
-      }>('/leads/extrator-leads', {
+      }>(url, {
         method: 'GET',
-        query: {
-          search: extractorFilters.search || undefined,
-          status: extractorFilters.status || undefined,
-          tag: extractorFilters.tag || undefined,
-          city: extractorFilters.city || undefined,
-          page: 1,
-          perPage: 100,
-        },
       });
 
       setExtractorLeads(response.leads || []);
