@@ -215,7 +215,8 @@ Required GitHub Secrets:
 The CRM connects to the Extrator de Dados API for lead scraping. Configuration is **fully managed** and auto-loaded from AWS Secrets Manager.
 
 **AWS Secret:** `tools/diax-extrator` ✓ Auto-configured
-- **URL:** `http://185.173.110.180` (Hostinger VPS, Flask backend)
+- **URL:** `http://185.173.110.180:8000` (Hostinger VPS, Flask backend via Gunicorn)
+- **Health:** `GET /api/health` → `{"db":"postgresql","status":"ok"}` ✓ Verified
 - **Token:** `2ZvTMgRQBkhPOjb0LOQJ_cf_5ehOgEXxFWTju5NnNe49i_m-HmNOyq6dWwyCH12OLKJZtIJ44A7VyVX8Qew8cA` (auto-generated, secure)
 - **Zero manual configuration** — fully automated setup
 
