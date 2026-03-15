@@ -2,6 +2,7 @@ using Diax.Api.Controllers;
 using Diax.Application.Common;
 using Diax.Application.Customers;
 using Diax.Application.Customers.Dtos;
+using Diax.Application.Customers.Services;
 using Diax.Domain.Customers.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -120,16 +121,54 @@ public class LeadsController : BaseApiController
     }
 
     [HttpGet("extrator-config")]
-    public IActionResult GetExtractorConfig([FromServices] IConfiguration configuration)
+    public async Task<IActionResult> GetExtractorConfig(
+        [FromServices] IConfigurationProvider configProvider)
     {
-        var url = configuration["EXTRATOR_URL"] ?? configuration["Extrator:Url"] ?? "";
-        var token = configuration["EXTRATOR_API_TOKEN"] ?? configuration["Extrator:ApiToken"] ?? "";
+        var result = await configProvider.GetExtractorConfigAsync();
 
-        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(token))
+        if (result.IsFailed)
         {
-            return BadRequest(new { message = "Extrator configuration not found. Please contact an administrator." });
+            _logger.LogError("Failed to load Extrator config. Error: {Error}",
+                result.FirstError.Description);
+
+            return BadRequest(new
+            {
+                message = "Extrator configuration not found",
+                source = configProvider.GetConfigSource(),
+                hint = Environment.IsProduction()
+                    ? "Please contact administrator"
+                    : result.FirstError.Description
+            });
         }
 
-        return Ok(new { url, token });
+        var (url, _) = result.Value;
+
+        // ✅ Return only URL; token stays server-side for security
+        return Ok(new
+        {
+            url,
+            source = configProvider.GetConfigSource() // Debug info
+        });
+    }
+
+    [HttpGet("extrator-leads")]
+    public async Task<IActionResult> GetExtractorLeads(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        [FromQuery] string? tag,
+        [FromQuery] string? city,
+        [FromQuery] int page = 1,
+        [FromQuery] int perPage = 100,
+        [FromServices] IExtractorService extractorService)
+    {
+        var result = await extractorService.FetchLeadsAsync(
+            search, status, tag, city, page, perPage);
+
+        if (result.IsFailed)
+        {
+            return BadRequest(new { message = result.FirstError.Description });
+        }
+
+        return Ok(result.Value);
     }
 }

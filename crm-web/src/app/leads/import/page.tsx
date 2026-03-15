@@ -87,11 +87,12 @@ export default function LeadsImportPage() {
     const loadExtractorConfig = async () => {
       try {
         setExtractorConfigLoading(true);
-        const response = await apiFetch<{ url: string; token: string }>('/leads/extrator-config', {
-          method: 'GET',
-        });
+        const response = await apiFetch<{ url: string; source: string }>(
+          '/leads/extrator-config',
+          { method: 'GET' }
+        );
         setExtractorUrl(response.url);
-        setExtractorToken(response.token);
+        // ✅ Token stays server-side for security - not sent to frontend
         setExtractorConfigError('');
       } catch (error: any) {
         setExtractorConfigError(error.message || 'Falha ao carregar configuração do Extrator');
@@ -318,44 +319,35 @@ export default function LeadsImportPage() {
 
   // ── Extrator Integration Functions ────────────────────────────────────────
   const fetchExtractorLeads = async () => {
-    if (!extractorUrl.trim() || !extractorToken.trim()) {
-      alert('URL e token do Extrator são obrigatórios');
-      return;
-    }
-
     setExtractorLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: '1',
-        per_page: '100',
-        search: extractorFilters.search || '',
-        status: extractorFilters.status || '',
-        tag: extractorFilters.tag || '',
-        city: extractorFilters.city || '',
-      });
-
-      const url = extractorUrl.replace(/\/$/, '') + `/api/leads?${params.toString()}`;
-
-      const response = await fetch(url, {
+      // ✅ Call backend proxy instead of calling Extrator directly
+      // Token is kept secure server-side
+      const response = await apiFetch<{
+        leads: any[];
+        total?: number;
+        page?: number;
+        perPage?: number;
+      }>('/leads/extrator-leads', {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${extractorToken}`,
-          'Content-Type': 'application/json',
+        query: {
+          search: extractorFilters.search || undefined,
+          status: extractorFilters.status || undefined,
+          tag: extractorFilters.tag || undefined,
+          city: extractorFilters.city || undefined,
+          page: 1,
+          perPage: 100,
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Erro ao conectar ao Extrator: ${response.status}`);
-      }
+      setExtractorLeads(response.leads || []);
 
-      const data = await response.json();
-      setExtractorLeads(data.leads || []);
-
-      if (!data.leads || data.leads.length === 0) {
+      if (!response.leads || response.leads.length === 0) {
         alert('Nenhum lead encontrado com os filtros aplicados');
       }
     } catch (error: any) {
-      alert(error.message || 'Erro ao conectar ao Extrator');
+      alert(error.message || 'Erro ao buscar leads do Extrator');
+      console.error('Erro ao buscar leads:', error);
     } finally {
       setExtractorLoading(false);
     }
@@ -401,7 +393,7 @@ export default function LeadsImportPage() {
 
       const response = await apiFetch<BulkImportResponse>('/customers/import', {
         method: 'POST',
-        body: JSON.stringify({ customers: customersToImport, source: 'ExtractorImport' }),
+        body: JSON.stringify({ customers: customersToImport, source: 10 }), // 10 = Import
       });
 
       setResult(response);
@@ -409,8 +401,6 @@ export default function LeadsImportPage() {
       if (response.successCount > 0) {
         setExtractorLeads([]);
         setExtractorSelectedIds(new Set());
-        setExtractorUrl('');
-        setExtractorToken('');
         setExtractorFilters({ search: '', status: '', tag: '', city: '' });
 
         setTimeout(() => {
