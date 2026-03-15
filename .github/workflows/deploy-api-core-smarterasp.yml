@@ -104,6 +104,8 @@ jobs:
             --arg smtpUsername "${{ secrets.SMTP_USERNAME }}" \
             --arg smtpPassword "${{ secrets.SMTP_PASSWORD }}" \
             --arg smtpFromEmail "${{ secrets.SMTP_FROM_EMAIL }}" \
+            --arg extractorUrl "${{ secrets.EXTRATOR_URL }}" \
+            --arg extractorToken "${{ secrets.EXTRATOR_API_TOKEN }}" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
@@ -183,6 +185,10 @@ jobs:
                 "SmtpPassword": $smtpPassword,
                 "FromEmail": $smtpFromEmail,
                 "FromName": "Alexandre Queiroz"
+              },
+              "Extrator": {
+                "Url": $extractorUrl,
+                "ApiToken": $extractorToken
               },
               "Cors": {
                 "AllowedOrigins": [
