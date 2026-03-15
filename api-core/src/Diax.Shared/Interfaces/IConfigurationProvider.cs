@@ -1,3 +1,5 @@
+using Diax.Shared;
+
 namespace Diax.Shared.Interfaces;
 
 public interface IConfigurationProvider
