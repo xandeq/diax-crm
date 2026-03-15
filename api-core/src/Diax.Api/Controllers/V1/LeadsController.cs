@@ -125,7 +125,7 @@ public class LeadsController : BaseApiController
 
     [HttpGet("extrator-config")]
     public async Task<IActionResult> GetExtractorConfig(
-        [FromServices] IConfigurationProvider configProvider)
+        [FromServices] Diax.Shared.Interfaces.IConfigurationProvider configProvider)
     {
         var result = await configProvider.GetExtractorConfigAsync();
 
