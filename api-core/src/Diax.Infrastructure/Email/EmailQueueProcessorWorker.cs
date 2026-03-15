@@ -129,7 +129,8 @@ public class EmailQueueProcessorWorker : BackgroundService
                 RecipientEmail = item.RecipientEmail,
                 Subject = renderedSubject,
                 HtmlBody = renderedHtmlBody,
-                Attachments = ParseAttachments(item.AttachmentsJson)
+                Attachments = ParseAttachments(item.AttachmentsJson),
+                Tags = item.CampaignId.HasValue ? [item.CampaignId.Value.ToString()] : null
             };
 
             var sendResult = await emailSender.SendAsync(message, cancellationToken);

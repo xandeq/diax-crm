@@ -7,6 +7,7 @@ public class EmailSendMessage
     public string Subject { get; set; } = string.Empty;
     public string HtmlBody { get; set; } = string.Empty;
     public List<EmailSendAttachment> Attachments { get; set; } = [];
+    public List<string>? Tags { get; set; }
 }
 
 public class EmailSendAttachment
