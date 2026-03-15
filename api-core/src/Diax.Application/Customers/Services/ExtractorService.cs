@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Diax.Shared.Interfaces;
 using Diax.Shared.Results;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.Customers.Services;
@@ -20,15 +21,18 @@ public class ExtractorService : IExtractorService
 {
     private readonly IConfigurationProvider _configProvider;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<ExtractorService> _logger;
 
     public ExtractorService(
         IConfigurationProvider configProvider,
         IHttpClientFactory httpClientFactory,
+        IMemoryCache cache,
         ILogger<ExtractorService> logger)
     {
         _configProvider = configProvider;
         _httpClientFactory = httpClientFactory;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -87,6 +91,27 @@ public class ExtractorService : IExtractorService
                 url, search ?? "null", status ?? "null", tag ?? "null", city ?? "null");
 
             var response = await client.GetAsync(url);
+
+            // ✅ Se token expirou (401), tentar atualizar via ConfigurationProvider cache refresh
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _logger.LogWarning("⚠️ Token expirado (401), invalidando cache e tentando novamente...");
+
+                // Limpar cache para forçar novo fetch do ConfigurationProvider
+                _cache.Remove("extractor_config");
+
+                // Retry uma vez com token "fresco" do cascade
+                var freshConfigResult = await _configProvider.GetExtractorConfigAsync();
+                if (freshConfigResult.IsSuccess)
+                {
+                    var (freshUrl, freshToken) = freshConfigResult.Value;
+                    client.DefaultRequestHeaders.Remove("Authorization");
+                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {freshToken}");
+
+                    response = await client.GetAsync(url);
+                    _logger.LogInformation("✅ Retry com token atualizado bem-sucedido");
+                }
+            }
 
             if (!response.IsSuccessStatusCode)
             {
