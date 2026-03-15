@@ -36,10 +36,9 @@ public static class AiDataSeeder
             SupportsListModels: false,
             Models: new()
             {
-                new ModelSeed("imagen-3.0-generate-002",               "Imagen 3"),
-                new ModelSeed("imagen-3.0-fast-generate-001",          "Imagen 3 Fast"),
-                new ModelSeed("gemini-2.0-flash-exp-image-generation", "Gemini 2.0 Flash Image"),
-                new ModelSeed("gemini-2.5-flash-preview-04-17",        "Gemini 2.5 Flash (Image)"),
+                new ModelSeed("gemini-2.5-flash-image",        "Nano Banana (Gemini 2.5 Flash)"),
+                new ModelSeed("gemini-3.1-flash-image-preview", "Nano Banana 2 (Gemini 3.1 Flash)"),
+                new ModelSeed("gemini-3-pro-image-preview",    "Nano Banana Pro (Gemini 3 Pro)"),
             }),
 
         new ProviderSeed(
