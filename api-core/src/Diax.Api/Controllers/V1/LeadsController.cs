@@ -130,27 +130,17 @@ public class LeadsController : BaseApiController
 
         if (result.IsFailure)
         {
-            _logger.LogError("Failed to load Extrator config. Error: {Error}",
-                result.Error.Message);
-
             return BadRequest(new
             {
                 message = "Extrator configuration not found",
-                source = configProvider.GetConfigSource(),
-                hint = Environment.IsProduction()
-                    ? "Please contact administrator"
-                    : result.Error.Message
+                detail = result.Error.Message
             });
         }
 
         var (url, _) = result.Value;
 
         // ✅ Return only URL; token stays server-side for security
-        return Ok(new
-        {
-            url,
-            source = configProvider.GetConfigSource() // Debug info
-        });
+        return Ok(new { url });
     }
 
     [HttpGet("extrator-leads")]
