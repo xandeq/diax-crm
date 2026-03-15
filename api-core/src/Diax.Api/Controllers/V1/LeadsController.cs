@@ -16,10 +16,12 @@ namespace Diax.Api.Controllers.V1;
 public class LeadsController : BaseApiController
 {
     private readonly CustomerService _service;
+    private readonly IExtractorService _extractorService;
 
-    public LeadsController(CustomerService service)
+    public LeadsController(CustomerService service, IExtractorService extractorService)
     {
         _service = service;
+        _extractorService = extractorService;
     }
 
     [HttpGet]
@@ -126,10 +128,10 @@ public class LeadsController : BaseApiController
     {
         var result = await configProvider.GetExtractorConfigAsync();
 
-        if (result.IsFailed)
+        if (result.IsFailure)
         {
             _logger.LogError("Failed to load Extrator config. Error: {Error}",
-                result.FirstError.Description);
+                result.Error.Message);
 
             return BadRequest(new
             {
@@ -137,7 +139,7 @@ public class LeadsController : BaseApiController
                 source = configProvider.GetConfigSource(),
                 hint = Environment.IsProduction()
                     ? "Please contact administrator"
-                    : result.FirstError.Description
+                    : result.Error.Message
             });
         }
 
@@ -158,15 +160,14 @@ public class LeadsController : BaseApiController
         [FromQuery] string? tag,
         [FromQuery] string? city,
         [FromQuery] int page = 1,
-        [FromQuery] int perPage = 100,
-        [FromServices] IExtractorService extractorService)
+        [FromQuery] int perPage = 100)
     {
-        var result = await extractorService.FetchLeadsAsync(
+        var result = await _extractorService.FetchLeadsAsync(
             search, status, tag, city, page, perPage);
 
-        if (result.IsFailed)
+        if (result.IsFailure)
         {
-            return BadRequest(new { message = result.FirstError.Description });
+            return BadRequest(new { message = result.Error.Message });
         }
 
         return Ok(result.Value);
