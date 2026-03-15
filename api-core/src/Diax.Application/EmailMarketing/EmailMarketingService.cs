@@ -144,7 +144,8 @@ public class EmailMarketingService : IApplicationService
             RecipientName = userName,
             RecipientEmail = userEmail,
             Subject = renderedSubject,
-            HtmlBody = renderedBody
+            HtmlBody = renderedBody,
+            Tags = [campaignId.ToString()]
         };
 
         var sendResult = await _emailSender.SendAsync(message, cancellationToken);
