@@ -1,8 +1,12 @@
+using Amazon;
+using Amazon.SecretsManager;
+using Amazon.SecretsManager.Model;
 using Diax.Shared.Interfaces;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Diax.Infrastructure.ExternalServices;
 
@@ -27,19 +31,17 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
     }
 
     /// <summary>
-    /// Carrega configuração do Extrator em cascata simplificada (SaaS-grade).
+    /// Carrega configuração do Extrator em cascata resiliente (3 camadas).
     ///
     /// Cascata (ordem de prioridade):
-    /// 1. Environment Variables (DIAX_EXTRATOR_URL, DIAX_EXTRATOR_API_TOKEN)
-    /// 2. appsettings.{Environment}.json (Extrator:Url, Extrator:ApiToken)
-    /// 3. appsettings.json (Extrator:Url, Extrator:ApiToken)
-    /// 4. .NET User Secrets (desenvolvimento)
+    /// 1. AWS Secrets Manager (tools/diax-extrator) — dinâmica, refresh a cada 10 min
+    /// 2. IConfiguration (appsettings.Production.json baked via CI/CD) — fallback offline-safe
+    /// 3. Environment Variables (DIAX_EXTRATOR_URL, DIAX_EXTRATOR_API_TOKEN)
     ///
     /// Notas:
-    /// - DotNetEnv carrega .env automaticamente → Environment Variables
-    /// - Web.config (IIS) injeta em IConfiguration automaticamente
-    /// - CI/CD Secrets chegam como Environment Variables
+    /// - Se AWS SM falhar (offline/timeout), continua para camada 2/3 automaticamente
     /// - Resultado é cacheado por 5 minutos para performance
+    /// - Garante que a app funciona mesmo sem AWS SM disponível
     /// </summary>
     public async Task<Result<(string url, string token)>> GetExtractorConfigAsync()
     {
@@ -52,17 +54,26 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
             return Result.Success<(string, string)>((cachedUrl, cachedToken));
         }
 
-        // 1️⃣ IConfiguration (Environment Variables + appsettings + User Secrets)
-        var result = TryLoadFromConfiguration();
-        if (result.IsSuccess)
+        // 1️⃣ AWS Secrets Manager (primária - dinâmica)
+        var awsResult = await TryLoadFromAwsSecretsManagerAsync();
+        if (awsResult.IsSuccess)
         {
-            var (url, token) = result.Value;
-            _lastSource = DetermineConfigurationSource();
-
-            // ✅ Cache the result
+            var (url, token) = awsResult.Value;
+            _lastSource = "AWS Secrets Manager (tools/diax-extrator)";
             _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
             _logger.LogInformation("✓ Extrator config loaded from {Source}", _lastSource);
-            return result;
+            return awsResult;
+        }
+
+        // 2️⃣ IConfiguration (appsettings.Production.json baked no CI/CD - fallback offline-safe)
+        var configResult = TryLoadFromConfiguration();
+        if (configResult.IsSuccess)
+        {
+            var (url, token) = configResult.Value;
+            _lastSource = DetermineConfigurationSource();
+            _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
+            _logger.LogInformation("✓ Extrator config loaded from {Source} (AWS SM unavailable, using fallback)", _lastSource);
+            return configResult;
         }
 
         // ❌ Nenhuma fonte disponível
@@ -71,12 +82,15 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
 ❌ Extrator configuration not found.
 
 Cascata testada (em ordem):
-  1. Environment Variables (DIAX_EXTRATOR_URL, DIAX_EXTRATOR_API_TOKEN)
-  2. appsettings.{Environment}.json (Extrator:Url, Extrator:ApiToken)
-  3. appsettings.json (Extrator:Url, Extrator:ApiToken)
-  4. .NET User Secrets (dotnet user-secrets set ...)
+  1. AWS Secrets Manager (tools/diax-extrator) - OFFLINE/UNAVAILABLE
+  2. appsettings.Production.json (Extrator:Url, Extrator:ApiToken) - NÃO CONFIGURADO
+  3. Environment Variables (DIAX_EXTRATOR_URL, DIAX_EXTRATOR_API_TOKEN) - NÃO CONFIGURADO
 
-Configure em pelo menos UMA dessas fontes.";
+Configure em pelo menos UMA dessas fontes:
+  - AWS SM: aws secretsmanager create-secret --name tools/diax-extrator
+  - Env var: export DIAX_EXTRATOR_URL=... DIAX_EXTRATOR_API_TOKEN=...
+  - appsettings.json: adicione 'Extrator': { 'Url': '...', 'ApiToken': '...' }
+";
 
         _logger.LogError(errorMessage);
         return Result.Failure<(string url, string token)>(new Error(
@@ -87,6 +101,48 @@ Configure em pelo menos UMA dessas fontes.";
     public string GetConfigSource() => _lastSource;
 
     // ============ PRIVATE METHODS ============
+
+    /// <summary>
+    /// Tenta carregar diretamente do AWS Secrets Manager (tools/diax-extrator).
+    /// Se falhar (timeout, 403, offline), retorna null para continuar cascata.
+    /// </summary>
+    private async Task<Result<(string url, string token)>?> TryLoadFromAwsSecretsManagerAsync()
+    {
+        try
+        {
+            var client = new AmazonSecretsManagerClient(RegionEndpoint.USEast1);
+            var request = new GetSecretValueRequest { SecretId = "tools/diax-extrator" };
+            var response = await client.GetSecretValueAsync(request);
+
+            if (string.IsNullOrEmpty(response.SecretString))
+            {
+                _logger.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' is empty");
+                return null; // Continue para próxima camada
+            }
+
+            var secret = JsonSerializer.Deserialize<Dictionary<string, string>>(response.SecretString);
+            var url = secret?["EXTRATOR_URL"] ?? secret?["extractorUrl"];
+            var token = secret?["EXTRATOR_API_TOKEN"] ?? secret?["extractorToken"];
+
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(token))
+            {
+                _logger.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' missing required keys (EXTRATOR_URL, EXTRATOR_API_TOKEN)");
+                return null; // Continue para próxima camada
+            }
+
+            return Result.Success<(string, string)>((url, token));
+        }
+        catch (ResourceNotFoundException)
+        {
+            _logger.LogWarning("⚠️ AWS SM secret 'tools/diax-extrator' not found");
+            return null; // Continue para próxima camada
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "⚠️ AWS Secrets Manager unavailable ({Message}), falling back to configuration cascade", ex.Message);
+            return null; // Continue para próxima camada
+        }
+    }
 
     /// <summary>
     /// Tenta carregar de IConfiguration.
