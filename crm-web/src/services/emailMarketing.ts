@@ -180,12 +180,15 @@ export interface PagedCampaignRecipients {
 }
 
 export async function getCampaignById(campaignId: string) {
-  return apiFetch<EmailCampaignResponse>(`/email-campaigns/campaigns/${campaignId}`);
+  return apiFetch<EmailCampaignResponse>(`/email-campaigns/campaigns/${campaignId}`, {
+    method: 'GET'
+  });
 }
 
 export async function getCampaignRecipients(campaignId: string, page = 1, pageSize = 50) {
   return apiFetch<PagedCampaignRecipients>(
-    `/email-campaigns/campaigns/${campaignId}/recipients?page=${page}&pageSize=${pageSize}`
+    `/email-campaigns/campaigns/${campaignId}/recipients?page=${page}&pageSize=${pageSize}`,
+    { method: 'GET' }
   );
 }
 
@@ -202,7 +205,8 @@ export async function getCampaignRecipientsByFilter(
 ) {
   const filterParam = filter ? `&filter=${filter}` : '';
   return apiFetch<PagedCampaignRecipients>(
-    `/email-campaigns/campaigns/${campaignId}/recipients?page=${page}&pageSize=${pageSize}${filterParam}`
+    `/email-campaigns/campaigns/${campaignId}/recipients?page=${page}&pageSize=${pageSize}${filterParam}`,
+    { method: 'GET' }
   );
 }
 
@@ -212,7 +216,8 @@ export async function getCampaignRecipientCustomerIds(
 ) {
   const filterParam = filter ? `?filter=${filter}` : '';
   return apiFetch<CampaignRecipientCustomerIdsResponse>(
-    `/email-campaigns/campaigns/${campaignId}/recipients/customer-ids${filterParam}`
+    `/email-campaigns/campaigns/${campaignId}/recipients/customer-ids${filterParam}`,
+    { method: 'GET' }
   );
 }
 
