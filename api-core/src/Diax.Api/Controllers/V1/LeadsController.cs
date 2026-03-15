@@ -4,6 +4,7 @@ using Diax.Application.Customers;
 using Diax.Application.Customers.Dtos;
 using Diax.Application.Customers.Services;
 using Diax.Domain.Customers.Enums;
+using Diax.Shared.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Asp.Versioning;
