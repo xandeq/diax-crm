@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "alexandre-queiroz",
+  "private_key_id": "be99f22ee377789a63f926434249539b14daaee8",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC07Q3qGQAlHI2G\nBn5MzhjnQMDMOUkurP8B5GsQhAHrD1NWaGbf/XuCMf6qLBUIF8YtZ7A1p9sjE2X7\nZ7PXQ0uZVKpHkFSE+Ck/DGPz7Dh8SyWEANGOCAQKL7le8M0iS6LAf6MHahxsRqKR\nWmAEy3L3I9ahsNzu1NeosTWotPslWzOy/97ytCSVx8zFhWiWk049uWbeOGShAuKQ\nzu4tMHjeKhjQzXTO74gTseq4Jeyudxz4YB0zGoJFUrW1TIqjigUaqpS8hwGQ4w96\nu10DKKuCBRC1f8Svw+OVgoBxv66iKdgfhLbzl3+GSTm8GkALBFDZR6Gw4MFOt3qg\ngItZsDULAgMBAAECggEAAoayR8bMvnSKPHurW8fOlTVGxfhDATe6nhdoyxL6QBbm\nldM4Z3IgZcQ9JYPAr2xY7IyH3dfr70MFIPsUHfWjvYfNahyzXTJzhTDk4x3Wms1A\nimxz3uamza7ezEAIr7ptJwCafS8Q8a/5h21kjxUAIZ5o52f+xvna3aIcoZU9vblX\nafnz7LIgS1lL467kCmrXvZuP4snLUFEO9RpI6ub8Jnah8sn1a6Cca2Yf1COHYsza\nspKbdcR+KsHIBkzsBbkBdAcf+ikGVL4T9I3ldqysoNKlG+AT0PMGjMg9ZVAMCCDF\nBd2QVvem3JhlmIKt5YOoC1FkjnJbC6qrqT6b+pBvAQKBgQDft9fp0lCmw2TumLDk\nhomuq6HSqGffQa++y+jC3ZPhNFT4L8QlOzzwIv8sB12c3uUv80vXiOGvTReR+8Wy\nSPKllXW0aIW22KQVGgK0paXB+Vgk2QzlLZDUkaGUzXXadeCidZ0o/HiUSQUkKgL9\nzZjpqPApP9JAyUXnzeHoY2QNQQKBgQDPCHeslsJkwqg6KiroeJlv+RBq0yHUnjZG\n08bUbaXAR9fHy8r3uog0C+d38HvRh6W1dnI0id7nvCPcwlyVeLl4Ulz0dxBDAqM0\nL5zLP/cEvPlcTI2UzcP/2AOmYpirobXg2YGxJ81knieGMdzsm2YFBx+U/j60bv6d\ntpFHIsSTSwKBgGADyA/bKrAXxha8w5agwzCLCt2dV08zItkxLImNjW0nB5yo63bL\nMMEjU/6yfpPX+ecVdSRg4/NXk9kchGGa+0Djn2u5PEIYQnun+SdMvJI+kHzoBqfJ\nYZJJml6Bu6Xx12ICNlwj1yBVIna97SC+f3UxAznA4VzaxTzSWLVjCsrBAoGBAJ26\n68I30b6GdzhpK+uVBgFDFfjtBhdAukVXz2HEb8WAdqsnXmlCWcadUyoTs6G84MjR\nhsz0RTj0I7Zq9bKDGXrL9TnjBCapecGmjKRlBUM83hYt1KgL5EmlP5KiB4KrXzAB\nRke79UW1IJOipZg2BJHMDYmr8gXxklaB40j4+h7lAoGBANcecPOXGiY/HXbMU6RM\nnzHpGSEjawrWF8Y1iF+HZxMOXMbhklAU0UgAFA5A7OaW0f7SOqM5vhVH7KXRKEW1\nhN7y0jv6WGPh13D8J0x8cKJ46JagsgACg/Sjc4f8GGC6Ju5kTpvsMH32wfS0E8n3\nTcpGRWa90DSC/7TFbHIicutU\n-----END PRIVATE KEY-----\n",
+  "client_email": "blog-generator@alexandre-queiroz.iam.gserviceaccount.com",
+  "client_id": "100110629910305942641",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/blog-generator%40alexandre-queiroz.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

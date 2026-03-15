@@ -1,6 +1,5 @@
 using Diax.Application.Audit;
 using Diax.Application.Auth;
-using Diax.Application.Common.Services;
 using Diax.Application.Customers;
 using Diax.Application.Finance;
 using Diax.Application.HtmlExtraction;
@@ -98,8 +97,7 @@ public static class DependencyInjection
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();
 
-        // ===== CONFIGURATION PROVIDERS =====
-        services.AddScoped<IConfigurationProvider, ConfigurationProvider>();
+        // ===== EXTRATOR INTEGRATION =====
         services.AddScoped<IExtractorService, ExtractorService>();
 
         // ===== BLOG & API KEYS SERVICES =====

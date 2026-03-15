@@ -350,6 +350,9 @@ public static class DependencyInjection
         services.AddHttpClient<FacebookGraphApiClient>();
         services.AddScoped<IFacebookAdsService, FacebookAdsService>();
 
+        // ===== CONFIGURATION PROVIDERS =====
+        services.AddScoped<Diax.Shared.Interfaces.IConfigurationProvider, ExternalServices.ConfigurationProvider>();
+
         return services;
     }
 }

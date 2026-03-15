@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auxiliar de Imposto de Renda | DIAX</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📊</span>
+                <h1>IR Assistant</h1>
+            </div>
+            <nav>
+                <button class="nav-item active" id="nav-dashboard">
+                    <span class="icon">🏠</span> Dashboard
+                </button>
+                <button class="nav-item" id="nav-records">
+                    <span class="icon">📜</span> Meus Registros
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-secondary" id="export-btn">
+                    <span class="icon">📤</span> Exportar CSV
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="global-search" placeholder="Busque por ano, instituição ou tipo...">
+                </div>
+                <div class="user-actions">
+                    <button class="btn btn-primary" id="add-record-btn">
+                        <span class="icon">➕</span> Novo Registro
+                    </button>
+                </div>
+            </header>
+
+            <section class="content-area">
+                <!-- Dashboard Fragment -->
+                <div id="dashboard-view" class="view">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total de Registros</h3>
+                            <p class="stat-value" id="total-records">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Ano Referência</h3>
+                            <p class="stat-value" id="ref-year">2023</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total de Instituições</h3>
+                            <p class="stat-value" id="total-institutions">0</p>
+                        </div>
+                    </div>
+
+                    <div class="recent-records">
+                        <h2>Uploads Recentes</h2>
+                        <div id="recent-list-container">
+                            <!-- JS will populate -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Records List Fragment -->
+                <div id="records-view" class="view hidden">
+                    <div class="table-container">
+                        <table id="records-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="year">Ano <span class="sort-icon">↕️</span></th>
+                                    <th data-sort="institution">Instituição <span class="sort-icon">↕️</span></th>
+                                    <th data-sort="type">Tipo <span class="sort-icon">↕️</span></th>
+                                    <th>Valor (R$)</th>
+                                    <th>Arquivo</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="records-tbody">
+                                <!-- JS will populate -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="pagination-controls">
+                        <!-- JS will populate -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="record-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>Adicionar Novo Informe</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="record-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="year">Ano</label>
+                        <select id="year" required>
+                            <option value="2023">2023</option>
+                            <option value="2024">2024</option>
+                            <option value="2025" selected>2025</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="type">Tipo de Rendimento</label>
+                        <select id="type" required>
+                            <option value="Trabalho Assalariado">Trabalho Assalariado</option>
+                            <option value="Ações/Investimentos">Ações/Investimentos</option>
+                            <option value="Bancário">Bancário</option>
+                            <option value="Imobiliário">Imobiliário</option>
+                            <option value="Dependente">Dependente</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="institution">Instituição / Fonte Pagadora</label>
+                        <input type="text" id="institution" placeholder="Ex: Banco Itaú, Google Brasil, etc." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="value">Valor Total (Opcional)</label>
+                        <input type="number" id="value" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Informe de Rendimento (Anexo)</label>
+                        <div class="upload-zone" id="drop-zone">
+                            <span class="icon">☁️</span>
+                            <p>Arraste seu arquivo aqui ou clique para selecionar</p>
+                            <input type="file" id="file-input" hidden>
+                        </div>
+                        <div id="file-info" class="hidden">
+                            <span id="file-name"></span>
+                            <button type="button" class="btn-text" id="remove-file">Remover</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost close-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

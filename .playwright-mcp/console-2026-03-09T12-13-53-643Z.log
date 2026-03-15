@@ -1,0 +1,2 @@
+[    1012ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.alexandrequeiroz.com.br/api/v1/ads/summary:0
+[    1176ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://api.alexandrequeiroz.com.br/api/v1/ads/campaigns:0
