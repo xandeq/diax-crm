@@ -233,6 +233,64 @@ public static class AiDataSeeder
                 new ModelSeed("google/imagen-3",                                      "Google Imagen 3"),
                 new ModelSeed("openai/gpt-image-1",                                   "GPT Image 1 (via OpenRouter)"),
             }),
+
+        new ProviderSeed(
+            Key: "replicate",
+            Name: "Replicate (Gratuito)",
+            BaseUrl: "https://api.replicate.com/v1",
+            SupportsListModels: false,
+            Models: new()
+            {
+                // Image generation (free tier available)
+                new ModelSeed("black-forest-labs/flux-schnell",                    "FLUX Schnell (gratuito)"),
+                new ModelSeed("black-forest-labs/flux-pro",                        "FLUX Pro"),
+                new ModelSeed("stability-ai/stable-diffusion-3.5-large",           "Stable Diffusion 3.5 Large"),
+                new ModelSeed("stability-ai/stable-diffusion-3-medium",            "Stable Diffusion 3 Medium (gratuito)"),
+                new ModelSeed("stability-ai/stable-diffusion-xl",                  "SDXL (gratuito)"),
+                new ModelSeed("openai/dall-e-3",                                   "DALL-E 3 (via Replicate)"),
+                // Text-to-video (free tier available)
+                new ModelSeed("cjwbw/frame-interpolation",                         "Frame Interpolation"),
+                new ModelSeed("deforum-art/deforum-stable-diffusion",              "Deforum Stable Diffusion"),
+            }),
+
+        new ProviderSeed(
+            Key: "togetherai",
+            Name: "Together AI (Gratuito)",
+            BaseUrl: "https://api.together.xyz/v1",
+            SupportsListModels: false,
+            Models: new()
+            {
+                // Open-source models (free tier: 1M tokens/month)
+                new ModelSeed("meta-llama/Llama-3.3-70B-Instruct-Turbo",           "LLaMA 3.3 70B (gratuito)"),
+                new ModelSeed("meta-llama/Llama-3.1-70B-Instruct-Turbo",           "LLaMA 3.1 70B (gratuito)"),
+                new ModelSeed("meta-llama/Llama-3-70B-Chat-Hf",                    "LLaMA 3 70B Chat (gratuito)"),
+                new ModelSeed("meta-llama/Llama-3-8B-Instruct-Turbo",              "LLaMA 3 8B (gratuito)"),
+                new ModelSeed("mistralai/Mixtral-8x7B-Instruct-v0.1",              "Mixtral 8x7B (gratuito)"),
+                new ModelSeed("mistralai/Mistral-7B-Instruct-v0.3",                "Mistral 7B (gratuito)"),
+                new ModelSeed("qwen/Qwen2.5-72B-Instruct-Turbo",                   "Qwen 2.5 72B (gratuito)"),
+                new ModelSeed("NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",      "Nous Hermes 2 (gratuito)"),
+                // Image generation (free tier available)
+                new ModelSeed("black-forest-labs/flux-1-schnell-fp8",              "FLUX Schnell (gratuito)"),
+                new ModelSeed("black-forest-labs/flux-1-dev-fp8",                  "FLUX Dev (gratuito)"),
+                new ModelSeed("stabilityai/stable-diffusion-xl-base-1.0",          "SDXL Base (gratuito)"),
+            }),
+
+        new ProviderSeed(
+            Key: "ollama",
+            Name: "Ollama (Local - Gratuito)",
+            BaseUrl: "http://localhost:11434/api",
+            SupportsListModels: false,
+            Models: new()
+            {
+                // Popular open-source models for local deployment
+                // Note: Requires Ollama to be installed and running locally
+                new ModelSeed("llama2",                                             "LLaMA 2 (local)"),
+                new ModelSeed("llama2-uncensored",                                  "LLaMA 2 Uncensored (local)"),
+                new ModelSeed("mistral",                                            "Mistral (local)"),
+                new ModelSeed("neural-chat",                                        "Neural Chat (local)"),
+                new ModelSeed("dolphin-mixtral",                                    "Dolphin Mixtral (local)"),
+                new ModelSeed("stable-diffusion",                                   "Stable Diffusion (local image gen)"),
+            }),
     };
 
     public static void SeedAiProviders(DiaxDbContext db, ILogger? logger = null)
