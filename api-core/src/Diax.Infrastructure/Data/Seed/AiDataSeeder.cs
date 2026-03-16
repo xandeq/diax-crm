@@ -36,9 +36,16 @@ public static class AiDataSeeder
             SupportsListModels: false,
             Models: new()
             {
-                new ModelSeed("gemini-2.5-flash-image",        "Nano Banana (Gemini 2.5 Flash)"),
-                new ModelSeed("gemini-3.1-flash-image-preview", "Nano Banana 2 (Gemini 3.1 Flash)"),
-                new ModelSeed("gemini-3-pro-image-preview",    "Nano Banana Pro (Gemini 3 Pro)"),
+                // Valid Gemini chat models that support image generation via :generateContent
+                // (Gemini doesn't have separate image-gen models; all chat models can generate images)
+                new ModelSeed("gemini-2.5-flash",         "Gemini 2.5 Flash"),
+                new ModelSeed("gemini-2.0-flash",         "Gemini 2.0 Flash"),
+                new ModelSeed("gemini-2.5-pro",           "Gemini 2.5 Pro"),
+                new ModelSeed("gemini-2.0-pro",           "Gemini 2.0 Pro"),
+                new ModelSeed("gemini-1.5-pro",           "Gemini 1.5 Pro"),
+                new ModelSeed("gemini-1.5-flash",         "Gemini 1.5 Flash"),
+                new ModelSeed("gemini-3-flash-preview",   "Gemini 3 Flash Preview"),
+                new ModelSeed("gemini-3-pro-preview",     "Gemini 3 Pro Preview"),
             }),
 
         new ProviderSeed(
