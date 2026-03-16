@@ -1,0 +1,1 @@
+[    2637ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.alexandrequeiroz.com.br/api/v1/email-campaigns/campaigns?page=1&pageSize=20:0
