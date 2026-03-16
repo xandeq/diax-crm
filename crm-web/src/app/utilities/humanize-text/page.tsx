@@ -4,87 +4,31 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
-import { getAiCatalog, type AiProvider } from '@/services/aiCatalog';
+import { useAiCatalog } from '@/hooks/useAiCatalog';
+import { ProviderModelSelector } from '@/components/ai/ProviderModelSelector';
 import { humanizeText, humanizeToneOptions, type HumanizeTone } from '@/services/humanizeText';
 import { AlertCircle, Check, Copy, Eraser, Loader2, Sparkles, UserCheck } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function HumanizeTextPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const router = useRouter();
+  const { providers, selectedProvider, selectedModel, setSelectedProvider, setSelectedModel, isReady } = useAiCatalog();
 
   const [inputText, setInputText] = useState('');
   const [outputText, setOutputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [pageReady, setPageReady] = useState(false);
-
-  // Configurações de IA
-  const [providers, setProviders] = useState<AiProvider[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<string>('');
-  const [selectedModel, setSelectedModel] = useState<string>('');
   const [tone, setTone] = useState<HumanizeTone>('humanize_text_professional');
-  const [loadingProviders, setLoadingProviders] = useState(true);
 
-  // Derived state
-  const currentProvider = providers.find(p => p.key === selectedProvider);
-  const currentModels = (currentProvider?.models || []).filter(m => m.isEnabled);
   const selectedTone = humanizeToneOptions.find((option) => option.value === tone);
 
-  // Carregar providers da API ao montar o componente
-  useEffect(() => {
-    async function loadProviders() {
-      try {
-        const catalog = await getAiCatalog();
-        // Filtrar apenas providers habilitados
-        const enabledProviders = catalog.filter(p => p.isEnabled);
-
-        setProviders(enabledProviders);
-
-        // Default selection logic
-        if (enabledProviders.length > 0 && !selectedProvider) {
-          const firstProv = enabledProviders[0];
-          setSelectedProvider(firstProv.key);
-
-          const enabledModels = firstProv.models.filter(m => m.isEnabled);
-          if (enabledModels.length > 0) {
-            setSelectedModel(enabledModels[0].modelKey);
-          }
-        }
-      } catch (err) {
-        console.error('Erro ao carregar providers:', err);
-        setError('Erro ao carregar provedores de IA. Recarregue a página.');
-      } finally {
-        setLoadingProviders(false);
-      }
-    }
-
-    if (isAuthenticated) {
-      loadProviders();
-    }
-  }, [isAuthenticated, selectedProvider]); // added selectedProvider to deps to ensure init logic runs if needed, though mostly runs once. Actually better to remove it from deps if we only want init. But 'loadProviders' is defined inside.
-
-
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    setPageReady(true);
-  }, [isAuthenticated, authLoading, router]);
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const handleConvert = async () => {
     if (!inputText.trim()) {
@@ -130,14 +74,6 @@ export default function HumanizeTextPage() {
     setCopied(false);
   };
 
-  if (authLoading || !pageReady || loadingProviders) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -159,56 +95,13 @@ export default function HumanizeTextPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>IA (Provedor)</Label>
-                    <Select
-                      value={selectedProvider}
-                      onValueChange={(val) => {
-                        setSelectedProvider(val);
-                        // Auto-select model logic
-                        const prov = providers.find(p => p.key === val);
-                        if (prov) {
-                          const enabled = prov.models.filter(m => m.isEnabled);
-                          if (enabled.length > 0) setSelectedModel(enabled[0].modelKey);
-                          else setSelectedModel('');
-                        }
-                      }}
-                      disabled={providers.length === 0}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o provedor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {providers.map((p) => (
-                          <SelectItem key={p.key} value={p.key}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Modelo</Label>
-                    <Select
-                      value={selectedModel}
-                      onValueChange={setSelectedModel}
-                      disabled={!currentProvider || currentModels.length === 0}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={currentModels.length === 0 ? "Nenhum modelo" : "Selecione o modelo"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currentModels.map((m) => (
-                          <SelectItem key={m.modelKey} value={m.modelKey}>
-                            {m.displayName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                <ProviderModelSelector
+                  providers={providers}
+                  selectedProvider={selectedProvider}
+                  selectedModel={selectedModel}
+                  onProviderChange={setSelectedProvider}
+                  onModelChange={setSelectedModel}
+                />
 
                 <div className="space-y-2">
                   <Label>Tom de Texto</Label>

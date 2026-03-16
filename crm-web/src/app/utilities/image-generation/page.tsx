@@ -3,7 +3,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAiCatalog, type AiModel, type AiProvider } from '@/services/aiCatalog';
+import { useAiCatalog } from '@/hooks/useAiCatalog';
+import { ProviderBadge } from '@/components/ai/ProviderBadge';
+import { ModelCard } from '@/components/ai/ModelCard';
+import { type AiModel } from '@/services/aiCatalog';
 import {
   generateImage,
   generateVideo,
@@ -89,64 +92,6 @@ function formatSeconds(s: number): string {
   return `${Math.floor(s / 60)}m ${s % 60}s`;
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────────
-
-function ProviderBadge({ provider, selected, onClick }: {
-  provider: AiProvider;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
-        selected
-          ? 'bg-violet-500/20 border-violet-500/50 text-violet-300 ring-1 ring-violet-500/30'
-          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white/80 hover:border-white/20'
-      }`}
-    >
-      {provider.name}
-    </button>
-  );
-}
-
-function ModelCard({ model, selected, providerKey, onClick }: {
-  model: AiModel;
-  selected: boolean;
-  providerKey: string;
-  onClick: () => void;
-}) {
-  const free = isModelFree(providerKey, model.modelKey);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
-        selected
-          ? 'bg-violet-500/15 border-violet-500/40 ring-1 ring-violet-500/30'
-          : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className={`text-xs font-medium leading-tight ${selected ? 'text-violet-200' : 'text-white/80'}`}>
-          {model.displayName}
-        </span>
-        {free && (
-          <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-            GRÁTIS
-          </span>
-        )}
-      </div>
-      {model.inputCostHint != null && (
-        <p className="text-[10px] text-white/30 mt-0.5">
-          ${model.inputCostHint}/1k tokens
-        </p>
-      )}
-    </button>
-  );
-}
-
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ImageGenerationPage() {
@@ -156,14 +101,17 @@ export default function ImageGenerationPage() {
   // Mode
   const [activeTab, setActiveTab] = useState<'image' | 'video'>('image');
 
-  // Catalog
-  const [allProviders, setAllProviders] = useState<AiProvider[]>([]);
-  const [loadingCatalog, setLoadingCatalog] = useState(true);
-  const [pageReady, setPageReady] = useState(false);
+  // Catalogs
+  const { providers: imageProviders, selectedProvider: imageProvider, selectedModel: imageModel, setSelectedProvider: setImageProvider, setSelectedModel: setImageModel, isReady: imageReady } = useAiCatalog({ filterCapability: 'supportsImage' });
+  const { providers: videoProviders, selectedProvider: videoProvider, selectedModel: videoModel, setSelectedProvider: setVideoProvider, setSelectedModel: setVideoModel, isReady: videoReady } = useAiCatalog({ filterCapability: 'supportsVideo' });
 
   // Selection
-  const [selectedProvider, setSelectedProvider] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
+  const selectedProvider = activeTab === 'image' ? imageProvider : videoProvider;
+  const selectedModel = activeTab === 'image' ? imageModel : videoModel;
+  const setSelectedProvider = activeTab === 'image' ? setImageProvider : setVideoProvider;
+  const setSelectedModel = activeTab === 'image' ? setImageModel : setVideoModel;
+  const activeProviders = activeTab === 'image' ? imageProviders : videoProviders;
+  const isReady = activeTab === 'image' ? imageReady : videoReady;
   const [showAllModels, setShowAllModels] = useState(false);
 
   // Prompt
@@ -203,21 +151,9 @@ export default function ImageGenerationPage() {
 
   // ── Derived ──────────────────────────────────────────────────────────────────
 
-  const imageProviders = allProviders.filter(p =>
-    p.isEnabled && p.models.some(m => m.isEnabled && m.supportsImage)
-  );
-
-  const videoProviders = allProviders.filter(p =>
-    p.isEnabled && p.models.some(m => m.isEnabled && m.supportsVideo)
-  );
-
-  const activeProviders = activeTab === 'image' ? imageProviders : videoProviders;
-
   const currentProvider = activeProviders.find(p => p.key === selectedProvider);
 
-  const currentModels = (currentProvider?.models ?? []).filter(m =>
-    m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
-  );
+  const currentModels = (currentProvider?.models ?? []).filter(m => m.isEnabled);
 
   // Free models first, then alphabetical
   const sortedModels = [...currentModels].sort((a, b) => {
@@ -237,55 +173,12 @@ export default function ImageGenerationPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!isAuthenticated) { router.push('/login'); return; }
-    setPageReady(true);
   }, [isAuthenticated, authLoading, router]);
 
+  // Reset show all models when tab changes
   useEffect(() => {
-    if (!isAuthenticated) return;
-    async function load() {
-      try {
-        const catalog = await getAiCatalog();
-        setAllProviders(catalog.filter(p => p.isEnabled));
-      } catch {
-        setError('Erro ao carregar provedores. Recarregue a página.');
-      } finally {
-        setLoadingCatalog(false);
-      }
-    }
-    load();
-  }, [isAuthenticated]);
-
-  // Auto-select first provider/model when tab changes or catalog loads
-  useEffect(() => {
-    if (activeProviders.length === 0) return;
-
-    // Try to keep current provider if it supports this tab
-    if (selectedProvider && activeProviders.find(p => p.key === selectedProvider)) {
-      const prov = activeProviders.find(p => p.key === selectedProvider)!;
-      const models = prov.models.filter(m =>
-        m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
-      );
-      if (models.length > 0 && !models.find(m => m.modelKey === selectedModel)) {
-        // Auto-select free model first
-        const freeModel = models.find(m => isModelFree(prov.key, m.modelKey));
-        setSelectedModel((freeModel ?? models[0]).modelKey);
-      }
-      return;
-    }
-
-    // Otherwise select first provider + free model
-    const firstProv = activeProviders[0];
-    setSelectedProvider(firstProv.key);
-    const models = firstProv.models.filter(m =>
-      m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
-    );
-    if (models.length > 0) {
-      const freeModel = models.find(m => isModelFree(firstProv.key, m.modelKey));
-      setSelectedModel((freeModel ?? models[0]).modelKey);
-    }
     setShowAllModels(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, allProviders]);
+  }, [activeTab]);
 
   // Loading timer
   useEffect(() => {
@@ -312,14 +205,7 @@ export default function ImageGenerationPage() {
   const handleSelectProvider = useCallback((key: string) => {
     setSelectedProvider(key);
     setShowAllModels(false);
-    const prov = activeProviders.find(p => p.key === key);
-    if (!prov) return;
-    const models = prov.models.filter(m =>
-      m.isEnabled && (activeTab === 'image' ? m.supportsImage : m.supportsVideo)
-    );
-    const freeModel = models.find(m => isModelFree(key, m.modelKey));
-    setSelectedModel((freeModel ?? models[0])?.modelKey ?? '');
-  }, [activeProviders, activeTab]);
+  }, [setSelectedProvider]);
 
   const handleImageUpload = useCallback((file: File) => {
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
@@ -417,7 +303,7 @@ export default function ImageGenerationPage() {
 
   // ── Loading state ────────────────────────────────────────────────────────────
 
-  if (authLoading || !pageReady || loadingCatalog) {
+  if (!isReady) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="h-12 w-12 rounded-2xl bg-violet-500/20 flex items-center justify-center">

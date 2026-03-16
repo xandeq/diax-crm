@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
-import { AiProvider as CatalogProvider, getAiCatalog } from '@/services/aiCatalog';
+import { useAiCatalog } from '@/hooks/useAiCatalog';
 import { ApiError } from '@/services/api';
 import {
     generatePrompt,
@@ -49,16 +49,11 @@ import { toast } from 'sonner';
 export default function PromptGeneratorPage() {
     const { isAuthenticated, user, isLoading: authLoading } = useAuth();
     const router = useRouter();
-
-    const [providers, setProviders] = useState<CatalogProvider[]>([]);
-    const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
-    const [pageReady, setPageReady] = useState(false);
+    const { providers, selectedProvider, selectedModel, setSelectedProvider, setSelectedModel, currentProvider, currentModels, isReady } = useAiCatalog();
 
     const [loading, setLoading] = useState(false);
     const [rawPrompt, setRawPrompt] = useState('');
     const [generatedPrompt, setGeneratedPrompt] = useState('');
-    const [selectedProvider, setSelectedProvider] = useState<string>(''); // Stores Provider Key (e.g. 'openai')
-    const [selectedModel, setSelectedModel] = useState<string>('');       // Stores Model Key (e.g. 'gpt-4o')
     const [selectedPromptType, setSelectedPromptType] = useState<PromptType>('professional');
     const [copied, setCopied] = useState(false);
     const [history, setHistory] = useState<UserPromptHistory[]>([]);
@@ -69,74 +64,30 @@ export default function PromptGeneratorPage() {
         correlationId?: string;
     } | null>(null);
 
-    // Derived state for current provider object
-    const currentProvider = providers.find(p => p.key === selectedProvider);
-    const currentModels = (currentProvider?.models || []).filter(m => m.isEnabled);
-
   // Detalhes da técnica selecionada (Importado do promptGenerator.ts)
   const selectedTypeDetails = promptTypeOptions.find(t => t.value === selectedPromptType);
 
-  // Efeito para verificar autenticação e carregar dados
+  // Efeito para verificar autenticação e redirecionar
   useEffect(() => {
-    // Aguardar a verificação de auth terminar
     if (authLoading) return;
 
-    // Redirecionar para login se não autenticado
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
+  }, [isAuthenticated, authLoading, router]);
 
-    // Marca a página como pronta apenas após confirmar autenticação
-    setPageReady(true);
-
-    const loadData = async () => {
-        setIsLoadingCatalog(true);
-        try {
-            // Load Catalog
-            console.log('[PromptGenerator] 🔄 Loading AI catalog...');
-            const catalog = await getAiCatalog();
-            setProviders(catalog);
-
-            if (catalog.length === 0) {
-                console.warn('[PromptGenerator] ⚠️ No AI providers available');
-                toast.warning(
-                    'Nenhum provedor de IA configurado. Entre em contato com o administrador.',
-                    { duration: 5000 }
-                );
-            } else {
-                console.log('[PromptGenerator] ✅ Loaded', catalog.length, 'providers');
-
-                // Set default provider/model
-                const firstProv = catalog[0];
-                setSelectedProvider(firstProv.key);
-                if (firstProv.models.length > 0) {
-                    setSelectedModel(firstProv.models[0].modelKey);
-                }
-
-                // Carregar histórico apenas se o catálogo carregou com sucesso
-                await loadHistory();
-            }
-        } catch (error) {
-            // Se for erro de autenticação, não mostra toast (vai redirecionar)
-            if (error instanceof ApiError && error.status === 401) {
-                console.warn('[PromptGenerator] Auth error during catalog load');
-                return;
-            }
-            console.error('[PromptGenerator] ❌ Failed to load AI catalog', error);
-            toast.error('Erro ao carregar catálogo de IA.');
-        } finally {
-            setIsLoadingCatalog(false);
-        }
-    };
-
-    loadData();
-  }, [authLoading, isAuthenticated, router]);
+  // Carregar histórico quando catalog estiver pronto
+  useEffect(() => {
+    if (isReady) {
+      loadHistory();
+    }
+  }, [isReady]);
 
   const loadHistory = async () => {
     try {
       setLoadingHistory(true);
-      const data = await getPromptHistory(10); // Pegar os últimos 10
+      const data = await getPromptHistory(10);
       setHistory(data);
     } catch (err) {
       console.error('Erro ao carregar histórico:', err);
@@ -175,20 +126,6 @@ export default function PromptGeneratorPage() {
     }
   };
 
-  // Efeito para atualizar o modelo padrão quando o provider muda
-  useEffect(() => {
-    const provider = providers.find(p => p.key === selectedProvider);
-    const enabledModels = provider?.models.filter(m => m.isEnabled) ?? [];
-    if (provider && enabledModels.length > 0) {
-      // Se o modelo atual não pertence a este provider, pega o primeiro da lista
-      const modelExists = enabledModels.some(m => m.modelKey === selectedModel);
-      if (!modelExists) {
-        setSelectedModel(enabledModels[0].modelKey);
-      }
-    } else if (provider) {
-      setSelectedModel('');
-    }
-  }, [selectedProvider, selectedModel, providers]);
 
   const handleGenerate = async () => {
     if (!rawPrompt.trim()) {
@@ -244,10 +181,10 @@ export default function PromptGeneratorPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Mostrar loading enquanto verifica autenticação ou página não está pronta
-  if (authLoading || !pageReady) {
+  // Mostrar loading enquanto carrega catálogo
+  if (!isReady) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center min-h-[50vh]">
         <RefreshCw className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -271,22 +208,11 @@ export default function PromptGeneratorPage() {
       <section className="space-y-3">
         <Label className="text-base font-semibold">1. Escolha a Inteligência Artificial</Label>
 
-        {isLoadingCatalog ? (
-            <div className="flex gap-4">
-                {[1, 2, 3].map(i => <div key={i} className="h-24 w-1/3 bg-muted animate-pulse rounded-xl" />)}
-            </div>
-        ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {providers.map((provider) => (
             <div
               key={provider.key}
-              onClick={() => {
-                setSelectedProvider(provider.key);
-                // Auto select first enabled model
-                const enabledModels = provider.models.filter(m => m.isEnabled);
-                if (enabledModels.length > 0) setSelectedModel(enabledModels[0].modelKey);
-                else setSelectedModel('');
-              }}
+              onClick={() => setSelectedProvider(provider.key)}
               className={`
                 cursor-pointer rounded-xl border p-4 transition-all hover:bg-muted/50 relative overflow-hidden
                 ${selectedProvider === provider.key
@@ -307,7 +233,6 @@ export default function PromptGeneratorPage() {
             </div>
           ))}
         </div>
-        )}
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
