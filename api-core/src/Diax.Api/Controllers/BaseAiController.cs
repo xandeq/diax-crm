@@ -39,7 +39,7 @@ public abstract class BaseAiController : BaseApiController
     /// <param name="customExceptionHandler">Optional handler for custom exceptions; called before standard handlers. Return null to fall through to standard handlers.</param>
     protected async Task<IActionResult> ExecuteAiActionAsync(
         string providerKey,
-        string modelKey,
+        string? modelKey,
         CancellationToken ct,
         Func<Guid, Task<IActionResult>> action,
         Func<Exception, IActionResult?>? customExceptionHandler = null)

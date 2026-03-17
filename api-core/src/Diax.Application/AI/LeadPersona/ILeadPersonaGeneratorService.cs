@@ -1,4 +1,4 @@
-using Diax.Shared;
+using Diax.Application.Common;
 
 namespace Diax.Application.AI.LeadPersona;
 

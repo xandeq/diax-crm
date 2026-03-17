@@ -1,12 +1,17 @@
 using System.Text.Json;
 using Diax.Application.AI;
-using Diax.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using Diax.Application.AI.Services;
+using Diax.Application.Common;
+using Diax.Application.PromptGenerator;
+using Diax.Domain.AI;
+using Diax.Domain.Customers;
+using Diax.Domain.Customers.Enums;
+using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.AI.LeadPersona;
 
-public class LeadPersonaGeneratorService : ILeadPersonaGeneratorService
+public class LeadPersonaGeneratorService : IApplicationService, ILeadPersonaGeneratorService
 {
     private readonly IEnumerable<IAiTextTransformClient> _aiClients;
     private readonly PromptGeneratorSettings _settings;
@@ -14,7 +19,7 @@ public class LeadPersonaGeneratorService : ILeadPersonaGeneratorService
     private readonly IAiUsageTrackingService _usageTracker;
     private readonly IAiProviderRepository _providerRepo;
     private readonly IAiModelRepository _modelRepo;
-    private readonly DiaxDbContext _db;
+    private readonly ICustomerRepository _customerRepo;
     private readonly ILogger<LeadPersonaGeneratorService> _logger;
 
     public LeadPersonaGeneratorService(
@@ -24,7 +29,7 @@ public class LeadPersonaGeneratorService : ILeadPersonaGeneratorService
         IAiUsageTrackingService usageTracker,
         IAiProviderRepository providerRepo,
         IAiModelRepository modelRepo,
-        DiaxDbContext db,
+        ICustomerRepository customerRepo,
         ILogger<LeadPersonaGeneratorService> logger)
     {
         _aiClients = aiClients;
@@ -33,7 +38,7 @@ public class LeadPersonaGeneratorService : ILeadPersonaGeneratorService
         _usageTracker = usageTracker;
         _providerRepo = providerRepo;
         _modelRepo = modelRepo;
-        _db = db;
+        _customerRepo = customerRepo;
         _logger = logger;
     }
 
@@ -55,22 +60,11 @@ public class LeadPersonaGeneratorService : ILeadPersonaGeneratorService
 
         _logger.LogInformation("POST /api/v1/ai/lead-personas - Request received | RequestId: {RequestId}", requestId);
 
-        // Fetch user's leads
-        var leads = await _db.Customers
-            .Where(c => c.UserId == userId && c.Status < 4) // Status < 4 = leads (not customers)
-            .Select(c => new
-            {
-                c.Name,
-                c.Email,
-                c.Phone,
-                c.CompanyName,
-                c.Notes,
-                c.Tags,
-                c.Source,
-                c.Segment
-            })
+        // Fetch leads for analysis
+        var leads = (await _customerRepo.FindAsync(
+            c => c.Status < CustomerStatus.Customer, ct))
             .Take(200) // Limit to 200 leads for analysis
-            .ToListAsync(ct);
+            .ToList();
 
         if (leads.Count == 0)
             throw new InvalidOperationException("No leads found to analyze");
@@ -92,21 +86,23 @@ public class LeadPersonaGeneratorService : ILeadPersonaGeneratorService
         }
 
         // Validate provider
-        var provider = await _providerRepo.GetByKeyAsync(request.Provider, ct);
+        var providerKey = request.Provider.ToLower();
+        var provider = await _providerRepo.GetByKeyAsync(providerKey, ct);
         if (provider == null)
             throw new InvalidOperationException($"Provider {request.Provider} not found");
 
         // Get AI client
-        var client = _aiClients.FirstOrDefault(c => c.ProviderKey == request.Provider)
+        var client = _aiClients.FirstOrDefault(c => c.ProviderName == providerKey)
             ?? throw new InvalidOperationException($"AI client for {request.Provider} not available");
 
-        // Get provider credentials
-        var credentials = await _db.AiProviderCredentials
-            .Where(c => c.AiProviderId == provider.Id)
-            .FirstOrDefaultAsync(ct);
+        // Get provider configuration
+        var providerConfig = _settings.GetProviderConfig(providerKey)
+            ?? throw new InvalidOperationException(
+                $"Configuration not found for provider {request.Provider}. " +
+                "Verify that appsettings contains the PromptGenerator section with provider credentials.");
 
-        var apiKey = credentials?.DecryptedValue ?? _settings.GetApiKeyFor(request.Provider)
-            ?? throw new InvalidOperationException($"No credentials for {request.Provider}");
+        if (string.IsNullOrWhiteSpace(providerConfig.ApiKey))
+            throw new InvalidOperationException($"API key not configured for provider {request.Provider}");
 
         // Build system prompt
         var systemPrompt = @"You are a buyer persona expert. Analyze the leads provided and generate detailed buyer personas.
@@ -124,14 +120,13 @@ Generate {count} detailed buyer personas from these {leads.Count} leads.
 Return valid JSON array only, no markdown or extra text.";
 
         // Call AI
-        var options = new AiClientOptions
-        {
-            ApiKey = apiKey,
-            BaseUrl = _settings.GetBaseUrlFor(request.Provider),
-            Model = request.Model,
-            Temperature = request.Temperature ?? 0.7f,
-            MaxTokens = request.MaxTokens ?? 2000
-        };
+        var options = new AiClientOptions(
+            ApiKey: providerConfig.ApiKey,
+            BaseUrl: providerConfig.BaseUrl ?? string.Empty,
+            Model: !string.IsNullOrWhiteSpace(request.Model) ? request.Model : (providerConfig.Model ?? string.Empty),
+            Temperature: request.Temperature ?? 0.7,
+            MaxTokens: request.MaxTokens ?? 2000
+        );
 
         _logger.LogInformation("Calling {Provider} for persona generation", request.Provider);
         var response = await client.TransformAsync(systemPrompt, userPrompt, options, ct);
@@ -153,16 +148,23 @@ Return valid JSON array only, no markdown or extra text.";
         var completionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
 
         // Fire-and-forget usage tracking
-        _ = _usageTracker.TrackUsageAsync(new AiUsageTrackingDto
+        var modelId = Guid.Empty;
+        if (!string.IsNullOrWhiteSpace(request.Model))
         {
-            UserId = userId,
-            Provider = request.Provider,
-            Model = request.Model,
-            FeatureName = "LeadPersonaGenerator",
-            InputTokens = 0,
-            OutputTokens = 0,
-            TotalCost = 0
-        }, ct);
+            var model = await _modelRepo.GetByProviderAndModelKeyAsync(provider.Id, request.Model, ct);
+            if (model != null)
+                modelId = model.Id;
+        }
+
+        _ = _usageTracker.LogUsageAsync(
+            userId: userId,
+            providerId: provider.Id,
+            modelId: modelId,
+            featureType: "LeadPersonaGenerator",
+            duration: DateTime.UtcNow - startTime,
+            success: personas.Length > 0,
+            requestId: requestId,
+            cancellationToken: ct);
 
         var result = new GeneratePersonasResponseDto
         {
