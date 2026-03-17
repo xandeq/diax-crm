@@ -2,11 +2,7 @@ using Asp.Versioning;
 using Diax.Application.Ai.HumanizeText;
 using Diax.Application.AI;
 using Diax.Infrastructure.Data;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace Diax.Api.Controllers.V1;
 
@@ -14,99 +10,36 @@ namespace Diax.Api.Controllers.V1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/ai")]
 [Produces("application/json")]
-[Authorize]
-public class AiHumanizeTextController : BaseApiController
+public class AiHumanizeTextController : BaseAiController
 {
     private readonly IHumanizeTextService _service;
-    private readonly IAiCatalogService _catalogService;
-    private readonly DiaxDbContext _db;
-    private readonly ILogger<AiHumanizeTextController> _logger;
 
     public AiHumanizeTextController(
         IHumanizeTextService service,
         IAiCatalogService catalogService,
         DiaxDbContext db,
         ILogger<AiHumanizeTextController> logger)
+        : base(catalogService, db, logger)
     {
         _service = service;
-        _catalogService = catalogService;
-        _db = db;
-        _logger = logger;
     }
 
     [HttpPost("humanize-text")]
-    public async Task<IActionResult> Humanize([FromBody] HumanizeTextRequestDto request)
+    public async Task<IActionResult> Humanize([FromBody] HumanizeTextRequestDto request, CancellationToken ct)
     {
         _logger.LogInformation("POST /api/v1/ai/humanize-text - Request received");
 
         if (request is null)
-        {
             return BadRequest(new { Message = "Payload inválido." });
-        }
 
-        try
-        {
-            // SECURITY: Validate user has access to provider and model
-            var userId = await ResolveUserIdAsync(CancellationToken.None);
-            if (userId == null)
-            {
-                return Unauthorized(new { Message = "User not authenticated." });
+        return await ExecuteAiActionAsync(
+            request.Provider,
+            request.Model,
+            ct,
+            async userId => {
+                var result = await _service.HumanizeAsync(request, userId);
+                return Ok(result);
             }
-
-            var hasAccess = await _catalogService.ValidateUserAccessAsync(
-                userId.Value,
-                request.Provider,
-                request.Model,
-                CancellationToken.None
-            );
-
-            if (!hasAccess)
-            {
-                _logger.LogWarning(
-                    "User {UserId} attempted to use unauthorized provider/model: {Provider}/{Model}",
-                    userId,
-                    request.Provider,
-                    request.Model ?? "default"
-                );
-
-                return StatusCode(403, new
-                {
-                    Message = "You don't have permission to use this AI provider or model. Please contact your administrator."
-                });
-            }
-
-            var result = await _service.HumanizeAsync(request, userId.Value);
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { Message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            // Geralmente erros de configuração ou do provedor tratados amigavelmente
-            return StatusCode(502, new { Message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error in HumanizeTextController.");
-            return StatusCode(500, new { Message = "Erro inesperado ao processar sua solicitação." });
-        }
-    }
-
-    private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)
-    {
-        var email = User.FindFirstValue(ClaimTypes.Email)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-
-        if (string.IsNullOrWhiteSpace(email))
-            return null;
-
-        var user = await _db.Users
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
-
-        return user?.Id;
+        );
     }
 }

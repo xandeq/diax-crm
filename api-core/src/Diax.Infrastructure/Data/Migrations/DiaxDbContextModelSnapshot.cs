@@ -287,6 +287,80 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.ToTable("ai_usage_logs", (string)null);
                 });
 
+            modelBuilder.Entity("Diax.Domain.AI.EmailOptimization", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<bool?>("ActualOpenRateImproved")
+                        .HasColumnType("bit")
+                        .HasColumnName("actual_open_rate_improved");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<long?>("EmailCampaignId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("email_campaign_id");
+
+                    b.Property<Guid?>("EmailCampaignId1")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("email_campaign_id1");
+
+                    b.Property<decimal?>("EstimatedOpenRateImprovement")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("estimated_open_rate_improvement");
+
+                    b.Property<string>("GeneratedSubjectsJson")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("generated_subjects_json");
+
+                    b.Property<string>("OriginalSubject")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("original_subject");
+
+                    b.Property<string>("SelectedSubject")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("selected_subject");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmailCampaignId1");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("email_optimizations");
+                });
+
             modelBuilder.Entity("Diax.Domain.AI.GroupAiModelAccess", b =>
                 {
                     b.Property<Guid>("GroupId")
@@ -4308,6 +4382,23 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.Navigation("Model");
 
                     b.Navigation("Provider");
+                });
+
+            modelBuilder.Entity("Diax.Domain.AI.EmailOptimization", b =>
+                {
+                    b.HasOne("Diax.Domain.EmailMarketing.EmailCampaign", "EmailCampaign")
+                        .WithMany()
+                        .HasForeignKey("EmailCampaignId1");
+
+                    b.HasOne("Diax.Domain.Auth.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EmailCampaign");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Diax.Domain.AI.GroupAiModelAccess", b =>

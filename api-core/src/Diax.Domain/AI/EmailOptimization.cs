@@ -6,7 +6,6 @@ namespace Diax.Domain.AI;
 
 public class EmailOptimization : AuditableEntity
 {
-    public new long Id { get; set; }
     public Guid UserId { get; set; }
     public long? EmailCampaignId { get; set; }
     public string OriginalSubject { get; set; } = null!;

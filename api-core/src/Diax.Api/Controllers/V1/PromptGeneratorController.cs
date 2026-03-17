@@ -3,19 +3,14 @@ using Diax.Application.PromptGenerator;
 using Diax.Application.PromptGenerator.Dtos;
 using Diax.Application.AI;
 using Diax.Infrastructure.Data;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.EntityFrameworkCore;
 
 namespace Diax.Api.Controllers.V1;
 
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/prompt-generator")]
-[Authorize]
-public class PromptGeneratorController : ControllerBase
+public class PromptGeneratorController : BaseApiController
 {
     private readonly IPromptGeneratorService _promptGeneratorService;
     private readonly ILogger<PromptGeneratorController> _logger;
@@ -54,11 +49,9 @@ public class PromptGeneratorController : ControllerBase
             });
         }
 
-        var userId = await ResolveUserIdAsync(cancellationToken);
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
         if (userId == null)
-        {
             return Unauthorized(new { error = "Usuário não autenticado." });
-        }
 
         // Validate RBAC Access to Provider/Model
         if (request.Provider != null && request.Model != null)
@@ -148,7 +141,7 @@ public class PromptGeneratorController : ControllerBase
         [FromQuery] int limit = 50,
         CancellationToken cancellationToken = default)
     {
-        var userId = await ResolveUserIdAsync(cancellationToken);
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
         if (userId == null)
             return Unauthorized(new { error = "User not found" });
 
@@ -166,7 +159,7 @@ public class PromptGeneratorController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(cancellationToken);
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
         if (userId == null)
             return Unauthorized(new { error = "User not found" });
 
@@ -183,19 +176,4 @@ public class PromptGeneratorController : ControllerBase
     // [AllowAnonymous]
     // public async Task<IActionResult> GetProviders(...) { ... }
 
-    private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)
-    {
-        var email = User.FindFirstValue(ClaimTypes.Email)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-
-        if (string.IsNullOrWhiteSpace(email))
-            return null;
-
-        var user = await _db.Users
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
-
-        return user?.Id;
-    }
 }

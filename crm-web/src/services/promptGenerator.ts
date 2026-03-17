@@ -1,10 +1,9 @@
 import { isPromptError, PromptErrorResponse } from '@/types/api';
-import { apiFetch, getAccessToken, getApiBaseUrl } from './api';
+import { apiFetch, ApiError } from './api';
 
 /**
  * Provider de IA para geração de prompts.
  * Os providers disponíveis são carregados dinamicamente do banco de dados via API.
- * Use getPromptModels() para obter a lista atualizada de providers.
  */
 export type PromptProvider = string;
 
@@ -24,19 +23,6 @@ export interface GeneratePromptRequest {
   provider: PromptProvider;
   model?: string;
   promptType: PromptType;
-}
-
-export interface AiModel {
-  id: string;
-  name: string;
-  category: string;
-  isDefault: boolean;
-}
-
-export interface ProviderModels {
-  providerId: string;
-  providerName: string;
-  models: AiModel[];
 }
 
 export class PromptGeneratorError extends Error {
@@ -226,10 +212,6 @@ export const promptTypeOptions: PromptTypeOption[] = [
   },
 ];
 
-export async function getPromptModels(): Promise<ProviderModels[]> {
-  return await apiFetch<ProviderModels[]>('/prompt-generator/models');
-}
-
 export async function generatePrompt(
   rawPrompt: string,
   provider: PromptProvider,
@@ -237,7 +219,6 @@ export async function generatePrompt(
   model?: string
 ): Promise<string> {
   const request: GeneratePromptRequest = { rawPrompt, provider, promptType, model };
-  const apiBaseUrl = getApiBaseUrl();
 
   // Log request (sem secrets)
   console.debug('[PromptGenerator] Request:', {
@@ -247,53 +228,69 @@ export async function generatePrompt(
     promptLength: request.rawPrompt.length
   });
 
-  const headers = new Headers({
-    'Content-Type': 'application/json',
-  });
-
-  const token = getAccessToken();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-
-  const response = await fetch(`${apiBaseUrl}/prompt-generator/generate`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(request)
-  });
-
-  const data = await response.json();
-
-  // Log response
-  console.debug('[PromptGenerator] Response:', {
-    status: response.status,
-    ok: response.ok,
-    hasError: isPromptError(data)
-  });
-
-  if (!response.ok || isPromptError(data)) {
-    const error = data as PromptErrorResponse;
-    const errorCode = error.errorCode || 'UNKNOWN_ERROR';
-    const errorMessage = error.message || 'Falha ao gerar prompt. Tente novamente.';
-
-    console.error('[PromptGenerator] Error:', {
-      errorCode: errorCode,
-      message: errorMessage,
-      provider: error.provider,
-      correlationId: error.correlationId,
-      httpStatus: response.status
+  try {
+    const data = await apiFetch<any>('/prompt-generator/generate', {
+      method: 'POST',
+      body: JSON.stringify(request)
     });
 
-    // Lançar erro com mensagem amigável
+    // Log response
+    console.debug('[PromptGenerator] Response:', {
+      hasError: isPromptError(data)
+    });
+
+    // Verifica se a resposta contém erro mesmo com HTTP 200
+    if (isPromptError(data)) {
+      const error = data as PromptErrorResponse;
+      const errorCode = error.errorCode || 'UNKNOWN_ERROR';
+      const errorMessage = error.message || 'Falha ao gerar prompt. Tente novamente.';
+
+      console.error('[PromptGenerator] Error:', {
+        errorCode: errorCode,
+        message: errorMessage,
+        provider: error.provider,
+        correlationId: error.correlationId
+      });
+
+      throw new PromptGeneratorError(
+        errorMessage,
+        errorCode,
+        error.provider,
+        error.correlationId
+      );
+    }
+
+    // Se sucesso, retorna o prompt gerado
+    return data.finalPrompt;
+  } catch (e) {
+    // Converter ApiError para PromptGeneratorError
+    if (e instanceof ApiError) {
+      const errorCode = e.code || 'PROVIDER_ERROR_' + (e.status || 500);
+      const errorMessage = e.message || 'Falha ao gerar prompt. Tente novamente.';
+
+      console.error('[PromptGenerator] ApiError:', {
+        errorCode: errorCode,
+        message: errorMessage,
+        httpStatus: e.status
+      });
+
+      throw new PromptGeneratorError(
+        errorMessage,
+        errorCode
+      );
+    }
+
+    // Re-throw PromptGeneratorError ou outros erros
+    if (e instanceof PromptGeneratorError) {
+      throw e;
+    }
+
+    console.error('[PromptGenerator] Unexpected error:', e);
     throw new PromptGeneratorError(
-      errorMessage,
-      errorCode,
-      error.provider,
-      error.correlationId
+      'Erro inesperado ao gerar prompt',
+      'UNKNOWN_ERROR'
     );
   }
-
-  // Se sucesso, mas data pode não ser exatamente PromptSuccessResponse se a API mudar
-  // Aqui assumimos que se não é erro, tem finalPrompt (DTO de sucesso)
-  return (data as any).finalPrompt;
 }
 
 // === HISTÓRICO DE PROMPTS ===
