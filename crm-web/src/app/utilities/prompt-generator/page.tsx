@@ -263,7 +263,7 @@ export default function PromptGeneratorPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {!isLoadingCatalog && currentProvider && currentModels.length === 0 && (
+                  {currentProvider && currentModels.length === 0 && (
                     <p className="text-[10px] text-destructive font-medium">
                       Este provedor não possui modelos habilitados no catálogo.
                     </p>
