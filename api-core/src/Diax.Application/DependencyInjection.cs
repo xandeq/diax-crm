@@ -10,6 +10,7 @@ using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using Diax.Application.AI;
 using Diax.Application.AI.EmailOptimization;
+using Diax.Application.AI.LeadPersona;
 using Diax.Application.AI.ImageGeneration;
 using Diax.Application.AI.VideoGeneration;
 using Diax.Application.AI.Services;
@@ -68,6 +69,7 @@ public static class DependencyInjection
         services.AddScoped<IPromptGeneratorService, PromptGeneratorService>();
         services.AddScoped<IHumanizeTextService, HumanizeTextService>();
         services.AddScoped<IEmailSubjectOptimizerService, EmailSubjectOptimizerService>();
+        services.AddScoped<ILeadPersonaGeneratorService, LeadPersonaGeneratorService>();
         services.AddScoped<EmailMarketingService>();
         services.AddScoped<OutreachService>();
         services.AddSingleton<IEmailTemplateEngine, EmailTemplateEngine>();

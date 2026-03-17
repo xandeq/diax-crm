@@ -1,3 +1,0 @@
-2026-03-11 05:22:02.877 -03:00 [INF] EF Core SQL Server: DataSource=tcp:sql1002.site4now.net Database=db_aaf0a8_diaxcrm Encrypt=True TrustServerCertificate=true
-2026-03-11 05:22:03.844 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.
-2026-03-11 05:22:28.451 -03:00 [WRN] Sensitive data logging is enabled. Log entries and exception messages may include sensitive application data; this mode should only be enabled during development.

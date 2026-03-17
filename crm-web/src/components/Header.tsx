@@ -137,6 +137,9 @@ export function Header() {
                 <Link href="/utilities/email-subject-optimizer" className={menuItemClass} role="menuitem">
                   Otimizador de Email
                 </Link>
+                <Link href="/utilities/lead-persona-generator" className={menuItemClass} role="menuitem">
+                  Gerador de Personas
+                </Link>
               </div>
             </div>
 
