@@ -56,7 +56,7 @@ export default function EmailSubjectOptimizerPage() {
         temperature: 0.7,
       });
 
-      setResults(response.subjects.map((s) => ({ ...s, copied: false })));
+      setResults((response.subjectLines ?? []).map((s) => ({ ...s, copied: false })));
       setRequestId(response.requestId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao gerar subject lines');

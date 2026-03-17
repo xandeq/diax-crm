@@ -16,11 +16,11 @@ export interface GenerateSubjectLinesRequest {
 }
 
 export interface GenerateSubjectLinesResponse {
-  subjects: SubjectLineDto[];
+  subjectLines: SubjectLineDto[];
   requestId: string;
   providerUsed: string;
   modelUsed: string;
-  completionTime: number;
+  generatedAt: string;
 }
 
 export async function generateSubjectLines(
