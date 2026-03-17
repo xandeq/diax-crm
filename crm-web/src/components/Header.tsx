@@ -134,6 +134,9 @@ export function Header() {
                 <Link href="/utilities/humanize-text" className={menuItemClass} role="menuitem">
                   Humanizar Texto
                 </Link>
+                <Link href="/utilities/email-subject-optimizer" className={menuItemClass} role="menuitem">
+                  Otimizador de Email
+                </Link>
               </div>
             </div>
 
