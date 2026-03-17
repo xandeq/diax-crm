@@ -92,7 +92,7 @@ public class LeadPersonaGeneratorService : IApplicationService, ILeadPersonaGene
             throw new InvalidOperationException($"Provider {request.Provider} not found");
 
         // Get AI client
-        var client = _aiClients.FirstOrDefault(c => c.ProviderName == providerKey)
+        var client = _aiClients.FirstOrDefault(c => c.ProviderName.Equals(providerKey, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"AI client for {request.Provider} not available");
 
         // Get provider configuration

@@ -126,7 +126,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         }
 
         // 5. Find the matching image generation client
-        var client = _imageClients.FirstOrDefault(c => c.ProviderName == providerKey)
+        var client = _imageClients.FirstOrDefault(c => c.ProviderName.Equals(providerKey, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException(
                 $"Client de geração de imagem não encontrado para '{providerKey}'. " +
                 "Verifique se o client está registrado no container de DI.");

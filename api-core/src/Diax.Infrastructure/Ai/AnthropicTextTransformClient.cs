@@ -10,7 +10,7 @@ public class AnthropicTextTransformClient : IAiTextTransformClient
     private readonly HttpClient _httpClient;
     private readonly ILogger<AnthropicTextTransformClient> _logger;
 
-    public string ProviderName => "Anthropic";
+    public string ProviderName => "anthropic";
 
     public AnthropicTextTransformClient(
         HttpClient httpClient,

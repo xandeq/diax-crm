@@ -112,7 +112,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
         }
 
         // 4. Find the matching video client
-        var client = _videoClients.FirstOrDefault(c => c.ProviderName == providerKey)
+        var client = _videoClients.FirstOrDefault(c => c.ProviderName.Equals(providerKey, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException(
                 $"Client de geração de vídeo não encontrado para '{providerKey}'. " +
                 "Verifique se o client está registrado no container de DI.");

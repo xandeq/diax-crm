@@ -5,7 +5,7 @@ namespace Diax.Infrastructure.Ai;
 
 public class GrokTextTransformClient : BaseLlmClient
 {
-    public override string ProviderName => "Grok";
+    public override string ProviderName => "grok";
 
     public GrokTextTransformClient(
         HttpClient httpClient,

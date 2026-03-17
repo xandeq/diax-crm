@@ -73,7 +73,7 @@ public class EmailSubjectOptimizerService : IApplicationService, IEmailSubjectOp
         }
 
         // Encontrar o client de IA correspondente
-        var client = _aiClients.FirstOrDefault(c => c.ProviderName == providerKey)
+        var client = _aiClients.FirstOrDefault(c => c.ProviderName.Equals(providerKey, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException(
                 $"Client de IA não encontrado para o provider '{providerKey}'. " +
                 "Verifique se o client está registrado no container de DI.");
