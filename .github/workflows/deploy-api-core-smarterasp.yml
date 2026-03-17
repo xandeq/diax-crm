@@ -97,6 +97,7 @@ jobs:
             --arg falKey "${{ secrets.FALAI_API_KEY }}" \
             --arg groqKey "${{ secrets.GROQ_API_KEY }}" \
             --arg cerebrasKey "${{ secrets.CEREBRAS_API_KEY }}" \
+            --arg anthropicKey "${{ secrets.ANTHROPIC_API_KEY }}" \
             --arg brevoApiKey "${{ secrets.BREVO_API_KEY }}" \
             --arg brevoWebhookSecret "${{ secrets.BREVO_WEBHOOK_SECRET }}" \
             --arg smtpHost "${{ secrets.SMTP_HOST }}" \
@@ -169,6 +170,11 @@ jobs:
                   "ApiKey": $cerebrasKey,
                   "BaseUrl": "https://api.cerebras.ai/v1",
                   "Model": "llama-3.3-70b"
+                },
+                "Anthropic": {
+                  "ApiKey": $anthropicKey,
+                  "BaseUrl": "https://api.anthropic.com",
+                  "Model": "claude-3-5-haiku-20241022"
                 }
               },
               "Brevo": {

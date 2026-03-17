@@ -13,6 +13,7 @@ public class PromptGeneratorSettings
     public ProviderConfig HuggingFace { get; set; } = new();
     public ProviderConfig Groq { get; set; } = new();
     public ProviderConfig Cerebras { get; set; } = new();
+    public ProviderConfig Anthropic { get; set; } = new();
 
     /// <summary>
     /// Obtém a configuração do provider pelo key do banco de dados.
@@ -32,6 +33,7 @@ public class PromptGeneratorSettings
             "huggingface" or "hf" or "hugging-face" => HuggingFace,
             "groq" => Groq,
             "cerebras" => Cerebras,
+            "anthropic" or "claude" => Anthropic,
             _ => null
         };
     }

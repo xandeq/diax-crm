@@ -87,6 +87,8 @@ promptGeneratorSettings.Groq.ApiKey ??= builder.Configuration["GROQ_API_KEY"]
     ?? builder.Configuration["Groq:ApiKey"];
 promptGeneratorSettings.Cerebras.ApiKey ??= builder.Configuration["CEREBRAS_API_KEY"]
     ?? builder.Configuration["Cerebras:ApiKey"];
+promptGeneratorSettings.Anthropic.ApiKey ??= builder.Configuration["ANTHROPIC_API_KEY"]
+    ?? builder.Configuration["Anthropic:ApiKey"];
 
 builder.Services.AddSingleton(promptGeneratorSettings);
 

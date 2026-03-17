@@ -56,7 +56,7 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
 
         // 1️⃣ AWS Secrets Manager (primária - dinâmica)
         var awsResult = await TryLoadFromAwsSecretsManagerAsync();
-        if (awsResult.IsSuccess)
+        if (awsResult != null && awsResult.IsSuccess)
         {
             var (url, token) = awsResult.Value;
             _lastSource = "AWS Secrets Manager (tools/diax-extrator)";
