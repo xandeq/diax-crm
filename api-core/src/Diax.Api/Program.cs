@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.DataProtection;
+using Diax.Api.Auth;
 using Diax.Api.Configuration;
 using Diax.Api.Middleware;
 using Diax.Application;
@@ -176,8 +177,25 @@ if (string.IsNullOrWhiteSpace(jwtKey))
     }
 }
 
+// ===== AUTENTICAÇÃO: JWT + API Key estática (para n8n e outros clientes M2M) =====
+// PolicyScheme roteia para o scheme correto com base nos headers presentes:
+//   - Header "X-Api-Key" presente  → ApiKeyAuthenticationHandler (chave estática, nunca expira)
+//   - Caso contrário              → JwtBearer (token de sessão do usuário)
+const string multiAuthScheme = "JwtOrApiKey";
+
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = multiAuthScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme; // 401 com WWW-Authenticate: Bearer
+    })
+    .AddPolicyScheme(multiAuthScheme, "JWT or API Key", policyOptions =>
+    {
+        policyOptions.ForwardDefaultSelector = ctx =>
+            ctx.Request.Headers.ContainsKey("X-Api-Key")
+                ? ApiKeyAuthenticationOptions.DefaultScheme
+                : JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -202,7 +220,9 @@ builder.Services
                 return Task.CompletedTask;
             }
         };
-    });
+    })
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+        ApiKeyAuthenticationOptions.DefaultScheme, _ => { });
 
 builder.Services.AddAuthorization();
 

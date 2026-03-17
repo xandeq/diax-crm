@@ -106,6 +106,7 @@ jobs:
             --arg smtpFromEmail "${{ secrets.SMTP_FROM_EMAIL }}" \
             --arg extractorUrl "${{ secrets.EXTRATOR_URL }}" \
             --arg extractorToken "${{ secrets.EXTRATOR_API_TOKEN }}" \
+            --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
@@ -190,6 +191,7 @@ jobs:
                 "Url": $extractorUrl,
                 "ApiToken": $extractorToken
               },
+              "ServiceApiKey": $serviceApiKey,
               "Cors": {
                 "AllowedOrigins": [
                   "https://crm.alexandrequeiroz.com.br",

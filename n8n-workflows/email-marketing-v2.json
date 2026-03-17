@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## CRM Outreach Engine v2\n\n**Substitui o workflow MySQL legado por chamadas à API do CRM.**\n\n### Módulos:\n- **Módulo 1 - Importação**: Schedule 8h + Manual → Apify → POST /customers/import\n- **Módulo 2 - Segmentação**: Schedule a cada 2h → POST /outreach/segment\n- **Módulo 3 - Envio**: Schedule 9h, 14h, 18h → POST /outreach/send\n- **Error Handler**: Captura erros globais\n\n### Autenticação:\nUse a credencial **Header Auth** do n8n com nome `CRM API Key`.\n- Header: `Authorization`\n- Value: `Bearer <seu_api_key>`\n\n**API Base:** `https://api.alexandrequeiroz.com.br/api/v1`",
+        "content": "## CRM Outreach Engine v2\n\n**Substitui o workflow MySQL legado por chamadas à API do CRM.**\n\n### Módulos:\n- **Módulo 1 - Importação**: Schedule 8h + Manual → Apify → POST /customers/import\n- **Módulo 2 - Segmentação**: Schedule a cada 2h → POST /outreach/segment\n- **Módulo 3 - Envio**: Schedule 9h, 14h, 18h → POST /outreach/send\n- **Error Handler**: Captura erros globais\n\n### Autenticação (API Key estática — NÃO usa JWT):\nCrie uma credencial **Header Auth** no n8n com nome exato `CRM API Key`:\n- **Header Name**: `X-Api-Key`\n- **Header Value**: (ver secret DIAX_SERVICE_API_KEY no GitHub / AWS SM)\n\n> ⚠️ NÃO use `Authorization: Bearer <jwt>`. JWTs expiram em 60min e quebram o agendamento.\n> A API aceita `X-Api-Key` com uma chave estática para automações M2M.\n\n**API Base:** `https://api.alexandrequeiroz.com.br/api/v1`",
         "height": 320,
         "width": 460,
         "color": 5
@@ -439,6 +439,7 @@
   },
   "meta": {
     "templateCredsSetupCompleted": false,
-    "instanceId": ""
+    "instanceId": "",
+    "notes": "ACAO NECESSARIA: Configurar credencial 'CRM API Key' no n8n com Header=X-Api-Key e Value=<DIAX_SERVICE_API_KEY>"
   }
 }
