@@ -17,7 +17,7 @@ namespace Diax.Infrastructure.Data.Migrations
                 {
                     id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     user_id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    email_campaign_id = table.Column<long>(type: "bigint", nullable: true),
+                    email_campaign_id = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     original_subject = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     generated_subjects_json = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     selected_subject = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
