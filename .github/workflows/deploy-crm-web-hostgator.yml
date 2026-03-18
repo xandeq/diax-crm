@@ -89,7 +89,7 @@ jobs:
           }
 
       - name: Deploy via SFTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: "ftp.alexandrequeiroz.com.br"
           username: "crm@alexandrequeiroz.com.br"

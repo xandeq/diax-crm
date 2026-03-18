@@ -313,7 +313,7 @@ jobs:
             "ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}App_Data/DataProtection-Keys/.keep" || true
 
       - name: Put app_offline.htm on server
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.SMARTERASP_FTP_SERVER }}
           username: ${{ secrets.SMARTERASP_FTP_USERNAME }}
@@ -331,7 +331,7 @@ jobs:
         run: sleep 15
 
       - name: Deploy via FTP (SmarterASP)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.SMARTERASP_FTP_SERVER }}
           username: ${{ secrets.SMARTERASP_FTP_USERNAME }}
