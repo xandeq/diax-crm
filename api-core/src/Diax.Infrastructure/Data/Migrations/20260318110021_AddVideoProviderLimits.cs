@@ -11,15 +11,6 @@ namespace Diax.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<Guid>(
-                name: "id",
-                table: "email_optimizations",
-                type: "uniqueidentifier",
-                nullable: false,
-                oldClrType: typeof(long),
-                oldType: "bigint")
-                .OldAnnotation("SqlServer:Identity", "1, 1");
-
             migrationBuilder.AddColumn<string>(
                 name: "aspect_ratio",
                 table: "ai_usage_logs",
@@ -191,15 +182,6 @@ namespace Diax.Infrastructure.Data.Migrations
             migrationBuilder.DropColumn(
                 name: "supported_aspect_ratios",
                 table: "ai_models");
-
-            migrationBuilder.AlterColumn<long>(
-                name: "id",
-                table: "email_optimizations",
-                type: "bigint",
-                nullable: false,
-                oldClrType: typeof(Guid),
-                oldType: "uniqueidentifier")
-                .Annotation("SqlServer:Identity", "1, 1");
         }
     }
 }
