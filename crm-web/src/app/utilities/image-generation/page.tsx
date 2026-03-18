@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAiCatalog } from '@/hooks/useAiCatalog';
 import { ProviderBadge } from '@/components/ai/ProviderBadge';
 import { ModelCard } from '@/components/ai/ModelCard';
+import { QuotaStatusCard, type QuotaStatusDto } from '@/components/QuotaStatusCard';
 import { type AiModel } from '@/services/aiCatalog';
 import {
   generateImage,
@@ -149,6 +150,10 @@ export default function ImageGenerationPage() {
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
 
+  // Video quota
+  const [quotaStatus, setQuotaStatus] = useState<QuotaStatusDto | null>(null);
+  const [isLoadingQuota, setIsLoadingQuota] = useState(false);
+
   // ── Derived ──────────────────────────────────────────────────────────────────
 
   const currentProvider = activeProviders.find(p => p.key === selectedProvider);
@@ -199,6 +204,50 @@ export default function ImageGenerationPage() {
       if (msgTimerRef.current) clearInterval(msgTimerRef.current);
     };
   }, [isGenerating, currentLoadingMessages.length]);
+
+  // Fetch quota status when video provider changes
+  useEffect(() => {
+    if (activeTab !== 'video' || !selectedProvider) {
+      setQuotaStatus(null);
+      return;
+    }
+
+    const fetchQuota = async () => {
+      setIsLoadingQuota(true);
+      try {
+        // Get provider ID from the providers list
+        const provider = videoProviders.find(p => p.key === selectedProvider);
+        if (!provider) {
+          setQuotaStatus(null);
+          return;
+        }
+
+        // Fetch quota status from API
+        const response = await fetch(
+          `/api/v1/admin/video-providers/${provider.id}/quota`,
+          {
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const quota = await response.json();
+          setQuotaStatus(quota);
+        } else {
+          setQuotaStatus(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch quota status:', err);
+        setQuotaStatus(null);
+      } finally {
+        setIsLoadingQuota(false);
+      }
+    };
+
+    fetchQuota();
+  }, [activeTab, selectedProvider, videoProviders]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -281,6 +330,10 @@ export default function ImageGenerationPage() {
           referenceImageBase64: referenceImageBase64 ?? undefined,
         });
         setVideoResult(response);
+        // Update quota status if returned from API
+        if (response.quotaStatus) {
+          setQuotaStatus(response.quotaStatus);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado ao gerar.';
@@ -439,6 +492,11 @@ export default function ImageGenerationPage() {
                 </button>
               )}
             </div>
+          )}
+
+          {/* Quota Status (Video only) */}
+          {activeTab === 'video' && selectedProvider && (
+            <QuotaStatusCard quota={quotaStatus} isLoading={isLoadingQuota} />
           )}
 
           {/* Prompt */}
