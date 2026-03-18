@@ -14,6 +14,12 @@ public class AiModel : AuditableEntity
     public int? MaxTokensHint { get; private set; }
     public string? CapabilitiesJson { get; private set; }
 
+    // Video generation metadata
+    public bool IsActive { get; private set; } = false; // Whether model is available for use
+    public int? MaxDurationSeconds { get; private set; } // Maximum video duration in seconds
+    public string? MaxResolution { get; private set; } // e.g., "1080p", "4K", "720p"
+    public string? SupportedAspectRatios { get; private set; } // Comma-separated: "16:9,9:16,1:1"
+
     // Navigation property
     public AiProvider Provider { get; private set; }
 
@@ -24,6 +30,7 @@ public class AiModel : AuditableEntity
         DisplayName = displayName;
         IsDiscovered = isDiscovered;
         IsEnabled = false; // Default disabled
+        IsActive = false;
     }
 
     public void UpdateDetails(string displayName, decimal? inputCost, decimal? outputCost, int? maxTokens, string? capabilities)
@@ -35,8 +42,23 @@ public class AiModel : AuditableEntity
         CapabilitiesJson = capabilities;
     }
 
+    public void UpdateVideoConstraints(int? maxDurationSeconds, string? maxResolution, string? supportedAspectRatios)
+    {
+        MaxDurationSeconds = maxDurationSeconds;
+        MaxResolution = maxResolution;
+        SupportedAspectRatios = supportedAspectRatios;
+    }
+
+    public void UpdateDisplayName(string displayName)
+    {
+        if (!string.IsNullOrWhiteSpace(displayName))
+            DisplayName = displayName;
+    }
+
     public void Enable() => IsEnabled = true;
     public void Disable() => IsEnabled = false;
+    public void Activate() => IsActive = true;
+    public void Deactivate() => IsActive = false;
 
     // Well-known image generation model keys (fallback when CapabilitiesJson is not configured)
     private static readonly HashSet<string> KnownImageModelKeys = new(StringComparer.OrdinalIgnoreCase)

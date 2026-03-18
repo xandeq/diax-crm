@@ -8,6 +8,7 @@ using Diax.Application.PromptGenerator;
 using Diax.Infrastructure;
 using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Seed;
+using Diax.Infrastructure.Data.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -267,7 +268,7 @@ try
     var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("UserSeeder");
 
     // Wrap migration in timeout to prevent ANCM startup timeout (120s default)
-    var migrationTask = Task.Run(() =>
+    var migrationTask = Task.Run(async () =>
     {
         try
         {
@@ -282,6 +283,14 @@ try
             // Seed AI Providers
             AiDataSeeder.SeedAiProviders(db, seedLogger);
             Log.Information("AiDataSeeder completed.");
+
+            // Seed Video Providers
+            await VideoProviderSeeder.SeedVideoProvidersAsync(db);
+            Log.Information("VideoProviderSeeder completed.");
+
+            // Approve video providers for admin group
+            await AdminGroupVideoAccessSeeder.ApproveVideoProvidersForAdminAsync(db, seedLogger);
+            Log.Information("AdminGroupVideoAccessSeeder completed.");
         }
         catch (Exception ex)
         {

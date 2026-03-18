@@ -1,3 +1,5 @@
+using Diax.Application.AI.QuotaManagement;
+
 namespace Diax.Application.AI.VideoGeneration.Dtos;
 
 public record VideoGenerationResponseDto(
@@ -6,5 +8,6 @@ public record VideoGenerationResponseDto(
     string RequestId,
     int DurationMs,
     string VideoUrl,
-    string? ThumbnailUrl
+    string? ThumbnailUrl,
+    QuotaStatusDto? QuotaStatus = null
 );

@@ -9,9 +9,12 @@ public class AiProvider : AuditableEntity
     public bool IsEnabled { get; private set; }
     public bool SupportsListModels { get; private set; }
     public string? BaseUrl { get; private set; }
+    public bool IsVideoProvider { get; private set; }
+    public bool IsTextProvider { get; private set; }
 
-    // Navigation property
+    // Navigation properties
     public ICollection<AiModel> Models { get; private set; } = new List<AiModel>();
+    public AiProviderQuota? Quota { get; private set; }
 
     public AiProvider(string key, string name, bool supportsListModels, string? baseUrl = null)
     {

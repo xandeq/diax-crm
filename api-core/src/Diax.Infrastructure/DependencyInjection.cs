@@ -17,6 +17,7 @@ using Diax.Infrastructure.Data;
 using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Finance;
 using Diax.Infrastructure.Ai;
+using Diax.Infrastructure.AI.QuotaManagement;
 using Diax.Shared.Ai;
 using Diax.Domain.AI;
 using Diax.Domain.UserGroups;
@@ -316,6 +317,15 @@ public static class DependencyInjection
         services.AddHttpClient<HuggingFaceVideoClient>();
         services.AddScoped<IAiVideoGenerationClient, HuggingFaceVideoClient>();
 
+        services.AddHttpClient<RunwayVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, RunwayVideoClient>();
+
+        services.AddHttpClient<ReplicateVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, ReplicateVideoClient>();
+
+        services.AddHttpClient<ShotstackVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, ShotstackVideoClient>();
+
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
         services.Configure<BrevoSettings>(configuration.GetSection("Brevo"));
@@ -355,6 +365,10 @@ public static class DependencyInjection
 
         // ===== CONFIGURATION PROVIDERS =====
         services.AddScoped<Diax.Shared.Interfaces.IConfigurationProvider, ExternalServices.ConfigurationProvider>();
+
+        // ===== QUOTA MANAGEMENT =====
+        services.AddScoped<Diax.Application.AI.QuotaManagement.IAiQuotaService, Diax.Infrastructure.AI.QuotaManagement.AiQuotaService>();
+        services.AddHostedService<Diax.Infrastructure.AI.QuotaManagement.QuotaResetWorker>();
 
         return services;
     }

@@ -1,8 +1,10 @@
+using Diax.Application.AI.QuotaManagement;
 using Diax.Application.AI.Services;
 using Diax.Application.AI.VideoGeneration.Dtos;
 using Diax.Application.Common;
 using Diax.Application.PromptGenerator;
 using Diax.Domain.AI;
+using Diax.Shared;
 using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +15,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
     private readonly IEnumerable<IAiVideoGenerationClient> _videoClients;
     private readonly IAiModelValidator _aiModelValidator;
     private readonly IAiUsageTrackingService _usageTracking;
+    private readonly IAiQuotaService _quotaService;
     private readonly IAiProviderRepository _providerRepository;
     private readonly IAiModelRepository _modelRepository;
     private readonly IAiProviderCredentialRepository _credentialRepository;
@@ -24,6 +27,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
         IEnumerable<IAiVideoGenerationClient> videoClients,
         IAiModelValidator aiModelValidator,
         IAiUsageTrackingService usageTracking,
+        IAiQuotaService quotaService,
         IAiProviderRepository providerRepository,
         IAiModelRepository modelRepository,
         IAiProviderCredentialRepository credentialRepository,
@@ -34,6 +38,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
         _videoClients = videoClients;
         _aiModelValidator = aiModelValidator;
         _usageTracking = usageTracking;
+        _quotaService = quotaService;
         _providerRepository = providerRepository;
         _modelRepository = modelRepository;
         _credentialRepository = credentialRepository;
@@ -76,6 +81,16 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
             throw new ArgumentException(
                 $"Modelo '{request.Model}' não suporta geração de vídeo. " +
                 "Verifique se o CapabilitiesJson do modelo está configurado corretamente.");
+
+        // 2.5. Check quota before proceeding
+        var quotaCheckResult = await _quotaService.CanUserGenerateAsync(provider.Id, 1, ct);
+        if (!quotaCheckResult.IsSuccess)
+        {
+            _logger.LogWarning(
+                "VideoGeneration quota check failed for provider '{Provider}': {Error}",
+                providerKey, quotaCheckResult.Error?.Message);
+            throw new InvalidOperationException(quotaCheckResult.Error?.Message ?? "Quota limit exceeded");
+        }
 
         // 3. Get API key — DB first, then appsettings fallback
         string apiKey;
@@ -147,6 +162,19 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                 "VideoGeneration completed. RequestId: {RequestId}. Duration: {Duration}ms",
                 requestId, durationMs);
 
+            // Record quota usage (fire and forget)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _quotaService.RecordGenerationAsync(provider.Id, 1, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to record quota usage for request {RequestId}", requestId);
+                }
+            }, CancellationToken.None);
+
             // Track usage (fire and forget)
             _ = Task.Run(async () =>
             {
@@ -170,13 +198,17 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                 }
             }, CancellationToken.None);
 
+            // Get updated quota status for response
+            var quotaStatus = await _quotaService.GetQuotaStatusAsync(provider.Id);
+
             return new VideoGenerationResponseDto(
                 ProviderUsed: providerKey,
                 ModelUsed: request.Model,
                 RequestId: requestId,
                 DurationMs: durationMs,
                 VideoUrl: result.VideoUrl,
-                ThumbnailUrl: result.ThumbnailUrl
+                ThumbnailUrl: result.ThumbnailUrl,
+                QuotaStatus: quotaStatus
             );
         }
         catch (Exception ex)
