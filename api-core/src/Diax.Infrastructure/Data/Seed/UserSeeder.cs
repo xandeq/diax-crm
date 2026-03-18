@@ -22,23 +22,26 @@ public static class UserSeeder
         }
 
         var adminEmail = adminEmailFromConfig.Trim().ToLowerInvariant();
-        var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var seedAdminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
         // 1. Garantir usuário admin existe
-        var existingAdmin = db.Users.FirstOrDefault(x => x.Email == adminEmail || x.Id == adminId);
+        var existingAdmin = db.Users.FirstOrDefault(x => x.Email == adminEmail || x.Id == seedAdminId);
 
+        Guid adminId;
         if (existingAdmin == null)
         {
             logger?.LogInformation("UserSeeder: Creating initial admin user...");
             var passwordHash = PasswordHash.HashPassword(adminPasswordFromConfig);
-            var admin = new User(adminEmail, passwordHash, adminId);
+            var admin = new User(adminEmail, passwordHash, seedAdminId);
             db.Users.Add(admin);
             db.SaveChanges();
+            adminId = seedAdminId;
             logger?.LogInformation("UserSeeder: Created initial admin user with email '{Email}'.", adminEmail);
         }
         else
         {
-            logger?.LogInformation("UserSeeder: Admin user already exists (ID: {Id}).", existingAdmin.Id);
+            adminId = existingAdmin.Id;
+            logger?.LogInformation("UserSeeder: Admin user already exists (ID: {Id}).", adminId);
             if (!existingAdmin.IsActive)
             {
                 existingAdmin.Enable();
