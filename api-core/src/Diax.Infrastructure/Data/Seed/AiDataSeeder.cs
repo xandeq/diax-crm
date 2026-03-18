@@ -87,6 +87,9 @@ public static class AiDataSeeder
                 new ModelSeed("fal-ai/mochi-v1",                                  "Mochi v1", SupportsVideo: true),
                 new ModelSeed("fal-ai/ltx-video",                                 "LTX-Video", SupportsVideo: true),
                 new ModelSeed("fal-ai/ltx-video/image-to-video",                  "LTX-Video Img2Video", SupportsVideo: true),
+                // --- Pika video models (via Fal.ai) ---
+                new ModelSeed("fal-ai/pika/v2.2/text-to-video",                   "Pika 2.2 Text-to-Video", SupportsVideo: true),
+                new ModelSeed("fal-ai/pika/v2.2/image-to-video",                  "Pika 2.2 Image-to-Video", SupportsVideo: true),
             }),
 
         new ProviderSeed(
@@ -293,6 +296,28 @@ public static class AiDataSeeder
                 new ModelSeed("dolphin-mixtral",                                    "Dolphin Mixtral (local)"),
                 new ModelSeed("stable-diffusion",                                   "Stable Diffusion (local image gen)", SupportsImage: true),
             }),
+
+        new ProviderSeed(
+            Key: "runway",
+            Name: "Runway ML",
+            BaseUrl: "https://api.runwayml.com/v1",
+            SupportsListModels: false,
+            Models: new()
+            {
+                new ModelSeed("gen4_turbo",  "Runway Gen-4 Turbo (Txt/Img-to-Video)", SupportsVideo: true),
+                new ModelSeed("gen4",        "Runway Gen-4 (Txt/Img-to-Video)", SupportsVideo: true),
+                new ModelSeed("gen3a_turbo", "Runway Gen-3 Alpha Turbo", SupportsVideo: true),
+            }),
+
+        new ProviderSeed(
+            Key: "shotstack",
+            Name: "Shotstack",
+            BaseUrl: "https://api.shotstack.io/v1",
+            SupportsListModels: false,
+            Models: new()
+            {
+                new ModelSeed("shotstack", "Shotstack Composition (Text-to-Video)", SupportsVideo: true),
+            }),
     };
 
     public static void SeedAiProviders(DiaxDbContext db, ILogger? logger = null)
@@ -328,10 +353,13 @@ public static class AiDataSeeder
             var existingProvider = existingProviders.FirstOrDefault(p => p.Key == seed.Key);
             Guid providerId;
 
+            var hasVideoModels = seed.Models.Any(m => m.SupportsVideo);
+
             if (existingProvider == null)
             {
                 var provider = new AiProvider(seed.Key, seed.Name, seed.SupportsListModels, seed.BaseUrl);
                 provider.Enable();
+                if (hasVideoModels) provider.SetVideoProvider(true);
                 db.AiProviders.Add(provider);
                 db.SaveChanges(); // flush once to get real ID
                 providerId = provider.Id;
@@ -342,6 +370,16 @@ public static class AiDataSeeder
             else
             {
                 providerId = existingProvider.Id;
+                // Update IsVideoProvider flag on existing provider if needed
+                if (hasVideoModels)
+                {
+                    var existingEntity = db.AiProviders.Find(providerId);
+                    if (existingEntity != null && !existingEntity.IsVideoProvider)
+                    {
+                        existingEntity.SetVideoProvider(true);
+                        db.SaveChanges();
+                    }
+                }
             }
 
             // --- Grant provider access ---
@@ -399,6 +437,52 @@ public static class AiDataSeeder
                     }
                 }
                 db.SaveChanges(); // flush model access grants
+            }
+        }
+
+        // --- Final pass: ensure admin group has access to ALL providers and models ---
+        // This fixes cases where models were added before access grants were applied.
+        if (adminGroup != null)
+        {
+            var allProviderIds = db.AiProviders.Select(p => p.Id).ToList();
+            var allModelIds = db.AiModels.Select(m => m.Id).ToList();
+
+            var currentProviderAccesses = db.GroupAiProviderAccesses
+                .Where(a => a.GroupId == adminGroup.Id)
+                .Select(a => a.ProviderId)
+                .ToHashSet();
+
+            var currentModelAccesses = db.GroupAiModelAccesses
+                .Where(a => a.GroupId == adminGroup.Id)
+                .Select(a => a.AiModelId)
+                .ToHashSet();
+
+            int finalProviderGrants = 0, finalModelGrants = 0;
+
+            foreach (var pid in allProviderIds)
+            {
+                if (!currentProviderAccesses.Contains(pid))
+                {
+                    db.GroupAiProviderAccesses.Add(new GroupAiProviderAccess(adminGroup.Id, pid));
+                    finalProviderGrants++;
+                }
+            }
+
+            foreach (var mid in allModelIds)
+            {
+                if (!currentModelAccesses.Contains(mid))
+                {
+                    db.GroupAiModelAccesses.Add(new GroupAiModelAccess(adminGroup.Id, mid));
+                    finalModelGrants++;
+                }
+            }
+
+            if (finalProviderGrants > 0 || finalModelGrants > 0)
+            {
+                db.SaveChanges();
+                logger?.LogInformation(
+                    "[AiDataSeeder] Final pass: granted {PA} missing provider accesses, {MA} missing model accesses to admin group.",
+                    finalProviderGrants, finalModelGrants);
             }
         }
 

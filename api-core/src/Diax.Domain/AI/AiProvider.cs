@@ -34,4 +34,6 @@ public class AiProvider : AuditableEntity
 
     public void Enable() => IsEnabled = true;
     public void Disable() => IsEnabled = false;
+    public void SetVideoProvider(bool isVideo) => IsVideoProvider = isVideo;
+    public void SetTextProvider(bool isText) => IsTextProvider = isText;
 }

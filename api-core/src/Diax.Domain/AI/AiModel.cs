@@ -241,6 +241,20 @@ public class AiModel : AuditableEntity
         "VideoCrafter/VideoCrafter2",
         "VideoCrafter/VideoCrafter1",
         "THUDM/VideoCrafter2",
+
+        // Fal.ai — Pika video models
+        "fal-ai/pika/v2.2/text-to-video",
+        "fal-ai/pika/v2.2/image-to-video",
+        "fal-ai/pika-labs/v2.2/text-to-video",
+        "fal-ai/pika-labs/v2.2/image-to-video",
+
+        // Runway ML
+        "gen4_turbo",
+        "gen4",
+        "gen3a_turbo",
+
+        // Shotstack
+        "shotstack",
     };
 
     public bool SupportsImageGeneration() =>

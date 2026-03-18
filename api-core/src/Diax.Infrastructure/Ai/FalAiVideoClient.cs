@@ -32,6 +32,10 @@ public class FalAiVideoClient : IAiVideoGenerationClient
         "fal-ai/wan-i2v",
         "fal-ai/luma-dream-machine/image-to-video",
         "fal-ai/hunyuan-video-image-to-video",
+        "fal-ai/ltx-video/image-to-video",
+        "fal-ai/pika/v2.2/image-to-video",
+        "fal-ai/pika-labs/v2.2/image-to-video",
+        "fal-ai/cogvideox-5b-img2vid",
     };
 
     public FalAiVideoClient(HttpClient httpClient, ILogger<FalAiVideoClient> logger)
