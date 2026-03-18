@@ -1,0 +1,82 @@
+name: Reset Remote DB (SmarterASP)
+
+on:
+  push:
+    branches: ["reset-db"]
+  workflow_dispatch: {}
+
+jobs:
+  reset-db:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        working-directory: api-core
+        run: dotnet restore
+
+      - name: Install dotnet-ef
+        shell: pwsh
+        run: |
+          try {
+            dotnet tool install --global dotnet-ef --version 8.*
+          } catch {
+            dotnet tool update --global dotnet-ef --version 8.*
+          }
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install SqlServer module
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name SqlServer -Scope CurrentUser -Force -AllowClobber
+
+      - name: DROP ALL tables
+        shell: pwsh
+        run: |
+          $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
+          if ([string]::IsNullOrWhiteSpace($conn)) {
+            throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
+          }
+
+          # Script to drop all tables and constraints to ensure a clean slate
+          $sql = @"
+          DECLARE @sql NVARCHAR(MAX) = N'';
+
+          -- Drop Foreign Keys
+          SELECT @sql += 'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(schema_id)) + '.' + QUOTENAME(parent.name) +
+                         ' DROP CONSTRAINT ' + QUOTENAME(name) + ';'
+          FROM sys.foreign_keys as parent;
+
+          EXEC sp_executesql @sql;
+
+          SET @sql = N'';
+
+          -- Drop Tables
+          SELECT @sql += 'DROP TABLE ' + QUOTENAME(SCHEMA_NAME(schema_id)) + '.' + QUOTENAME(name) + ';'
+          FROM sys.tables;
+
+          EXEC sp_executesql @sql;
+          "@
+
+          Invoke-Sqlcmd -ConnectionString $conn -Query $sql -ConnectionTimeout 120
+
+      - name: Apply EF Core Migrations
+        shell: pwsh
+        run: |
+          $conn = "${{ secrets.SMARTERASP_DB_CONNECTIONSTRING }}"
+          if ([string]::IsNullOrWhiteSpace($conn)) {
+            throw "SMARTERASP_DB_CONNECTIONSTRING não está definido."
+          }
+
+          dotnet ef database update `
+            --project "api-core/src/Diax.Infrastructure/Diax.Infrastructure.csproj" `
+            --startup-project "api-core/src/Diax.Api/Diax.Api.csproj" `
+            --connection "$conn"
