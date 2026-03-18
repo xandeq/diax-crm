@@ -299,13 +299,13 @@ try
         }
     });
 
-    // Wait max 45 seconds for migration (leaves 75s buffer for ANCM timeout)
-    await migrationTask.WaitAsync(TimeSpan.FromSeconds(45));
+    // Wait max 180 seconds for migration (increased from 45s to handle large schema changes on remote DB)
+    await migrationTask.WaitAsync(TimeSpan.FromSeconds(180));
     Log.Information("Database initialization completed successfully.");
 }
 catch (TimeoutException)
 {
-    Log.Warning("Database migration timed out after 45 seconds. App will start but DB may not be ready.");
+    Log.Warning("Database migration timed out after 180 seconds. App will start but DB may not be ready.");
     // Allow app to start - health checks will report DB status
 }
 catch (Exception ex)
