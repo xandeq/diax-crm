@@ -6,7 +6,7 @@ on:
     paths:
       - "api-core/**"
       - ".github/workflows/deploy-api-core-smarterasp.yml"
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 concurrency:
   group: deploy-api-core-smarterasp
