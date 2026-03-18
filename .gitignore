@@ -27,6 +27,8 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.env.production
+CREDENTIALS_REFERENCE.md
 
 # Google Cloud credentials
 service_account.json
