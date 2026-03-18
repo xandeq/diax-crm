@@ -1,4 +1,5 @@
 import { apiFetch } from './api';
+import type { QuotaStatusDto } from '@/components/QuotaStatusCard';
 
 export interface ImageGenerationRequest {
   provider: string;
@@ -86,6 +87,7 @@ export interface VideoGenerationResponse {
   durationMs: number;
   videoUrl: string;
   thumbnailUrl?: string;
+  quotaStatus?: QuotaStatusDto;
 }
 
 export const videoAspectRatioOptions = [
