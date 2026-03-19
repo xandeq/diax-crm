@@ -15,6 +15,11 @@ public class PromptGeneratorSettings
     public ProviderConfig Cerebras { get; set; } = new();
     public ProviderConfig Anthropic { get; set; } = new();
 
+    // Video generation providers
+    public ProviderConfig Runway { get; set; } = new();
+    public ProviderConfig Replicate { get; set; } = new();
+    public ProviderConfig Shotstack { get; set; } = new();
+
     /// <summary>
     /// Obtém a configuração do provider pelo key do banco de dados.
     /// Mapeamento: chatgpt -> OpenAI, openai -> OpenAI, etc.
@@ -28,12 +33,16 @@ public class PromptGeneratorSettings
             "deepseek" => DeepSeek,
             "gemini" => Gemini,
             "openrouter" => OpenRouter,
-            "fal" or "falai" => FAL,
+            "fal" or "falai" or "fal-ai" => FAL,
             "grok" or "xai" => Grok,
             "huggingface" or "hf" or "hugging-face" => HuggingFace,
             "groq" => Groq,
             "cerebras" => Cerebras,
             "anthropic" or "claude" => Anthropic,
+            // Video providers
+            "runway" => Runway,
+            "replicate" => Replicate,
+            "shotstack" => Shotstack,
             _ => null
         };
     }

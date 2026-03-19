@@ -92,6 +92,14 @@ promptGeneratorSettings.Cerebras.ApiKey ??= builder.Configuration["CEREBRAS_API_
 promptGeneratorSettings.Anthropic.ApiKey ??= builder.Configuration["ANTHROPIC_API_KEY"]
     ?? builder.Configuration["Anthropic:ApiKey"];
 
+// Video generation providers (fallback when DB credential decryption fails)
+promptGeneratorSettings.Runway.ApiKey ??= builder.Configuration["RUNWAY_API_KEY"]
+    ?? builder.Configuration["Runway:ApiKey"];
+promptGeneratorSettings.Replicate.ApiKey ??= builder.Configuration["REPLICATE_API_KEY"]
+    ?? builder.Configuration["Replicate:ApiKey"];
+promptGeneratorSettings.Shotstack.ApiKey ??= builder.Configuration["SHOTSTACK_API_KEY"]
+    ?? builder.Configuration["Shotstack:ApiKey"];
+
 builder.Services.AddSingleton(promptGeneratorSettings);
 
 // Controllers
