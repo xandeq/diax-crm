@@ -17,6 +17,82 @@ public static class AiDataSeeder
     // ---------------------------------------------------------
     // Provider + model catalog. Add new entries here freely.
     // ---------------------------------------------------------
+    /// <summary>
+    /// Models confirmed broken (404/410/403) that must be DISABLED on startup.
+    /// Removing from KnownProviders prevents re-enable; this list actively disables them.
+    /// </summary>
+    private static readonly Dictionary<string, HashSet<string>> KnownBrokenModels = new()
+    {
+        ["huggingface"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "black-forest-labs/FLUX.1-dev",              // 410 deprecated on HF router
+            "black-forest-labs/FLUX.1-kontext-dev",      // 404
+            "black-forest-labs/FLUX.2-dev",              // 404
+            "black-forest-labs/FLUX.2-max",              // 404
+            "black-forest-labs/FLUX.2-flex",             // 404
+            "stabilityai/stable-diffusion-xl-refiner-1.0",     // 404
+            "stabilityai/stable-diffusion-3.5-large",          // 400 endpoint error
+            "stabilityai/stable-diffusion-3.5-medium",         // 404
+            "stabilityai/stable-diffusion-3.5-large-turbo",    // 404
+            "runwayml/stable-diffusion-v1-5",            // 404
+            "ByteDance/Hyper-SD",                        // 404
+            "ByteDance/Hyper-SDXL",                      // 404
+            "deepfloyd/IF-I-XL-v1.0",                   // 404
+            "deepfloyd/IF",                              // 404
+            "Qwen/Qwen-Image",                           // 404
+            "Qwen/Qwen-Image-2512",                      // 404
+            "Qwen/Qwen-Image-Edit",                      // 404
+            "Tongyi-MAI/Z-Image",                        // 404
+            "Tongyi-MAI/Z-Image-Turbo",                  // 404
+            "Tongyi-MAI/Z-Image-Edit",                   // 404
+            "zai-org/glm-image",                         // 404
+            "THUDM/glm-image",                           // 404
+            "tencent/Hunyuan-DiT",                       // 404
+            "tencent/HunyuanImage-2.1",                  // 404
+            "tencent/HunyuanImage-3",                    // 404
+            "tencent/HunyuanImage",                      // 404
+            "HiDream-ai/HiDream-I1",                     // 404
+            "HiDream-ai/HiDream-I1-Fast",                // 404
+            "HiDream-ai/HiDream-I1-Dev",                 // 404
+            "stabilityai/stable-video-diffusion-img2vid-xt", // 404
+            "stabilityai/stable-video-diffusion",        // 404
+            "stabilityai/stable-video-diffusion-img2vid",// 404
+            "stabilityai/svd",                           // 404
+            "THUDM/CogVideoX-1.5",                       // 404
+            "VideoCrafter/VideoCrafter2",                // 404
+            "VideoCrafter/VideoCrafter1",                // 404
+            "THUDM/VideoCrafter2",                       // 404
+        },
+        ["runway"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "gen4", // 403 "Model variant gen4 is not available"
+        },
+        ["openrouter"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "black-forest-labs/flux-schnell",            // removed from OR catalog
+            "black-forest-labs/flux-1-schnell:free",     // removed
+            "black-forest-labs/flux-1-dev:free",         // removed
+            "stabilityai/stable-diffusion-xl-base-1.0:free", // removed
+            "black-forest-labs/flux-1.1-pro",            // removed
+            "black-forest-labs/flux-dev",                // removed
+            "black-forest-labs/flux-kontext-pro",        // removed
+            "stability-ai/stable-diffusion-3.5-large",   // removed
+            "google/imagen-3",                           // does not exist in OR
+            "openai/gpt-image-1",                        // does not exist in OR
+        },
+        ["gemini"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "gemini-2.5-flash",       // chat model, does NOT output images
+            "gemini-2.0-flash",       // chat model
+            "gemini-2.5-pro",         // chat model
+            "gemini-2.0-pro",         // chat model
+            "gemini-1.5-pro",         // chat model
+            "gemini-1.5-flash",       // chat model
+            "gemini-3-flash-preview", // chat model
+            "gemini-3-pro-preview",   // chat model (wrong ID anyway)
+        },
+    };
+
     private static readonly List<ProviderSeed> KnownProviders = new()
     {
         new ProviderSeed(
@@ -109,42 +185,12 @@ public static class AiDataSeeder
             SupportsListModels: false,
             Models: new()
             {
-                // FLUX family (best open-source)
+                // ── Image models (tested & confirmed working on router.huggingface.co 2026-03) ──
                 new ModelSeed("black-forest-labs/FLUX.1-schnell",        "FLUX.1 Schnell (gratuito, rápido)", SupportsImage: true),
-                new ModelSeed("black-forest-labs/FLUX.1-dev",            "FLUX.1 Dev", SupportsImage: true),
-                new ModelSeed("black-forest-labs/FLUX.1-kontext-dev",    "FLUX.1 Kontext Dev", SupportsImage: true),
-                new ModelSeed("black-forest-labs/FLUX.2-dev",            "FLUX.2 Dev", SupportsImage: true),
-                new ModelSeed("black-forest-labs/FLUX.2-max",            "FLUX.2 Max", SupportsImage: true),
-                new ModelSeed("black-forest-labs/FLUX.2-flex",           "FLUX.2 Flex", SupportsImage: true),
-
-                // Stable Diffusion family
                 new ModelSeed("stabilityai/stable-diffusion-xl-base-1.0",        "SDXL Base 1.0 (gratuito)", SupportsImage: true),
-                new ModelSeed("stabilityai/stable-diffusion-xl-refiner-1.0",     "SDXL Refiner", SupportsImage: true),
-                new ModelSeed("runwayml/stable-diffusion-v1-5",                  "Stable Diffusion v1.5 (gratuito)", SupportsImage: true),
                 new ModelSeed("stabilityai/stable-diffusion-3-medium-diffusers", "SD3 Medium (gratuito)", SupportsImage: true),
-                new ModelSeed("stabilityai/stable-diffusion-3.5-large",          "SD 3.5 Large", SupportsImage: true),
-                new ModelSeed("stabilityai/stable-diffusion-3.5-medium",         "SD 3.5 Medium", SupportsImage: true),
-                new ModelSeed("stabilityai/stable-diffusion-3.5-large-turbo",    "SD 3.5 Large Turbo", SupportsImage: true),
 
-                // ByteDance Hyper-SD (very fast)
-                new ModelSeed("ByteDance/Hyper-SD",    "Hyper-SD (gratuito, muito rápido)", SupportsImage: true),
-                new ModelSeed("ByteDance/Hyper-SDXL",  "Hyper-SDXL (gratuito, rápido)", SupportsImage: true),
-
-                // DeepFloyd IF (great for text in images)
-                new ModelSeed("deepfloyd/IF-I-XL-v1.0", "DeepFloyd IF XL", SupportsImage: true),
-                new ModelSeed("deepfloyd/IF",            "DeepFloyd IF (texto em imagens)", SupportsImage: true),
-
-                // Qwen Image (Alibaba)
-                new ModelSeed("Qwen/Qwen-Image",      "Qwen Image", SupportsImage: true),
-                new ModelSeed("Qwen/Qwen-Image-2512", "Qwen Image 2512", SupportsImage: true),
-                new ModelSeed("Qwen/Qwen-Image-Edit", "Qwen Image Edit", SupportsImage: true),
-
-                // Z-Image (Tongyi-MAI / Alibaba)
-                new ModelSeed("Tongyi-MAI/Z-Image",       "Z-Image", SupportsImage: true),
-                new ModelSeed("Tongyi-MAI/Z-Image-Turbo", "Z-Image Turbo", SupportsImage: true),
-                new ModelSeed("Tongyi-MAI/Z-Image-Edit",  "Z-Image Edit", SupportsImage: true),
-
-                // --- Text generation (Serverless Inference API) ---
+                // ── Text generation (Serverless Inference API) ──
                 new ModelSeed("meta-llama/Meta-Llama-3.1-8B-Instruct",  "LLaMA 3.1 8B Instruct (gratuito)"),
                 new ModelSeed("meta-llama/Meta-Llama-3.1-70B-Instruct", "LLaMA 3.1 70B Instruct"),
                 new ModelSeed("Qwen/Qwen2.5-72B-Instruct",              "Qwen 2.5 72B Instruct"),
@@ -152,36 +198,13 @@ public static class AiDataSeeder
                 new ModelSeed("microsoft/Phi-3.5-mini-instruct",        "Phi 3.5 Mini Instruct (gratuito)"),
                 new ModelSeed("google/gemma-2-9b-it",                   "Gemma 2 9B Instruct (gratuito)"),
 
-                // GLM Image (ZhipuAI)
-                new ModelSeed("zai-org/glm-image", "GLM Image (ZhipuAI)", SupportsImage: true),
-                new ModelSeed("THUDM/glm-image",   "GLM Image (THUDM)", SupportsImage: true),
-
-                // Tencent Hunyuan Image
-                new ModelSeed("tencent/Hunyuan-DiT",    "Hunyuan DiT", SupportsImage: true),
-                new ModelSeed("tencent/HunyuanImage-2.1","HunyuanImage 2.1", SupportsImage: true),
-                new ModelSeed("tencent/HunyuanImage-3", "HunyuanImage 3", SupportsImage: true),
-                new ModelSeed("tencent/HunyuanImage",   "HunyuanImage", SupportsImage: true),
-
-                // HiDream Image
-                new ModelSeed("HiDream-ai/HiDream-I1",      "HiDream I1", SupportsImage: true),
-                new ModelSeed("HiDream-ai/HiDream-I1-Fast", "HiDream I1 Fast", SupportsImage: true),
-                new ModelSeed("HiDream-ai/HiDream-I1-Dev",  "HiDream I1 Dev", SupportsImage: true),
-
-                // Video via HF
-                new ModelSeed("stabilityai/stable-video-diffusion-img2vid-xt", "Stable Video Diffusion XT", SupportsVideo: true),
-                new ModelSeed("stabilityai/stable-video-diffusion",            "Stable Video Diffusion", SupportsVideo: true),
-                new ModelSeed("stabilityai/stable-video-diffusion-img2vid",    "Stable Video Diffusion Img2Vid", SupportsVideo: true),
-                new ModelSeed("stabilityai/svd",                               "SVD (Stable Video Diffusion)", SupportsVideo: true),
-                new ModelSeed("THUDM/CogVideoX-5B",                            "CogVideoX 5B", SupportsVideo: true),
-                new ModelSeed("THUDM/CogVideoX-2B",                            "CogVideoX 2B", SupportsVideo: true),
-                new ModelSeed("THUDM/CogVideoX-1.5",                           "CogVideoX 1.5", SupportsVideo: true),
-                new ModelSeed("Lightricks/LTX-Video",                          "LTX-Video (Lightricks)", SupportsVideo: true),
-                new ModelSeed("Wan-AI/Wan2.1-T2V-14B",                         "WAN 2.1 Text-to-Video 14B", SupportsVideo: true),
-                new ModelSeed("Wan-AI/Wan2.1-I2V-14B",                         "WAN 2.1 Image-to-Video 14B", SupportsVideo: true),
-                new ModelSeed("Wan-AI/Wan2.1-T2V-1.3B",                        "WAN 2.1 Text-to-Video 1.3B", SupportsVideo: true),
-                new ModelSeed("VideoCrafter/VideoCrafter2",                     "VideoCrafter 2", SupportsVideo: true),
-                new ModelSeed("VideoCrafter/VideoCrafter1",                     "VideoCrafter 1", SupportsVideo: true),
-                new ModelSeed("THUDM/VideoCrafter2",                            "VideoCrafter 2 (THUDM)", SupportsVideo: true),
+                // ── Video (keep for future availability) ──
+                new ModelSeed("Wan-AI/Wan2.1-T2V-14B",  "WAN 2.1 Text-to-Video 14B", SupportsVideo: true),
+                new ModelSeed("Wan-AI/Wan2.1-I2V-14B",  "WAN 2.1 Image-to-Video 14B", SupportsVideo: true),
+                new ModelSeed("Wan-AI/Wan2.1-T2V-1.3B", "WAN 2.1 Text-to-Video 1.3B", SupportsVideo: true),
+                new ModelSeed("THUDM/CogVideoX-5B",      "CogVideoX 5B", SupportsVideo: true),
+                new ModelSeed("THUDM/CogVideoX-2B",      "CogVideoX 2B", SupportsVideo: true),
+                new ModelSeed("Lightricks/LTX-Video",    "LTX-Video (Lightricks)", SupportsVideo: true),
             }),
 
         new ProviderSeed(
@@ -444,6 +467,25 @@ public static class AiDataSeeder
 
             if (disabledCatalogModels.Count > 0)
                 db.SaveChanges();
+
+            // --- Disable known-broken models (404/410/deprecated) ---
+            if (KnownBrokenModels.TryGetValue(seed.Key, out var brokenKeys))
+            {
+                var toDisable = db.AiModels
+                    .Where(m => m.ProviderId == providerId && m.IsEnabled && brokenKeys.Contains(m.ModelKey))
+                    .ToList();
+
+                foreach (var m in toDisable)
+                {
+                    m.Disable();
+                    logger?.LogInformation(
+                        "[AiDataSeeder] 🚫 Disabled known-broken model: {Key} (provider: {Provider})",
+                        m.ModelKey, seed.Key);
+                }
+
+                if (toDisable.Count > 0)
+                    db.SaveChanges();
+            }
 
             foreach (var modelSeed in seed.Models)
             {
