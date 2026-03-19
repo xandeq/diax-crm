@@ -300,7 +300,7 @@ public static class AiDataSeeder
         new ProviderSeed(
             Key: "runway",
             Name: "Runway ML",
-            BaseUrl: "https://api.runwayml.com/v1",
+            BaseUrl: "https://api.dev.runwayml.com/v1",
             SupportsListModels: false,
             Models: new()
             {

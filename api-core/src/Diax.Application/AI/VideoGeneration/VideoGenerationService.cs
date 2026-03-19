@@ -162,12 +162,15 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                 "VideoGeneration completed. RequestId: {RequestId}. Duration: {Duration}ms",
                 requestId, durationMs);
 
-            // Record quota usage (fire and forget)
+            // Get updated quota status BEFORE fire-and-forget tasks to avoid DbContext concurrency issues
+            var quotaStatus = await _quotaService.GetQuotaStatusAsync(provider.Id);
+
+            // Record quota usage (fire and forget — after sync DB ops are done)
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await _quotaService.RecordGenerationAsync(provider.Id, 1, ct);
+                    await _quotaService.RecordGenerationAsync(provider.Id, 1, CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
@@ -197,9 +200,6 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                     _logger.LogError(ex, "Failed to track video usage for request {RequestId}", requestId);
                 }
             }, CancellationToken.None);
-
-            // Get updated quota status for response
-            var quotaStatus = await _quotaService.GetQuotaStatusAsync(provider.Id);
 
             return new VideoGenerationResponseDto(
                 ProviderUsed: providerKey,
