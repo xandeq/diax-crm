@@ -202,8 +202,10 @@ public class OpenRouterImageClient : IAiImageGenerationClient
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Parse Gemini chat/completions response.
-    /// Gemini image models return images as base64 data URLs in the message content parts.
+    /// Parse Gemini chat/completions response from OpenRouter.
+    /// OpenRouter returns images in two possible locations:
+    ///   1. message.images[] — array of {"type":"image_url","image_url":{"url":"data:image/png;base64,..."}}
+    ///   2. message.content[] — array of multimodal parts with type "image_url"
     /// </summary>
     private static List<ImageGenerationResult> ParseGeminiChatResponse(string responseBody)
     {
@@ -219,11 +221,30 @@ public class OpenRouterImageClient : IAiImageGenerationClient
             if (!choice.TryGetProperty("message", out var message))
                 continue;
 
-            if (!message.TryGetProperty("content", out var content))
-                continue;
+            // Check message.images[] first (OpenRouter's primary image field for Gemini models)
+            if (message.TryGetProperty("images", out var imagesArray) &&
+                imagesArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var imgPart in imagesArray.EnumerateArray())
+                {
+                    var imageUrl = imgPart.TryGetProperty("image_url", out var imgUrlObj)
+                        ? (imgUrlObj.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null)
+                        : null;
 
-            // Content can be a string (text-only) or an array of multimodal parts
-            if (content.ValueKind == JsonValueKind.Array)
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        results.Add(new ImageGenerationResult(
+                            ImageUrl: imageUrl,
+                            IsBase64: imageUrl.StartsWith("data:"),
+                            RevisedPrompt: null,
+                            Seed: null));
+                    }
+                }
+            }
+
+            // Also check message.content[] for array-type multimodal responses
+            if (message.TryGetProperty("content", out var content) &&
+                content.ValueKind == JsonValueKind.Array)
             {
                 foreach (var part in content.EnumerateArray())
                 {

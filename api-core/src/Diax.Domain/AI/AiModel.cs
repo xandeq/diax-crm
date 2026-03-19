@@ -55,6 +55,12 @@ public class AiModel : AuditableEntity
             DisplayName = displayName;
     }
 
+    public void UpdateModelKey(string modelKey)
+    {
+        if (!string.IsNullOrWhiteSpace(modelKey))
+            ModelKey = modelKey;
+    }
+
     public void Enable() => IsEnabled = true;
     public void Disable() => IsEnabled = false;
     public void Activate() => IsActive = true;
@@ -66,7 +72,14 @@ public class AiModel : AuditableEntity
         // OpenAI
         "dall-e-3", "dall-e-2", "gpt-image-1",
 
-        // Google Gemini / Imagen
+        // Google Gemini / Imagen — dedicated image generation models (via generateContent + responseModalities or :predict)
+        "gemini-2.5-flash-image",                       // Gemini 2.5 Flash Image (dedicated image gen)
+        "gemini-3.1-flash-image-preview",               // Gemini 3.1 Flash Image Preview
+        "gemini-3-pro-image-preview",                   // Gemini 3 Pro Image Preview
+        "imagen-4.0-generate-001",                      // Imagen 4.0 (paid plan required)
+        "imagen-4.0-ultra-generate-001",                // Imagen 4.0 Ultra
+        "imagen-4.0-fast-generate-001",                 // Imagen 4.0 Fast
+        // Legacy image gen model names (kept for backward compat)
         "imagen-3.0-generate-002",
         "imagen-3.0-fast-generate-001",
         "gemini-2.0-flash-exp-image-generation",

@@ -70,8 +70,13 @@ public class OpenAiImageClient : IAiImageGenerationClient
             ["prompt"] = prompt,
             ["n"] = options.NumberOfImages,
             ["size"] = $"{options.Width}x{options.Height}",
-            ["response_format"] = "url"
         };
+
+        // gpt-image-1 does NOT support response_format — always returns b64_json
+        // dall-e-3 and dall-e-2 support response_format: "url"
+        var isGptImage1 = options.Model.Equals("gpt-image-1", StringComparison.OrdinalIgnoreCase);
+        if (!isGptImage1)
+            payload["response_format"] = "url";
 
         // dall-e-3: quality (standard/hd), style (vivid/natural)
         // gpt-image-1: quality (low/medium/high/auto), no style param

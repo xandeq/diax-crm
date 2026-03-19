@@ -59,9 +59,12 @@ public class RunwayVideoClient : IAiVideoGenerationClient
         if (options.DurationSeconds.HasValue)
             payload["duration"] = options.DurationSeconds.Value <= 5 ? 5 : 10;
 
-        // Aspect ratio
+        // Aspect ratio — gen4 models REQUIRE a ratio; gen3a_turbo treats it as optional
+        var isGen4 = (options.Model ?? "gen3a_turbo").StartsWith("gen4", StringComparison.OrdinalIgnoreCase);
         if (!string.IsNullOrWhiteSpace(options.AspectRatio))
             payload["ratio"] = options.AspectRatio;
+        else if (isGen4)
+            payload["ratio"] = "1280:720"; // default landscape for gen4 family
 
         var json = JsonSerializer.Serialize(payload);
 

@@ -203,6 +203,10 @@ public class AiProviderAdminService : IAiProviderAdminService
         var capJson = BuildCapabilitiesJson(modelDto.SupportsImage, modelDto.SupportsText, modelDto.SupportsVideo);
         model.UpdateDetails(modelDto.DisplayName, modelDto.InputCostHint, modelDto.OutputCostHint, modelDto.MaxTokensHint, capJson);
 
+        // Allow updating the model key so admins can fix wrong model names without delete+recreate
+        if (!string.IsNullOrWhiteSpace(modelDto.ModelKey))
+            model.UpdateModelKey(modelDto.ModelKey);
+
         if (modelDto.IsEnabled) model.Enable();
         else model.Disable();
 
