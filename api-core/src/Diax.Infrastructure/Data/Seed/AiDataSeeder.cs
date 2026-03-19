@@ -38,16 +38,15 @@ public static class AiDataSeeder
             SupportsListModels: false,
             Models: new()
             {
-                // Valid Gemini chat models that support image generation via :generateContent
-                // (Gemini doesn't have separate image-gen models; all chat models can generate images)
-                new ModelSeed("gemini-2.5-flash",         "Gemini 2.5 Flash", SupportsImage: true),
-                new ModelSeed("gemini-2.0-flash",         "Gemini 2.0 Flash", SupportsImage: true),
-                new ModelSeed("gemini-2.5-pro",           "Gemini 2.5 Pro", SupportsImage: true),
-                new ModelSeed("gemini-2.0-pro",           "Gemini 2.0 Pro", SupportsImage: true),
-                new ModelSeed("gemini-1.5-pro",           "Gemini 1.5 Pro", SupportsImage: true),
-                new ModelSeed("gemini-1.5-flash",         "Gemini 1.5 Flash", SupportsImage: true),
-                new ModelSeed("gemini-3-flash-preview",   "Gemini 3 Flash Preview", SupportsImage: true),
-                new ModelSeed("gemini-3-pro-preview",     "Gemini 3 Pro Preview", SupportsImage: true),
+                // Gemini native image-generation models (use :generateContent + responseModalities)
+                // These are the only models that actually output images — generic chat models do NOT.
+                new ModelSeed("gemini-2.5-flash-image",          "Gemini 2.5 Flash Image (gratuito)", SupportsImage: true),
+                new ModelSeed("gemini-3.1-flash-image-preview",  "Gemini 3.1 Flash Image Preview", SupportsImage: true),
+                new ModelSeed("gemini-3-pro-image-preview",      "Gemini 3 Pro Image Preview", SupportsImage: true),
+                // Imagen 4 family (requires paid tier — Vertex AI billing)
+                new ModelSeed("imagen-4.0-generate-001",         "Imagen 4.0 (pago)", SupportsImage: true),
+                new ModelSeed("imagen-4.0-fast-generate-001",    "Imagen 4.0 Fast (pago)", SupportsImage: true),
+                new ModelSeed("imagen-4.0-ultra-generate-001",   "Imagen 4.0 Ultra (pago)", SupportsImage: true),
             }),
 
         new ProviderSeed(
@@ -221,22 +220,18 @@ public static class AiDataSeeder
             SupportsListModels: true,
             Models: new()
             {
-                // --- Free image models ---
-                new ModelSeed("black-forest-labs/flux-schnell",                       "FLUX Schnell (gratuito)", SupportsImage: true),
-                new ModelSeed("black-forest-labs/flux-1-schnell:free",                "FLUX 1 Schnell Free", SupportsImage: true),
-                new ModelSeed("black-forest-labs/flux-1-dev:free",                    "FLUX 1 Dev (gratuito)", SupportsImage: true),
-                new ModelSeed("stabilityai/stable-diffusion-xl-base-1.0:free",        "SDXL Base (gratuito)", SupportsImage: true),
+                // OpenRouter does NOT have /images/generations — all image generation
+                // goes through /chat/completions with responseModalities.
+                // FLUX/SD/Kontext models were removed from OR catalog.
+                // Only confirmed image-output models as of 2026-03:
 
-                // --- Paid image models ---
-                new ModelSeed("black-forest-labs/flux-1.1-pro",                       "FLUX 1.1 Pro", SupportsImage: true),
-                new ModelSeed("black-forest-labs/flux-dev",                           "FLUX Dev", SupportsImage: true),
-                new ModelSeed("black-forest-labs/flux-kontext-pro",                   "FLUX Kontext Pro", SupportsImage: true),
-                new ModelSeed("stability-ai/stable-diffusion-3.5-large",              "SD 3.5 Large", SupportsImage: true),
-                new ModelSeed("google/gemini-2.5-flash-image",                        "Nano Banana (Gemini 2.5 Flash)", SupportsImage: true),
-                new ModelSeed("google/gemini-3.1-flash-image-preview",                "Nano Banana 2 (Gemini 3.1 Flash)", SupportsImage: true),
-                new ModelSeed("google/gemini-3-pro-image-preview",                    "Nano Banana Pro (Gemini 3 Pro)", SupportsImage: true),
-                new ModelSeed("google/imagen-3",                                      "Google Imagen 3", SupportsImage: true),
-                new ModelSeed("openai/gpt-image-1",                                   "GPT Image 1 (via OpenRouter)", SupportsImage: true),
+                // Google Gemini image models (via /chat/completions)
+                new ModelSeed("google/gemini-2.5-flash-image",                        "Gemini 2.5 Flash Image (OR)", SupportsImage: true),
+                new ModelSeed("google/gemini-3.1-flash-image-preview",                "Gemini 3.1 Flash Image Preview (OR)", SupportsImage: true),
+                new ModelSeed("google/gemini-3-pro-image-preview",                    "Gemini 3 Pro Image Preview (OR)", SupportsImage: true),
+                // OpenAI GPT-5 image models (via /chat/completions)
+                new ModelSeed("openai/gpt-5-image-mini",                              "GPT-5 Image Mini (OR)", SupportsImage: true),
+                new ModelSeed("openai/gpt-5-image",                                   "GPT-5 Image (OR)", SupportsImage: true),
             }),
 
         new ProviderSeed(
@@ -304,9 +299,12 @@ public static class AiDataSeeder
             SupportsListModels: false,
             Models: new()
             {
-                new ModelSeed("gen4_turbo",  "Runway Gen-4 Turbo (Txt/Img-to-Video)", SupportsVideo: true),
-                new ModelSeed("gen4",        "Runway Gen-4 (Txt/Img-to-Video)", SupportsVideo: true),
+                // gen4_turbo: confirmed working — valid ratios: 1280:720, 720:1280, 1104:832, 832:1104, 960:960, 1584:672
+                new ModelSeed("gen4_turbo",  "Runway Gen-4 Turbo (Img-to-Video)", SupportsVideo: true),
+                // gen4.5: confirmed working (HTTP 200)
+                new ModelSeed("gen4.5",      "Runway Gen-4.5 (Img-to-Video)", SupportsVideo: true),
                 new ModelSeed("gen3a_turbo", "Runway Gen-3 Alpha Turbo", SupportsVideo: true),
+                // gen4 was removed — 403 "Model variant gen4 is not available"
             }),
 
         new ProviderSeed(
