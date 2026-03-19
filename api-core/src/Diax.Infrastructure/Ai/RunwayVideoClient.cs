@@ -41,14 +41,18 @@ public class RunwayVideoClient : IAiVideoGenerationClient
         var endpoint = $"{baseUrl}/image_to_video";
 
         // Build request payload per Runway API spec
-        var payload = new Dictionary<string, object?>
+        // Runway always requires promptImage (it's the starting frame for generation).
+        // For text-to-video (no reference image), use a neutral black placeholder URL.
+        const string TextToVideoPlaceholder = "https://placehold.co/1280x720/000000/000000.png";
+        var promptImage = string.IsNullOrWhiteSpace(referenceImageBase64)
+            ? TextToVideoPlaceholder
+            : $"data:image/png;base64,{referenceImageBase64}";
+
+        var payload = new Dictionary<string, object>
         {
             ["promptText"] = prompt ?? "A professional cinematic video",
             ["model"] = options.Model ?? "gen3a_turbo",
-            // promptImage is required by Runway — null triggers text-to-video mode on supported models
-            ["promptImage"] = string.IsNullOrWhiteSpace(referenceImageBase64)
-                ? null
-                : (object)$"data:image/png;base64,{referenceImageBase64}",
+            ["promptImage"] = promptImage,
         };
 
         // Duration (Runway supports 5 or 10 seconds)
