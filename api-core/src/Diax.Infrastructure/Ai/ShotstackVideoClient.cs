@@ -49,7 +49,7 @@ public class ShotstackVideoClient : IAiVideoGenerationClient
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
-        renderRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+        renderRequest.Headers.TryAddWithoutValidation("x-api-key", options.ApiKey);
 
         _logger.LogInformation("[Shotstack] Submitting render: duration={Duration}s",
             options.DurationSeconds ?? 5);
@@ -101,7 +101,7 @@ public class ShotstackVideoClient : IAiVideoGenerationClient
             ct.ThrowIfCancellationRequested();
 
             using var statusReq = new HttpRequestMessage(HttpMethod.Get, statusUrl);
-            statusReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            statusReq.Headers.TryAddWithoutValidation("x-api-key", apiKey);
 
             using var statusRes = await _httpClient.SendAsync(statusReq, ct);
             var statusBody = await statusRes.Content.ReadAsStringAsync(ct);
@@ -164,9 +164,7 @@ public class ShotstackVideoClient : IAiVideoGenerationClient
                         ["asset"] = new Dictionary<string, object>
                         {
                             ["type"] = "text",
-                            ["text"] = prompt ?? "Shotstack Render",
-                            ["style"] = "h1",
-                            ["color"] = "#ffffff"
+                            ["text"] = prompt ?? "Shotstack Render"
                         },
                         ["start"] = 0,
                         ["length"] = options.DurationSeconds ?? 5
@@ -175,19 +173,14 @@ public class ShotstackVideoClient : IAiVideoGenerationClient
             }
         };
 
-        var composition = new Dictionary<string, object>
+        // Shotstack API root level: { timeline: {...}, output: {...} } — no "edit" wrapper
+        return new Dictionary<string, object>
         {
             ["timeline"] = new Dictionary<string, object>
             {
-                ["soundtrack"] = new Dictionary<string, object> { ["volume"] = 0 },
                 ["tracks"] = tracks
             },
             ["output"] = output
-        };
-
-        return new Dictionary<string, object>
-        {
-            ["edit"] = composition
         };
     }
 

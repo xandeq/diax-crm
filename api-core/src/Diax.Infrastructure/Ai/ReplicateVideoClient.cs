@@ -12,6 +12,10 @@ namespace Diax.Infrastructure.Ai;
 /// Uses async polling model: POST prediction → poll status → GET result.
 /// Auth: Authorization: Bearer {api_token}
 /// Docs: https://replicate.com/docs/api/rest
+///
+/// Model routing:
+/// - Slug format "owner/model" → POST /v1/models/{owner}/{name}/predictions with {"input": {...}}
+/// - Version hash (64-char hex) → POST /v1/predictions with {"version": hash, "input": {...}}
 /// </summary>
 public class ReplicateVideoClient : IAiVideoGenerationClient
 {
@@ -38,19 +42,34 @@ public class ReplicateVideoClient : IAiVideoGenerationClient
             throw new InvalidOperationException("API token not configured for Replicate.");
 
         var baseUrl = options.BaseUrl ?? "https://api.replicate.com/v1";
-        var submitEndpoint = $"{baseUrl}/predictions";
+        var modelKey = options.Model ?? "";
 
         // Build input based on model
-        var input = BuildInput(options, prompt, referenceImageBase64);
+        var input = BuildInput(modelKey, options, prompt, referenceImageBase64);
 
-        var payload = new Dictionary<string, object>
+        // Route to correct endpoint based on model format
+        string submitEndpoint;
+        string json;
+
+        var isModelSlug = modelKey.Contains('/') && modelKey.Length < 100;
+        if (isModelSlug)
         {
-            ["version"] = options.Model,
-            ["input"] = input,
-            ["webhook"] = "https://example.com/webhook" // Replicate requires webhook, ignored for sync wait
-        };
-
-        var json = JsonSerializer.Serialize(payload);
+            // New-style: POST /v1/models/{owner}/{name}/predictions
+            submitEndpoint = $"{baseUrl}/models/{modelKey}/predictions";
+            var payload = new Dictionary<string, object> { ["input"] = input };
+            json = JsonSerializer.Serialize(payload);
+        }
+        else
+        {
+            // Old-style: POST /v1/predictions with version hash
+            submitEndpoint = $"{baseUrl}/predictions";
+            var payload = new Dictionary<string, object>
+            {
+                ["version"] = modelKey,
+                ["input"] = input
+            };
+            json = JsonSerializer.Serialize(payload);
+        }
 
         using var submitRequest = new HttpRequestMessage(HttpMethod.Post, submitEndpoint)
         {
@@ -58,7 +77,7 @@ public class ReplicateVideoClient : IAiVideoGenerationClient
         };
         submitRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
 
-        _logger.LogInformation("[Replicate] Submitting prediction: model={Model}", options.Model);
+        _logger.LogInformation("[Replicate] Submitting prediction: model={Model}, endpoint={Endpoint}", modelKey, submitEndpoint);
 
         using var submitResponse = await _httpClient.SendAsync(submitRequest, ct);
         var submitBody = await submitResponse.Content.ReadAsStringAsync(ct);
@@ -75,7 +94,8 @@ public class ReplicateVideoClient : IAiVideoGenerationClient
             }
 
             throw new InvalidOperationException(
-                $"Erro ao submeter predição no Replicate. Status: {(int)submitResponse.StatusCode}");
+                $"Erro ao submeter predição no Replicate. Status: {(int)submitResponse.StatusCode}. " +
+                $"Detalhes: {submitBody[..Math.Min(500, submitBody.Length)]}");
         }
 
         using var submitDoc = JsonDocument.Parse(submitBody);
@@ -146,13 +166,27 @@ public class ReplicateVideoClient : IAiVideoGenerationClient
     }
 
     private Dictionary<string, object> BuildInput(
+        string modelKey,
         VideoGenerationOptions options,
         string? prompt,
         string? referenceImageBase64)
     {
+        var effectivePrompt = prompt ?? "A professional video";
+
+        // Deforum requires animation_prompts format
+        if (modelKey.Contains("deforum", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Dictionary<string, object>
+            {
+                ["animation_prompts"] = $"0: {effectivePrompt}",
+                ["animation_mode"] = "2D",
+                ["max_frames"] = options.DurationSeconds.HasValue ? options.DurationSeconds.Value * 8 : 40
+            };
+        }
+
         var input = new Dictionary<string, object>
         {
-            ["prompt"] = prompt ?? "A professional video"
+            ["prompt"] = effectivePrompt
         };
 
         // Image-to-video (some models accept image input)
@@ -192,7 +226,6 @@ public class ReplicateVideoClient : IAiVideoGenerationClient
         {
             if (output.ValueKind == JsonValueKind.Array)
             {
-                // Array of URLs: pick first video
                 foreach (var item in output.EnumerateArray())
                 {
                     videoUrl = item.ValueKind == JsonValueKind.String
@@ -208,7 +241,6 @@ public class ReplicateVideoClient : IAiVideoGenerationClient
             }
             else if (output.ValueKind == JsonValueKind.Object)
             {
-                // Some models return { "video": "..." }
                 videoUrl = output.TryGetProperty("video", out var v)
                     ? v.GetString()
                     : null;
