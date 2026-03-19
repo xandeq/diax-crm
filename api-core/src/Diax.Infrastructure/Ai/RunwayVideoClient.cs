@@ -95,7 +95,8 @@ public class RunwayVideoClient : IAiVideoGenerationClient
                 submitResponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
                 throw new InvalidOperationException(
-                    "API key inválida ou expirada no Runway. Verifique as credenciais.");
+                    $"API key inválida ou expirada no Runway (HTTP {(int)submitResponse.StatusCode}). " +
+                    $"Body: {submitBody[..Math.Min(200, submitBody.Length)]}");
             }
 
             if (submitResponse.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
