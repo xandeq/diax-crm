@@ -28,6 +28,10 @@ public class AiUsageLog : Entity
     public int? VideoHeight { get; private set; }
     public string? AspectRatio { get; private set; }
 
+    // Error observability — populated on failure
+    public string? ErrorCategory { get; private set; }  // AiErrorCategory constant
+    public int? HttpStatusCode { get; private set; }    // HTTP status from provider response (when available)
+
     // Navigation properties
     public AiProvider Provider { get; private set; } = null!;
     public AiModel Model { get; private set; } = null!;
@@ -51,7 +55,9 @@ public class AiUsageLog : Entity
         string? thumbnailUrl = null,
         int? videoWidth = null,
         int? videoHeight = null,
-        string? aspectRatio = null)
+        string? aspectRatio = null,
+        string? errorCategory = null,
+        int? httpStatusCode = null)
     {
         UserId = userId;
         ProviderId = providerId;
@@ -71,6 +77,8 @@ public class AiUsageLog : Entity
         VideoWidth = videoWidth;
         VideoHeight = videoHeight;
         AspectRatio = aspectRatio;
+        ErrorCategory = errorCategory;
+        HttpStatusCode = httpStatusCode;
     }
 
     public void UpdateTokensAndCost(int? inputTokens, int? outputTokens, decimal? estimatedCost)

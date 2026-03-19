@@ -6,6 +6,7 @@ using Diax.Domain.AI;
 using Diax.Domain.ImageGeneration;
 using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace Diax.Application.AI.ImageGeneration;
 
@@ -220,11 +221,13 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 "ImageGeneration completed. RequestId: {RequestId}. Images: {Count}. Duration: {Duration}ms",
                 requestId, results.Count, durationMs);
 
-            // 10. Track usage (fire and forget)
+            // 10. Record success + track usage (fire and forget)
+            model.RecordSuccess();
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    await _modelRepository.UpdateFailureTrackingAsync(model, CancellationToken.None);
                     await _usageTracking.LogUsageAsync(
                         userId: userId,
                         providerId: provider.Id,
@@ -263,14 +266,26 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         {
             var durationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
 
+            // Categorize the error for structured observability
+            var httpStatus  = AiErrorCategorizationHelper.ExtractHttpStatusCode(ex);
+            var errorCategory = AiErrorCategorizationHelper.Categorize(ex, httpStatus);
+            var sanitizedMsg  = AiErrorCategorizationHelper.SanitizeForLog(ex.Message);
+
+            _logger.LogError(ex,
+                "ImageGeneration failed. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}. " +
+                "ErrorCategory: {ErrorCategory}. HttpStatus: {HttpStatus}. Message: {Message}",
+                requestId, providerKey, request.Model, errorCategory, httpStatus, sanitizedMsg);
+
             project.SetFailed();
             await _projectRepository.UpdateAsync(project, ct);
 
-            // Track failed usage
+            // Record failure on model + track usage (fire and forget)
+            model.RecordFailure(errorCategory, sanitizedMsg);
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    await _modelRepository.UpdateFailureTrackingAsync(model, CancellationToken.None);
                     await _usageTracking.LogUsageAsync(
                         userId: userId,
                         providerId: provider.Id,
@@ -279,7 +294,9 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                         duration: TimeSpan.FromMilliseconds(durationMs),
                         success: false,
                         requestId: requestId,
-                        errorMessage: ex.Message,
+                        errorMessage: sanitizedMsg,
+                        errorCategory: errorCategory,
+                        httpStatusCode: httpStatus,
                         cancellationToken: CancellationToken.None);
                 }
                 catch (Exception trackEx)
@@ -288,7 +305,6 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 }
             }, CancellationToken.None);
 
-            _logger.LogError(ex, "ImageGeneration failed. RequestId: {RequestId}", requestId);
             throw;
         }
     }

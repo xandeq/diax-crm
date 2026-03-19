@@ -29,4 +29,27 @@ public class AiModelRepository : Repository<AiModel>, IAiModelRepository
         return await DbSet
             .FirstOrDefaultAsync(x => x.ProviderId == providerId && x.ModelKey == modelKey, cancellationToken);
     }
+
+    /// <summary>
+    /// Persists only the failure tracking columns for the given model using an efficient UPDATE.
+    /// Avoids updating unrelated fields and prevents accidental overwrite of IsEnabled etc.
+    /// </summary>
+    public async Task UpdateFailureTrackingAsync(AiModel model, CancellationToken cancellationToken = default)
+    {
+        await Context.Database.ExecuteSqlRawAsync(
+            @"UPDATE ai_models
+              SET consecutive_failure_count = {0},
+                  last_failure_at          = {1},
+                  last_success_at          = {2},
+                  last_failure_category    = {3},
+                  last_failure_message     = {4}
+              WHERE id = {5}",
+            model.ConsecutiveFailureCount,
+            (object?)model.LastFailureAt ?? DBNull.Value,
+            (object?)model.LastSuccessAt ?? DBNull.Value,
+            (object?)model.LastFailureCategory ?? DBNull.Value,
+            (object?)model.LastFailureMessage ?? DBNull.Value,
+            model.Id,
+            cancellationToken);
+    }
 }

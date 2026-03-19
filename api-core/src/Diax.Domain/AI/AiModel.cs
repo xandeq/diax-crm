@@ -20,6 +20,15 @@ public class AiModel : AuditableEntity
     public string? MaxResolution { get; private set; } // e.g., "1080p", "4K", "720p"
     public string? SupportedAspectRatios { get; private set; } // Comma-separated: "16:9,9:16,1:1"
 
+    // Failure tracking — updated on every generation attempt (fire-and-forget)
+    // POLICY: IsEnabled is NEVER set automatically. Only admins can disable a model.
+    // These fields track runtime health without touching IsEnabled.
+    public int ConsecutiveFailureCount { get; private set; } = 0;
+    public DateTime? LastFailureAt { get; private set; }
+    public DateTime? LastSuccessAt { get; private set; }
+    public string? LastFailureCategory { get; private set; } // AiErrorCategory constant
+    public string? LastFailureMessage { get; private set; } // Sanitized short summary
+
     // Navigation property
     public AiProvider Provider { get; private set; }
 
@@ -65,6 +74,43 @@ public class AiModel : AuditableEntity
     public void Disable() => IsEnabled = false;
     public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
+
+    /// <summary>
+    /// Records a successful generation. Resets consecutive failure counter.
+    /// Call this fire-and-forget after a successful generation response.
+    /// </summary>
+    public void RecordSuccess()
+    {
+        ConsecutiveFailureCount = 0;
+        LastSuccessAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Records a failed generation attempt. Increments consecutive failure counter.
+    /// Does NOT disable the model — that is an explicit admin action only.
+    /// </summary>
+    /// <param name="category">AiErrorCategory constant describing the failure type.</param>
+    /// <param name="sanitizedMessage">Short sanitized message (no secrets) for diagnosis.</param>
+    public void RecordFailure(string category, string? sanitizedMessage = null)
+    {
+        ConsecutiveFailureCount++;
+        LastFailureAt = DateTime.UtcNow;
+        LastFailureCategory = category;
+        LastFailureMessage = sanitizedMessage?.Length > 500
+            ? sanitizedMessage[..500]
+            : sanitizedMessage;
+    }
+
+    /// <summary>
+    /// Derives the current availability status based on failure tracking fields.
+    /// This is a read-only computation — it does not change any state.
+    /// </summary>
+    public string ComputeAvailabilityStatus() =>
+        AiErrorCategory.ComputeAvailabilityStatus(
+            ConsecutiveFailureCount,
+            LastFailureCategory,
+            LastSuccessAt,
+            LastFailureAt);
 
     // Well-known image generation model keys (fallback when CapabilitiesJson is not configured)
     private static readonly HashSet<string> KnownImageModelKeys = new(StringComparer.OrdinalIgnoreCase)

@@ -1,5 +1,18 @@
 import { ApiError, apiFetch, getAccessToken } from './api';
 
+/**
+ * Availability status computed by the backend from failure tracking.
+ * IsEnabled is a separate flag (admin-only). This status is runtime health info only.
+ * Models are ALWAYS shown — availability status drives badges, not visibility.
+ */
+export type ModelAvailabilityStatus =
+  | 'Available'
+  | 'Degraded'
+  | 'Unavailable'
+  | 'NoCredits'
+  | 'RateLimited'
+  | 'ConfigError';
+
 export interface AiModel {
   id: string;
   modelKey: string;
@@ -12,6 +25,11 @@ export interface AiModel {
   supportsImage: boolean;
   supportsText: boolean;
   supportsVideo: boolean;
+  availabilityStatus: ModelAvailabilityStatus;
+  consecutiveFailureCount: number;
+  lastFailureAt?: string;
+  lastSuccessAt?: string;
+  lastFailureCategory?: string;
 }
 
 export interface AiProvider {

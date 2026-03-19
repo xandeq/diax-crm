@@ -347,6 +347,13 @@ public static class AiDataSeeder
 
         int addedProviders = 0, addedModels = 0, grantedProviderAccess = 0, grantedModelAccess = 0;
 
+        // Build full set of catalog model keys per provider key (for re-enable pass)
+        var catalogModelKeysByProviderKey = KnownProviders.ToDictionary(
+            p => p.Key,
+            p => p.Models.Select(m => m.Key).ToHashSet(StringComparer.OrdinalIgnoreCase));
+
+        int reEnabledModels = 0, reEnabledProviders = 0;
+
         foreach (var seed in KnownProviders)
         {
             // --- Upsert provider ---
@@ -370,15 +377,24 @@ public static class AiDataSeeder
             else
             {
                 providerId = existingProvider.Id;
-                // Update IsVideoProvider flag on existing provider if needed
-                if (hasVideoModels)
+                // Re-enable provider if it was disabled (catalog providers are always valid)
+                var existingEntity = db.AiProviders.Find(providerId);
+                if (existingEntity != null)
                 {
-                    var existingEntity = db.AiProviders.Find(providerId);
-                    if (existingEntity != null && !existingEntity.IsVideoProvider)
+                    var changed = false;
+                    if (!existingEntity.IsEnabled)
+                    {
+                        existingEntity.Enable();
+                        reEnabledProviders++;
+                        logger?.LogInformation("[AiDataSeeder] 🔁 Re-enabled provider: {Key}", seed.Key);
+                        changed = true;
+                    }
+                    if (hasVideoModels && !existingEntity.IsVideoProvider)
                     {
                         existingEntity.SetVideoProvider(true);
-                        db.SaveChanges();
+                        changed = true;
                     }
+                    if (changed) db.SaveChanges();
                 }
             }
 
@@ -390,9 +406,46 @@ public static class AiDataSeeder
                 grantedProviderAccess++;
             }
 
-            // --- Batch-add all new models (no SaveChanges per model) ---
+            // --- Batch-add new models + re-enable disabled catalog models ---
             var knownKeys = existingModelKeysByProvider.GetValueOrDefault(providerId) ?? new HashSet<string>();
+            var catalogKeysForProvider = catalogModelKeysByProviderKey.GetValueOrDefault(seed.Key) ?? new HashSet<string>();
             var newModels = new List<AiModel>();
+
+            // Re-enable existing models that are in the catalog but currently disabled
+            var disabledCatalogModels = db.AiModels
+                .Where(m => m.ProviderId == providerId && !m.IsEnabled && catalogKeysForProvider.Contains(m.ModelKey))
+                .ToList();
+
+            foreach (var disabledModel in disabledCatalogModels)
+            {
+                var seedEntry = seed.Models.FirstOrDefault(ms =>
+                    ms.Key.Equals(disabledModel.ModelKey, StringComparison.OrdinalIgnoreCase));
+                if (seedEntry == null) continue;
+
+                disabledModel.Enable();
+
+                // Restore capabilities if cleared
+                if (string.IsNullOrEmpty(disabledModel.CapabilitiesJson) &&
+                    (seedEntry.SupportsImage || seedEntry.SupportsVideo))
+                {
+                    var capabilities = new
+                    {
+                        supportsImage = seedEntry.SupportsImage,
+                        supportsVideo = seedEntry.SupportsVideo,
+                        supportsText = true
+                    };
+                    disabledModel.UpdateDetails(disabledModel.DisplayName, null, null, null,
+                        JsonSerializer.Serialize(capabilities));
+                }
+
+                reEnabledModels++;
+                logger?.LogInformation(
+                    "[AiDataSeeder] 🔁 Re-enabled catalog model: {Key} (provider: {Provider})",
+                    disabledModel.ModelKey, seed.Key);
+            }
+
+            if (disabledCatalogModels.Count > 0)
+                db.SaveChanges();
 
             foreach (var modelSeed in seed.Models)
             {
@@ -488,8 +541,9 @@ public static class AiDataSeeder
 
         logger?.LogInformation(
             "[AiDataSeeder] Done. Added {Providers} providers, {Models} models. " +
+            "Re-enabled {RP} providers, {RM} models. " +
             "Granted {PA} provider accesses, {MA} model accesses to admin group.",
-            addedProviders, addedModels, grantedProviderAccess, grantedModelAccess);
+            addedProviders, addedModels, reEnabledProviders, reEnabledModels, grantedProviderAccess, grantedModelAccess);
     }
 
     private record ProviderSeed(string Key, string Name, string? BaseUrl, bool SupportsListModels, List<ModelSeed> Models);

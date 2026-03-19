@@ -236,7 +236,12 @@ public class AiCatalogService : IAiCatalogService
             model.MaxTokensHint,
             model.SupportsImageGeneration(),
             model.SupportsTextGeneration(),
-            model.SupportsVideoGeneration()
+            model.SupportsVideoGeneration(),
+            model.ComputeAvailabilityStatus(),
+            model.ConsecutiveFailureCount,
+            model.LastFailureAt,
+            model.LastSuccessAt,
+            model.LastFailureCategory
         );
     }
 }

@@ -19,6 +19,8 @@ public interface IAiUsageTrackingService
         int? inputTokens = null,
         int? outputTokens = null,
         string? errorMessage = null,
+        string? errorCategory = null,
+        int? httpStatusCode = null,
         CancellationToken cancellationToken = default);
 }
 
@@ -46,17 +48,16 @@ public class AiUsageTrackingService : IAiUsageTrackingService
         int? inputTokens = null,
         int? outputTokens = null,
         string? errorMessage = null,
+        string? errorCategory = null,
+        int? httpStatusCode = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            // Calculate estimated cost (simplified - can be enhanced with provider-specific pricing)
             decimal? estimatedCost = null;
             if (inputTokens.HasValue && outputTokens.HasValue)
             {
-                // Example pricing (should come from provider configuration)
-                // GPT-4: $0.03/1K input, $0.06/1K output
-                var inputCost = (inputTokens.Value / 1000m) * 0.03m;
+                var inputCost  = (inputTokens.Value  / 1000m) * 0.03m;
                 var outputCost = (outputTokens.Value / 1000m) * 0.06m;
                 estimatedCost = inputCost + outputCost;
             }
@@ -72,24 +73,23 @@ public class AiUsageTrackingService : IAiUsageTrackingService
                 inputTokens: inputTokens,
                 outputTokens: outputTokens,
                 estimatedCost: estimatedCost,
-                errorMessage: errorMessage
+                errorMessage: errorMessage,
+                errorCategory: errorCategory,
+                httpStatusCode: httpStatusCode
             );
 
             await _repository.CreateAsync(log, cancellationToken);
 
             _logger.LogInformation(
-                "AI usage logged: User={UserId}, Provider={ProviderId}, Model={ModelId}, Feature={FeatureType}, Tokens={Tokens}, Cost={Cost:C}",
-                userId,
-                providerId,
-                modelId,
-                featureType,
-                (inputTokens ?? 0) + (outputTokens ?? 0),
-                estimatedCost
-            );
+                "AI usage logged: User={UserId}, Provider={ProviderId}, Model={ModelId}, " +
+                "Feature={FeatureType}, Success={Success}, Category={ErrorCategory}, Tokens={Tokens}",
+                userId, providerId, modelId, featureType, success,
+                errorCategory ?? "—",
+                (inputTokens ?? 0) + (outputTokens ?? 0));
         }
         catch (Exception ex)
         {
-            // Don't fail the request if logging fails
+            // Never fail the request because of a logging error
             _logger.LogError(ex, "Failed to log AI usage for request {RequestId}", requestId);
         }
     }

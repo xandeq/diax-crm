@@ -7,6 +7,7 @@ using Diax.Domain.AI;
 using Diax.Shared;
 using Diax.Shared.Ai;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace Diax.Application.AI.VideoGeneration;
 
@@ -178,11 +179,13 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                 }
             }, CancellationToken.None);
 
-            // Track usage (fire and forget)
+            // Record success + track usage (fire and forget)
+            model.RecordSuccess();
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    await _modelRepository.UpdateFailureTrackingAsync(model, CancellationToken.None);
                     await _usageTracking.LogUsageAsync(
                         userId: userId,
                         providerId: provider.Id,
@@ -215,10 +218,23 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
         {
             var durationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
 
+            // Categorize the error for structured observability
+            var httpStatus    = AiErrorCategorizationHelper.ExtractHttpStatusCode(ex);
+            var errorCategory = AiErrorCategorizationHelper.Categorize(ex, httpStatus);
+            var sanitizedMsg  = AiErrorCategorizationHelper.SanitizeForLog(ex.Message);
+
+            _logger.LogError(ex,
+                "VideoGeneration failed. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}. " +
+                "ErrorCategory: {ErrorCategory}. HttpStatus: {HttpStatus}. Message: {Message}",
+                requestId, providerKey, request.Model, errorCategory, httpStatus, sanitizedMsg);
+
+            // Record failure on model + track usage (fire and forget)
+            model.RecordFailure(errorCategory, sanitizedMsg);
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    await _modelRepository.UpdateFailureTrackingAsync(model, CancellationToken.None);
                     await _usageTracking.LogUsageAsync(
                         userId: userId,
                         providerId: provider.Id,
@@ -227,7 +243,9 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                         duration: TimeSpan.FromMilliseconds(durationMs),
                         success: false,
                         requestId: requestId,
-                        errorMessage: ex.Message,
+                        errorMessage: sanitizedMsg,
+                        errorCategory: errorCategory,
+                        httpStatusCode: httpStatus,
                         cancellationToken: CancellationToken.None);
                 }
                 catch (Exception trackEx)
@@ -236,7 +254,6 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                 }
             }, CancellationToken.None);
 
-            _logger.LogError(ex, "VideoGeneration failed. RequestId: {RequestId}", requestId);
             throw;
         }
     }

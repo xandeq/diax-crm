@@ -50,7 +50,12 @@ public class AiProviderManagementService : IAiProviderManagementService
                 m.MaxTokensHint,
                 m.SupportsImageGeneration(),
                 m.SupportsTextGeneration(),
-                m.SupportsVideoGeneration()
+                m.SupportsVideoGeneration(),
+                m.ComputeAvailabilityStatus(),
+                m.ConsecutiveFailureCount,
+                m.LastFailureAt,
+                m.LastSuccessAt,
+                m.LastFailureCategory
             )).OrderBy(m => m.DisplayName).ToList()
         )).OrderBy(p => p.Name).ToList();
 
