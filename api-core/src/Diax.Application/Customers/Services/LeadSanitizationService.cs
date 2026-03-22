@@ -15,28 +15,23 @@ public class LeadSanitizationService : ILeadSanitizationService
         "hello", "jobs", "press", "billing"
     };
 
-    // Palavras promocionais para limpeza de nome (Case Insensitive)
     private static readonly HashSet<string> PromotionalKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Compre Agora", "Frete Grátis", "Arrase no Verão", "Desconto", "Promoção", "Promo", "Oferta",
-        "Peça Já", "Entrega Rápida", "Mais Vendido", "Clique Aqui"
+        "Compre Agora", "Frete GrÃ¡tis", "Arrase no VerÃ£o", "Desconto", "PromoÃ§Ã£o", "Promo", "Oferta",
+        "PeÃ§a JÃ¡", "Entrega RÃ¡pida", "Mais Vendido", "Clique Aqui"
     };
 
-    // Domínios conhecidos por serem temporários ou spam/lixo
     private static readonly HashSet<string> SuspiciousDomains = new(StringComparer.OrdinalIgnoreCase)
     {
         "mailinator.com", "10minutemail.com", "tempmail.com", "yopmail.com", "guerrillamail.com",
         "temp-mail.org", "throwawaymail.com", "fakeinbox.com", "dropmail.me", "fakemail.net", "getnada.com"
     };
 
-    // Sufixos muito estranhos ou não comerciais comuns.
     private static readonly HashSet<string> SuspiciousDomainSuffixes = new(StringComparer.OrdinalIgnoreCase)
     {
         ".xyz", ".top", ".club", ".space", ".online", ".site", ".ru", ".tk"
     };
 
-    // TLDs de países estrangeiros — leads com esses domínios não servem para marketing BR.
-    // Mantemos como válidos: .com, .net, .org, .io, .com.br, .br, .pt (Portugal, mesmo idioma), .us
     private static readonly HashSet<string> ForeignCountryTLDs = new(StringComparer.OrdinalIgnoreCase)
     {
         ".es", ".de", ".co", ".ar", ".mx", ".cl", ".pe", ".it", ".fr", ".uk",
@@ -47,81 +42,74 @@ public class LeadSanitizationService : ILeadSanitizationService
         ".sa", ".ph", ".th", ".vn", ".id", ".my", ".sg", ".tw", ".hk"
     };
 
-    // Palavras-chave que indicam diretórios, páginas genéricas ou plataformas/portais conhecidos
     private static readonly HashSet<string> GenericCompanyKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
-        // Diretórios e páginas genéricas
-        "Linktree", "404", "Not Found", "GuiaMais", "Telelistas", "Home", "Página Inicial", "Diretório", "Busca", "Erro 404",
+        "Linktree", "404", "Not Found", "GuiaMais", "Telelistas", "Home", "PÃ¡gina Inicial", "DiretÃ³rio", "Busca", "Erro 404",
         "Default", "Sem Nome", "Site", "Contato",
-        // Redes sociais
         "Instagram", "Facebook", "LinkedIn", "Twitter", "TikTok", "YouTube", "Google", "WhatsApp", "Telegram", "Pinterest", "Reddit",
-        // Portais e plataformas brasileiras
         "Jusbrasil", "Reclame Aqui", "Mercado Livre", "OLX", "iFood", "Shopee", "Magazine Luiza", "Magalu",
-        "Americanas", "Casas Bahia", "Submarino", "Buscapé", "Bondfaro", "Zoom", "PagSeguro", "PicPay",
-        "GetNinjas", "Habitissimo", "Elo7", "Enjoei", "QuintoAndar", "Viva Real", "Zap Imóveis",
+        "Americanas", "Casas Bahia", "Submarino", "BuscapÃ©", "Bondfaro", "Zoom", "PagSeguro", "PicPay",
+        "GetNinjas", "Habitissimo", "Elo7", "Enjoei", "QuintoAndar", "Viva Real", "Zap ImÃ³veis",
         "iCarros", "WebMotors", "Catho", "Infojobs", "Doctoralia", "Glassdoor", "Indeed",
-        // Plataformas internacionais
         "Amazon", "AliExpress", "Wish", "Yelp", "TripAdvisor", "Booking", "Trivago",
         "Wikipedia", "WikiHow", "Stack Overflow", "Github", "ZocDoc"
     };
 
-    // Regex mais severo (rejeita espaços, obriga TLD válido simples com ao menos 2 letras)
     private static readonly Regex EmailRegex = new(
         @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    // Regex para detectar frases de busca do Google Maps: "[Categoria] Em/No/Na [Cidade]"
     private static readonly Regex SearchPhraseEnding = new(
-        @"\s+(em|no|na|nos|nas|de|do|da|dos|das|para)\s+[A-ZÀ-Ú][a-zà-ú]+(\s+[A-ZÀ-Ú][a-zà-ú]+)*\s*$",
+        @"\s+(em|no|na|nos|nas|de|do|da|dos|das|para)\s+[A-ZÃ€-Ãš][a-zÃ -Ãº]+(\s+[A-ZÃ€-Ãš][a-zÃ -Ãº]+)*\s*$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    // Palavras que indicam categorias de busca (plurais comuns de estabelecimentos)
     private static readonly HashSet<string> SearchCategoryWords = new(StringComparer.OrdinalIgnoreCase)
     {
-        "hospitais", "clínicas", "clinicas", "restaurantes", "hotéis", "hoteis", "lojas", "escritórios", "escritorios",
-        "farmácias", "farmacias", "escolas", "academias", "consultórios", "consultorios", "laboratórios", "laboratorios",
+        "hospitais", "clÃ­nicas", "clinicas", "restaurantes", "hotÃ©is", "hoteis", "lojas", "escritÃ³rios", "escritorios",
+        "farmÃ¡cias", "farmacias", "escolas", "academias", "consultÃ³rios", "consultorios", "laboratÃ³rios", "laboratorios",
         "mercados", "supermercados", "padarias", "bares", "lanchonetes", "pizzarias", "postos", "oficinas",
-        "dentistas", "médicos", "medicos", "advogados", "contadores", "engenheiros", "veterinários", "veterinarios",
-        "imobiliárias", "imobiliarias", "construtoras", "transportadoras", "distribuidoras", "fábricas", "fabricas",
-        "empresas", "serviços", "servicos", "profissionais", "especialistas", "fornecedores", "clínica", "clinica"
+        "dentistas", "mÃ©dicos", "medicos", "advogados", "contadores", "engenheiros", "veterinÃ¡rios", "veterinarios",
+        "imobiliÃ¡rias", "imobiliarias", "construtoras", "transportadoras", "distribuidoras", "fÃ¡bricas", "fabricas",
+        "empresas", "serviÃ§os", "servicos", "profissionais", "especialistas", "fornecedores", "clÃ­nica", "clinica"
     };
 
     public SanitizedLeadResult SanitizeAndClassify(RawLeadData rawData)
     {
         var result = new SanitizedLeadResult();
 
-        // Regra Especial de Diretório: Se o Nome ou Nome da Empresa batem exatamente ou continerem os termos genéricos ANTES da Limpeza Severa.
+        var cleanName = SanitizeText(rawData.Name);
+        var cleanCompany = SanitizeText(rawData.CompanyName);
+        var cleanNotes = SanitizeText(rawData.Notes, isMultiline: true);
+        var cleanPhone = CleanPhone(rawData.Phone);
+        var cleanWhatsApp = CleanPhone(rawData.WhatsApp);
+
+        var resolvedBusinessName = ResolveBusinessName(cleanCompany, cleanName);
+        var businessCandidates = new[] { cleanCompany, cleanName }
+            .Where(static value => !string.IsNullOrWhiteSpace(value))
+            .ToArray();
+
         bool isDirectoryOrGeneric = false;
-        var checkName = rawData.CompanyName ?? rawData.Name;
-        if (!string.IsNullOrWhiteSpace(checkName))
+        if (!string.IsNullOrWhiteSpace(resolvedBusinessName))
         {
-            if (GenericCompanyKeywords.Any(k => checkName.Contains(k, StringComparison.OrdinalIgnoreCase)))
+            cleanName = resolvedBusinessName;
+            if (string.IsNullOrWhiteSpace(cleanCompany))
             {
-                isDirectoryOrGeneric = true;
-                result.ShouldReject = true; // Por enquanto podemos apenas sinalizar o Reject. O CustomerService vai decidir o que fazer no batch.
-                                            // Se no CreateManual cair aqui, rejeita direto.
-                result.RejectionReason = "Lead originates from a Generic Directory/Profile (e.g., Linktree, GuiaMais) rather than real business context.";
+                cleanCompany = resolvedBusinessName;
             }
         }
-
-        // Regra de Frase de Busca: Detecta nomes que são queries do Google Maps, não nomes de empresa.
-        // Ex: "Hospitais E Clínicas Em Viana", "Restaurantes Em São Paulo"
-        if (!isDirectoryOrGeneric && !string.IsNullOrWhiteSpace(rawData.Name) && IsSearchPhrase(rawData.Name))
+        else if (businessCandidates.Any(LooksLikeDirectoryOrGenericProfile))
+        {
+            isDirectoryOrGeneric = true;
+            result.ShouldReject = true;
+            result.RejectionReason = "Lead originates from a Generic Directory/Profile (e.g., Linktree, GuiaMais) rather than real business context.";
+        }
+        else if (businessCandidates.Any(IsSearchPhrase))
         {
             isDirectoryOrGeneric = true;
             result.ShouldReject = true;
             result.RejectionReason = "Name appears to be a search phrase, not a business name.";
         }
 
-        // 1. Correção e Normalização Textual
-        var cleanName = SanitizeText(rawData.Name);
-        var cleanCompany = SanitizeText(rawData.CompanyName);
-        var cleanNotes = SanitizeText(rawData.Notes, isMultiline: true); // Não passa TitleCase nas Notas
-        var cleanPhone = CleanPhone(rawData.Phone);
-        var cleanWhatsApp = CleanPhone(rawData.WhatsApp);
-
-        // Se após a sanitização ficar sem nome... vamos retornar reject e tentar contornar?
-        // Normalmente não deve ocorrer rejeição nesse nível, mas deixamos preparado.
         if (string.IsNullOrWhiteSpace(cleanName) && !isDirectoryOrGeneric)
         {
             result.ShouldReject = true;
@@ -135,12 +123,10 @@ public class LeadSanitizationService : ILeadSanitizationService
         result.Phone = cleanPhone;
         result.WhatsApp = cleanWhatsApp;
 
-        // 2. Validação Rigorosa do E-mail
         if (!string.IsNullOrWhiteSpace(rawData.Email))
         {
             var cleanedEmail = rawData.Email.Trim().ToLowerInvariant();
 
-            // Punição: Se o email tiver lixo concatenado por scraping mal feito (ex: contato@empresa.com.br?subject=xxx ou & ou " ou ' ou espaços brutais).
             var garbageChars = new[] { '?', '&', '"', '\'', '\\', '/', '=', '(', ')' };
             int garbageIndex = cleanedEmail.IndexOfAny(garbageChars);
             if (garbageIndex > 0)
@@ -159,16 +145,12 @@ public class LeadSanitizationService : ILeadSanitizationService
                 var prefix = parts[0];
                 var domain = parts[1];
 
-                // 3. Detecção de Domínio Suspeito (temporários, exóticos e países estrangeiros)
                 bool isSuspiciousDomain = SuspiciousDomains.Contains(domain) ||
                                           SuspiciousDomainSuffixes.Any(ext => domain.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
 
-                // 3b. Detecção de domínio de país estrangeiro (inútil para marketing BR).
-                // Ignora domínios compostos como .com.br, .co.uk, etc. — checa apenas o TLD final.
                 if (!isSuspiciousDomain)
                 {
                     var tld = "." + domain.Split('.').Last();
-                    // Não rejeitar se for parte de um domínio composto (.com.br, .co.uk)
                     bool isCompositeDomain = domain.Contains(".com.") || domain.Contains(".co.") ||
                                              domain.Contains(".org.") || domain.Contains(".net.") ||
                                              domain.Contains(".gov.") || domain.Contains(".edu.");
@@ -181,7 +163,6 @@ public class LeadSanitizationService : ILeadSanitizationService
                 if (isSuspiciousDomain)
                 {
                     result.HasSuspiciousDomain = true;
-                    // Se for bizarro demais, derrubamos.
                     result.IsEmailValid = false;
                     result.Email = null;
                 }
@@ -189,16 +170,9 @@ public class LeadSanitizationService : ILeadSanitizationService
                 {
                     result.Email = cleanedEmail;
                     result.IsEmailValid = true;
-
-                    // 4. Classificação de Generic Emails
-                    if (GenericEmailPrefixes.Contains(prefix))
-                    {
-                        result.EmailType = EmailType.GenericCorporate;
-                    }
-                    else
-                    {
-                        result.EmailType = EmailType.PersonalDirect;
-                    }
+                    result.EmailType = GenericEmailPrefixes.Contains(prefix)
+                        ? EmailType.GenericCorporate
+                        : EmailType.PersonalDirect;
                 }
             }
             else
@@ -208,7 +182,6 @@ public class LeadSanitizationService : ILeadSanitizationService
             }
         }
 
-        // Regra de Ouro 8 e 9: Se NÃO tiver e-mail E NÃO tiver telefone válido, rejeita.
         if (!result.IsEmailValid && string.IsNullOrWhiteSpace(result.Phone) && string.IsNullOrWhiteSpace(result.WhatsApp))
         {
             result.ShouldReject = true;
@@ -216,7 +189,6 @@ public class LeadSanitizationService : ILeadSanitizationService
             return result;
         }
 
-        // 5. Determinação da Qualidade Rígida
         int score = 0;
 
         if (result.IsEmailValid && result.EmailType == EmailType.PersonalDirect) score += 4;
@@ -231,7 +203,6 @@ public class LeadSanitizationService : ILeadSanitizationService
         else if (score >= 4) result.Quality = LeadQuality.Medium;
         else result.Quality = LeadQuality.Low;
 
-        // 6. Elegibilidade para Campanhas
         result.IsEligibleForCampaigns =
             result.IsEmailValid &&
             !result.HasSuspiciousDomain &&
@@ -241,67 +212,46 @@ public class LeadSanitizationService : ILeadSanitizationService
         return result;
     }
 
-    /// <summary>
-    /// Limpa e aplica Title Case numa String para corrigir Caps Locks indesejados e decodes zoados.
-    /// Em seguida normaliza, remove spam promocional, trunca e limpa a string final.
-    /// </summary>
     private static string SanitizeText(string? input, bool isMultiline = false)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
 
-        // Limpa espaços no inicio e fim e substitui múltiplos espaços internos
         var clean = Regex.Replace(input.Trim(), @"\s+", " ");
-
-        // Corrige encodings rasgados comuns da internet ex: UTF8 lido como ISO que virou ISO salvo de forma errada
-        // Executado DEPOIS do Trim/Regex initial para que não tentemos varrer lixo muito profundo.
         clean = FixBrokenEncoding(clean);
 
-        // Se for um bloco multiline, preserva o tamanho e não faz uppercase forçado nem sanitização de nome pesado.
         if (isMultiline)
         {
             return clean;
         }
 
-        // Reduz capitalização abusiva: se 80% do texto está em MAIÚSCULO, a gente abaixa para o titlecase funcionar.
-        // O TitleCase do .NET não funciona em frases TODA MAIUSCULAS.
         var upperCount = clean.Count(char.IsUpper);
         if (clean.Length > 0 && ((double)upperCount / clean.Length) > 0.4)
         {
-             clean = clean.ToLowerInvariant();
+            clean = clean.ToLowerInvariant();
         }
 
-        // Aplica e limpa sujeiras de SEO e slogans (Ex: "Loja de Biquinis - Compre e Arrase")
         clean = NormalizeName(clean);
 
-        // Finalmente, TitleCase para ficar bonito
         var textInfo = CultureInfo.CurrentCulture.TextInfo;
         clean = textInfo.ToTitleCase(clean);
 
         return clean;
     }
 
-    /// <summary>
-    /// Aplica as regras 2, 3, 4 e 5: Retira pontuações promocionais, slogans de SEO longos e desduplica palavras.
-    /// </summary>
     private static string NormalizeName(string input)
     {
-        // Regra 3 e 4: Corta qualquer coisa depois de sentenças promocionais ou separadores abusivos.
-        // "Loja de Roupa. Compre agora!" -> "Loja de Roupa"
-        // "Minha Loja - As Melhores Roupas" -> "Minha Loja"
         var sentenceSeparators = new[] { '.', '-', '|', '!', '?' };
         var firstSeparatorIndex = input.IndexOfAny(sentenceSeparators);
 
         if (firstSeparatorIndex > 0)
         {
-            // Verificamos se era apenas uma frase normal (sem ser uma sigla como "Dr.")
             var preSeparator = input.Substring(0, firstSeparatorIndex).Trim();
             if (preSeparator.Length > 2)
             {
-               input = preSeparator;
+                input = preSeparator;
             }
         }
 
-        // Filtro limpa-frases promocionais no meio
         foreach (var keyword in PromotionalKeywords)
         {
             if (input.Contains(keyword, StringComparison.OrdinalIgnoreCase))
@@ -310,22 +260,19 @@ public class LeadSanitizationService : ILeadSanitizationService
             }
         }
 
-        // Regra de Duplicação de Palavras (Ex: "Loja Teste Maria Loja Teste" -> "Loja Teste Maria")
         var words = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var uniqueWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var filteredWords = new List<string>();
 
         foreach (var word in words)
         {
-            // Palavras muito curtas (de, e, da) repetidas são permitidas, substantivos não.
             if (word.Length <= 3 || uniqueWords.Add(word))
             {
                 filteredWords.Add(word);
             }
         }
-        var noDuplicates = string.Join(" ", filteredWords);
 
-        // Regra 5: Limitar strings ridiculamente longas (Descrições injetadas no nome)
+        var noDuplicates = string.Join(" ", filteredWords);
         if (noDuplicates.Length > 80)
         {
             noDuplicates = noDuplicates.Substring(0, 80).Trim();
@@ -334,36 +281,106 @@ public class LeadSanitizationService : ILeadSanitizationService
         return noDuplicates;
     }
 
-    /// <summary>
-    /// Tenta consertar caracteres de encoding corrompidos e casos Mojibake do scraping ("EscritRio")
-    /// </summary>
+    private static string? ResolveBusinessName(params string?[] candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                continue;
+            }
+
+            if (LooksLikeDirectoryOrGenericProfile(candidate) || IsSearchPhrase(candidate))
+            {
+                continue;
+            }
+
+            return candidate;
+        }
+
+        return null;
+    }
+
+    private static bool LooksLikeDirectoryOrGenericProfile(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return false;
+        }
+
+        var normalizedInput = NormalizeForComparison(input);
+        if (string.IsNullOrWhiteSpace(normalizedInput))
+        {
+            return false;
+        }
+
+        foreach (var keyword in GenericCompanyKeywords)
+        {
+            var normalizedKeyword = NormalizeForComparison(keyword);
+            if (normalizedInput == normalizedKeyword)
+            {
+                return true;
+            }
+
+            if (normalizedInput.StartsWith(normalizedKeyword + " ", StringComparison.Ordinal) ||
+                normalizedInput.StartsWith(normalizedKeyword + "-", StringComparison.Ordinal) ||
+                normalizedInput.StartsWith(normalizedKeyword + "|", StringComparison.Ordinal) ||
+                normalizedInput.StartsWith(normalizedKeyword + ":", StringComparison.Ordinal) ||
+                normalizedInput.EndsWith(" " + normalizedKeyword, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string NormalizeForComparison(string input)
+    {
+        var normalized = input.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(normalized.Length);
+
+        foreach (var ch in normalized)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (category == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            if (char.IsLetterOrDigit(ch) || char.IsWhiteSpace(ch) || ch is '-' or '|' or ':')
+            {
+                sb.Append(char.ToLowerInvariant(ch));
+            }
+        }
+
+        return Regex.Replace(sb.ToString(), @"\s+", " ").Trim();
+    }
+
     private static string FixBrokenEncoding(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return input;
 
-        // Pass 0: Remove o caractere de substituição Unicode (U+FFFD "�") que indica encoding corrompido
         input = input.Replace("\uFFFD", "");
-
-        // Limpa espaços duplos gerados pela remoção do U+FFFD
         input = Regex.Replace(input, @"\s{2,}", " ").Trim();
 
         if (string.IsNullOrWhiteSpace(input)) return input;
 
         var replacements = new Dictionary<string, string>
         {
-            { "Ã¡", "á" }, { "Ã ", "à" }, { "Ã¢", "â" }, { "Ã£", "ã" }, { "Ã¤", "ä" },
-            { "Ã©", "é" }, { "Ã¨", "è" }, { "Ãª", "ê" }, { "Ã«", "ë" },
-            { "Ã­", "í" }, { "Ã¬", "ì" }, { "Ã®", "î" }, { "Ã¯", "ï" },
-            { "Ã³", "ó" }, { "Ã²", "ò" }, { "Ã´", "ô" }, { "Ãµ", "õ" }, { "Ã¶", "ö" },
-            { "Ãº", "ú" }, { "Ã¹", "ù" }, { "Ã»", "û" }, { "Ã¼", "ü" },
-            { "Ã§", "ç" }, { "Ã±", "ñ" },
-            { "Ã?", "Á" }, { "Ã\u0080", "À" }, { "Ã\u0082", "Â" }, { "Ã\u0083", "Ã" }, { "Ã\u0084", "Ä" },
-            { "Ã\u0089", "É" }, { "Ã\u0088", "È" }, { "Ã\u008A", "Ê" }, { "Ã\u008B", "Ë" },
-            { "Ã\u008D", "Í" }, { "Ã\u008C", "Ì" }, { "Ã\u008E", "Î" }, { "Ã\u008F", "Ï" },
-            { "Ã\u0093", "Ó" }, { "Ã\u0092", "Ò" }, { "Ã\u0094", "Ô" }, { "Ã\u0095", "Õ" }, { "Ã\u0096", "Ö" },
-            { "Ã\u009A", "Ú" }, { "Ã\u0099", "Ù" }, { "Ã\u009B", "Û" }, { "Ã\u009C", "Ü" },
-            { "Ã\u0087", "Ç" }, { "Ã\u0091", "Ñ" },
-            { "Âº", "º" }, { "Âª", "ª" }, { "â€“", "–" }, { "&amp;", "&" },
+            { "ÃƒÂ¡", "Ã¡" }, { "ÃƒÂ ", "Ã " }, { "ÃƒÂ¢", "Ã¢" }, { "ÃƒÂ£", "Ã£" }, { "ÃƒÂ¤", "Ã¤" },
+            { "ÃƒÂ©", "Ã©" }, { "ÃƒÂ¨", "Ã¨" }, { "ÃƒÂª", "Ãª" }, { "ÃƒÂ«", "Ã«" },
+            { "ÃƒÂ­", "Ã­" }, { "ÃƒÂ¬", "Ã¬" }, { "ÃƒÂ®", "Ã®" }, { "ÃƒÂ¯", "Ã¯" },
+            { "ÃƒÂ³", "Ã³" }, { "ÃƒÂ²", "Ã²" }, { "ÃƒÂ´", "Ã´" }, { "ÃƒÂµ", "Ãµ" }, { "ÃƒÂ¶", "Ã¶" },
+            { "ÃƒÂº", "Ãº" }, { "ÃƒÂ¹", "Ã¹" }, { "ÃƒÂ»", "Ã»" }, { "ÃƒÂ¼", "Ã¼" },
+            { "ÃƒÂ§", "Ã§" }, { "ÃƒÂ±", "Ã±" },
+            { "Ãƒ?", "Ã" }, { "Ãƒ\u0080", "Ã€" }, { "Ãƒ\u0082", "Ã‚" }, { "Ãƒ\u0083", "Ãƒ" }, { "Ãƒ\u0084", "Ã„" },
+            { "Ãƒ\u0089", "Ã‰" }, { "Ãƒ\u0088", "Ãˆ" }, { "Ãƒ\u008A", "ÃŠ" }, { "Ãƒ\u008B", "Ã‹" },
+            { "Ãƒ\u008D", "Ã" }, { "Ãƒ\u008C", "ÃŒ" }, { "Ãƒ\u008E", "ÃŽ" }, { "Ãƒ\u008F", "Ã" },
+            { "Ãƒ\u0093", "Ã“" }, { "Ãƒ\u0092", "Ã’" }, { "Ãƒ\u0094", "Ã”" }, { "Ãƒ\u0095", "Ã•" }, { "Ãƒ\u0096", "Ã–" },
+            { "Ãƒ\u009A", "Ãš" }, { "Ãƒ\u0099", "Ã™" }, { "Ãƒ\u009B", "Ã›" }, { "Ãƒ\u009C", "Ãœ" },
+            { "Ãƒ\u0087", "Ã‡" }, { "Ãƒ\u0091", "Ã‘" },
+            { "Ã‚Âº", "Âº" }, { "Ã‚Âª", "Âª" }, { "Ã¢â‚¬â€œ", "â€“" }, { "&amp;", "&" },
             { "&quot;", "\"" }, { "&lt;", "<" }, { "&gt;", ">" }
         };
 
@@ -374,61 +391,52 @@ public class LeadSanitizationService : ILeadSanitizationService
         }
 
         var decoded = sb.ToString();
-
-        // Pass 1.5: Colapsa caracteres repetidos excessivamente (3+ iguais → 1).
-        // Ex: "Óóóóório" → "ório", "aaaa" → "a"
         decoded = CollapseRepeatedChars(decoded);
 
-        // Pass 2: Conserta Mojibakes PT-BR onde o char acentuado perdeu pro encoding.
-        decoded = Regex.Replace(decoded, @"Rio\b", "ório", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"MVeis\b", "Móveis", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"BiquNis\b", "Biquínis", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"MaiS\b", "Maiôs", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"SaDas\b", "Saídas", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"AcessRios\b", "Acessórios", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"VerO\b", "Verão", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"Rio\b", "Ã³rio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"MVeis\b", "MÃ³veis", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"BiquNis\b", "BiquÃ­nis", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"MaiS\b", "MaiÃ´s", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"SaDas\b", "SaÃ­das", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"AcessRios\b", "AcessÃ³rios", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"VerO\b", "VerÃ£o", RegexOptions.IgnoreCase);
 
-        // Pass 3: Mais palavras portuguesas com mojibake (char acentuado virou "")
-        decoded = Regex.Replace(decoded, @"\bSade\b", "Saúde", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bEstdio\b", "Estúdio", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bMdico\b", "Médico", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bMdica\b", "Médica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bJrdico\b", "Jurídico", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bJrdica\b", "Jurídica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bNegcios\b", "Negócios", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bComrcio\b", "Comércio", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bFarmcia\b", "Farmácia", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bMecnica\b", "Mecânica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bClnica\b", "Clínica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bPtio\b", "Pátio", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bRstico\b", "Rústico", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bRstica\b", "Rústica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bSade\b", "SaÃºde", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEstdio\b", "EstÃºdio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bMdico\b", "MÃ©dico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bMdica\b", "MÃ©dica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bJrdico\b", "JurÃ­dico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bJrdica\b", "JurÃ­dica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bNegcios\b", "NegÃ³cios", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bComrcio\b", "ComÃ©rcio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bFarmcia\b", "FarmÃ¡cia", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bMecnica\b", "MecÃ¢nica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bClnica\b", "ClÃ­nica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPtio\b", "PÃ¡tio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bRstico\b", "RÃºstico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bRstica\b", "RÃºstica", RegexOptions.IgnoreCase);
         decoded = Regex.Replace(decoded, @"\bAcadmia\b", "Academia", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bEdifcio\b", "Edifício", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bEletrnica\b", "Eletrônica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bTcnico\b", "Técnico", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bTcnica\b", "Técnica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bPblica\b", "Pública", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bPblico\b", "Público", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bPrtica\b", "Prática", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bLgica\b", "Lógica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bOdontolgica\b", "Odontológica", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bOdontolgico\b", "Odontológico", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bVeterinria\b", "Veterinária", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bVeterinrio\b", "Veterinário", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bImveis\b", "Imóveis", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bServios\b", "Serviços", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bSolues\b", "Soluções", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bEducao\b", "Educação", RegexOptions.IgnoreCase);
-        decoded = Regex.Replace(decoded, @"\bInformtica\b", "Informática", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEdifcio\b", "EdifÃ­cio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEletrnica\b", "EletrÃ´nica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bTcnico\b", "TÃ©cnico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bTcnica\b", "TÃ©cnica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPblica\b", "PÃºblica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPblico\b", "PÃºblico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bPrtica\b", "PrÃ¡tica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bLgica\b", "LÃ³gica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bOdontolgica\b", "OdontolÃ³gica", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bOdontolgico\b", "OdontolÃ³gico", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bVeterinria\b", "VeterinÃ¡ria", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bVeterinrio\b", "VeterinÃ¡rio", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bImveis\b", "ImÃ³veis", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bServios\b", "ServiÃ§os", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bSolues\b", "SoluÃ§Ãµes", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bEducao\b", "EducaÃ§Ã£o", RegexOptions.IgnoreCase);
+        decoded = Regex.Replace(decoded, @"\bInformtica\b", "InformÃ¡tica", RegexOptions.IgnoreCase);
 
         return decoded;
     }
 
-    /// <summary>
-    /// Colapsa 3+ caracteres repetidos consecutivos (case-insensitive) para 1.
-    /// Ex: "Óóóóório" → "ório", "aaaa" → "a"
-    /// </summary>
     private static string CollapseRepeatedChars(string input)
     {
         if (input.Length < 3) return input;
@@ -457,26 +465,18 @@ public class LeadSanitizationService : ILeadSanitizationService
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Detecta se o nome é uma frase de busca do Google Maps em vez de um nome de negócio.
-    /// Ex: "Hospitais E Clínicas Em Viana", "Restaurantes Em São Paulo"
-    /// </summary>
     private static bool IsSearchPhrase(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return false;
 
         var trimmed = name.Trim();
 
-        // Padrão 1: Nome termina com preposição geográfica + cidade
-        // "... Em Viana", "... No Rio", "... Na Bahia"
         if (SearchPhraseEnding.IsMatch(trimmed))
         {
-            // Se começa com uma palavra de categoria, é quase certamente uma busca
             var firstWord = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
             if (firstWord != null && SearchCategoryWords.Contains(firstWord))
                 return true;
 
-            // Se contém " E " entre palavras de categoria: "Hospitais E Clínicas Em ..."
             if (trimmed.Contains(" E ", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = trimmed.Split(new[] { " E ", " e " }, StringSplitOptions.RemoveEmptyEntries);
@@ -489,8 +489,6 @@ public class LeadSanitizationService : ILeadSanitizationService
             }
         }
 
-        // Padrão 2: "[Categoria Plural] E [Categoria Plural]" sem localidade — ainda parece busca
-        // "Hospitais E Clínicas", "Lojas E Escritórios"
         var wordsArr = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (wordsArr.Length >= 3 && wordsArr.Length <= 6)
         {
@@ -505,9 +503,6 @@ public class LeadSanitizationService : ILeadSanitizationService
         return false;
     }
 
-    /// <summary>
-    /// Limpa números de telefone.
-    /// </summary>
     private static string? CleanPhone(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone))

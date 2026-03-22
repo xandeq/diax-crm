@@ -1,9 +1,9 @@
 using Diax.Application.Common;
 using Diax.Application.Customers.Dtos;
+using Diax.Application.Customers.Services;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
-using Diax.Application.Customers.Services;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
 using Diax.Shared.Results;
@@ -11,7 +11,7 @@ using Diax.Shared.Results;
 namespace Diax.Application.Customers;
 
 /// <summary>
-/// Serviço de aplicação para operações com Customers/Leads.
+/// ServiÃ§o de aplicaÃ§Ã£o para operaÃ§Ãµes com Customers/Leads.
 /// </summary>
 public class CustomerService : IApplicationService
 {
@@ -33,7 +33,7 @@ public class CustomerService : IApplicationService
     }
 
     /// <summary>
-    /// Obtém um customer por ID.
+    /// ObtÃ©m um customer por ID.
     /// </summary>
     public async Task<Result<CustomerResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -46,7 +46,7 @@ public class CustomerService : IApplicationService
     }
 
     /// <summary>
-    /// Lista customers com paginação e filtros.
+    /// Lista customers com paginaÃ§Ã£o e filtros.
     /// </summary>
     public async Task<PagedResponse<CustomerResponse>> GetPagedAsync(
         CustomerListRequest request,
@@ -82,7 +82,6 @@ public class CustomerService : IApplicationService
         CreateCustomerRequest request,
         CancellationToken cancellationToken = default)
     {
-        // 1. Executa o Pipeline de Sanitização e Classificação
         var rawData = new RawLeadData(
             request.Name,
             request.Email,
@@ -97,24 +96,34 @@ public class CustomerService : IApplicationService
         if (sanitizedData.ShouldReject)
         {
             return Result.Failure<CustomerResponse>(
-                Error.Validation("Lead.Invalid", sanitizedData.RejectionReason ?? "O Lead fornecido não possui informações mínimas válidas após sanitização."));
+                Error.Validation("Lead.Invalid", sanitizedData.RejectionReason ?? "O Lead fornecido nÃ£o possui informaÃ§Ãµes mÃ­nimas vÃ¡lidas apÃ³s sanitizaÃ§Ã£o."));
         }
 
-        // Verifica se e-mail (sanitizado) já existe
-        if (sanitizedData.IsEmailValid && !string.IsNullOrWhiteSpace(sanitizedData.Email) && await _repository.EmailExistsAsync(sanitizedData.Email, null, cancellationToken))
+        Customer? existingCustomer = null;
+        if (sanitizedData.IsEmailValid && !string.IsNullOrWhiteSpace(sanitizedData.Email))
         {
-            return Result.Failure<CustomerResponse>(
-                Error.Conflict("Email", $"Já existe um cadastro com o e-mail '{sanitizedData.Email}'."));
+            existingCustomer = await _repository.GetByEmailAsync(sanitizedData.Email, cancellationToken);
         }
 
-        // Cria a entidade
+        if (existingCustomer != null)
+        {
+            var wasUpdated = EnrichExistingCustomer(existingCustomer, sanitizedData, request);
+
+            if (wasUpdated)
+            {
+                await _repository.UpdateAsync(existingCustomer, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            return CustomerResponse.FromEntity(existingCustomer);
+        }
+
         var customer = new Customer(
             sanitizedData.Name,
             sanitizedData.Email,
             request.PersonType,
             request.Source);
 
-        // Atualiza informações opcionais
         customer.UpdateBasicInfo(
             sanitizedData.Name,
             sanitizedData.Email,
@@ -125,10 +134,9 @@ public class CustomerService : IApplicationService
         customer.UpdateContactInfo(
             sanitizedData.Phone,
             sanitizedData.WhatsApp,
-            request.SecondaryEmail, // secondary email remains untouched for now
+            request.SecondaryEmail,
             request.Website);
 
-        // Atualiza Status de Qualidade e Flags do Pipeline
         customer.UpdateClassification(
             sanitizedData.Quality,
             sanitizedData.EmailType,
@@ -145,6 +153,126 @@ public class CustomerService : IApplicationService
         return CustomerResponse.FromEntity(customer);
     }
 
+    private static bool EnrichExistingCustomer(
+        Customer existingCustomer,
+        SanitizedLeadResult sanitizedData,
+        CreateCustomerRequest request)
+    {
+        var wasUpdated = false;
+
+        var mergedName = existingCustomer.Name;
+        var mergedEmail = existingCustomer.Email;
+        var mergedPersonType = existingCustomer.PersonType;
+        var mergedCompany = existingCustomer.CompanyName;
+        var mergedDocument = existingCustomer.Document;
+
+        if (string.IsNullOrWhiteSpace(mergedName) && !string.IsNullOrWhiteSpace(sanitizedData.Name))
+        {
+            mergedName = sanitizedData.Name;
+            wasUpdated = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(mergedCompany) && !string.IsNullOrWhiteSpace(sanitizedData.CompanyName))
+        {
+            mergedCompany = sanitizedData.CompanyName;
+            mergedPersonType = PersonType.Company;
+            wasUpdated = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(mergedEmail) && sanitizedData.IsEmailValid && !string.IsNullOrWhiteSpace(sanitizedData.Email))
+        {
+            mergedEmail = sanitizedData.Email;
+            wasUpdated = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(mergedDocument) && !string.IsNullOrWhiteSpace(request.Document))
+        {
+            mergedDocument = request.Document;
+            wasUpdated = true;
+        }
+
+        if (wasUpdated)
+        {
+            existingCustomer.UpdateBasicInfo(mergedName, mergedEmail, mergedPersonType, mergedCompany, mergedDocument);
+        }
+
+        var mergedPhone = existingCustomer.Phone;
+        var mergedWhatsApp = existingCustomer.WhatsApp;
+        var mergedSecondaryEmail = existingCustomer.SecondaryEmail;
+        var mergedWebsite = existingCustomer.Website;
+        var contactUpdated = false;
+
+        if (string.IsNullOrWhiteSpace(mergedPhone) && !string.IsNullOrWhiteSpace(sanitizedData.Phone))
+        {
+            mergedPhone = sanitizedData.Phone;
+            contactUpdated = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(mergedWhatsApp) && !string.IsNullOrWhiteSpace(sanitizedData.WhatsApp))
+        {
+            mergedWhatsApp = sanitizedData.WhatsApp;
+            contactUpdated = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(mergedSecondaryEmail) && !string.IsNullOrWhiteSpace(request.SecondaryEmail))
+        {
+            mergedSecondaryEmail = request.SecondaryEmail;
+            contactUpdated = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(mergedWebsite) && !string.IsNullOrWhiteSpace(request.Website))
+        {
+            mergedWebsite = request.Website;
+            contactUpdated = true;
+        }
+
+        if (contactUpdated)
+        {
+            existingCustomer.UpdateContactInfo(mergedPhone, mergedWhatsApp, mergedSecondaryEmail, mergedWebsite);
+            wasUpdated = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SourceDetails) && string.IsNullOrWhiteSpace(existingCustomer.SourceDetails))
+        {
+            existingCustomer.UpdateSource(request.Source, request.SourceDetails);
+            wasUpdated = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(sanitizedData.Notes))
+        {
+            var currentNotes = existingCustomer.Notes ?? string.Empty;
+            if (!currentNotes.Contains(sanitizedData.Notes, StringComparison.OrdinalIgnoreCase))
+            {
+                var mergedNotes = string.IsNullOrWhiteSpace(currentNotes)
+                    ? sanitizedData.Notes
+                    : $"{currentNotes}\n[Enriquecimento]: {sanitizedData.Notes}";
+                existingCustomer.UpdateNotes(mergedNotes);
+                wasUpdated = true;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Tags))
+        {
+            var currentTags = existingCustomer.Tags ?? string.Empty;
+            if (!currentTags.Contains(request.Tags, StringComparison.OrdinalIgnoreCase))
+            {
+                var mergedTags = string.IsNullOrWhiteSpace(currentTags)
+                    ? request.Tags
+                    : $"{currentTags},{request.Tags}";
+                existingCustomer.UpdateTags(mergedTags);
+                wasUpdated = true;
+            }
+        }
+
+        existingCustomer.UpdateClassification(
+            existingCustomer.Quality ?? sanitizedData.Quality,
+            existingCustomer.EmailType ?? sanitizedData.EmailType,
+            existingCustomer.HasSuspiciousDomain || sanitizedData.HasSuspiciousDomain,
+            existingCustomer.IsEligibleForCampaigns || sanitizedData.IsEligibleForCampaigns);
+
+        return wasUpdated;
+    }
+
     /// <summary>
     /// Atualiza um customer/lead existente.
     /// </summary>
@@ -158,14 +286,12 @@ public class CustomerService : IApplicationService
         if (customer is null)
             return Result.Failure<CustomerResponse>(Error.NotFound("Customer", id));
 
-        // Verifica se e-mail já existe (excluindo o próprio registro)
         if (await _repository.EmailExistsAsync(request.Email, id, cancellationToken))
         {
             return Result.Failure<CustomerResponse>(
-                Error.Conflict("Email", $"Já existe outro cadastro com o e-mail '{request.Email}'."));
+                Error.Conflict("Email", $"JÃ¡ existe outro cadastro com o e-mail '{request.Email}'."));
         }
 
-        // Atualiza a entidade
         customer.UpdateBasicInfo(
             request.Name,
             request.Email,
@@ -211,7 +337,7 @@ public class CustomerService : IApplicationService
     }
 
     /// <summary>
-    /// Registra um contato/interação com o customer.
+    /// Registra um contato/interaÃ§Ã£o com o customer.
     /// </summary>
     public async Task<Result<CustomerResponse>> RegisterContactAsync(
         Guid id,
@@ -245,7 +371,7 @@ public class CustomerService : IApplicationService
         if (customer.IsActiveCustomer)
         {
             return Result.Failure<CustomerResponse>(
-                Error.Conflict("Status", "Este registro já é um cliente ativo."));
+                Error.Conflict("Status", "Este registro jÃ¡ Ã© um cliente ativo."));
         }
 
         customer.ConvertToCustomer();
@@ -273,7 +399,7 @@ public class CustomerService : IApplicationService
     }
 
     /// <summary>
-    /// Exclui múltiplos customers/leads em uma única operação.
+    /// Exclui mÃºltiplos customers/leads em uma Ãºnica operaÃ§Ã£o.
     /// </summary>
     public async Task<Result<BulkDeleteResponse>> BulkDeleteAsync(
         IEnumerable<Guid> ids,
@@ -303,7 +429,6 @@ public class CustomerService : IApplicationService
 
         var activities = new List<LeadActivityDto>();
 
-        // Evento de criação
         activities.Add(new LeadActivityDto
         {
             Type = "created",
@@ -313,7 +438,6 @@ public class CustomerService : IApplicationService
             Status = "info"
         });
 
-        // Último contato registrado
         if (customer.LastContactAt.HasValue)
         {
             activities.Add(new LeadActivityDto
@@ -326,7 +450,6 @@ public class CustomerService : IApplicationService
             });
         }
 
-        // Conversão para cliente
         if (customer.ConvertedAt.HasValue)
         {
             activities.Add(new LeadActivityDto
@@ -339,7 +462,6 @@ public class CustomerService : IApplicationService
             });
         }
 
-        // Emails enviados / na fila
         var emailItems = await _emailQueueRepository.GetByCustomerIdAsync(id, cancellationToken);
 
         foreach (var email in emailItems)
@@ -371,7 +493,7 @@ public class CustomerService : IApplicationService
     }
 
     /// <summary>
-    /// Executa o processo de sanitização e classificação em lote para a base de leads existente.
+    /// Executa o processo de sanitizaÃ§Ã£o e classificaÃ§Ã£o em lote para a base de leads existente.
     /// </summary>
     public async Task<Result<BulkSanitizationResponse>> SanitizeBaseAsync(
         BulkSanitizationRequest request,
@@ -396,7 +518,6 @@ public class CustomerService : IApplicationService
         var seenPhones = new Dictionary<string, Customer>(StringComparer.OrdinalIgnoreCase);
         var seenCompanies = new Dictionary<string, Customer>(StringComparer.OrdinalIgnoreCase);
 
-        // Analisa e deduplica os leads encontrados (mais antigos primeiro para manter o registro inicial como base)
         foreach (var lead in targets.OrderBy(c => c.CreatedAt))
         {
             response.AnalyzedLeads++;
@@ -406,7 +527,6 @@ public class CustomerService : IApplicationService
 
             bool wasUpdated = false;
 
-            // Rejeição direta (Sem email e sem telefone, ou ser agregador Linktree, ou frase de busca)
             if (sanitized.ShouldReject)
             {
                 if (sanitized.RejectionReason != null && sanitized.RejectionReason.Contains("Directory"))
@@ -431,7 +551,6 @@ public class CustomerService : IApplicationService
             var activePhone = !string.IsNullOrWhiteSpace(sanitized.Phone) ? sanitized.Phone : sanitized.WhatsApp;
             var activeCompany = !string.IsNullOrWhiteSpace(sanitized.CompanyName) ? sanitized.CompanyName : null;
 
-            // Lógica de Deduplicação e Enriquecimento Inteligente (E-mail -> Telefone -> Nome da Empresa)
             Customer? primaryLead = null;
 
             if (!string.IsNullOrWhiteSpace(activeEmail) && seenEmails.TryGetValue(activeEmail, out var matchByEmail))
@@ -449,18 +568,16 @@ public class CustomerService : IApplicationService
 
             if (primaryLead != null && primaryLead.Id != lead.Id)
             {
-                // Mescla as informações no primaryLead
                 bool merged = false;
 
-                if (string.IsNullOrWhiteSpace(primaryLead.Phone) && !string.IsNullOrWhiteSpace(sanitized.Phone)) { primaryLead.UpdateContactInfo(sanitized.Phone, primaryLead.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
-                if (string.IsNullOrWhiteSpace(primaryLead.WhatsApp) && !string.IsNullOrWhiteSpace(sanitized.WhatsApp)) { primaryLead.UpdateContactInfo(primaryLead.Phone, sanitized.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true;}
+                if (string.IsNullOrWhiteSpace(primaryLead.Phone) && !string.IsNullOrWhiteSpace(sanitized.Phone)) { primaryLead.UpdateContactInfo(sanitized.Phone, primaryLead.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true; }
+                if (string.IsNullOrWhiteSpace(primaryLead.WhatsApp) && !string.IsNullOrWhiteSpace(sanitized.WhatsApp)) { primaryLead.UpdateContactInfo(primaryLead.Phone, sanitized.WhatsApp, primaryLead.SecondaryEmail, primaryLead.Website); merged = true; }
                 if (string.IsNullOrWhiteSpace(primaryLead.CompanyName) && !string.IsNullOrWhiteSpace(sanitized.CompanyName)) { primaryLead.UpdateBasicInfo(primaryLead.Name, primaryLead.Email, PersonType.Company, sanitized.CompanyName, primaryLead.Document); merged = true; }
                 if (string.IsNullOrWhiteSpace(primaryLead.Email) && !string.IsNullOrWhiteSpace(activeEmail)) { primaryLead.UpdateBasicInfo(primaryLead.Name, activeEmail, primaryLead.PersonType, primaryLead.CompanyName, primaryLead.Document); merged = true; }
 
-                // Combina os notes da duplicata
                 if (!string.IsNullOrWhiteSpace(sanitized.Notes))
                 {
-                    var n = primaryLead.Notes + $"\n[Mesclado na Sanitização]: {sanitized.Notes}";
+                    var n = primaryLead.Notes + $"\n[Mesclado na SanitizaÃ§Ã£o]: {sanitized.Notes}";
                     primaryLead.UpdateNotes(n);
                     merged = true;
                 }
@@ -472,7 +589,7 @@ public class CustomerService : IApplicationService
 
                 leadsToDelete.Add(lead);
                 response.DuplicatesConsolidated++;
-                continue; // Pula o resto da execução pois a entidade duplicada será deletada
+                continue;
             }
             else
             {
@@ -481,7 +598,6 @@ public class CustomerService : IApplicationService
                 if (!string.IsNullOrWhiteSpace(activeCompany)) seenCompanies[activeCompany] = lead;
             }
 
-            // Atualiza os campos do Lead Principal em si com os dados refinados
             if (lead.Name != sanitized.Name || lead.CompanyName != sanitized.CompanyName || lead.Email != activeEmail)
             {
                 lead.UpdateBasicInfo(sanitized.Name, activeEmail, string.IsNullOrWhiteSpace(sanitized.CompanyName) ? PersonType.Individual : PersonType.Company, sanitized.CompanyName, lead.Document);
@@ -500,16 +616,14 @@ public class CustomerService : IApplicationService
                 wasUpdated = true;
             }
 
-            // Atualiza Classificações
             var currentQuality = lead.Quality;
             var currentEmailType = lead.EmailType;
             var currentSuspicious = lead.HasSuspiciousDomain;
             var currentEligible = lead.IsEligibleForCampaigns;
 
-            // Se ainda assim o domínio for ruim, reporta na estatística e derruba a qualidade drasticamente
             if (sanitized.HasSuspiciousDomain)
             {
-                response.RemovedBySuspiciousDomain++; // Ele fica na base, mas reportamos q foi detectado e invocado
+                response.RemovedBySuspiciousDomain++;
             }
 
             lead.UpdateClassification(sanitized.Quality, sanitized.EmailType, sanitized.HasSuspiciousDomain, sanitized.IsEligibleForCampaigns);
@@ -526,8 +640,7 @@ public class CustomerService : IApplicationService
             }
         }
 
-        // Aplica mudanças
-        foreach(var update in leadsToUpdate)
+        foreach (var update in leadsToUpdate)
         {
             await _repository.UpdateAsync(update, cancellationToken);
         }
