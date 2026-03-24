@@ -34,6 +34,7 @@ import {
     ChevronRight,
     Eye,
     EyeOff,
+    Filter,
     ImagePlus,
     Info,
     Loader2,
@@ -41,9 +42,11 @@ import {
     RefreshCw,
     Search,
     Send,
+    ShieldOff,
     Trash2,
     Users,
     X,
+    Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -102,6 +105,11 @@ export default function EmailMarketingPage() {
   const [result, setResult] = useState<QueueCampaignRecipientsResponse | null>(null);
   const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
 
+  // Quality filters
+  const [neverEmailed, setNeverEmailed] = useState(false);
+  const [excludeOptOut, setExcludeOptOut] = useState(true);
+  const [selectingAll, setSelectingAll] = useState(false);
+
   // Remarketing pre-selection
   const [remarketingIds, setRemarketingIds] = useState<string[]>([]);
   const [remarketingLabel, setRemarketingLabel] = useState<string>('');
@@ -122,17 +130,34 @@ export default function EmailMarketingPage() {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  const buildContactsQs = useCallback((overridePage?: number, overridePageSize?: string) => {
+    const qs = new URLSearchParams({
+      page: (overridePage ?? page).toString(),
+      pageSize: overridePageSize ?? pageSize,
+      hasEmail: 'true',
+    });
+    if (search) qs.append('search', search);
+    if (segment) qs.append('segment', segment);
+    if (contactType === 'leads') qs.append('onlyLeads', 'true');
+    if (contactType === 'customers') qs.append('onlyCustomers', 'true');
+    if (neverEmailed) qs.append('neverEmailed', 'true');
+    if (excludeOptOut) qs.append('excludeOptOut', 'true');
+    return qs;
+  }, [page, pageSize, search, segment, contactType, neverEmailed, excludeOptOut]);
+
+  // Filtro client-side garantido (fallback caso o backend não suporte os params)
+  const applyQualityFilters = useCallback((items: Customer[]) => {
+    let filtered = items;
+    if (excludeOptOut) filtered = filtered.filter(c => !c.emailOptOut);
+    if (neverEmailed) filtered = filtered.filter(c => !c.emailSentCount || c.emailSentCount === 0);
+    return filtered;
+  }, [excludeOptOut, neverEmailed]);
+
   const loadContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams({ page: page.toString(), pageSize: pageSize, hasEmail: 'true' });
-      if (search) qs.append('search', search);
-      if (segment) qs.append('segment', segment);
-      if (contactType === 'leads') qs.append('onlyLeads', 'true');
-      if (contactType === 'customers') qs.append('onlyCustomers', 'true');
-
-      const data = await apiFetch<PagedResponse<Customer>>(`/customers?${qs.toString()}`, { method: 'GET' });
-      setContacts(data.items);
+      const data = await apiFetch<PagedResponse<Customer>>(`/customers?${buildContactsQs().toString()}`, { method: 'GET' });
+      setContacts(applyQualityFilters(data.items));
       setTotalCount(data.totalCount);
       setTotalPages(data.totalPages);
     } catch (e: any) {
@@ -140,7 +165,36 @@ export default function EmailMarketingPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, segment, contactType, pageSize]);
+  }, [buildContactsQs, applyQualityFilters]);
+
+  const handleSelectAll = useCallback(async () => {
+    if (totalCount === 0) return;
+    setSelectingAll(true);
+    try {
+      // Busca em páginas de 500 para não sobrecarregar o backend
+      const batchSize = 500;
+      const pages = Math.ceil(totalCount / batchSize);
+      const allIds: string[] = [];
+
+      for (let p = 1; p <= pages; p++) {
+        const data = await apiFetch<PagedResponse<Customer>>(
+          `/customers?${buildContactsQs(p, String(batchSize)).toString()}`,
+          { method: 'GET' }
+        );
+        // Aplica filtro client-side como garantia
+        applyQualityFilters(data.items).forEach(c => allIds.push(c.id));
+        // Se veio menos que o batch, acabou
+        if (data.items.length < batchSize) break;
+      }
+
+      setSelectedIds(new Set(allIds));
+      toast.success(`${allIds.length} contato(s) selecionado(s).`);
+    } catch (e: any) {
+      toast.error('Erro ao selecionar todos: ' + e.message);
+    } finally {
+      setSelectingAll(false);
+    }
+  }, [buildContactsQs, totalCount, applyQualityFilters]);
 
   useEffect(() => {
     loadContacts();
@@ -157,7 +211,7 @@ export default function EmailMarketingPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, segment, contactType, pageSize]);
+  }, [search, segment, contactType, pageSize, neverEmailed, excludeOptOut]);
 
   // Remarketing pre-selection from sessionStorage (set by campaign report page)
   useEffect(() => {
@@ -472,7 +526,7 @@ export default function EmailMarketingPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {/* Filters */}
+            {/* Filters — row 1: search + selects */}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -520,6 +574,68 @@ export default function EmailMarketingPage() {
               </Button>
             </div>
 
+            {/* Filters — row 2: quality toggles + presets */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Filter className="h-3.5 w-3.5" />
+                Qualidade:
+              </span>
+              <button
+                onClick={() => setExcludeOptOut(v => !v)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  excludeOptOut
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                }`}
+                title="Excluir contatos que solicitaram opt-out"
+              >
+                <ShieldOff className="h-3 w-3" />
+                Excluir opt-outs
+              </button>
+              <button
+                onClick={() => setNeverEmailed(v => !v)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  neverEmailed
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                }`}
+                title="Apenas contatos que nunca receberam email desta base"
+              >
+                Nunca recebeu email
+              </button>
+              <span className="text-muted-foreground/40 select-none text-xs">|</span>
+              <span className="text-xs text-muted-foreground">Presets:</span>
+              <button
+                onClick={() => { setSegment('2'); setNeverEmailed(false); setExcludeOptOut(true); setPage(1); }}
+                className="flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100 transition-colors"
+                title="Apenas leads Hot"
+              >
+                <Zap className="h-3 w-3" /> Hot 🔥
+              </button>
+              <button
+                onClick={() => { setSegment('1'); setNeverEmailed(false); setExcludeOptOut(true); setPage(1); }}
+                className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
+                title="Apenas leads Warm"
+              >
+                Warm ☀️
+              </button>
+              <button
+                onClick={() => { setNeverEmailed(true); setExcludeOptOut(true); setSegment(''); setPage(1); }}
+                className="flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-colors"
+                title="Contatos que nunca receberam email, sem opt-outs"
+              >
+                Nunca contatados
+              </button>
+              {(neverEmailed || !excludeOptOut || segment || search || contactType !== 'all') && (
+                <button
+                  onClick={() => { setNeverEmailed(false); setExcludeOptOut(true); setSegment(''); setSearch(''); setContactType('all'); setPage(1); }}
+                  className="ml-auto flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  <X className="h-3 w-3" /> Limpar filtros
+                </button>
+              )}
+            </div>
+
             {/* Select all row */}
             {contacts.length > 0 && (
               <div className="flex items-center gap-2 border-b pb-2 text-sm">
@@ -531,8 +647,23 @@ export default function EmailMarketingPage() {
                 <span className="text-muted-foreground">
                   {allPageSelected ? 'Desmarcar página' : 'Selecionar página'}
                 </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto h-7 gap-1.5 text-xs font-medium text-primary hover:text-primary"
+                  onClick={handleSelectAll}
+                  disabled={selectingAll || totalCount === 0}
+                  title="Seleciona todos os contatos que passam nos filtros atuais, não só a página"
+                >
+                  {selectingAll ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Users className="h-3 w-3" />
+                  )}
+                  Selecionar todos ({totalCount})
+                </Button>
                 {selectedIds.size > 0 && (
-                  <Badge variant="secondary" className="ml-auto">
+                  <Badge variant="secondary">
                     {selectedIds.size} selecionado(s)
                   </Badge>
                 )}
@@ -574,6 +705,11 @@ export default function EmailMarketingPage() {
                               {SEGMENT_LABELS[contact.segment]}
                             </Badge>
                           )}
+                          {contact.emailOptOut && (
+                            <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[10px] border-red-300 bg-red-50 text-red-600">
+                              opt-out
+                            </Badge>
+                          )}
                         </div>
                         <div className="truncate text-xs text-muted-foreground">{contact.email}</div>
                         {contact.companyName && (
@@ -583,7 +719,10 @@ export default function EmailMarketingPage() {
                       <div className="shrink-0 text-right text-xs text-muted-foreground">
                         <div>{STATUS_LABELS[contact.status] ?? '-'}</div>
                         {(contact.emailSentCount ?? 0) > 0 && (
-                          <div className="opacity-60">{contact.emailSentCount} emails</div>
+                          <div className={(contact.emailSentCount ?? 0) >= 5 ? 'text-amber-500 font-medium' : 'opacity-60'}>
+                            {contact.emailSentCount}x enviado
+                            {(contact.emailSentCount ?? 0) >= 5 && ' ⚠️'}
+                          </div>
                         )}
                       </div>
                     </div>

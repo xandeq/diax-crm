@@ -936,86 +936,216 @@ interface LeadsTabProps {
   onRefresh: () => void;
 }
 
+type LeadSortKey = 'name' | 'email' | 'segment' | 'leadScore' | 'companyName' | 'lastEmailSentAt';
+const SEGMENT_ORDER: Record<string, number> = { hot: 3, warm: 2, cold: 1 };
+
 function LeadsTab({ leads, loading, onRefresh }: LeadsTabProps) {
   const router = useRouter();
+  const [search, setSearch]       = useState('');
+  const [segFilter, setSegFilter] = useState<string>('');
+  const [sortKey, setSortKey]     = useState<LeadSortKey>('leadScore');
+  const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('desc');
+  const [page, setPage]           = useState(1);
+  const PAGE_SIZE = 25;
+
+  const toggleSort = (key: LeadSortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  const filtered = leads
+    .filter(l => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q) || (l.companyName ?? '').toLowerCase().includes(q);
+      const matchSeg = !segFilter || l.segment.toLowerCase() === segFilter;
+      return matchSearch && matchSeg;
+    })
+    .sort((a, b) => {
+      let va: string | number = '';
+      let vb: string | number = '';
+      if (sortKey === 'name')           { va = a.name; vb = b.name; }
+      else if (sortKey === 'email')     { va = a.email; vb = b.email; }
+      else if (sortKey === 'segment')   { va = SEGMENT_ORDER[a.segment.toLowerCase()] ?? 0; vb = SEGMENT_ORDER[b.segment.toLowerCase()] ?? 0; }
+      else if (sortKey === 'leadScore') { va = a.leadScore; vb = b.leadScore; }
+      else if (sortKey === 'companyName') { va = a.companyName ?? ''; vb = b.companyName ?? ''; }
+      else if (sortKey === 'lastEmailSentAt') { va = a.lastEmailSentAt ?? ''; vb = b.lastEmailSentAt ?? ''; }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const firstItem  = filtered.length > 0 ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const lastItem   = Math.min(page * PAGE_SIZE, filtered.length);
+
+  const LeadColHead = ({ col, label, className = '' }: { col: LeadSortKey; label: string; className?: string }) => (
+    <TableHead
+      className={`cursor-pointer select-none whitespace-nowrap hover:bg-slate-50 transition-colors ${className}`}
+      onClick={() => { toggleSort(col); setPage(1); }}
+    >
+      <span className="flex items-center gap-0.5">
+        {label}
+        {sortKey === col
+          ? <span className="ml-1 text-[10px] text-slate-700">{sortDir === 'asc' ? '↑' : '↓'}</span>
+          : <span className="ml-1 opacity-20 text-[10px]">↕</span>}
+      </span>
+    </TableHead>
+  );
+
   if (loading) {
     return (
-      <div className="space-y-2">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 rounded-lg" />
-        ))}
-      </div>
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded" />)}
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
-          {leads.length === 0
-            ? 'Nenhum lead pronto para outreach.'
-            : `${leads.length} lead${leads.length !== 1 ? 's' : ''} prontos para contato.`}
-        </p>
-        <Button variant="outline" size="sm" onClick={onRefresh}>
-          <RefreshCw className="mr-2 h-4 w-4" /> Atualizar
-        </Button>
-      </div>
+    <Card>
+      {/* ── Header ── */}
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-slate-500" />
+              Leads Prontos
+            </CardTitle>
+            <Badge variant="secondary" className="font-normal tabular-nums">
+              {filtered.length !== leads.length
+                ? `${filtered.length} de ${leads.length}`
+                : leads.length}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Nome, email ou empresa…"
+                className="h-8 pl-8 w-48 text-sm"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+              />
+              {search && (
+                <button className="absolute right-2 top-2 text-muted-foreground hover:text-foreground" onClick={() => { setSearch(''); setPage(1); }}>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <Button variant="outline" size="sm" className="h-8" onClick={onRefresh}>
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+        {/* Segment filter chips */}
+        <div className="flex gap-1.5 pt-1 flex-wrap">
+          {[
+            { value: '',     label: 'Todos'   },
+            { value: 'hot',  label: '🔥 Hot'  },
+            { value: 'warm', label: '☀️ Warm' },
+            { value: 'cold', label: '🧊 Cold' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => { setSegFilter(opt.value); setPage(1); }}
+              className={`rounded-full px-3 py-0.5 text-xs font-medium border transition-colors ${
+                segFilter === opt.value
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-background text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-700'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          {(search || segFilter) && (
+            <button
+              onClick={() => { setSearch(''); setSegFilter(''); setPage(1); }}
+              className="flex items-center gap-1 rounded-full px-3 py-0.5 text-xs border border-border text-muted-foreground hover:bg-muted ml-1"
+            >
+              <X className="h-3 w-3" /> Limpar
+            </button>
+          )}
+        </div>
+      </CardHeader>
 
-      {leads.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-slate-400">
-            <Users className="h-10 w-10 mb-3" />
-            <p className="font-medium text-slate-500">Nenhum lead disponível</p>
-            <p className="text-sm mt-1">
-              Execute a segmentação para classificar os leads e prepará-los para o envio.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Segmento</TableHead>
-                  <TableHead className="text-right">Score</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Último Envio</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {leads.map((lead) => (
-                  <TableRow
-                    key={lead.id}
-                    className="cursor-pointer hover:bg-slate-50 transition-colors"
-                    onClick={() => router.push(`/leads?search=${encodeURIComponent(lead.name)}`)}
-                  >
-                    <TableCell className="font-medium text-blue-700 hover:text-blue-900 hover:underline">
-                      {lead.name}
-                    </TableCell>
-                    <TableCell className="text-slate-600 text-sm">
-                      {lead.email}
-                    </TableCell>
-                    <TableCell>{getSegmentBadge(lead.segment)}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-semibold text-slate-700">{lead.leadScore}</span>
-                    </TableCell>
-                    <TableCell className="text-slate-600 text-sm">
-                      {lead.companyName ?? '–'}
-                    </TableCell>
-                    <TableCell className="text-slate-500 text-xs">
-                      {formatDateShort(lead.lastEmailSentAt)}
-                    </TableCell>
+      <CardContent className="p-0">
+        {leads.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <Users className="h-10 w-10 mb-3 opacity-20" />
+            <p className="font-medium text-slate-500 text-sm">Nenhum lead disponível</p>
+            <p className="text-xs text-slate-400 mt-1">Execute a segmentação para classificar os leads.</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+            <Search className="h-8 w-8 mb-2 opacity-20" />
+            <p className="text-sm">Nenhum resultado para os filtros aplicados.</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/60">
+                    <LeadColHead col="name"            label="Nome"         className="pl-5 w-[180px]" />
+                    <LeadColHead col="email"           label="Email"        className="w-[200px]" />
+                    <LeadColHead col="segment"         label="Segmento"     className="w-[110px]" />
+                    <LeadColHead col="leadScore"       label="Score"        className="w-[80px] text-right" />
+                    <LeadColHead col="companyName"     label="Empresa"      className="w-[160px]" />
+                    <LeadColHead col="lastEmailSentAt" label="Último Envio" className="w-[150px]" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map(lead => (
+                    <TableRow
+                      key={lead.id}
+                      className="cursor-pointer hover:bg-slate-50/60 transition-colors"
+                      onClick={() => router.push(`/leads?search=${encodeURIComponent(lead.name)}`)}
+                    >
+                      <TableCell className="pl-5 font-medium text-blue-700 hover:underline text-sm truncate max-w-[180px]" title={lead.name}>
+                        {lead.name}
+                      </TableCell>
+                      <TableCell className="text-slate-500 text-xs truncate max-w-[200px]" title={lead.email}>
+                        {lead.email}
+                      </TableCell>
+                      <TableCell>{getSegmentBadge(lead.segment)}</TableCell>
+                      <TableCell className="text-right pr-5">
+                        <span className={`font-bold tabular-nums text-sm ${lead.leadScore >= 70 ? 'text-green-600' : lead.leadScore >= 40 ? 'text-amber-600' : 'text-slate-500'}`}>
+                          {lead.leadScore}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-slate-500 text-xs truncate max-w-[160px]" title={lead.companyName ?? ''}>
+                        {lead.companyName ?? <span className="text-slate-300">—</span>}
+                      </TableCell>
+                      <TableCell className="text-slate-400 text-xs whitespace-nowrap">
+                        {lead.lastEmailSentAt ? formatDateShort(lead.lastEmailSentAt) : <span className="text-slate-300">Nunca</span>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t px-5 py-3">
+                <p className="text-xs text-slate-500">
+                  Mostrando {firstItem}–{lastItem} de {filtered.length} leads
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(1)}             disabled={page === 1}>«</Button>
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => p - 1)}    disabled={page === 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                  <span className="px-3 text-xs text-slate-600 whitespace-nowrap">{page} / {totalPages}</span>
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => p + 1)}    disabled={page >= totalPages}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(totalPages)}    disabled={page >= totalPages}>»</Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1059,39 +1189,45 @@ function EmailMarketingSection({
 
 // ─── Email Queue Section ──────────────────────────────────────────────────────
 
-const emailQueueStatusConfig: Record<
-  EmailQueueStatus,
-  { label: string; className: string }
-> = {
-  [EmailQueueStatus.Queued]: {
-    label: 'Na fila',
-    className: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
-  },
-  [EmailQueueStatus.Processing]: {
-    label: 'Processando',
-    className: 'bg-blue-100 text-blue-700 hover:bg-blue-100',
-  },
-  [EmailQueueStatus.Sent]: {
-    label: 'Enviado',
-    className: 'bg-green-100 text-green-700 hover:bg-green-100',
-  },
-  [EmailQueueStatus.Failed]: {
-    label: 'Falhou',
-    className: 'bg-red-100 text-red-700 hover:bg-red-100',
-  },
+const EMAIL_QUEUE_STATUS_CFG: Record<EmailQueueStatus, { label: string; dot: string; badge: string; icon: React.ReactNode }> = {
+  [EmailQueueStatus.Queued]:     { label: 'Na fila',     dot: 'bg-yellow-400', badge: 'border-yellow-200 bg-yellow-50 text-yellow-700',  icon: <Send className="h-3 w-3" /> },
+  [EmailQueueStatus.Processing]: { label: 'Processando', dot: 'bg-blue-400',   badge: 'border-blue-200 bg-blue-50 text-blue-700',        icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+  [EmailQueueStatus.Sent]:       { label: 'Enviado',     dot: 'bg-green-400',  badge: 'border-green-200 bg-green-50 text-green-700',     icon: <Mail className="h-3 w-3" /> },
+  [EmailQueueStatus.Failed]:     { label: 'Falhou',      dot: 'bg-red-400',    badge: 'border-red-200 bg-red-50 text-red-700',           icon: <AlertTriangle className="h-3 w-3" /> },
 };
 
-function EmailQueueSection() {
-  const [queue, setQueue] = useState<PagedEmailQueueResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
+type QueueSortKey = 'recipientName' | 'subject' | 'status' | 'scheduledAt' | 'sentAt' | 'attemptCount';
 
-  const loadQueue = useCallback(async (p = 1) => {
+const STATUS_FILTER_OPTIONS: { value: EmailQueueStatus | null; label: string }[] = [
+  { value: null,                    label: 'Todos'        },
+  { value: EmailQueueStatus.Queued, label: 'Na fila'     },
+  { value: EmailQueueStatus.Sent,   label: 'Enviados'    },
+  { value: EmailQueueStatus.Failed, label: 'Falhas'      },
+  { value: EmailQueueStatus.Processing, label: 'Processando' },
+];
+
+function SortIcon({ col, sortKey, dir }: { col: QueueSortKey; sortKey: QueueSortKey; dir: 'asc' | 'desc' }) {
+  if (col !== sortKey) return <span className="ml-1 opacity-20 text-[10px]">↕</span>;
+  return <span className="ml-1 text-[10px] text-slate-700">{dir === 'asc' ? '↑' : '↓'}</span>;
+}
+
+function EmailQueueSection() {
+  const [queue, setQueue]         = useState<PagedEmailQueueResponse | null>(null);
+  const [loading, setLoading]     = useState(false);
+  const [page, setPage]           = useState(1);
+  const [pageSize, setPageSize]   = useState(20);
+  const [statusFilter, setStatusFilter] = useState<EmailQueueStatus | null>(null);
+  const [search, setSearch]       = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [sortKey, setSortKey]     = useState<QueueSortKey>('scheduledAt');
+  const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('desc');
+  const searchTimerRef            = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadQueue = useCallback(async (p: number, ps: number, sf: EmailQueueStatus | null, s: string) => {
     setLoading(true);
     try {
-      const data = await getEmailQueue(p, 15);
+      const data = await getEmailQueue(p, ps, sf ?? undefined, s);
       setQueue(data);
-      setPage(p);
     } catch {
       toast.error('Erro ao carregar fila de emails.');
     } finally {
@@ -1100,158 +1236,276 @@ function EmailQueueSection() {
   }, []);
 
   useEffect(() => {
-    loadQueue();
-  }, [loadQueue]);
+    loadQueue(page, pageSize, statusFilter, search);
+  }, [loadQueue, page, pageSize, statusFilter, search]);
 
-  if (loading && !queue) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Histórico de Envios
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Debounce search input
+  const handleSearchChange = (val: string) => {
+    setSearchInput(val);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setSearch(val);
+      setPage(1);
+    }, 350);
+  };
 
-  if (!queue || queue.totalCount === 0) {
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Histórico de Envios
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-500">Nenhum email na fila de envio.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleStatusFilter = (sf: EmailQueueStatus | null) => {
+    setStatusFilter(sf);
+    setPage(1);
+  };
+
+  const handlePageSize = (ps: number) => {
+    setPageSize(ps);
+    setPage(1);
+  };
+
+  const toggleSort = (key: QueueSortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  // Client-side sort on current page
+  const sortedItems = queue ? [...queue.items].sort((a, b) => {
+    let va: string | number = '';
+    let vb: string | number = '';
+    if (sortKey === 'recipientName') { va = a.recipientName; vb = b.recipientName; }
+    else if (sortKey === 'subject')  { va = a.subject; vb = b.subject; }
+    else if (sortKey === 'status')   { va = a.status; vb = b.status; }
+    else if (sortKey === 'scheduledAt') { va = a.scheduledAt ?? ''; vb = b.scheduledAt ?? ''; }
+    else if (sortKey === 'sentAt')   { va = a.sentAt ?? ''; vb = b.sentAt ?? ''; }
+    else if (sortKey === 'attemptCount') { va = a.attemptCount; vb = b.attemptCount; }
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  }) : [];
+
+  const firstItem = queue ? (queue.page - 1) * queue.pageSize + 1 : 0;
+  const lastItem  = queue ? Math.min(queue.page * queue.pageSize, queue.totalCount) : 0;
+
+  const ColHead = ({ col, label, className = '' }: { col: QueueSortKey; label: string; className?: string }) => (
+    <TableHead
+      className={`cursor-pointer select-none whitespace-nowrap hover:bg-slate-50 transition-colors ${className}`}
+      onClick={() => toggleSort(col)}
+    >
+      <span className="flex items-center gap-0.5">
+        {label}
+        <SortIcon col={col} sortKey={sortKey} dir={sortDir} />
+      </span>
+    </TableHead>
+  );
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Histórico de Envios
-            <Badge variant="secondary" className="ml-1 font-normal">
-              {queue.totalCount}
-            </Badge>
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => loadQueue(page)}
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
+    <Card className="mt-6">
+      {/* ── Header ── */}
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Mail className="h-4 w-4 text-slate-500" />
+              Fila de Emails
+            </CardTitle>
+            {queue && (
+              <Badge variant="secondary" className="font-normal tabular-nums">
+                {queue.totalCount.toLocaleString('pt-BR')}
+              </Badge>
             )}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Destinatário</TableHead>
-                <TableHead>Assunto</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Agendado</TableHead>
-                <TableHead>Enviado</TableHead>
-                <TableHead className="text-right">Tentativas</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {queue.items.map((item) => {
-                const statusCfg =
-                  emailQueueStatusConfig[item.status] ??
-                  emailQueueStatusConfig[EmailQueueStatus.Queued];
-                return (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="min-w-0">
-                        <div className="font-medium text-slate-900 truncate max-w-[180px]">
-                          {item.recipientName}
-                        </div>
-                        <div className="text-xs text-slate-500 truncate max-w-[180px]">
-                          {item.recipientEmail}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-slate-700 truncate block max-w-[220px]">
-                        {item.subject}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusCfg.className}>
-                        {statusCfg.label}
-                      </Badge>
-                      {item.status === EmailQueueStatus.Failed && item.lastError && (
-                        <p className="text-xs text-red-500 mt-1 max-w-[160px] truncate" title={item.lastError}>
-                          {item.lastError}
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500 whitespace-nowrap">
-                      {formatDateShort(item.scheduledAt)}
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500 whitespace-nowrap">
-                      {item.sentAt ? formatDateShort(item.sentAt) : '–'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-sm font-medium text-slate-700">
-                        {item.attemptCount}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar destinatário ou assunto…"
+                className="h-8 pl-8 w-56 text-sm"
+                value={searchInput}
+                onChange={e => handleSearchChange(e.target.value)}
+              />
+              {searchInput && (
+                <button
+                  className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {/* Page size */}
+            <select
+              className="h-8 rounded-md border bg-background px-2 text-xs"
+              value={pageSize}
+              onChange={e => handlePageSize(Number(e.target.value))}
+            >
+              {[10, 20, 50, 100].map(n => (
+                <option key={n} value={n}>{n} / pág</option>
+              ))}
+            </select>
+            {/* Refresh */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => loadQueue(page, pageSize, statusFilter, search)}
+              disabled={loading}
+              title="Atualizar"
+            >
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
 
-        {/* Pagination */}
-        {queue.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-slate-500">
-              Página {queue.page} de {queue.totalPages} ({queue.totalCount} emails)
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => loadQueue(page - 1)}
-                disabled={!queue.hasPreviousPage || loading}
+        {/* Status filter chips */}
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {STATUS_FILTER_OPTIONS.map(opt => {
+            const active = statusFilter === opt.value;
+            return (
+              <button
+                key={String(opt.value)}
+                onClick={() => handleStatusFilter(opt.value)}
+                className={`flex items-center gap-1 rounded-full px-3 py-0.5 text-xs font-medium border transition-colors ${
+                  active
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-background text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-700'
+                }`}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => loadQueue(page + 1)}
-                disabled={!queue.hasNextPage || loading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+                {opt.value !== null && (
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${EMAIL_QUEUE_STATUS_CFG[opt.value].dot}`} />
+                )}
+                {opt.label}
+                {active && queue && (
+                  <span className="ml-0.5 opacity-70">({queue.totalCount})</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-0">
+        {/* Initial skeleton */}
+        {loading && !queue && (
+          <div className="space-y-1 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full rounded" />
+            ))}
           </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && queue && queue.totalCount === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <Mail className="h-10 w-10 mb-3 opacity-20" />
+            <p className="font-medium text-slate-500 text-sm">
+              {search || statusFilter !== null ? 'Nenhum resultado para os filtros aplicados.' : 'Nenhum email na fila de envio.'}
+            </p>
+            {(search || statusFilter !== null) && (
+              <button
+                className="mt-2 text-xs text-primary underline"
+                onClick={() => { setSearchInput(''); setSearch(''); setStatusFilter(null); setPage(1); }}
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Table */}
+        {queue && queue.totalCount > 0 && (
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/60">
+                    <ColHead col="recipientName" label="Destinatário"  className="pl-5 w-[200px]" />
+                    <ColHead col="subject"       label="Assunto"       className="w-[240px]" />
+                    <ColHead col="status"        label="Status"        className="w-[130px]" />
+                    <ColHead col="scheduledAt"   label="Agendado"      className="w-[150px]" />
+                    <ColHead col="sentAt"        label="Enviado"       className="w-[150px]" />
+                    <ColHead col="attemptCount"  label="Tentativas"    className="w-[90px] text-right" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading && sortedItems.length === 0
+                    ? Array.from({ length: pageSize }).map((_, i) => (
+                        <TableRow key={i}>
+                          {Array.from({ length: 6 }).map((__, j) => (
+                            <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    : sortedItems.map(item => {
+                        const cfg = EMAIL_QUEUE_STATUS_CFG[item.status] ?? EMAIL_QUEUE_STATUS_CFG[EmailQueueStatus.Queued];
+                        return (
+                          <TableRow key={item.id} className={`hover:bg-slate-50/60 transition-colors ${loading ? 'opacity-60' : ''}`}>
+                            {/* Destinatário */}
+                            <TableCell className="pl-5">
+                              <div className="font-medium text-slate-900 truncate max-w-[180px] text-sm" title={item.recipientName}>
+                                {item.recipientName}
+                              </div>
+                              <div className="text-xs text-slate-400 truncate max-w-[180px]" title={item.recipientEmail}>
+                                {item.recipientEmail}
+                              </div>
+                            </TableCell>
+                            {/* Assunto */}
+                            <TableCell>
+                              <span className="text-sm text-slate-600 truncate block max-w-[220px]" title={item.subject}>
+                                {item.subject}
+                              </span>
+                            </TableCell>
+                            {/* Status */}
+                            <TableCell>
+                              <Badge variant="outline" className={`gap-1 text-xs font-medium ${cfg.badge}`}>
+                                {cfg.icon}
+                                {cfg.label}
+                              </Badge>
+                              {item.status === EmailQueueStatus.Failed && item.lastError && (
+                                <p
+                                  className="text-[11px] text-red-400 mt-0.5 max-w-[140px] truncate cursor-help"
+                                  title={item.lastError}
+                                >
+                                  {item.lastError}
+                                </p>
+                              )}
+                            </TableCell>
+                            {/* Agendado */}
+                            <TableCell className="text-xs text-slate-500 whitespace-nowrap">
+                              {formatDateShort(item.scheduledAt)}
+                            </TableCell>
+                            {/* Enviado */}
+                            <TableCell className="text-xs text-slate-500 whitespace-nowrap">
+                              {item.sentAt ? formatDateShort(item.sentAt) : <span className="text-slate-300">—</span>}
+                            </TableCell>
+                            {/* Tentativas */}
+                            <TableCell className="text-right pr-5">
+                              <span className={`text-sm font-semibold tabular-nums ${item.attemptCount > 1 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                {item.attemptCount}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                  }
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* ── Pagination bar ── */}
+            <div className="flex items-center justify-between border-t px-5 py-3">
+              <p className="text-xs text-slate-500">
+                {queue.totalCount > 0
+                  ? `Mostrando ${firstItem.toLocaleString('pt-BR')}–${lastItem.toLocaleString('pt-BR')} de ${queue.totalCount.toLocaleString('pt-BR')} registros`
+                  : 'Sem registros'}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(1)}             disabled={!queue.hasPreviousPage || loading} title="Primeira página">«</Button>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => p - 1)}    disabled={!queue.hasPreviousPage || loading}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                <span className="px-3 text-xs text-slate-600 whitespace-nowrap">
+                  {queue.page} / {queue.totalPages}
+                </span>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(p => p + 1)}    disabled={!queue.hasNextPage || loading}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => setPage(queue.totalPages)} disabled={!queue.hasNextPage || loading} title="Última página">»</Button>
+              </div>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

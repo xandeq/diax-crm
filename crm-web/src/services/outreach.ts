@@ -229,8 +229,16 @@ export interface PagedEmailQueueResponse {
   hasPreviousPage: boolean;
 }
 
-export async function getEmailQueue(page = 1, pageSize = 15): Promise<PagedEmailQueueResponse> {
-  return apiFetch(`/email-campaigns/queue?page=${page}&pageSize=${pageSize}`);
+export async function getEmailQueue(
+  page = 1,
+  pageSize = 20,
+  status?: EmailQueueStatus,
+  search?: string,
+): Promise<PagedEmailQueueResponse> {
+  const qs = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (status !== undefined) qs.append('status', String(status));
+  if (search?.trim()) qs.append('search', search.trim());
+  return apiFetch(`/email-campaigns/queue?${qs}`);
 }
 
 // ===== Email Marketing =====
