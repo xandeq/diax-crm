@@ -22,6 +22,7 @@ import { checklistService } from '@/services/checklistService';
 import {
     ChecklistCategory,
     ChecklistItem,
+    ChecklistItemStatus,
     ChecklistPriority,
     CreateChecklistItemRequest,
     UpdateChecklistItemRequest
@@ -57,6 +58,32 @@ export function ChecklistDialog({
     storeOrLink: ''
   });
 
+  const buildCreateRequest = (): CreateChecklistItemRequest => ({
+    categoryId: formData.categoryId || defaultCategoryId || categories[0]?.id || '',
+    title: formData.title || '',
+    description: formData.description || undefined,
+    priority: formData.priority ?? ChecklistPriority.Medium,
+    targetDate: formData.targetDate || undefined,
+    estimatedPrice: formData.estimatedPrice,
+    paidAmount: formData.paidAmount,
+    quantity: formData.quantity ?? 1,
+    storeOrLink: formData.storeOrLink || undefined
+  });
+
+  const buildUpdateRequest = (): UpdateChecklistItemRequest => ({
+    categoryId: formData.categoryId || itemToEdit?.categoryId || defaultCategoryId || categories[0]?.id || '',
+    title: formData.title || '',
+    description: formData.description || undefined,
+    priority: formData.priority ?? itemToEdit?.priority ?? ChecklistPriority.Medium,
+    status: formData.status ?? itemToEdit?.status ?? ChecklistItemStatus.ToBuy,
+    targetDate: formData.targetDate || undefined,
+    estimatedPrice: formData.estimatedPrice,
+    actualPrice: formData.actualPrice,
+    paidAmount: formData.paidAmount,
+    quantity: formData.quantity ?? itemToEdit?.quantity ?? 1,
+    storeOrLink: formData.storeOrLink || undefined
+  });
+
   useEffect(() => {
     if (itemToEdit) {
       setFormData(itemToEdit);
@@ -79,9 +106,9 @@ export function ChecklistDialog({
     setLoading(true);
     try {
       if (itemToEdit) {
-        await checklistService.updateItem(itemToEdit.id, formData as UpdateChecklistItemRequest);
+        await checklistService.updateItem(itemToEdit.id, buildUpdateRequest());
       } else {
-        await checklistService.createItem(formData as CreateChecklistItemRequest);
+        await checklistService.createItem(buildCreateRequest());
       }
       onSave();
     } catch (error) {
@@ -177,7 +204,7 @@ export function ChecklistDialog({
                 id="quantity"
                 type="number"
                 min="1"
-                value={formData.quantity || 1}
+                value={formData.quantity ?? 1}
                 onChange={(e) => handleChange('quantity', parseInt(e.target.value))}
               />
             </div>
@@ -188,7 +215,7 @@ export function ChecklistDialog({
                 type="number"
                 step="0.01"
                 placeholder="0,00"
-                value={formData.estimatedPrice || ''}
+                value={formData.estimatedPrice ?? ''}
                 onChange={(e) => handleChange('estimatedPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
               />
             </div>
@@ -199,7 +226,7 @@ export function ChecklistDialog({
                 type="number"
                 step="0.01"
                 placeholder="0,00"
-                value={formData.paidAmount || ''}
+                value={formData.paidAmount ?? ''}
                 onChange={(e) => handleChange('paidAmount', e.target.value ? parseFloat(e.target.value) : undefined)}
               />
             </div>

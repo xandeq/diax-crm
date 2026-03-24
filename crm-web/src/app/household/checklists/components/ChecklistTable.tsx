@@ -195,8 +195,14 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     }
   };
 
-  const currentTotalPaid = data?.items.reduce((acc, item) => acc + (item.paidAmount || (item.status === ChecklistItemStatus.Bought ? item.estimatedPrice || 0 : 0)), 0) || 0;
-  const currentTotalPending = data?.items.reduce((acc, item) => acc + Math.max(0, (item.estimatedPrice || 0) - (item.paidAmount || (item.status === ChecklistItemStatus.Bought ? item.estimatedPrice || 0 : 0))), 0) || 0;
+  const getEffectivePaidAmount = (item: ChecklistItem) =>
+    item.paidAmount ?? (item.status === ChecklistItemStatus.Bought ? item.estimatedPrice ?? 0 : 0);
+
+  const hasPaidValue = (item: ChecklistItem) =>
+    item.paidAmount !== undefined && item.paidAmount !== null;
+
+  const currentTotalPaid = data?.items.reduce((acc, item) => acc + getEffectivePaidAmount(item), 0) || 0;
+  const currentTotalPending = data?.items.reduce((acc, item) => acc + Math.max(0, (item.estimatedPrice ?? 0) - getEffectivePaidAmount(item)), 0) || 0;
 
   return (
     <div className="flex flex-col">
@@ -438,17 +444,17 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
                   </TableCell>
                   <TableCell className="text-right">
                     <span className="text-sm font-mono text-slate-600">
-                      {item.estimatedPrice ? formatCurrency(item.estimatedPrice) : "-"}
+                      {item.estimatedPrice !== undefined && item.estimatedPrice !== null ? formatCurrency(item.estimatedPrice) : "-"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <span className="text-sm font-mono text-green-600">
-                      {item.paidAmount || item.status === ChecklistItemStatus.Bought ? formatCurrency(item.paidAmount || item.estimatedPrice || 0) : "-"}
+                      {hasPaidValue(item) || item.status === ChecklistItemStatus.Bought ? formatCurrency(getEffectivePaidAmount(item)) : "-"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <span className="text-sm font-mono text-slate-500">
-                      {item.estimatedPrice ? formatCurrency(Math.max(0, item.estimatedPrice - (item.paidAmount || (item.status === ChecklistItemStatus.Bought ? item.estimatedPrice : 0)))) : "-"}
+                      {item.estimatedPrice !== undefined && item.estimatedPrice !== null ? formatCurrency(Math.max(0, item.estimatedPrice - getEffectivePaidAmount(item))) : "-"}
                     </span>
                   </TableCell>
                   <TableCell>
