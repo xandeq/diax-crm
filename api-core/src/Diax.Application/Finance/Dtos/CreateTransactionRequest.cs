@@ -22,5 +22,7 @@ public record CreateTransactionRequest(
     Guid? CreditCardId = null,
     Guid? CreditCardInvoiceId = null,
     TransactionStatus Status = TransactionStatus.Pending,
-    DateTime? PaidDate = null
+    DateTime? PaidDate = null,
+    string? Details = null,
+    bool IsSubscription = false
 );

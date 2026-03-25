@@ -2809,6 +2809,10 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(256)")
                         .HasColumnName("description");
 
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("details");
+
                     b.Property<Guid?>("FinancialAccountId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("financial_account_id");
@@ -2907,6 +2911,10 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.Property<int>("FrequencyType")
                         .HasColumnType("int")
                         .HasColumnName("frequency_type");
+
+                    b.Property<int>("ItemKind")
+                        .HasColumnType("int")
+                        .HasColumnName("item_kind");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")

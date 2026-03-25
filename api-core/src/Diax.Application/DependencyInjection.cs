@@ -118,6 +118,7 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Finance.Planner.RecurringTransactionService>();
         services.AddScoped<Diax.Application.Finance.Planner.CashFlowProjectionService>();
         services.AddScoped<Diax.Application.Finance.Planner.MonthlySimulationService>();
+        services.AddScoped<PersonalFinanceControlService>();
 
         return services;
     }

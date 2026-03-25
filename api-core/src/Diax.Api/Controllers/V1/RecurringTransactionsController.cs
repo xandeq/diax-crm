@@ -85,6 +85,16 @@ public class RecurringTransactionsController : BaseApiController
     /// <summary>
     /// Exclui uma transação recorrente
     /// </summary>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRecurringTransactionRequest request, CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _service.UpdateAsync(id, request, userId.Value);
+        return HandleResult(result);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

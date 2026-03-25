@@ -18,9 +18,19 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
     public TransactionType Type { get; set; }
 
     /// <summary>
+    /// Classificação do item recorrente.
+    /// </summary>
+    public RecurringItemKind ItemKind { get; set; } = RecurringItemKind.Standard;
+
+    /// <summary>
     /// Descrição da transação recorrente
     /// </summary>
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Detalhes adicionais do template.
+    /// </summary>
+    public string? Details { get; set; }
 
     /// <summary>
     /// Valor da transação
@@ -77,18 +87,52 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
     /// </summary>
     public int Priority { get; set; }
 
+    public void Update(
+        TransactionType type,
+        string description,
+        decimal amount,
+        Guid categoryId,
+        FrequencyType frequencyType,
+        int dayOfMonth,
+        DateTime startDate,
+        DateTime? endDate,
+        PaymentMethod paymentMethod,
+        Guid? creditCardId,
+        Guid? financialAccountId,
+        bool isActive,
+        int priority,
+        string? details,
+        RecurringItemKind itemKind)
+    {
+        Type = type;
+        Description = description;
+        Amount = amount;
+        CategoryId = categoryId;
+        FrequencyType = frequencyType;
+        DayOfMonth = dayOfMonth;
+        StartDate = startDate;
+        EndDate = endDate;
+        PaymentMethod = paymentMethod;
+        CreditCardId = creditCardId;
+        FinancialAccountId = financialAccountId;
+        IsActive = isActive;
+        Priority = priority;
+        Details = details;
+        ItemKind = itemKind;
+    }
+
     /// <summary>
     /// Verifica se a recorrência se aplica a um mês/ano específico
     /// </summary>
     public bool IsApplicableForMonth(int month, int year)
     {
-        var targetDate = new DateTime(year, month, 1);
+        var monthStart = new DateTime(year, month, 1);
+        var monthEnd = new DateTime(year, month, DateTime.DaysInMonth(year, month));
 
-        // Verifica se está dentro do período de validade
-        if (targetDate < StartDate.Date)
+        if (monthEnd < StartDate.Date)
             return false;
 
-        if (EndDate.HasValue && targetDate > EndDate.Value.Date)
+        if (EndDate.HasValue && monthStart > EndDate.Value.Date)
             return false;
 
         return true;
@@ -103,57 +147,102 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
 
         switch (FrequencyType)
         {
-            case FrequencyType.Monthly:
-                var current = new DateTime(startDate.Year, startDate.Month, 1);
-                while (current <= endDate)
+            case FrequencyType.Daily:
                 {
-                    // Verifica se o dia existe no mês
-                    var daysInMonth = DateTime.DaysInMonth(current.Year, current.Month);
-                    var day = DayOfMonth > daysInMonth ? daysInMonth : DayOfMonth;
-
-                    var occurrence = new DateTime(current.Year, current.Month, day);
-
-                    if (occurrence >= startDate && occurrence <= endDate && IsApplicableForMonth(current.Month, current.Year))
+                    var currentDate = startDate.Date < StartDate.Date ? StartDate.Date : startDate.Date;
+                    while (currentDate <= endDate)
                     {
-                        occurrences.Add(occurrence);
-                    }
+                        if (currentDate >= StartDate.Date && (!EndDate.HasValue || currentDate <= EndDate.Value.Date))
+                        {
+                            occurrences.Add(currentDate);
+                        }
 
-                    current = current.AddMonths(1);
+                        currentDate = currentDate.AddDays(1);
+                    }
+                    break;
                 }
-                break;
+
+            case FrequencyType.Weekly:
+                {
+                    var currentDate = startDate.Date < StartDate.Date ? StartDate.Date : startDate.Date;
+                    while (currentDate <= endDate)
+                    {
+                        if (currentDate >= StartDate.Date && (!EndDate.HasValue || currentDate <= EndDate.Value.Date))
+                        {
+                            occurrences.Add(currentDate);
+                        }
+
+                        currentDate = currentDate.AddDays(7);
+                    }
+                    break;
+                }
+
+            case FrequencyType.Monthly:
+                {
+                    var monthlyCursor = new DateTime(startDate.Year, startDate.Month, 1);
+                    while (monthlyCursor <= endDate)
+                    {
+                        var daysInMonth = DateTime.DaysInMonth(monthlyCursor.Year, monthlyCursor.Month);
+                        var day = DayOfMonth > daysInMonth ? daysInMonth : DayOfMonth;
+                        var occurrence = new DateTime(monthlyCursor.Year, monthlyCursor.Month, day);
+
+                        if (occurrence >= StartDate.Date
+                            && occurrence >= startDate
+                            && occurrence <= endDate
+                            && IsApplicableForMonth(monthlyCursor.Month, monthlyCursor.Year)
+                            && (!EndDate.HasValue || occurrence <= EndDate.Value.Date))
+                        {
+                            occurrences.Add(occurrence);
+                        }
+
+                        monthlyCursor = monthlyCursor.AddMonths(1);
+                    }
+                    break;
+                }
 
             case FrequencyType.Quarterly:
-                current = new DateTime(startDate.Year, startDate.Month, 1);
-                while (current <= endDate)
                 {
-                    var daysInMonth = DateTime.DaysInMonth(current.Year, current.Month);
-                    var day = DayOfMonth > daysInMonth ? daysInMonth : DayOfMonth;
-                    var occurrence = new DateTime(current.Year, current.Month, day);
-
-                    if (occurrence >= startDate && occurrence <= endDate && IsApplicableForMonth(current.Month, current.Year))
+                    var quarterlyCursor = new DateTime(startDate.Year, startDate.Month, 1);
+                    while (quarterlyCursor <= endDate)
                     {
-                        occurrences.Add(occurrence);
-                    }
+                        var daysInMonth = DateTime.DaysInMonth(quarterlyCursor.Year, quarterlyCursor.Month);
+                        var day = DayOfMonth > daysInMonth ? daysInMonth : DayOfMonth;
+                        var occurrence = new DateTime(quarterlyCursor.Year, quarterlyCursor.Month, day);
 
-                    current = current.AddMonths(3);
+                        if (occurrence >= StartDate.Date
+                            && occurrence >= startDate
+                            && occurrence <= endDate
+                            && IsApplicableForMonth(quarterlyCursor.Month, quarterlyCursor.Year)
+                            && (!EndDate.HasValue || occurrence <= EndDate.Value.Date))
+                        {
+                            occurrences.Add(occurrence);
+                        }
+
+                        quarterlyCursor = quarterlyCursor.AddMonths(3);
+                    }
+                    break;
                 }
-                break;
 
             case FrequencyType.Yearly:
-                for (int year = startDate.Year; year <= endDate.Year; year++)
                 {
-                    // Para yearly, usar o mês de StartDate
-                    var month = StartDate.Month;
-                    var daysInMonth = DateTime.DaysInMonth(year, month);
-                    var day = DayOfMonth > daysInMonth ? daysInMonth : DayOfMonth;
-                    var occurrence = new DateTime(year, month, day);
-
-                    if (occurrence >= startDate && occurrence <= endDate && IsApplicableForMonth(month, year))
+                    for (int year = startDate.Year; year <= endDate.Year; year++)
                     {
-                        occurrences.Add(occurrence);
+                        var month = StartDate.Month;
+                        var daysInMonth = DateTime.DaysInMonth(year, month);
+                        var day = DayOfMonth > daysInMonth ? daysInMonth : DayOfMonth;
+                        var occurrence = new DateTime(year, month, day);
+
+                        if (occurrence >= StartDate.Date
+                            && occurrence >= startDate
+                            && occurrence <= endDate
+                            && IsApplicableForMonth(month, year)
+                            && (!EndDate.HasValue || occurrence <= EndDate.Value.Date))
+                        {
+                            occurrences.Add(occurrence);
+                        }
                     }
+                    break;
                 }
-                break;
         }
 
         return occurrences;

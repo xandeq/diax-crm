@@ -37,13 +37,14 @@ public class RecurringTransactionRepository : Repository<RecurringTransaction>, 
 
     public async Task<List<RecurringTransaction>> GetRecurringForMonthAsync(Guid userId, int month, int year)
     {
-        var targetDate = new DateTime(year, month, 1);
+        var monthStart = new DateTime(year, month, 1);
+        var monthEnd = new DateTime(year, month, DateTime.DaysInMonth(year, month));
 
         return await Context.RecurringTransactions
             .Where(r => r.UserId == userId
                 && r.IsActive
-                && r.StartDate <= targetDate
-                && (!r.EndDate.HasValue || r.EndDate.Value >= targetDate))
+                && r.StartDate <= monthEnd
+                && (!r.EndDate.HasValue || r.EndDate.Value >= monthStart))
             .OrderBy(r => r.Priority)
             .ThenBy(r => r.DayOfMonth)
             .ToListAsync();
@@ -74,5 +75,18 @@ public class RecurringTransactionRepository : Repository<RecurringTransaction>, 
     {
         return await Context.RecurringTransactions
             .AnyAsync(r => r.Id == id && r.UserId == userId);
+    }
+
+    public async Task<bool> ExistsDuplicateAsync(Guid userId, string description, int dayOfMonth, decimal amount, Diax.Domain.Finance.TransactionType type, RecurringItemKind itemKind, Guid? excludeId = null)
+    {
+        return await Context.RecurringTransactions
+            .AnyAsync(r =>
+                r.UserId == userId
+                && r.Description == description
+                && r.DayOfMonth == dayOfMonth
+                && r.Amount == amount
+                && (int)r.Type == (int)type
+                && r.ItemKind == itemKind
+                && (!excludeId.HasValue || r.Id != excludeId.Value));
     }
 }

@@ -140,7 +140,8 @@ public class TransactionService : IApplicationService
                 transaction = Transaction.CreateIncome(
                     request.Description, request.Amount, request.Date,
                     request.PaymentMethod, request.CategoryId,
-                    request.IsRecurring, request.FinancialAccountId.Value, userId);
+                    request.IsRecurring, request.FinancialAccountId.Value, userId,
+                    request.Details);
                 break;
 
             case TransactionType.Expense:
@@ -149,7 +150,8 @@ public class TransactionService : IApplicationService
                     request.PaymentMethod, request.CategoryId,
                     request.IsRecurring, userId,
                     request.CreditCardId, request.CreditCardInvoiceId,
-                    request.FinancialAccountId, request.Status, request.PaidDate);
+                    request.FinancialAccountId, request.Status, request.PaidDate,
+                    request.Details, null, request.IsSubscription);
                 break;
 
             case TransactionType.Transfer:
@@ -244,7 +246,8 @@ public class TransactionService : IApplicationService
             request.Description, request.Amount, request.Date,
             request.PaymentMethod, request.CategoryId, request.IsRecurring,
             request.FinancialAccountId, request.CreditCardId,
-            request.CreditCardInvoiceId, request.Status, request.PaidDate);
+            request.CreditCardInvoiceId, request.Status, request.PaidDate,
+            request.Details, request.IsSubscription);
 
         await _repository.UpdateAsync(tx, ct);
         await _unitOfWork.SaveChangesAsync(ct);
@@ -465,10 +468,12 @@ public class TransactionService : IApplicationService
             tx.Type,
             tx.RawBankType,
             tx.RawDescription,
+            tx.Details,
             tx.PaymentMethod,
             tx.CategoryId,
             tx.Category?.Name,
             tx.IsRecurring,
+            tx.IsSubscription,
             tx.FinancialAccountId,
             tx.FinancialAccount?.Name,
             tx.CreditCardId,

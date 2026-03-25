@@ -13,5 +13,7 @@ public record UpdateTransactionRequest(
     Guid? CreditCardId = null,
     Guid? CreditCardInvoiceId = null,
     TransactionStatus? Status = null,
-    DateTime? PaidDate = null
+    DateTime? PaidDate = null,
+    string? Details = null,
+    bool? IsSubscription = null
 );
