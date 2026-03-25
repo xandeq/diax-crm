@@ -11,6 +11,7 @@ import {
     Landmark,
     LayoutDashboard,
     List,
+    Wallet,
     Tags
 } from 'lucide-react';
 import Link from 'next/link';
@@ -27,6 +28,11 @@ const navItems = [
     name: 'Planejador',
     href: '/finance/planner',
     icon: Calendar
+  },
+  {
+    name: 'Controle pessoal',
+    href: '/finance/personal-control',
+    icon: Wallet
   },
   {
     name: 'Transações',
