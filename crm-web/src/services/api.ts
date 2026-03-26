@@ -103,8 +103,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   try {
     res = await fetch(url, {
       ...init,
-      headers,
-      credentials: 'include'
+      headers
     });
   } catch (error) {
     // Network-level failure (CORS, connection refused, DNS failure, etc.)
