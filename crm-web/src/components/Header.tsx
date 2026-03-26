@@ -90,7 +90,7 @@ export function Header() {
               </div>
             </div>
 
-            {/* ── Operations: Operações ── */}
+            {/* ── Finanças ── */}
             <div className="relative group">
               <button
                 type="button"
@@ -98,11 +98,14 @@ export function Header() {
                 aria-haspopup="menu"
                 aria-expanded="false"
               >
-                Operações
+                Finanças
               </button>
               <div role="menu" className={dropdownClass}>
                 <Link href="/finance" className={menuItemClass} role="menuitem">
                   Dashboard Financeiro
+                </Link>
+                <Link href="/finance/personal-control" className={menuItemClass} role="menuitem">
+                  Planilha Financeira
                 </Link>
                 <Link href="/finance/planner" className={menuItemClass} role="menuitem">
                   Planejador Financeiro
