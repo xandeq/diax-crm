@@ -80,11 +80,24 @@ function monthTitle(year: number, month: number) {
 }
 
 function incomeFormReset(): EditingState<CreatePersonalControlIncomeRequest> {
-  return { name: '', amount: 0, dayOfMonth: new Date().getDate(), isRecurring: true, details: '', editingId: null };
+  const now = currentPeriod();
+  return {
+    year: now.year,
+    month: now.month,
+    name: '',
+    amount: 0,
+    dayOfMonth: new Date().getDate(),
+    isRecurring: true,
+    details: '',
+    editingId: null,
+  };
 }
 
 function expenseFormReset(): EditingState<CreatePersonalControlExpenseRequest> {
+  const now = currentPeriod();
   return {
+    year: now.year,
+    month: now.month,
     name: '',
     amount: 0,
     paymentType: 'debit',
@@ -96,7 +109,10 @@ function expenseFormReset(): EditingState<CreatePersonalControlExpenseRequest> {
 }
 
 function subscriptionFormReset(): EditingState<CreatePersonalControlSubscriptionRequest> {
+  const now = currentPeriod();
   return {
+    year: now.year,
+    month: now.month,
     name: '',
     amount: 0,
     billingFrequency: 'monthly',
@@ -228,7 +244,9 @@ function Page() {
     id: string,
     isPaid: boolean,
   ) => {
-    const payload: TogglePersonalControlStatusRequest = {
+      const payload: TogglePersonalControlStatusRequest = {
+      year: period.year,
+      month: period.month,
       isPaid,
       paymentDate: isPaid ? new Date().toISOString() : undefined,
     };
@@ -278,6 +296,8 @@ function Page() {
     setSavingKey('income');
     try {
       const payload = {
+        year: period.year,
+        month: period.month,
         name: incomeForm.name,
         amount: Number(incomeForm.amount),
         dayOfMonth: Number(incomeForm.dayOfMonth),
@@ -307,6 +327,8 @@ function Page() {
     setSavingKey('expense');
     try {
       const payload = {
+        year: period.year,
+        month: period.month,
         name: expenseForm.name,
         amount: Number(expenseForm.amount),
         paymentType: expenseForm.paymentType,
@@ -337,6 +359,8 @@ function Page() {
     setSavingKey('subscription');
     try {
       const payload = {
+        year: period.year,
+        month: period.month,
         name: subscriptionForm.name,
         amount: Number(subscriptionForm.amount),
         billingFrequency: subscriptionForm.billingFrequency,
@@ -364,6 +388,8 @@ function Page() {
 
   const editIncome = (item: PersonalControlIncomeItem) => {
     setIncomeForm({
+      year: period.year,
+      month: period.month,
       name: item.name,
       amount: item.amount,
       dayOfMonth: item.dayOfMonth,
@@ -375,6 +401,8 @@ function Page() {
 
   const editExpense = (item: PersonalControlExpenseItem) => {
     setExpenseForm({
+      year: period.year,
+      month: period.month,
       name: item.name,
       amount: item.amount,
       paymentType: item.paymentType,
@@ -387,6 +415,8 @@ function Page() {
 
   const editSubscription = (item: PersonalControlSubscriptionItem) => {
     setSubscriptionForm({
+      year: period.year,
+      month: period.month,
       name: item.name,
       amount: item.amount,
       billingFrequency: item.billingFrequency,
@@ -406,12 +436,12 @@ function Page() {
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-white/80">
               <Wallet className="h-3.5 w-3.5" />
-              Controle financeiro pessoal mensal
+              Planilha Financeira
             </div>
-            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Visão mensal estilo planilha</h1>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Planilha Financeira</h1>
             <p className="max-w-2xl text-sm text-white/70 md:text-base">
-              Receitas, despesas, assinaturas e cartões em uma única tela, com marcação de pago/pendente e
-              resumo consolidado por mês.
+              Receitas, despesas, assinaturas e cartões em uma visão mensal unificada, com marcação de
+              pago/pendente e resumo consolidado do período.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

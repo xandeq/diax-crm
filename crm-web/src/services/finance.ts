@@ -497,10 +497,12 @@ export interface Transaction {
     type: TransactionType;
     rawBankType?: RawBankType;
     rawDescription?: string;
+    details?: string;
     paymentMethod: PaymentMethod;
     categoryId?: string;
     categoryName?: string;
     isRecurring: boolean;
+    isSubscription?: boolean;
     financialAccountId?: string;
     financialAccountName?: string;
     creditCardId?: string;
@@ -527,6 +529,8 @@ export interface CreateTransactionRequest {
     creditCardInvoiceId?: string;
     status?: TransactionStatus;
     paidDate?: string;
+    details?: string;
+    isSubscription?: boolean;
 }
 
 export interface UpdateTransactionRequest {
@@ -541,6 +545,8 @@ export interface UpdateTransactionRequest {
     creditCardInvoiceId?: string;
     status?: TransactionStatus;
     paidDate?: string;
+    details?: string;
+    isSubscription?: boolean;
 }
 
 export interface ReclassifyTransactionRequest {
@@ -571,6 +577,147 @@ export interface UpdateTransactionCategoryRequest {
 
 export interface TransactionFilters extends FinancialFilters {
     type?: TransactionType;
+}
+
+export enum RecurringItemKind {
+    Standard = 1,
+    Subscription = 2
+}
+
+export enum PlannerFrequencyType {
+    Daily = 1,
+    Weekly = 2,
+    Monthly = 3,
+    Quarterly = 4,
+    Yearly = 5
+}
+
+export interface RecurringTemplate {
+    id: string;
+    userId: string;
+    type: TransactionType;
+    itemKind: RecurringItemKind;
+    description: string;
+    details?: string;
+    amount: number;
+    categoryId: string;
+    frequencyType: PlannerFrequencyType;
+    dayOfMonth: number;
+    startDate: string;
+    endDate?: string;
+    paymentMethod: PaymentMethod;
+    creditCardId?: string;
+    financialAccountId?: string;
+    isActive: boolean;
+    priority: number;
+    isSubscription: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateRecurringTemplateRequest {
+    type: TransactionType;
+    itemKind?: RecurringItemKind;
+    description: string;
+    details?: string;
+    amount: number;
+    categoryId: string;
+    frequencyType?: PlannerFrequencyType;
+    dayOfMonth: number;
+    startDate: string;
+    endDate?: string;
+    paymentMethod: PaymentMethod;
+    creditCardId?: string;
+    financialAccountId?: string;
+    priority?: number;
+}
+
+export interface UpdateRecurringTemplateRequest extends CreateRecurringTemplateRequest {
+    isActive: boolean;
+}
+
+export interface RecurringOccurrence {
+    sourceRecurringTransactionId: string;
+    description: string;
+    details?: string;
+    amount: number;
+    date: string;
+    type: TransactionType;
+    itemKind: RecurringItemKind;
+    frequencyType: PlannerFrequencyType;
+    dayOfMonth: number;
+    paymentMethod: PaymentMethod;
+    categoryId: string;
+    creditCardId?: string;
+    financialAccountId?: string;
+    isSubscription: boolean;
+    priority: number;
+    isActive: boolean;
+}
+
+export interface CreditCardMonthlySummary {
+    creditCardId: string;
+    creditCardName: string;
+    lastFourDigits: string;
+    creditCardGroupId?: string;
+    creditCardGroupName?: string;
+    totalAmount: number;
+    paidAmount: number;
+    pendingAmount: number;
+    expenseCount: number;
+    hasInvoice: boolean;
+    invoiceAmount: number;
+    invoicePaid: boolean;
+    invoicePaymentDate?: string;
+    invoiceDueDate?: string;
+}
+
+export interface CreditCardInvoiceMonthlySummary {
+    id: string;
+    creditCardGroupId: string;
+    creditCardGroupName: string;
+    referenceMonth: number;
+    referenceYear: number;
+    closingDate: string;
+    dueDate: string;
+    totalAmount: number;
+    isPaid: boolean;
+    paymentDate?: string;
+    paidFromAccountId?: string;
+    paidFromAccountName?: string;
+}
+
+export interface PersonalFinanceMonthSummary {
+    totalIncome: number;
+    totalExpenses: number;
+    totalCreditExpenses: number;
+    remainingBalance: number;
+    paidExpenses: number;
+    unpaidExpenses: number;
+    expensesWithCard: number;
+    expensesWithoutCard: number;
+    projectedIncome: number;
+    projectedExpenses: number;
+    projectedRemainingBalance: number;
+    subscriptionTotal: number;
+    paidCount: number;
+    unpaidCount: number;
+}
+
+export interface PersonalFinanceMonthResponse {
+    year: number;
+    month: number;
+    periodStart: string;
+    periodEnd: string;
+    items: Transaction[];
+    incomes: Transaction[];
+    expenses: Transaction[];
+    recurringItems: RecurringOccurrence[];
+    subscriptions: RecurringOccurrence[];
+    creditCards: CreditCardMonthlySummary[];
+    creditCardInvoices: CreditCardInvoiceMonthlySummary[];
+    summary: PersonalFinanceMonthSummary;
+    warnings: string[];
 }
 
 export const financeService = {
@@ -1066,6 +1213,66 @@ export const financeService = {
     },
     deleteTransactionCategory: async (id: string) => {
         return apiFetch<void>(`/transaction-categories/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Planilha Financeira
+    getPersonalFinanceMonth: async (year: number, month: number) => {
+        return apiFetch<PersonalFinanceMonthResponse>(`/personal-control/months/${year}/${month}`);
+    },
+    getPersonalFinanceSummary: async (year: number, month: number) => {
+        return apiFetch<PersonalFinanceMonthResponse>(`/personal-control/months/${year}/${month}`).then((response) => response.summary);
+    },
+    createPersonalFinanceTransaction: async (data: CreateTransactionRequest) => {
+        return apiFetch<string>('/personal-control/expenses', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updatePersonalFinanceTransaction: async (id: string, data: UpdateTransactionRequest) => {
+        return apiFetch<void>(`/personal-control/expenses/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deletePersonalFinanceTransaction: async (id: string) => {
+        return apiFetch<void>(`/personal-control/expenses/${id}`, {
+            method: 'DELETE',
+        });
+    },
+    markPersonalFinanceTransactionAsPaid: async (id: string, paidDate?: string) => {
+        return apiFetch<void>(`/personal-control/expenses/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isPaid: true, paymentDate: paidDate }),
+        });
+    },
+    markPersonalFinanceTransactionAsPending: async (id: string) => {
+        return apiFetch<void>(`/personal-control/expenses/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isPaid: false }),
+        });
+    },
+    getPersonalFinanceTemplates: async () => {
+        return apiFetch<RecurringTemplate[]>('/finance/personal-control/templates');
+    },
+    getPersonalFinanceSubscriptions: async () => {
+        return apiFetch<RecurringTemplate[]>('/finance/personal-control/subscriptions');
+    },
+    createPersonalFinanceTemplate: async (data: CreateRecurringTemplateRequest) => {
+        return apiFetch<RecurringTemplate>('/finance/personal-control/templates', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updatePersonalFinanceTemplate: async (id: string, data: UpdateRecurringTemplateRequest) => {
+        return apiFetch<void>(`/finance/personal-control/templates/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+    deletePersonalFinanceTemplate: async (id: string) => {
+        return apiFetch<void>(`/finance/personal-control/templates/${id}`, {
             method: 'DELETE',
         });
     },

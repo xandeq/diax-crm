@@ -3177,6 +3177,11 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(500)")
                         .HasColumnName("description");
 
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("details");
+
                     b.Property<Guid?>("FinancialAccountId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("financial_account_id");
@@ -3184,6 +3189,10 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.Property<bool>("IsRecurring")
                         .HasColumnType("bit")
                         .HasColumnName("is_recurring");
+
+                    b.Property<bool>("IsSubscription")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_subscription");
 
                     b.Property<DateTime?>("PaidDate")
                         .HasColumnType("datetime2")
@@ -3201,6 +3210,10 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)")
                         .HasColumnName("raw_description");
+
+                    b.Property<Guid?>("RecurringTransactionId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("recurring_transaction_id");
 
                     b.Property<int>("Status")
                         .HasColumnType("int")
@@ -3238,6 +3251,8 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.HasIndex("CreditCardInvoiceId");
 
                     b.HasIndex("FinancialAccountId");
+
+                    b.HasIndex("RecurringTransactionId");
 
                     b.HasIndex("TransferGroupId")
                         .HasDatabaseName("IX_transactions_transfer_group")
@@ -4844,6 +4859,11 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.HasOne("Diax.Domain.Finance.CreditCardInvoice", "CreditCardInvoice")
                         .WithMany("Transactions")
                         .HasForeignKey("CreditCardInvoiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Diax.Domain.Finance.Planner.RecurringTransaction", null)
+                        .WithMany()
+                        .HasForeignKey("RecurringTransactionId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Diax.Domain.Finance.FinancialAccount", "FinancialAccount")

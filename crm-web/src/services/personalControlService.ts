@@ -1,9 +1,7 @@
 import { apiFetch } from './api';
 
 export type PersonalControlKind = 'income' | 'expense' | 'subscription';
-
 export type PersonalControlPaymentType = 'debit' | 'credit';
-
 export type PersonalControlBillingFrequency = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 
 export interface PersonalControlPeriod {
@@ -87,20 +85,28 @@ export interface PersonalControlMonthView {
 }
 
 export interface CreatePersonalControlIncomeRequest {
+  year: number;
+  month: number;
   name: string;
   amount: number;
   dayOfMonth: number;
   isRecurring?: boolean;
+  isPaid?: boolean;
+  paymentDate?: string;
   details?: string;
 }
 
 export interface UpdatePersonalControlIncomeRequest extends CreatePersonalControlIncomeRequest {}
 
 export interface CreatePersonalControlExpenseRequest {
+  year: number;
+  month: number;
   name: string;
   amount: number;
   paymentType: PersonalControlPaymentType;
   dueDay: number;
+  isPaid?: boolean;
+  paymentDate?: string;
   details?: string;
   creditCardId?: string;
 }
@@ -108,10 +114,14 @@ export interface CreatePersonalControlExpenseRequest {
 export interface UpdatePersonalControlExpenseRequest extends CreatePersonalControlExpenseRequest {}
 
 export interface CreatePersonalControlSubscriptionRequest {
+  year: number;
+  month: number;
   name: string;
   amount: number;
   billingFrequency: PersonalControlBillingFrequency;
   paymentType: PersonalControlPaymentType;
+  isPaid?: boolean;
+  paymentDate?: string;
   details?: string;
   creditCardId?: string;
 }
@@ -119,6 +129,8 @@ export interface CreatePersonalControlSubscriptionRequest {
 export interface UpdatePersonalControlSubscriptionRequest extends CreatePersonalControlSubscriptionRequest {}
 
 export interface TogglePersonalControlStatusRequest {
+  year?: number;
+  month?: number;
   isPaid: boolean;
   paymentDate?: string;
 }

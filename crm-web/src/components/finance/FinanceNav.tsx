@@ -30,7 +30,7 @@ const navItems = [
     icon: Calendar
   },
   {
-    name: 'Controle pessoal',
+    name: 'Planilha Financeira',
     href: '/finance/personal-control',
     icon: Wallet
   },
