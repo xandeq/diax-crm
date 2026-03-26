@@ -10,6 +10,7 @@ export function getApiBaseUrl(): string {
 }
 
 const ACCESS_TOKEN_KEY = 'accessToken';
+let inMemoryAccessToken: string | null = null;
 
 function readTokenFromStorage(storage: Storage | null | undefined): string | null {
   if (!storage) return null;
@@ -46,13 +47,18 @@ function removeTokenFromStorage(storage: Storage | null | undefined) {
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return readTokenFromStorage(window.sessionStorage) ?? readTokenFromStorage(window.localStorage);
+  return (
+    readTokenFromStorage(window.sessionStorage) ??
+    readTokenFromStorage(window.localStorage) ??
+    inMemoryAccessToken
+  );
 }
 
 export function setAccessToken(token: string) {
   if (typeof window === 'undefined') return;
   if (!token || token === 'undefined' || token === 'null') return;
 
+  inMemoryAccessToken = token;
   writeTokenToStorage(window.sessionStorage, token);
   writeTokenToStorage(window.localStorage, token);
 }
@@ -60,6 +66,7 @@ export function setAccessToken(token: string) {
 export function clearAccessToken() {
   if (typeof window === 'undefined') return;
 
+  inMemoryAccessToken = null;
   removeTokenFromStorage(window.sessionStorage);
   removeTokenFromStorage(window.localStorage);
 }
