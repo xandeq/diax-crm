@@ -1,6 +1,6 @@
 'use client';
 
-import { getAccessToken, setAccessToken as setApiToken } from '@/services/api';
+import { clearAccessToken, getAccessToken, setAccessToken as setApiToken } from '@/services/api';
 import { User, UserRole } from '@/types/auth';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
@@ -63,9 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('accessToken');
-    }
+    clearAccessToken();
     setIsAuthenticated(false);
     setUser(null);
     router.push('/login');

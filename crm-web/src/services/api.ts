@@ -9,17 +9,59 @@ export function getApiBaseUrl(): string {
   return cleanBase;
 }
 
+const ACCESS_TOKEN_KEY = 'accessToken';
+
+function readTokenFromStorage(storage: Storage | null | undefined): string | null {
+  if (!storage) return null;
+
+  try {
+    const token = storage.getItem(ACCESS_TOKEN_KEY);
+    if (!token || token === 'undefined' || token === 'null') return null;
+    return token;
+  } catch (error) {
+    console.warn('Failed to read access token from storage:', error);
+    return null;
+  }
+}
+
+function writeTokenToStorage(storage: Storage | null | undefined, token: string) {
+  if (!storage) return;
+
+  try {
+    storage.setItem(ACCESS_TOKEN_KEY, token);
+  } catch (error) {
+    console.warn('Failed to persist access token to storage:', error);
+  }
+}
+
+function removeTokenFromStorage(storage: Storage | null | undefined) {
+  if (!storage) return;
+
+  try {
+    storage.removeItem(ACCESS_TOKEN_KEY);
+  } catch (error) {
+    console.warn('Failed to clear access token from storage:', error);
+  }
+}
+
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
-  const token = sessionStorage.getItem('accessToken');
-  if (!token || token === 'undefined' || token === 'null') return null;
-  return token;
+  return readTokenFromStorage(window.sessionStorage) ?? readTokenFromStorage(window.localStorage);
 }
 
 export function setAccessToken(token: string) {
   if (typeof window === 'undefined') return;
   if (!token || token === 'undefined' || token === 'null') return;
-  sessionStorage.setItem('accessToken', token);
+
+  writeTokenToStorage(window.sessionStorage, token);
+  writeTokenToStorage(window.localStorage, token);
+}
+
+export function clearAccessToken() {
+  if (typeof window === 'undefined') return;
+
+  removeTokenFromStorage(window.sessionStorage);
+  removeTokenFromStorage(window.localStorage);
 }
 
 export class ApiError extends Error {
