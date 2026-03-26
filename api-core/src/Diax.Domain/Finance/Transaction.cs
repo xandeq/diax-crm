@@ -39,6 +39,7 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
     /// Null para transações criadas manualmente.
     /// </summary>
     public string? RawDescription { get; private set; }
+    public string? Details { get; private set; }
 
     public PaymentMethod PaymentMethod { get; private set; }
     public bool IsRecurring { get; private set; }
@@ -57,6 +58,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
 
     public Guid? CreditCardInvoiceId { get; private set; }
     public virtual CreditCardInvoice? CreditCardInvoice { get; private set; }
+    public Guid? RecurringTransactionId { get; private set; }
+    public bool IsSubscription { get; private set; }
 
     // Status e pagamento (relevante para Expense)
     public TransactionStatus Status { get; private set; }
@@ -88,7 +91,9 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         Guid? categoryId,
         bool isRecurring,
         Guid financialAccountId,
-        Guid userId)
+        Guid userId,
+        string? details = null,
+        Guid? recurringTransactionId = null)
     {
         ValidateCommonFields(description, amount, userId);
 
@@ -106,6 +111,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
             IsRecurring = isRecurring,
             FinancialAccountId = financialAccountId,
             UserId = userId,
+            Details = details,
+            RecurringTransactionId = recurringTransactionId,
             Status = TransactionStatus.Paid // Incomes são sempre "pagos"
         };
     }
@@ -125,7 +132,10 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         Guid? creditCardInvoiceId = null,
         Guid? financialAccountId = null,
         TransactionStatus status = TransactionStatus.Pending,
-        DateTime? paidDate = null)
+        DateTime? paidDate = null,
+        string? details = null,
+        Guid? recurringTransactionId = null,
+        bool isSubscription = false)
     {
         ValidateCommonFields(description, amount, userId);
 
@@ -143,7 +153,10 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
             CreditCardInvoiceId = creditCardInvoiceId,
             FinancialAccountId = financialAccountId,
             Status = status,
-            PaidDate = paidDate
+            PaidDate = paidDate,
+            Details = details,
+            RecurringTransactionId = recurringTransactionId,
+            IsSubscription = isSubscription
         };
 
         transaction.ValidateExpenseConstraints();
@@ -239,7 +252,9 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         Guid? creditCardId = null,
         Guid? creditCardInvoiceId = null,
         TransactionStatus? status = null,
-        DateTime? paidDate = null)
+        DateTime? paidDate = null,
+        string? details = null,
+        bool? isSubscription = null)
     {
         ValidateCommonFields(description, amount, UserId);
 
@@ -252,12 +267,16 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         FinancialAccountId = financialAccountId;
         CreditCardId = creditCardId;
         CreditCardInvoiceId = creditCardInvoiceId;
+        Details = details;
 
         if (status.HasValue)
             Status = status.Value;
 
         if (paidDate.HasValue)
             PaidDate = paidDate.Value;
+
+        if (isSubscription.HasValue)
+            IsSubscription = isSubscription.Value;
 
         if (Type == TransactionType.Expense)
             ValidateExpenseConstraints();
@@ -312,6 +331,14 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         AccountTransferId = accountTransferId;
         TransferGroupId = transferGroupId;
         Type = TransactionType.Transfer;
+    }
+
+    public void LinkToRecurringTemplate(Guid recurringTransactionId, bool isSubscription, string? details = null)
+    {
+        RecurringTransactionId = recurringTransactionId;
+        IsSubscription = isSubscription;
+        Details = details;
+        IsRecurring = true;
     }
 
     private static void ValidateCommonFields(string description, decimal amount, Guid userId)

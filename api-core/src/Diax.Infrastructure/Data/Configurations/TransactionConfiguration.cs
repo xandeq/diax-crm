@@ -33,6 +33,10 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasMaxLength(500)
             .IsRequired(false);
 
+        builder.Property(x => x.Details)
+            .HasMaxLength(1000)
+            .IsRequired(false);
+
         builder.Property(x => x.PaymentMethod)
             .IsRequired();
 
@@ -47,6 +51,12 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 
         builder.Property(x => x.AccountTransferId)
             .IsRequired(false);
+
+        builder.Property(x => x.RecurringTransactionId)
+            .IsRequired(false);
+
+        builder.Property(x => x.IsSubscription)
+            .IsRequired();
 
         // TransactionCategory relationship
         builder.HasOne(x => x.Category)
@@ -73,6 +83,12 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasOne(x => x.CreditCardInvoice)
             .WithMany(i => i.Transactions)
             .HasForeignKey(x => x.CreditCardInvoiceId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        builder.HasOne<Diax.Domain.Finance.Planner.RecurringTransaction>()
+            .WithMany()
+            .HasForeignKey(x => x.RecurringTransactionId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 

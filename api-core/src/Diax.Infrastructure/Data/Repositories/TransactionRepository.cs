@@ -115,6 +115,21 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
             .ToListAsync(ct);
     }
 
+    public async Task<Transaction?> GetByRecurringTransactionForMonthAsync(Guid recurringTransactionId, int year, int month, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .IgnoreQueryFilters()
+            .Include(t => t.Category)
+            .Include(t => t.FinancialAccount)
+            .Include(t => t.CreditCard)
+            .FirstOrDefaultAsync(
+                t => t.UserId == userId
+                    && t.RecurringTransactionId == recurringTransactionId
+                    && t.Date.Year == year
+                    && t.Date.Month == month,
+                ct);
+    }
+
     public override async Task<PagedResult<Transaction>> GetPagedAsync(
         int page,
         int pageSize,
