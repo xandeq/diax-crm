@@ -285,6 +285,9 @@ try
             db.Database.Migrate();
             Log.Information("Database migrations applied successfully.");
 
+            await EnsurePersonalFinanceSchemaAsync(db);
+            Log.Information("Personal finance schema hotfix verified.");
+
             // Seed initial admin (idempotent) — usa app.Configuration (após Build)
             UserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
             Log.Information("UserSeeder completed.");
@@ -446,4 +449,50 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+static async Task EnsurePersonalFinanceSchemaAsync(DiaxDbContext db)
+{
+    const string sql = """
+        IF COL_LENGTH('transactions', 'details') IS NULL
+            ALTER TABLE [transactions] ADD [details] nvarchar(1000) NULL;
+
+        IF COL_LENGTH('transactions', 'is_subscription') IS NULL
+            ALTER TABLE [transactions] ADD [is_subscription] bit NOT NULL
+                CONSTRAINT [DF_transactions_is_subscription] DEFAULT(0);
+
+        IF COL_LENGTH('transactions', 'recurring_transaction_id') IS NULL
+            ALTER TABLE [transactions] ADD [recurring_transaction_id] uniqueidentifier NULL;
+
+        IF COL_LENGTH('recurring_transactions', 'details') IS NULL
+            ALTER TABLE [recurring_transactions] ADD [details] nvarchar(max) NULL;
+
+        IF COL_LENGTH('recurring_transactions', 'item_kind') IS NULL
+            ALTER TABLE [recurring_transactions] ADD [item_kind] int NOT NULL
+                CONSTRAINT [DF_recurring_transactions_item_kind] DEFAULT(1);
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM sys.indexes
+            WHERE name = 'IX_transactions_recurring_transaction_id'
+              AND object_id = OBJECT_ID(N'[transactions]'))
+        BEGIN
+            CREATE INDEX [IX_transactions_recurring_transaction_id]
+                ON [transactions] ([recurring_transaction_id]);
+        END;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM sys.foreign_keys
+            WHERE name = 'FK_transactions_recurring_transactions_recurring_transaction_id')
+        BEGIN
+            ALTER TABLE [transactions]
+            ADD CONSTRAINT [FK_transactions_recurring_transactions_recurring_transaction_id]
+                FOREIGN KEY ([recurring_transaction_id])
+                REFERENCES [recurring_transactions] ([id])
+                ON DELETE SET NULL;
+        END;
+        """;
+
+    await db.Database.ExecuteSqlRawAsync(sql);
 }
