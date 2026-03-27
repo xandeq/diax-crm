@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Diax.Application\Diax.Application.csproj" />
     <ProjectReference Include="..\..\src\Diax.Domain\Diax.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Diax.Infrastructure\Diax.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Diax.Shared\Diax.Shared.csproj" />
   </ItemGroup>
 
