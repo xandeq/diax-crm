@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Diax.Api.Auth;
 using Diax.Application.EmailMarketing;
 using Diax.Application.EmailMarketing.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Diax.Api.Controllers.V1;
 
 [Authorize]
+[RequirePermission("campaigns.manage")]
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/email-campaigns")]

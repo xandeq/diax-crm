@@ -18,6 +18,7 @@ bin/
 obj/
 *.user
 *.suo
+api-core/src/Diax.Api/App_Data/DataProtection-Keys/
 
 # OS
 Thumbs.db
@@ -35,6 +36,11 @@ api-core/src/Diax.Api/App_Data/
 api-core/src/Diax.Api/logs/
 api-core/src/Diax.Api/*.log
 api-core/src/Diax.Api/startup-error.txt
+
+# E2E
+playwright-report/
+test-results/
+blob-report/
 
 # Google Cloud credentials
 service_account.json

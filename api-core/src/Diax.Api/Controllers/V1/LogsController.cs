@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Diax.Api.Auth;
 using Diax.Application.Logs;
 using Diax.Application.Logs.Dtos;
 using Diax.Domain.Logs;
@@ -13,6 +14,7 @@ namespace Diax.Api.Controllers.V1;
 [Route("api/v{version:apiVersion}/[controller]")]
 [Produces("application/json")]
 [Authorize]
+[RequirePermission("logs.view")]
 public class LogsController : BaseApiController
 {
     private readonly AppLogService _service;

@@ -1,5 +1,6 @@
 using Diax.Application.AI;
 using Diax.Application.AI.Dtos;
+using Diax.Api.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,6 +13,7 @@ namespace Diax.Api.Controllers.V1;
 [ApiController]
 [Route("api/v1/ai/management")]
 [Authorize]
+[RequirePermission("ai.manage")]
 public class AiProviderManagementController : ControllerBase
 {
     private readonly IAiProviderManagementService _managementService;

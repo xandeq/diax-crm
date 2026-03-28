@@ -22,11 +22,13 @@ public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly DiaxDbContext _db;
+    private readonly IWebHostEnvironment _environment;
 
-    public AuthController(IConfiguration configuration, DiaxDbContext db)
+    public AuthController(IConfiguration configuration, DiaxDbContext db, IWebHostEnvironment environment)
     {
         _configuration = configuration;
         _db = db;
+        _environment = environment;
     }
 
     [HttpPost("login")]
@@ -62,7 +64,14 @@ public class AuthController : ControllerBase
             return Ok(CreateTokenResponse(user.Email, isAdmin ? "Admin" : "User"));
         }
 
-        // Fallback (temporary): allow config-based admin while DB is empty
+        var bootstrapAdminEnabled =
+            _environment.IsDevelopment() ||
+            bool.TryParse(_configuration["Auth:EnableBootstrapAdminLogin"], out var enabled) && enabled;
+
+        if (!bootstrapAdminEnabled)
+            return Unauthorized(new { message = "Auth bootstrap login is disabled." });
+
+        // Fallback (bootstrap only): allow config-based admin while DB is empty
         var adminEmail = _configuration["Auth:AdminEmail"];
         var adminPassword = _configuration["Auth:AdminPassword"];
 

@@ -240,7 +240,8 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // Health Checks
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"), tags: new[] { "live", "ready" });
 
 var app = builder.Build();
 
@@ -393,7 +394,17 @@ if (!app.Environment.IsProduction())
 }
 
 // Serilog request logging
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("CorrelationId", httpContext.Items["CorrelationId"]?.ToString());
+        diagnosticContext.Set("RequestPath", httpContext.Request.Path);
+        diagnosticContext.Set("RequestMethod", httpContext.Request.Method);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
+        diagnosticContext.Set("RemoteIpAddress", httpContext.Connection.RemoteIpAddress?.ToString());
+    };
+});
 
 // Static Files - serve imagens de email da pasta wwwroot/email-images
 app.UseStaticFiles();
@@ -410,6 +421,14 @@ app.MapControllers();
 
 // Health Check endpoint
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("live")
+});
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready")
+});
 
 // Redirects para Swagger — apenas em não-produção
 if (!app.Environment.IsProduction())

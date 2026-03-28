@@ -1,9 +1,8 @@
 using Asp.Versioning;
+using Diax.Api.Auth;
 using Diax.Application.Audit;
 using Diax.Application.Audit.Dtos;
-using Diax.Application.Auth;
 using Diax.Domain.Audit;
-using Diax.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -15,6 +14,7 @@ namespace Diax.Api.Controllers.V1;
 /// Acesso restrito a usuários com grupo system-admin.
 /// </summary>
 [Authorize]
+[RequirePermission("audit.view")]
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/audit-logs")]
@@ -22,29 +22,14 @@ namespace Diax.Api.Controllers.V1;
 public class AuditLogsController : BaseApiController
 {
     private readonly IAuditLogService _auditLogService;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IPermissionService _permissionService;
     private readonly ILogger<AuditLogsController> _logger;
 
     public AuditLogsController(
         IAuditLogService auditLogService,
-        ICurrentUserService currentUserService,
-        IPermissionService permissionService,
         ILogger<AuditLogsController> logger)
     {
         _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
-    // ===== Helpers =====
-
-    private async Task<bool> IsAdminAsync(CancellationToken ct)
-    {
-        var userId = _currentUserService.UserId;
-        if (userId is null) return false;
-        return await _permissionService.IsAdminAsync(userId.Value, ct);
     }
 
     // ===== Endpoints =====
@@ -69,9 +54,6 @@ public class AuditLogsController : BaseApiController
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
     {
-        if (!await IsAdminAsync(ct))
-            return Forbid();
-
         var request = new AuditLogFilterRequest(
             userId, resourceType, resourceId, action, source, status,
             fromDate, toDate, searchText, page, pageSize);
@@ -89,9 +71,6 @@ public class AuditLogsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        if (!await IsAdminAsync(ct))
-            return Forbid();
-
         var result = await _auditLogService.GetByIdAsync(id, ct);
         return HandleResult(result);
     }
@@ -108,9 +87,6 @@ public class AuditLogsController : BaseApiController
         string resourceId,
         CancellationToken ct)
     {
-        if (!await IsAdminAsync(ct))
-            return Forbid();
-
         var result = await _auditLogService.GetResourceHistoryAsync(resourceType, resourceId, ct);
         return HandleResult(result);
     }
@@ -127,15 +103,6 @@ public class AuditLogsController : BaseApiController
         [FromQuery] int? limit = null,
         CancellationToken ct = default)
     {
-        var currentUserId = _currentUserService.UserId;
-        if (currentUserId is null)
-            return Unauthorized();
-
-        // Verifica se é admin ou o próprio usuário
-        var isAdmin = await _permissionService.IsAdminAsync(currentUserId.Value, ct);
-        if (!isAdmin && currentUserId.Value != targetUserId)
-            return Forbid();
-
         var result = await _auditLogService.GetUserActivityAsync(targetUserId, limit, ct);
         return HandleResult(result);
     }
@@ -152,12 +119,9 @@ public class AuditLogsController : BaseApiController
         [FromQuery] int olderThanDays = 90,
         CancellationToken ct = default)
     {
-        if (!await IsAdminAsync(ct))
-            return Forbid();
-
         _logger.LogWarning(
-            "Cleanup de audit logs solicitado por {UserId}: logs anteriores a {Days} dias serão removidos",
-            _currentUserService.UserId, olderThanDays);
+            "Cleanup de audit logs solicitado: logs anteriores a {Days} dias serão removidos",
+            olderThanDays);
 
         var result = await _auditLogService.CleanupOldLogsAsync(olderThanDays, ct);
 

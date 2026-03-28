@@ -12,6 +12,14 @@ export function getApiBaseUrl(): string {
 const ACCESS_TOKEN_KEY = 'accessToken';
 let inMemoryAccessToken: string | null = null;
 
+function createCorrelationId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function readTokenFromStorage(storage: Storage | null | undefined): string | null {
   if (!storage) return null;
 
@@ -83,10 +91,14 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetchRaw(path: string, init: RequestInit = {}): Promise<Response> {
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
 
   const headers = new Headers(init.headers);
+
+  if (!headers.has('X-Correlation-ID')) {
+    headers.set('X-Correlation-ID', createCorrelationId());
+  }
 
   // Only set Content-Type to application/json if it's not already set
   // and we are not sending FormData (browser handles FormData boundary automatically)
@@ -98,10 +110,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  let res: Response;
-
   try {
-    res = await fetch(url, {
+    return await fetch(url, {
       ...init,
       headers
     });
@@ -116,6 +126,10 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     }
     throw new ApiError(0, `Erro de rede: ${message}`);
   }
+}
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await apiFetchRaw(path, init);
 
   if (!res.ok) {
     // Intercept 401 Unauthorized globally
