@@ -1,11 +1,54 @@
-name: CI Test
+name: Quality Gate
 
 on:
+  pull_request:
+  push:
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
-  test:
+  frontend-build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crm-web
+
     steps:
-      - name: Echo test
-        run: echo "CI works!"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: crm-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://api.example.com
+        run: npm run build
+
+  backend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore api-core/Diax.CRM.sln
+
+      - name: Build
+        run: dotnet build api-core/Diax.CRM.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test api-core/tests/Diax.Tests/Diax.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage"
