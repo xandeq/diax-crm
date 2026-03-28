@@ -8,6 +8,7 @@ import { ProviderBadge } from '@/components/ai/ProviderBadge';
 import { ModelCard } from '@/components/ai/ModelCard';
 import { QuotaStatusCard, type QuotaStatusDto } from '@/components/QuotaStatusCard';
 import { type AiModel } from '@/services/aiCatalog';
+import { apiFetch } from '@/services/api';
 import {
   generateImage,
   generateVideo,
@@ -223,21 +224,10 @@ export default function ImageGenerationPage() {
         }
 
         // Fetch quota status from API
-        const response = await fetch(
-          `/api/v1/admin/video-providers/${provider.id}/quota`,
-          {
-            headers: {
-              Authorization: `Bearer ${sessionStorage.getItem('token')}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          const quota = await response.json();
-          setQuotaStatus(quota);
-        } else {
-          setQuotaStatus(null);
-        }
+        const quota = await apiFetch<QuotaStatusDto>(`/admin/video-providers/${provider.id}/quota`, {
+          method: 'GET',
+        });
+        setQuotaStatus(quota);
       } catch (err) {
         console.error('Failed to fetch quota status:', err);
         setQuotaStatus(null);

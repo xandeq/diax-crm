@@ -31,6 +31,10 @@ Thumbs.db
 CREDENTIALS_REFERENCE.md
 !.env.example
 !**/.env.example
+api-core/src/Diax.Api/App_Data/
+api-core/src/Diax.Api/logs/
+api-core/src/Diax.Api/*.log
+api-core/src/Diax.Api/startup-error.txt
 
 # Google Cloud credentials
 service_account.json

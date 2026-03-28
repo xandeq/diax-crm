@@ -11,10 +11,12 @@ namespace Diax.Api.Controllers;
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
+    private readonly IConfiguration _configuration;
 
-    public AppointmentsController(IAppointmentService appointmentService)
+    public AppointmentsController(IAppointmentService appointmentService, IConfiguration configuration)
     {
         _appointmentService = appointmentService;
+        _configuration = configuration;
     }
 
     [HttpPost]
@@ -69,9 +71,16 @@ public class AppointmentsController : ControllerBase
     [HttpPost("trigger-daily-notification")]
     public async Task<IActionResult> TriggerDailyNotification([FromHeader(Name = "X-Cron-Key")] string cronKey, CancellationToken cancellationToken)
     {
-        // Simple security check - should match env var CRON_SECURITY_KEY
-        var expectedKey = Environment.GetEnvironmentVariable("CRON_SECURITY_KEY") ?? "diax-cron-dev-key";
-        if (cronKey != expectedKey)
+        // Require an explicit secret instead of silently accepting an insecure default.
+        var expectedKey = _configuration["Cron:SecurityKey"]
+            ?? Environment.GetEnvironmentVariable("CRON_SECURITY_KEY");
+
+        if (string.IsNullOrWhiteSpace(expectedKey))
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Cron security key is not configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(cronKey) || cronKey != expectedKey)
         {
             return Unauthorized("Invalid cron key.");
         }

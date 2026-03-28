@@ -10,7 +10,7 @@ namespace Diax.Api.Controllers.V1.Admin;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/admin/groups")]
-// [Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin")]
 public class UserGroupsController : ControllerBase
 {
     private readonly IUserGroupService _userGroupService;

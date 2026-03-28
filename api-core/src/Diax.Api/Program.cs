@@ -176,17 +176,16 @@ var jwtKey = builder.Configuration["Jwt:Key"]
     ?? builder.Configuration["Jwt:Secret"]
     ?? builder.Configuration["Jwt:SigningKey"];
 
-if (string.IsNullOrWhiteSpace(jwtKey))
+var invalidJwtKeys = new[]
 {
-    if (builder.Environment.IsDevelopment())
-    {
-        jwtKey = "dev-only-insecure-key-change-me-please-32chars";
-        Log.Warning("JWT key not configured. Using development fallback key.");
-    }
-    else
-    {
-        throw new InvalidOperationException("JWT key not configured. Set Jwt:Key (recommended) or Jwt:Secret via DIAX_Jwt__Key / DIAX_Jwt__Secret.");
-    }
+    "DiaxCRM_Secret_Key_For_Development_Only_Change_In_Production_123456",
+    "dev-only-insecure-key-change-me-please-32chars",
+    "__SET_DIAX_JWT_KEY__"
+};
+
+if (string.IsNullOrWhiteSpace(jwtKey) || invalidJwtKeys.Contains(jwtKey, StringComparer.Ordinal))
+{
+    throw new InvalidOperationException("JWT key not configured securely. Set Jwt:Key via environment, secrets manager, or user secrets.");
 }
 
 // ===== AUTENTICAÇÃO: JWT + API Key estática (para n8n e outros clientes M2M) =====
@@ -220,17 +219,6 @@ builder.Services
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.FromMinutes(1)
-        };
-        // Support ?token= query param for file download endpoints (anchor tags can't set headers)
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = ctx =>
-            {
-                var token = ctx.Request.Query["token"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(token))
-                    ctx.Token = token;
-                return Task.CompletedTask;
-            }
         };
     })
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(

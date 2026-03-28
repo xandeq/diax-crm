@@ -49,7 +49,6 @@ export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   return (
     readTokenFromStorage(window.sessionStorage) ??
-    readTokenFromStorage(window.localStorage) ??
     inMemoryAccessToken
   );
 }
@@ -60,7 +59,8 @@ export function setAccessToken(token: string) {
 
   inMemoryAccessToken = token;
   writeTokenToStorage(window.sessionStorage, token);
-  writeTokenToStorage(window.localStorage, token);
+  // Keep access tokens in session scope only to reduce persistence and XSS blast radius.
+  removeTokenFromStorage(window.localStorage);
 }
 
 export function clearAccessToken() {
