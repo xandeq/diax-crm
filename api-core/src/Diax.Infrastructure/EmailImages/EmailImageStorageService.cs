@@ -133,13 +133,13 @@ public class EmailImageStorageService : IEmailImageStorageService
         }
     }
 
-    public async Task<Result> DeleteImageAsync(string imageId, CancellationToken cancellationToken = default)
+    public Task<Result> DeleteImageAsync(string imageId, CancellationToken cancellationToken = default)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(imageId))
             {
-                return Result.Failure(Error.Validation("ImageId", "ID da imagem é obrigatório."));
+                return Task.FromResult(Result.Failure(Error.Validation("ImageId", "ID da imagem é obrigatório.")));
             }
 
             var imagesPath = Path.Combine(_environment.WebRootPath ?? _environment.ContentRootPath, EmailImagesFolder);
@@ -154,16 +154,16 @@ public class EmailImageStorageService : IEmailImageStorageService
                 {
                     File.Delete(filePath);
                     _logger.LogInformation("Imagem de email removida: {FileName}", fileName);
-                    return Result.Success();
+                    return Task.FromResult(Result.Success());
                 }
             }
 
-            return Result.Failure(Error.NotFound("EmailImage", imageId));
+            return Task.FromResult(Result.Failure(Error.NotFound("EmailImage", imageId)));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao remover imagem de email: {ImageId}", imageId);
-            return Result.Failure(new Error("EmailImage.DeleteFailed", $"Erro ao remover imagem: {ex.Message}"));
+            return Task.FromResult(Result.Failure(new Error("EmailImage.DeleteFailed", $"Erro ao remover imagem: {ex.Message}")));
         }
     }
 }

@@ -46,9 +46,9 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
     public async Task<Result<(string url, string token)>> GetExtractorConfigAsync()
     {
         // ✅ Check cache first (defensive: _cache may be null if DI not configured)
-        if (_cache != null && _cache.TryGetValue(CACHE_KEY, out var cached))
+        if (_cache != null && _cache.TryGetValue(CACHE_KEY, out var cached) && cached is ValueTuple<string, string, string> cachedConfig)
         {
-            var (cachedUrl, cachedToken, cachedSource) = ((string, string, string))cached;
+            var (cachedUrl, cachedToken, cachedSource) = cachedConfig;
             _lastSource = cachedSource;
             _logger?.LogDebug("✓ Extrator config loaded from CACHE (source: {Source})", _lastSource);
             return Result.Success<(string, string)>((cachedUrl, cachedToken));

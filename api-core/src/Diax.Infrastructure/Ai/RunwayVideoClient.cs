@@ -82,7 +82,7 @@ public class RunwayVideoClient : IAiVideoGenerationClient
         {
             submitResponse = await _httpClient.SendAsync(request, ct);
         }
-        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             throw new InvalidOperationException("Timeout ao submeter tarefa no Runway. Tente novamente.");
         }

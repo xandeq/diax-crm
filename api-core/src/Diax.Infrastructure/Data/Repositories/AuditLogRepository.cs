@@ -13,12 +13,12 @@ public class AuditLogRepository : Repository<AuditLogEntry>, IAuditLogRepository
     {
     }
 
-    public async Task AddAsync(AuditLogEntry entry, CancellationToken cancellationToken = default)
+    public new async Task AddAsync(AuditLogEntry entry, CancellationToken cancellationToken = default)
     {
         await DbSet.AddAsync(entry, cancellationToken);
     }
 
-    public async Task<AuditLogEntry?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public new async Task<AuditLogEntry?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbSet
             .AsNoTracking()

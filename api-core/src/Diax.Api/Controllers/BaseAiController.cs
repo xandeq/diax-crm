@@ -51,6 +51,12 @@ public abstract class BaseAiController : BaseApiController
             return Unauthorized(new { Message = "Usuário não autenticado." });
         }
 
+        if (string.IsNullOrWhiteSpace(providerKey) || string.IsNullOrWhiteSpace(modelKey))
+        {
+            _logger.LogWarning("[BaseAiController] Missing provider/model in AI request for user {UserId}", userId.Value);
+            return BadRequest(new { Message = "Provider e modelo sÃ£o obrigatÃ³rios." });
+        }
+
         var hasAccess = await _catalogService.ValidateUserAccessAsync(userId.Value, providerKey, modelKey, ct);
         if (!hasAccess)
         {
