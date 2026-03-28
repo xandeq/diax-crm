@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import {
   deleteTaxDocument,
+  downloadTaxDocument,
   formatFileSize,
-  getTaxDocumentDownloadUrl,
   getTaxDocumentFiscalYears,
   getTaxDocuments,
   TAX_DOCUMENT_TYPE_LABELS,
@@ -342,6 +342,7 @@ export default function TaxDocumentsPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editDoc, setEditDoc] = useState<TaxDocumentDto | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -378,6 +379,17 @@ export default function TaxDocumentsPage() {
       toast.error(err.message || "Erro ao excluir documento.");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDownload = async (doc: TaxDocumentDto) => {
+    setDownloadingId(doc.id);
+    try {
+      await downloadTaxDocument(doc.id, doc.fileName);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao baixar documento.");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -521,17 +533,20 @@ export default function TaxDocumentsPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-1">
-                              <a
-                                href={getTaxDocumentDownloadUrl(doc.id)}
-                                download={doc.fileName}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
                                 title="Baixar"
+                                onClick={() => handleDownload(doc)}
+                                disabled={downloadingId === doc.id}
                               >
-                                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                  <span>
-                                    <Download className="h-4 w-4" />
-                                  </span>
-                                </Button>
-                              </a>
+                                {downloadingId === doc.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Download className="h-4 w-4" />
+                                )}
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"

@@ -221,17 +221,6 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.FromMinutes(1)
         };
-        // Support ?token= query param for file download endpoints (anchor tags can't set headers)
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = ctx =>
-            {
-                var token = ctx.Request.Query["token"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(token))
-                    ctx.Token = token;
-                return Task.CompletedTask;
-            }
-        };
     })
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
         ApiKeyAuthenticationOptions.DefaultScheme, _ => { });

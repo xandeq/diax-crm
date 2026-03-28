@@ -1,15 +1,15 @@
-import { apiFetch, getApiBaseUrl, getAccessToken } from './api';
+import { apiFetch, apiFetchRaw } from './api';
 
 export type TaxDocumentType =
-  | 0  // Bank
-  | 1  // Brokerage
-  | 2  // Company
-  | 3  // Platform
-  | 4  // Investment
-  | 5  // Pension
-  | 6  // Crypto
-  | 7  // PaymentPlatform
-  | 8; // Other
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8;
 
 export const TAX_DOCUMENT_TYPE_LABELS: Record<number, string> = {
   0: 'Banco',
@@ -17,7 +17,7 @@ export const TAX_DOCUMENT_TYPE_LABELS: Record<number, string> = {
   2: 'Empresa',
   3: 'Plataforma',
   4: 'Investimento',
-  5: 'Previdência',
+  5: 'Previdencia',
   6: 'Criptoativos',
   7: 'Pagamentos',
   8: 'Outros',
@@ -69,9 +69,7 @@ export async function getTaxDocumentFiscalYears(): Promise<number[]> {
   return apiFetch<number[]>('/tax-documents/fiscal-years');
 }
 
-export async function uploadTaxDocument(
-  formData: FormData,
-): Promise<TaxDocumentDto> {
+export async function uploadTaxDocument(formData: FormData): Promise<TaxDocumentDto> {
   return apiFetch<TaxDocumentDto>('/tax-documents/upload', {
     method: 'POST',
     body: formData,
@@ -88,11 +86,24 @@ export async function updateTaxDocument(
   });
 }
 
-export function getTaxDocumentDownloadUrl(id: string): string {
-  const base = getApiBaseUrl();
-  const token = getAccessToken();
-  // Return URL — caller uses anchor with download attribute
-  return `${base}/tax-documents/${id}/download?token=${encodeURIComponent(token ?? '')}`;
+export async function downloadTaxDocument(id: string, fileName: string): Promise<void> {
+  const response = await apiFetchRaw(`/tax-documents/${id}/download`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha ao baixar documento (${response.status}).`);
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 export async function deleteTaxDocument(id: string): Promise<void> {

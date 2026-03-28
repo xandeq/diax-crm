@@ -3,8 +3,10 @@ using Diax.Domain.Auth;
 using Diax.Infrastructure.Data;
 using Diax.Shared.Security;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.FileProviders;
 
 namespace Diax.Tests.Auth;
 
@@ -17,7 +19,7 @@ public class AuthControllerTests
         db.Users.Add(new User("tester@diax.local", PasswordHash.HashPassword("correct-password")));
         await db.SaveChangesAsync();
 
-        var controller = new AuthController(CreateConfiguration(), db);
+        var controller = new AuthController(CreateConfiguration(), db, new FakeEnvironment("Production"));
 
         var result = await controller.Login(new AuthController.LoginRequest("tester@diax.local", "wrong-password"));
 
@@ -31,7 +33,7 @@ public class AuthControllerTests
         db.Users.Add(new User("tester@diax.local", PasswordHash.HashPassword("correct-password")));
         await db.SaveChangesAsync();
 
-        var controller = new AuthController(CreateConfiguration(), db);
+        var controller = new AuthController(CreateConfiguration(), db, new FakeEnvironment("Production"));
 
         var result = await controller.Login(new AuthController.LoginRequest("tester@diax.local", "correct-password"));
 
@@ -44,7 +46,7 @@ public class AuthControllerTests
     public async Task Login_UsesConfigFallback_WhenDatabaseIsEmpty()
     {
         await using var db = CreateDbContext();
-        var controller = new AuthController(CreateConfiguration(), db);
+        var controller = new AuthController(CreateConfiguration(enableBootstrapAdminLogin: true), db, new FakeEnvironment("Production"));
 
         var result = await controller.Login(new AuthController.LoginRequest("admin@diax.local", "admin123"));
 
@@ -53,7 +55,18 @@ public class AuthControllerTests
         Assert.False(string.IsNullOrWhiteSpace(payload.AccessToken));
     }
 
-    private static IConfiguration CreateConfiguration()
+    [Fact]
+    public async Task Login_DoesNotUseConfigFallback_WhenBootstrapLoginIsDisabled()
+    {
+        await using var db = CreateDbContext();
+        var controller = new AuthController(CreateConfiguration(enableBootstrapAdminLogin: false), db, new FakeEnvironment("Production"));
+
+        var result = await controller.Login(new AuthController.LoginRequest("admin@diax.local", "admin123"));
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    private static IConfiguration CreateConfiguration(bool enableBootstrapAdminLogin = false)
     {
         return new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -63,6 +76,7 @@ public class AuthControllerTests
                 ["Jwt:Key"] = "super-secret-test-key-with-32chars!",
                 ["Auth:AdminEmail"] = "admin@diax.local",
                 ["Auth:AdminPassword"] = "admin123",
+                ["Auth:EnableBootstrapAdminLogin"] = enableBootstrapAdminLogin.ToString(),
             })
             .Build();
     }
@@ -74,5 +88,20 @@ public class AuthControllerTests
             .Options;
 
         return new DiaxDbContext(options);
+    }
+
+    private sealed class FakeEnvironment : IWebHostEnvironment
+    {
+        public FakeEnvironment(string environmentName)
+        {
+            EnvironmentName = environmentName;
+        }
+
+        public string ApplicationName { get; set; } = "Diax.Tests";
+        public IFileProvider WebRootFileProvider { get; set; } = null!;
+        public string WebRootPath { get; set; } = string.Empty;
+        public string EnvironmentName { get; set; }
+        public string ContentRootPath { get; set; } = string.Empty;
+        public IFileProvider ContentRootFileProvider { get; set; } = null!;
     }
 }

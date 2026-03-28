@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Diax.Api.Auth;
 using Diax.Application.Blog;
 using Diax.Application.Blog.Dtos;
 using Diax.Infrastructure.Data;
@@ -79,6 +80,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpGet("admin")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(PagedResponse<BlogPostResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllPosts(
         [FromQuery] BlogPostListRequest request,
@@ -94,6 +96,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpGet("admin/{id}")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(
@@ -110,6 +113,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpPost("admin")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreatePost(
@@ -138,6 +142,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpPut("admin/{id}")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdatePost(
@@ -160,6 +165,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpPatch("admin/{id}/publish")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> PublishPost(
         Guid id,
@@ -180,6 +186,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpPatch("admin/{id}/archive")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ArchivePost(
         Guid id,
@@ -200,6 +207,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpPatch("admin/{id}/toggle-featured")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ToggleFeatured(
         Guid id,
@@ -215,6 +223,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpDelete("admin/{id}")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeletePost(
@@ -235,6 +244,7 @@ public class BlogController : BaseApiController
     /// </summary>
     [HttpPost("admin/upload-image")]
     [Authorize]
+    [RequirePermission("blog.manage")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UploadBlogImage(

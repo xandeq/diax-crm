@@ -91,7 +91,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetchRaw(path: string, init: RequestInit = {}): Promise<Response> {
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
 
   const headers = new Headers(init.headers);
@@ -110,10 +110,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  let res: Response;
-
   try {
-    res = await fetch(url, {
+    return await fetch(url, {
       ...init,
       headers
     });
@@ -128,6 +126,10 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     }
     throw new ApiError(0, `Erro de rede: ${message}`);
   }
+}
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await apiFetchRaw(path, init);
 
   if (!res.ok) {
     // Intercept 401 Unauthorized globally
