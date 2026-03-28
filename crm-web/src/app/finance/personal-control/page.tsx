@@ -2,6 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -205,6 +213,14 @@ function Page() {
   const [incomeForm, setIncomeForm] = useState(incomeFormReset);
   const [expenseForm, setExpenseForm] = useState(expenseFormReset);
   const [subscriptionForm, setSubscriptionForm] = useState(subscriptionFormReset);
+  const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    kind: 'income' | 'expense' | 'subscription';
+    id: string;
+    name: string;
+  } | null>(null);
 
   const loadMonth = async (year: number, month: number) => {
     setLoading(true);
@@ -275,9 +291,10 @@ function Page() {
     }
   };
 
-  const removeItem = async (kind: 'income' | 'expense' | 'subscription', id: string) => {
-    if (!window.confirm('Excluir este lançamento? A ação não pode ser desfeita.')) return;
+  const confirmDelete = async () => {
+    if (!deleteDialog) return;
 
+    const { kind, id } = deleteDialog;
     setSavingKey(`delete-${kind}-${id}`);
     try {
       if (kind === 'income') {
@@ -288,6 +305,7 @@ function Page() {
         await personalControlService.deleteSubscription(id);
       }
       toast.success('Registro excluído.');
+      setDeleteDialog(null);
       await refresh();
     } catch (error) {
       console.error(error);
@@ -321,6 +339,7 @@ function Page() {
         toast.success('Receita criada.');
       }
       setIncomeForm(incomeFormReset());
+      setIncomeDialogOpen(false);
       await refresh();
     } catch (error) {
       console.error(error);
@@ -355,6 +374,7 @@ function Page() {
         toast.success('Despesa criada.');
       }
       setExpenseForm(expenseFormReset());
+      setExpenseDialogOpen(false);
       await refresh();
     } catch (error) {
       console.error(error);
@@ -389,6 +409,7 @@ function Page() {
         toast.success('Assinatura criada.');
       }
       setSubscriptionForm(subscriptionFormReset());
+      setSubscriptionDialogOpen(false);
       await refresh();
     } catch (error) {
       console.error(error);
@@ -411,6 +432,7 @@ function Page() {
       details: item.details || '',
       editingId: item.id,
     });
+    setIncomeDialogOpen(true);
   };
 
   const editExpense = (item: PersonalControlExpenseItem) => {
@@ -427,6 +449,7 @@ function Page() {
       details: item.details || '',
       editingId: item.id,
     });
+    setExpenseDialogOpen(true);
   };
 
   const editSubscription = (item: PersonalControlSubscriptionItem) => {
@@ -443,6 +466,22 @@ function Page() {
       details: item.details || '',
       editingId: item.id,
     });
+    setSubscriptionDialogOpen(true);
+  };
+
+  const openNewIncomeDialog = () => {
+    setIncomeForm(incomeFormReset());
+    setIncomeDialogOpen(true);
+  };
+
+  const openNewExpenseDialog = () => {
+    setExpenseForm(expenseFormReset());
+    setExpenseDialogOpen(true);
+  };
+
+  const openNewSubscriptionDialog = () => {
+    setSubscriptionForm(subscriptionFormReset());
+    setSubscriptionDialogOpen(true);
   };
 
   const summary = monthView?.summary;
@@ -496,8 +535,114 @@ function Page() {
         <MetricCard title="Sem cartão" value={formatCurrency(summary?.withoutCardAmount || 0)} description="Itens pagos sem cartão" icon={Wallet} tone="slate" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <SectionShell title={incomeForm.editingId ? 'Editar receita' : 'Nova receita'} description="Receitas fixas ou recorrentes do mês.">
+      <SectionShell title="Ações" description="Abra os formulários só quando precisar criar ou editar um lançamento.">
+        <div className="flex flex-wrap gap-3">
+          <Button className="gap-2" onClick={openNewIncomeDialog}>
+            <Plus className="h-4 w-4" />
+            Adicionar receita
+          </Button>
+          <Button className="gap-2" onClick={openNewExpenseDialog}>
+            <Plus className="h-4 w-4" />
+            Adicionar despesa
+          </Button>
+          <Button className="gap-2" onClick={openNewSubscriptionDialog}>
+            <Plus className="h-4 w-4" />
+            Adicionar assinatura
+          </Button>
+        </div>
+      </SectionShell>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SectionShell title="Receitas do mês" description="Lançamentos do período selecionado.">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Dia</TableHead><TableHead>Recorrente</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {loading ? <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.incomes.length ? monthView.incomes.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                    <TableCell>{formatCurrency(item.amount)}</TableCell>
+                    <TableCell>Dia {item.dayOfMonth}</TableCell>
+                    <TableCell><Badge variant="outline">{item.isRecurring ? 'Sim' : 'Não'}</Badge></TableCell>
+                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
+                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editIncome(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('income', item.id, !item.isPaid)} disabled={savingKey === `income-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'income', id: item.id, name: item.name })} disabled={savingKey === `delete-income-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                  </TableRow>
+                )) : <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </SectionShell>
+
+        <SectionShell title="Despesas do mês" description="Débito, crédito, vencimentos e cartão vinculado.">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Tipo</TableHead><TableHead>Venc.</TableHead><TableHead>Cartão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.expenses.length ? monthView.expenses.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                    <TableCell>{formatCurrency(item.amount)}</TableCell>
+                    <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
+                    <TableCell>Dia {item.dueDay}</TableCell>
+                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
+                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
+                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('expense', item.id, !item.isPaid)} disabled={savingKey === `expense-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                  </TableRow>
+                )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </SectionShell>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SectionShell title="Assinaturas" description="Serviços recorrentes consolidados por mês.">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Frequência</TableHead><TableHead>Tipo</TableHead><TableHead>Cartão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.subscriptions.length ? monthView.subscriptions.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                    <TableCell>{formatCurrency(item.amount)}</TableCell>
+                    <TableCell><Badge variant="outline">{billingFrequencyOptions.find((option) => option.value === item.billingFrequency)?.label || item.billingFrequency}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
+                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
+                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
+                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editSubscription(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('subscription', item.id, !item.isPaid)} disabled={savingKey === `subscription-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'subscription', id: item.id, name: item.name })} disabled={savingKey === `delete-subscription-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                  </TableRow>
+                )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma assinatura encontrada.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </SectionShell>
+
+        <SectionShell title="Cartões do mês" description="Agregação mensal das despesas por cartão.">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>Cartão</TableHead><TableHead>Total</TableHead><TableHead>Pago</TableHead><TableHead>Pendente</TableHead><TableHead>Itens</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {loading ? <TableRow><TableCell colSpan={5} className="py-12 text-center text-muted-foreground">Carregando cartões...</TableCell></TableRow> : monthView?.cardSummaries.length ? monthView.cardSummaries.map((item) => (
+                  <TableRow key={item.creditCardId}>
+                    <TableCell className="font-medium">{item.creditCardName}</TableCell>
+                    <TableCell>{formatCurrency(item.totalAmount)}</TableCell>
+                    <TableCell>{formatCurrency(item.paidAmount)}</TableCell>
+                    <TableCell>{formatCurrency(item.pendingAmount)}</TableCell>
+                    <TableCell><Badge variant="outline">{item.itemCount} lançamentos</Badge></TableCell>
+                  </TableRow>
+                )) : <TableRow><TableCell colSpan={5} className="py-12 text-center text-muted-foreground">Nenhum cartão com lançamentos neste mês.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </SectionShell>
+      </div>
+
+      <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{incomeForm.editingId ? 'Editar receita' : 'Nova receita'}</DialogTitle>
+            <DialogDescription>Receitas fixas ou recorrentes do mês.</DialogDescription>
+          </DialogHeader>
           <form onSubmit={submitIncome} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="income-name">Nome</Label><Input id="income-name" value={incomeForm.name} onChange={(event) => setIncomeForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
@@ -506,14 +651,20 @@ function Page() {
             </div>
             <div className="space-y-2"><Label htmlFor="income-details">Detalhes</Label><Input id="income-details" value={incomeForm.details || ''} onChange={(event) => setIncomeForm((current) => ({ ...current, details: event.target.value }))} /></div>
             <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-2 text-sm"><input type="checkbox" checked={Boolean(incomeForm.isRecurring)} onChange={(event) => setIncomeForm((current) => ({ ...current, isRecurring: event.target.checked }))} />Receita recorrente</label>
-            <div className="flex gap-2">
-              <Button type="submit" className="flex-1 gap-2" disabled={savingKey === 'income'}><Plus className="h-4 w-4" />{savingKey === 'income' ? 'Salvando...' : incomeForm.editingId ? 'Atualizar receita' : 'Criar receita'}</Button>
-              {incomeForm.editingId && <Button type="button" variant="outline" onClick={() => setIncomeForm(incomeFormReset())}>Limpar</Button>}
-            </div>
+            <DialogFooter>
+              {incomeForm.editingId ? <Button type="button" variant="outline" onClick={() => setIncomeForm(incomeFormReset())}>Limpar</Button> : null}
+              <Button type="submit" className="gap-2" disabled={savingKey === 'income'}><Plus className="h-4 w-4" />{savingKey === 'income' ? 'Salvando...' : incomeForm.editingId ? 'Atualizar receita' : 'Criar receita'}</Button>
+            </DialogFooter>
           </form>
-        </SectionShell>
+        </DialogContent>
+      </Dialog>
 
-        <SectionShell title={expenseForm.editingId ? 'Editar despesa' : 'Nova despesa'} description="Controle de débito, crédito e vencimentos.">
+      <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{expenseForm.editingId ? 'Editar despesa' : 'Nova despesa'}</DialogTitle>
+            <DialogDescription>Controle de débito, crédito e vencimentos.</DialogDescription>
+          </DialogHeader>
           <form onSubmit={submitExpense} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="expense-name">Nome</Label><Input id="expense-name" value={expenseForm.name} onChange={(event) => setExpenseForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
@@ -540,14 +691,20 @@ function Page() {
               </div>
             </div>
             <div className="space-y-2"><Label htmlFor="expense-details">Detalhes</Label><Input id="expense-details" value={expenseForm.details || ''} onChange={(event) => setExpenseForm((current) => ({ ...current, details: event.target.value }))} /></div>
-            <div className="flex gap-2">
-              <Button type="submit" className="flex-1 gap-2" disabled={savingKey === 'expense'}><Plus className="h-4 w-4" />{savingKey === 'expense' ? 'Salvando...' : expenseForm.editingId ? 'Atualizar despesa' : 'Criar despesa'}</Button>
-              {expenseForm.editingId && <Button type="button" variant="outline" onClick={() => setExpenseForm(expenseFormReset())}>Limpar</Button>}
-            </div>
+            <DialogFooter>
+              {expenseForm.editingId ? <Button type="button" variant="outline" onClick={() => setExpenseForm(expenseFormReset())}>Limpar</Button> : null}
+              <Button type="submit" className="gap-2" disabled={savingKey === 'expense'}><Plus className="h-4 w-4" />{savingKey === 'expense' ? 'Salvando...' : expenseForm.editingId ? 'Atualizar despesa' : 'Criar despesa'}</Button>
+            </DialogFooter>
           </form>
-        </SectionShell>
+        </DialogContent>
+      </Dialog>
 
-        <SectionShell title={subscriptionForm.editingId ? 'Editar assinatura' : 'Nova assinatura'} description="Serviços recorrentes e mensalidades.">
+      <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{subscriptionForm.editingId ? 'Editar assinatura' : 'Nova assinatura'}</DialogTitle>
+            <DialogDescription>Serviços recorrentes e mensalidades.</DialogDescription>
+          </DialogHeader>
           <form onSubmit={submitSubscription} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="subscription-name">Nome</Label><Input id="subscription-name" value={subscriptionForm.name} onChange={(event) => setSubscriptionForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
@@ -580,98 +737,37 @@ function Page() {
               </div>
             </div>
             <div className="space-y-2"><Label htmlFor="subscription-details">Detalhes</Label><Input id="subscription-details" value={subscriptionForm.details || ''} onChange={(event) => setSubscriptionForm((current) => ({ ...current, details: event.target.value }))} /></div>
-            <div className="flex gap-2">
-              <Button type="submit" className="flex-1 gap-2" disabled={savingKey === 'subscription'}><Plus className="h-4 w-4" />{savingKey === 'subscription' ? 'Salvando...' : subscriptionForm.editingId ? 'Atualizar assinatura' : 'Criar assinatura'}</Button>
-              {subscriptionForm.editingId && <Button type="button" variant="outline" onClick={() => setSubscriptionForm(subscriptionFormReset())}>Limpar</Button>}
-            </div>
+            <DialogFooter>
+              {subscriptionForm.editingId ? <Button type="button" variant="outline" onClick={() => setSubscriptionForm(subscriptionFormReset())}>Limpar</Button> : null}
+              <Button type="submit" className="gap-2" disabled={savingKey === 'subscription'}><Plus className="h-4 w-4" />{savingKey === 'subscription' ? 'Salvando...' : subscriptionForm.editingId ? 'Atualizar assinatura' : 'Criar assinatura'}</Button>
+            </DialogFooter>
           </form>
-        </SectionShell>
-      </div>
+        </DialogContent>
+      </Dialog>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <SectionShell title="Receitas do mês" description="Lançamentos do período selecionado.">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Dia</TableHead><TableHead>Recorrente</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.incomes.length ? monthView.incomes.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
-                    <TableCell>{formatCurrency(item.amount)}</TableCell>
-                    <TableCell>Dia {item.dayOfMonth}</TableCell>
-                    <TableCell><Badge variant="outline">{item.isRecurring ? 'Sim' : 'Não'}</Badge></TableCell>
-                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editIncome(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('income', item.id, !item.isPaid)} disabled={savingKey === `income-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => removeItem('income', item.id)} disabled={savingKey === `delete-income-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
-                  </TableRow>
-                )) : <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-        </SectionShell>
-
-        <SectionShell title="Despesas do mês" description="Débito, crédito, vencimentos e cartão vinculado.">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Tipo</TableHead><TableHead>Venc.</TableHead><TableHead>Cartão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.expenses.length ? monthView.expenses.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
-                    <TableCell>{formatCurrency(item.amount)}</TableCell>
-                    <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
-                    <TableCell>Dia {item.dueDay}</TableCell>
-                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
-                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('expense', item.id, !item.isPaid)} disabled={savingKey === `expense-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => removeItem('expense', item.id)} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
-                  </TableRow>
-                )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-        </SectionShell>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <SectionShell title="Assinaturas" description="Serviços recorrentes consolidados por mês.">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Frequência</TableHead><TableHead>Tipo</TableHead><TableHead>Cartão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.subscriptions.length ? monthView.subscriptions.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
-                    <TableCell>{formatCurrency(item.amount)}</TableCell>
-                    <TableCell><Badge variant="outline">{billingFrequencyOptions.find((option) => option.value === item.billingFrequency)?.label || item.billingFrequency}</Badge></TableCell>
-                    <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
-                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
-                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editSubscription(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('subscription', item.id, !item.isPaid)} disabled={savingKey === `subscription-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => removeItem('subscription', item.id)} disabled={savingKey === `delete-subscription-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
-                  </TableRow>
-                )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma assinatura encontrada.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-        </SectionShell>
-
-        <SectionShell title="Cartões do mês" description="Agregação mensal das despesas por cartão.">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Cartão</TableHead><TableHead>Total</TableHead><TableHead>Pago</TableHead><TableHead>Pendente</TableHead><TableHead>Itens</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={5} className="py-12 text-center text-muted-foreground">Carregando cartões...</TableCell></TableRow> : monthView?.cardSummaries.length ? monthView.cardSummaries.map((item) => (
-                  <TableRow key={item.creditCardId}>
-                    <TableCell className="font-medium">{item.creditCardName}</TableCell>
-                    <TableCell>{formatCurrency(item.totalAmount)}</TableCell>
-                    <TableCell>{formatCurrency(item.paidAmount)}</TableCell>
-                    <TableCell>{formatCurrency(item.pendingAmount)}</TableCell>
-                    <TableCell><Badge variant="outline">{item.itemCount} lançamentos</Badge></TableCell>
-                  </TableRow>
-                )) : <TableRow><TableCell colSpan={5} className="py-12 text-center text-muted-foreground">Nenhum cartão com lançamentos neste mês.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-        </SectionShell>
-      </div>
+      <Dialog open={Boolean(deleteDialog)} onOpenChange={(open) => !open && setDeleteDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir registro</DialogTitle>
+            <DialogDescription>
+              {deleteDialog ? `Tem certeza que deseja excluir "${deleteDialog.name}"? Essa ação não pode ser desfeita.` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteDialog(null)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteDialog ? savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` : false}
+            >
+              {deleteDialog && savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
