@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Diax.Api.Auth;
 using Diax.Application.ApiKeys;
 using Diax.Application.ApiKeys.Dtos;
 using Diax.Infrastructure.Data;
@@ -11,6 +12,7 @@ namespace Diax.Api.Controllers.V1;
 [Route("api/v{version:apiVersion}/apikeys")]
 [ApiController]
 [Authorize] // Apenas usuários autenticados via JWT podem gerenciar API Keys
+[RequirePermission("api-keys.manage")]
 public class ApiKeysController : BaseApiController
 {
     private readonly ApiKeyService _apiKeyService;

@@ -13,6 +13,7 @@ public class RequestResponseLoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestResponseLoggingMiddleware> _logger;
+    private const long SlowRequestThresholdMs = 1500;
 
     public RequestResponseLoggingMiddleware(
         RequestDelegate next,
@@ -28,6 +29,7 @@ public class RequestResponseLoggingMiddleware
     public async Task InvokeAsync(HttpContext context, IAppLogService appLogService)
     {
         var path = context.Request.Path.Value ?? "";
+        var module = ResolveModule(path);
 
         // Bypass completo para paths de alta frequência sem necessidade de logging de erros
         if (Array.Exists(SkipPaths, p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
@@ -70,12 +72,25 @@ public class RequestResponseLoggingMiddleware
             // Copia a resposta de volta para o stream original
             await responseBody.CopyToAsync(originalBodyStream);
             context.Response.Body = originalBodyStream;
+            context.Response.Headers["X-Response-Time-Ms"] = stopwatch.ElapsedMilliseconds.ToString();
+            context.Response.Headers["X-App-Module"] = module;
+
+            if (stopwatch.ElapsedMilliseconds >= SlowRequestThresholdMs)
+            {
+                _logger.LogWarning(
+                    "Slow request detected: {Method} {Path} [{Module}] -> {StatusCode} in {ElapsedMilliseconds}ms",
+                    context.Request.Method,
+                    context.Request.Path,
+                    module,
+                    context.Response.StatusCode,
+                    stopwatch.ElapsedMilliseconds);
+            }
 
             // Loga requisições com erro (4xx/5xx) na tabela app_logs,
             // desde que ainda não tenham sido logadas pelo ExceptionLoggingMiddleware
             if (context.Response.StatusCode >= 400 && !context.Items.ContainsKey("IsLogged"))
             {
-                await LogRequestAsync(context, appLogService, correlationId, stopwatch.ElapsedMilliseconds, responseContent);
+                await LogRequestAsync(context, appLogService, correlationId, stopwatch.ElapsedMilliseconds, responseContent, module);
             }
         }
     }
@@ -85,7 +100,8 @@ public class RequestResponseLoggingMiddleware
         IAppLogService appLogService,
         string correlationId,
         long responseTimeMs,
-        string? responseContent)
+        string? responseContent,
+        string module)
     {
         try
         {
@@ -110,6 +126,7 @@ public class RequestResponseLoggingMiddleware
                     ? responseContent.Substring(0, 2000) + "..."
                     : responseContent,
                 ["responseTimeMs"] = responseTimeMs,
+                ["module"] = module,
                 ["userAgent"] = context.Request.Headers.UserAgent.ToString(),
                 ["referer"] = context.Request.Headers.Referer.ToString()
             };
@@ -248,6 +265,29 @@ public class RequestResponseLoggingMiddleware
         };
 
         return sensitiveHeaders.Contains(headerName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public static string ResolveModule(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "unknown";
+        }
+
+        var normalizedPath = path.Trim().ToLowerInvariant();
+
+        if (normalizedPath.Contains("/auth")) return "auth";
+        if (normalizedPath.Contains("/personal-control") || normalizedPath.Contains("/finance")) return "finance";
+        if (normalizedPath.Contains("/customers")) return "customers";
+        if (normalizedPath.Contains("/leads")) return "leads";
+        if (normalizedPath.Contains("/email-campaigns") || normalizedPath.Contains("/campaigns")) return "campaigns";
+        if (normalizedPath.Contains("/ai")) return "ai";
+        if (normalizedPath.Contains("/apikeys")) return "api-keys";
+        if (normalizedPath.Contains("/users")) return "users";
+        if (normalizedPath.Contains("/logs")) return "logs";
+        if (normalizedPath.Contains("/audit")) return "audit";
+
+        return "core";
     }
 }
 
