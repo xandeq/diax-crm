@@ -14,7 +14,6 @@ using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
 using Diax.Domain.PromptGenerator;
 using Diax.Infrastructure.Data;
-using Diax.Infrastructure.Data.Repositories;
 using Diax.Infrastructure.Finance;
 using Diax.Infrastructure.Ai;
 using Diax.Infrastructure.AI.QuotaManagement;
@@ -339,14 +338,10 @@ public static class DependencyInjection
 
             // Brevo Contact Stats Service (para analytics por contato)
             services.AddHttpClient<IBrevoContactStatsService, BrevoContactStatsService>();
-            services.AddScoped<IBrevoContactStatsService, BrevoContactStatsService>();
         }
         else
         {
             services.AddScoped<IEmailSender, SmtpEmailSender>();
-
-            // Registrar IBrevoContactStatsService como null quando não configurado
-            services.AddScoped<IBrevoContactStatsService?>(_ => null);
         }
 
         services.AddHostedService<EmailQueueProcessorWorker>();
