@@ -104,8 +104,9 @@ public class HumanizeTextService : IApplicationService, IHumanizeTextService
 
             var duration = DateTime.UtcNow - startTime;
 
-            _logger.LogInformation("HumanizeText completed. RequestId: {RequestId}. OutputLength: {OutputLength}. Duration: {Duration}ms",
-                requestId, outputText.Length, duration.TotalMilliseconds);
+            _logger.LogInformation(
+                "HumanizeText completed. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}. OutputLength: {OutputLength}. Duration: {Duration}ms",
+                requestId, providerKey, options.Model, outputText.Length, duration.TotalMilliseconds);
 
             // Track usage (fire and forget - don't block response)
             _ = Task.Run(async () =>
@@ -150,8 +151,21 @@ public class HumanizeTextService : IApplicationService, IHumanizeTextService
         }
         catch (Exception ex)
         {
-            errorMsg = ex.Message;
             var duration = DateTime.UtcNow - startTime;
+            var httpStatus = AiErrorCategorizationHelper.ExtractHttpStatusCode(ex);
+            var errorCategory = AiErrorCategorizationHelper.Categorize(ex, httpStatus);
+            var sanitizedMsg = AiErrorCategorizationHelper.SanitizeForLog(ex.Message);
+            errorMsg = sanitizedMsg;
+
+            _logger.LogError(
+                ex,
+                "HumanizeText failed. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}. ErrorCategory: {ErrorCategory}. HttpStatus: {HttpStatus}. Message: {Message}",
+                requestId,
+                providerKey,
+                options.Model,
+                errorCategory,
+                httpStatus,
+                sanitizedMsg);
 
             // Track failed usage
             _ = Task.Run(async () =>
@@ -173,7 +187,9 @@ public class HumanizeTextService : IApplicationService, IHumanizeTextService
                                 duration: duration,
                                 success: false,
                                 requestId: requestId,
-                                errorMessage: errorMsg,
+                                errorMessage: sanitizedMsg,
+                                errorCategory: errorCategory,
+                                httpStatusCode: httpStatus,
                                 cancellationToken: CancellationToken.None
                             );
                         }
