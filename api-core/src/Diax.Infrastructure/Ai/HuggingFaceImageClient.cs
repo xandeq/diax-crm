@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -10,8 +11,7 @@ namespace Diax.Infrastructure.Ai;
 /// Image generation client for Hugging Face Inference Router API.
 /// Calls POST https://router.huggingface.co/hf-inference/models/{model_id}
 /// Auth: Authorization: Bearer {hf_token}
-/// Response: binary PNG → converted to base64 data URL
-/// Free models: black-forest-labs/FLUX.1-schnell, stabilityai/stable-diffusion-xl-base-1.0, etc.
+/// Response: binary PNG converted to base64 data URL.
 /// Docs: https://huggingface.co/docs/api-inference/tasks/text-to-image
 /// </summary>
 public class HuggingFaceImageClient : IAiImageGenerationClient
@@ -22,7 +22,6 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
     public string ProviderName => "huggingface";
     public bool SupportsImageToImage => false;
 
-    // Models that need special input format
     private static readonly HashSet<string> StructuredInputModels = new(StringComparer.OrdinalIgnoreCase)
     {
         "black-forest-labs/FLUX.1-schnell",
@@ -34,7 +33,7 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
     public HuggingFaceImageClient(HttpClient httpClient, ILogger<HuggingFaceImageClient> logger)
     {
         _httpClient = httpClient;
-        _httpClient.Timeout = TimeSpan.FromSeconds(120); // HF can be slow on cold start
+        _httpClient.Timeout = TimeSpan.FromSeconds(120);
         _logger = logger;
     }
 
@@ -50,13 +49,11 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
         var modelId = options.Model;
         var endpoint = $"https://router.huggingface.co/hf-inference/models/{modelId}";
 
-        // HF Inference API accepts JSON with "inputs" key
         var payload = new Dictionary<string, object>
         {
             ["inputs"] = prompt ?? string.Empty
         };
 
-        // Add parameters if supported by structured models
         if (StructuredInputModels.Contains(modelId))
         {
             var parameters = new Dictionary<string, object>();
@@ -65,8 +62,10 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
                 parameters["width"] = options.Width;
                 parameters["height"] = options.Height;
             }
+
             if (!string.IsNullOrWhiteSpace(options.NegativePrompt))
                 parameters["negative_prompt"] = options.NegativePrompt;
+
             if (parameters.Count > 0)
                 payload["parameters"] = parameters;
         }
@@ -79,7 +78,6 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
-        // HF router requires a single Accept value — multi-value causes 400
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/png"));
 
         HttpResponseMessage response;
@@ -91,20 +89,18 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
         {
             _logger.LogError(ex, "[HuggingFace] Timeout gerando imagem com modelo {Model}", modelId);
             throw new InvalidOperationException(
-                $"Timeout ao gerar imagem com HuggingFace ({_httpClient.Timeout.TotalSeconds}s). Modelos gratuitos podem demorar em cold start — tente novamente em instantes.");
+                $"Timeout ao gerar imagem com HuggingFace ({_httpClient.Timeout.TotalSeconds}s). Modelos gratuitos podem demorar em cold start; tente novamente em instantes.");
         }
 
-        var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
 
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("[HuggingFace] Error {StatusCode} for model {Model}: {Body}", (int)response.StatusCode, modelId, errorBody);
 
-            // 503: model is loading (cold start) — very common on free tier
-            if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
             {
-                // Try to parse estimated_time from response
                 string? estimatedTime = null;
                 try
                 {
@@ -112,34 +108,30 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
                     if (errDoc.RootElement.TryGetProperty("estimated_time", out var et))
                         estimatedTime = $" ({et.GetDouble():F0}s estimados)";
                 }
-                catch { }
+                catch
+                {
+                }
+
                 throw new InvalidOperationException(
-                    $"Modelo '{modelId}' está carregando no HuggingFace{estimatedTime}. " +
-                    "Isso é normal na primeira chamada (cold start gratuito) — aguarde alguns segundos e tente novamente.");
+                    $"Modelo '{modelId}' está carregando no HuggingFace{estimatedTime}. Isso é normal na primeira chamada (cold start gratuito); aguarde alguns segundos e tente novamente.");
             }
 
-            // 429: rate limit
-            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 throw new InvalidOperationException(
-                    $"Rate limit do HuggingFace atingido para o modelo '{modelId}'. " +
-                    "Aguarde 60s e tente novamente, ou troque para outro modelo. Causa: {errorBody}");
+                    $"Rate limit do HuggingFace atingido para o modelo '{modelId}'. Aguarde 60s e tente novamente, ou troque para outro modelo. Causa: {errorBody}");
             }
 
-            // 401/403: auth issues
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
-                response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            if (response.StatusCode == HttpStatusCode.Unauthorized ||
+                response.StatusCode == HttpStatusCode.Forbidden)
             {
-                throw new InvalidOperationException(
-                    $"API key inválida ou sem permissão para o modelo '{modelId}' no HuggingFace. " +
-                    "Verifique o token em Administração > AI > Providers.");
+                throw new InvalidOperationException(BuildAuthorizationErrorMessage(modelId, response.StatusCode, errorBody));
             }
 
             throw new InvalidOperationException(
                 $"Erro ao gerar imagem com HuggingFace (modelo: {modelId}). Status: {(int)response.StatusCode}. Causa: {errorBody}");
         }
 
-        // Response is binary image data (PNG/JPEG)
         if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
             var imageBytes = await response.Content.ReadAsByteArrayAsync(ct);
@@ -151,17 +143,122 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
             };
         }
 
-        // Some models return JSON
         if (contentType.Contains("json", StringComparison.OrdinalIgnoreCase))
         {
             var body = await response.Content.ReadAsStringAsync(ct);
             return ParseJsonResponse(body);
         }
 
-        // Fallback: treat raw bytes as image
         var rawBytes = await response.Content.ReadAsByteArrayAsync(ct);
         var rawBase64 = Convert.ToBase64String(rawBytes);
         return new List<ImageGenerationResult> { new(rawBase64, true, null, null) };
+    }
+
+    private static string BuildAuthorizationErrorMessage(string modelId, HttpStatusCode statusCode, string errorBody)
+    {
+        var normalizedError = ExtractNormalizedError(errorBody);
+
+        if (statusCode == HttpStatusCode.Unauthorized)
+        {
+            return
+                $"Token do HuggingFace inválido ou expirado para o modelo '{modelId}'. Atualize o token em Administração > AI > Providers e confirme que ele possui permissão de Inference API.";
+        }
+
+        if (LooksLikeGatedModelAccessIssue(normalizedError))
+        {
+            return
+                $"O token do HuggingFace está autenticado, mas não tem acesso ao modelo gated '{modelId}'. Aceite os termos/licença do modelo na conta do HuggingFace e confirme que o token tem permissão de inferência.";
+        }
+
+        if (LooksLikeScopePermissionIssue(normalizedError))
+        {
+            return
+                $"O token do HuggingFace não possui permissão suficiente para usar o modelo '{modelId}'. Revise os scopes/permissões do token em Administração > AI > Providers e gere um novo token com acesso à Inference API se necessário.";
+        }
+
+        return
+            $"Falha de autorização no HuggingFace para o modelo '{modelId}'. Verifique se o token é válido, possui acesso à Inference API e se a conta aceitou os termos do modelo. Detalhe retornado: {normalizedError}";
+    }
+
+    private static string ExtractNormalizedError(string errorBody)
+    {
+        if (string.IsNullOrWhiteSpace(errorBody))
+            return "sem detalhes retornados pelo provedor";
+
+        try
+        {
+            using var doc = JsonDocument.Parse(errorBody);
+            var root = doc.RootElement;
+
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (TryGetString(root, "error", out var error))
+                    return error;
+
+                if (TryGetString(root, "message", out var message))
+                    return message;
+
+                if (TryGetString(root, "detail", out var detail))
+                    return detail;
+            }
+
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in root.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.Object)
+                    {
+                        if (TryGetString(item, "error", out var arrayError))
+                            return arrayError;
+
+                        if (TryGetString(item, "message", out var arrayMessage))
+                            return arrayMessage;
+                    }
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return errorBody.Length > 300
+            ? errorBody[..300] + "..."
+            : errorBody;
+    }
+
+    private static bool LooksLikeGatedModelAccessIssue(string error)
+    {
+        var normalized = error.ToLowerInvariant();
+        return normalized.Contains("gated")
+            || normalized.Contains("license")
+            || normalized.Contains("accept")
+            || normalized.Contains("terms")
+            || normalized.Contains("repository not found")
+            || normalized.Contains("access to model")
+            || normalized.Contains("restricted")
+            || normalized.Contains("approval");
+    }
+
+    private static bool LooksLikeScopePermissionIssue(string error)
+    {
+        var normalized = error.ToLowerInvariant();
+        return normalized.Contains("insufficient")
+            || normalized.Contains("permission")
+            || normalized.Contains("scope")
+            || normalized.Contains("forbidden")
+            || normalized.Contains("authorization");
+    }
+
+    private static bool TryGetString(JsonElement element, string propertyName, out string value)
+    {
+        if (element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String)
+        {
+            value = property.GetString() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        value = string.Empty;
+        return false;
     }
 
     private static List<ImageGenerationResult> ParseJsonResponse(string body)
@@ -169,7 +266,6 @@ public class HuggingFaceImageClient : IAiImageGenerationClient
         var results = new List<ImageGenerationResult>();
         using var doc = JsonDocument.Parse(body);
 
-        // Some HF models return [{"generated_text":"..."}] or [{"image":"base64..."}]
         if (doc.RootElement.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in doc.RootElement.EnumerateArray())
