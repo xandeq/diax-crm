@@ -7,6 +7,7 @@ import { useAiCatalog } from '@/hooks/useAiCatalog';
 import { ProviderBadge } from '@/components/ai/ProviderBadge';
 import { ModelCard } from '@/components/ai/ModelCard';
 import { QuotaStatusCard, type QuotaStatusDto } from '@/components/QuotaStatusCard';
+import { isModelFree, requiresLicenseAcceptance } from '@/lib/aiModelClassification';
 import { type AiModel } from '@/services/aiCatalog';
 import { apiFetch } from '@/services/api';
 import {
@@ -77,17 +78,6 @@ const VIDEO_SUGGESTIONS = [
 ];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function isModelFree(providerKey: string, modelKey: string): boolean {
-  const pk = providerKey.toLowerCase();
-  const mk = modelKey.toLowerCase();
-  return (
-    pk === 'huggingface' ||
-    pk === 'hf' ||
-    mk.endsWith(':free') ||
-    mk.includes('/free/')
-  );
-}
 
 function formatSeconds(s: number): string {
   if (s < 60) return `${s}s`;
@@ -167,6 +157,10 @@ export default function ImageGenerationPage() {
     const bFree = isModelFree(selectedProvider, b.modelKey);
     if (aFree && !bFree) return -1;
     if (!aFree && bFree) return 1;
+    const aRequiresLicense = requiresLicenseAcceptance(selectedProvider, a.modelKey);
+    const bRequiresLicense = requiresLicenseAcceptance(selectedProvider, b.modelKey);
+    if (!aRequiresLicense && bRequiresLicense) return -1;
+    if (aRequiresLicense && !bRequiresLicense) return 1;
     return a.displayName.localeCompare(b.displayName);
   });
 
