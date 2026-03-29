@@ -69,11 +69,15 @@ public class RequestResponseLoggingMiddleware
                 responseBody.Seek(0, SeekOrigin.Begin);
             }
 
+            if (!context.Response.HasStarted)
+            {
+                context.Response.Headers["X-Response-Time-Ms"] = stopwatch.ElapsedMilliseconds.ToString();
+                context.Response.Headers["X-App-Module"] = module;
+            }
+
             // Copia a resposta de volta para o stream original
             await responseBody.CopyToAsync(originalBodyStream);
             context.Response.Body = originalBodyStream;
-            context.Response.Headers["X-Response-Time-Ms"] = stopwatch.ElapsedMilliseconds.ToString();
-            context.Response.Headers["X-App-Module"] = module;
 
             if (stopwatch.ElapsedMilliseconds >= SlowRequestThresholdMs)
             {
