@@ -188,7 +188,7 @@ public static class AiDataSeeder
                 // ── Image models (tested & confirmed working on router.huggingface.co 2026-03) ──
                 new ModelSeed("black-forest-labs/FLUX.1-schnell",        "FLUX.1 Schnell (gratuito, rápido)", SupportsImage: true),
                 new ModelSeed("stabilityai/stable-diffusion-xl-base-1.0",        "SDXL Base 1.0 (gratuito)", SupportsImage: true),
-                new ModelSeed("stabilityai/stable-diffusion-3-medium-diffusers", "SD3 Medium (gratuito)", SupportsImage: true),
+                new ModelSeed("stabilityai/stable-diffusion-3-medium-diffusers", "SD3 Medium (licença no HF)", SupportsImage: true),
 
                 // ── Text generation (Serverless Inference API) ──
                 new ModelSeed("meta-llama/Meta-Llama-3.1-8B-Instruct",  "LLaMA 3.1 8B Instruct (gratuito)"),

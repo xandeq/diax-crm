@@ -52,7 +52,7 @@ export function useAiCatalog(options: UseAiCatalogOptions = {}) {
           const firstProvider = filtered[0];
           setSelectedProviderKey(firstProvider.key);
 
-          const firstModel = firstProvider.models.find(m => m.isEnabled);
+          const firstModel = getPreferredModel(firstProvider.models, firstProvider.key);
           if (firstModel) {
             setSelectedModelKey(firstModel.modelKey);
           } else {
@@ -76,7 +76,7 @@ export function useAiCatalog(options: UseAiCatalogOptions = {}) {
     (key: string) => {
       setSelectedProviderKey(key);
       const provider = providers.find(p => p.key === key);
-      const firstModel = provider?.models.find(m => m.isEnabled);
+      const firstModel = provider ? getPreferredModel(provider.models, provider.key) : undefined;
       setSelectedModelKey(firstModel?.modelKey ?? '');
     },
     [providers]
@@ -103,4 +103,56 @@ export function useAiCatalog(options: UseAiCatalogOptions = {}) {
     currentProvider,
     currentModels,
   };
+}
+
+function getPreferredModel(models: AiModel[], providerKey: string): AiModel | undefined {
+  const enabledModels = models.filter(m => m.isEnabled);
+  if (enabledModels.length === 0) return undefined;
+
+  return [...enabledModels].sort((a, b) => scoreModel(b, providerKey) - scoreModel(a, providerKey))[0];
+}
+
+function scoreModel(model: AiModel, providerKey: string): number {
+  let score = 0;
+  const normalizedProviderKey = providerKey.toLowerCase();
+  const normalizedModelKey = model.modelKey.toLowerCase();
+
+  switch (model.availabilityStatus) {
+    case 'Available':
+      score += 100;
+      break;
+    case 'Degraded':
+      score += 60;
+      break;
+    case 'RateLimited':
+      score += 30;
+      break;
+    case 'NoCredits':
+      score += 10;
+      break;
+    case 'ConfigError':
+      score -= 40;
+      break;
+    case 'Unavailable':
+      score -= 60;
+      break;
+  }
+
+  if (normalizedProviderKey === 'huggingface') {
+    if (normalizedModelKey === 'black-forest-labs/flux.1-schnell') {
+      score += 40;
+    }
+
+    if (normalizedModelKey === 'stabilityai/stable-diffusion-3-medium-diffusers') {
+      score -= 50;
+    }
+  }
+
+  if (model.lastSuccessAt) {
+    score += 5;
+  }
+
+  score -= model.consecutiveFailureCount * 10;
+
+  return score;
 }
