@@ -608,32 +608,67 @@ export function PerfectGrid<T>({
                 <option value={10}>10</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
               </select>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(1)}
+              disabled={page <= 1}
+              className="h-9 px-2"
+              title="Primeira página"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 -ml-2.5" />
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="h-9 px-3"
+              className="h-9 px-2"
+              title="Anterior"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Anterior
+              <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-slate-500 min-w-[4.5rem] text-center tabular-nums">
-              {page} / {totalPages}
-            </span>
+            <div className="flex items-center gap-1.5 mx-1">
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={page}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (val >= 1 && val <= totalPages) onPageChange(val);
+                }}
+                className="h-8 w-14 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700 text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="text-sm text-slate-500">/ {totalPages}</span>
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="h-9 px-3"
+              className="h-9 px-2"
+              title="Próximo"
             >
-              Próximo
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(totalPages)}
+              disabled={page >= totalPages}
+              className="h-9 px-2"
+              title="Última página"
+            >
+              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 -ml-2.5" />
             </Button>
           </div>
         </div>
