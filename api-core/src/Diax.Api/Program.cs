@@ -337,19 +337,17 @@ Log.Information("Configuring middleware pipeline...");
 // CORS - DEVE ser o primeiro middleware para garantir headers em todas as respostas (incluindo erros)
 app.UseCors("Frontend");
 
-// Middleware para garantir CORS correto e evitar headers duplicados
+// Middleware para remover CORS headers do ASP.NET Core — IIS customHeaders já adiciona os corretos
 app.Use(async (context, next) =>
 {
     context.Response.OnStarting(() =>
     {
-        // Tenta remover headers duplicados ou wildcard antes de enviar a resposta
-        if (context.Response.Headers.TryGetValue("Access-Control-Allow-Origin", out var origins))
-        {
-             if (origins.Count > 1 || (origins.Count == 1 && origins[0] == "*"))
-            {
-                context.Response.Headers.Remove("Access-Control-Allow-Origin");
-            }
-        }
+        // IIS customHeaders (web.config) já adiciona Access-Control-Allow-* headers.
+        // Remove os do ASP.NET Core para evitar duplicação.
+        context.Response.Headers.Remove("Access-Control-Allow-Origin");
+        context.Response.Headers.Remove("Access-Control-Allow-Methods");
+        context.Response.Headers.Remove("Access-Control-Allow-Headers");
+        context.Response.Headers.Remove("Access-Control-Allow-Credentials");
         return Task.CompletedTask;
     });
 
