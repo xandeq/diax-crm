@@ -334,25 +334,12 @@ Log.Information("Configuring middleware pipeline...");
 
 // ===== MIDDLEWARE PIPELINE =====
 
-// CORS - DEVE ser o primeiro middleware para garantir headers em todas as respostas (incluindo erros)
-app.UseCors("Frontend");
-
-// Middleware para remover CORS headers do ASP.NET Core — IIS customHeaders já adiciona os corretos
-app.Use(async (context, next) =>
+// CORS - Em produção (IIS), web.config cuida via customHeaders + rewrite rule para OPTIONS.
+// Em dev, usa middleware .NET pois não há IIS.
+if (!app.Environment.IsProduction())
 {
-    context.Response.OnStarting(() =>
-    {
-        // IIS customHeaders (web.config) já adiciona Access-Control-Allow-* headers.
-        // Remove os do ASP.NET Core para evitar duplicação.
-        context.Response.Headers.Remove("Access-Control-Allow-Origin");
-        context.Response.Headers.Remove("Access-Control-Allow-Methods");
-        context.Response.Headers.Remove("Access-Control-Allow-Headers");
-        context.Response.Headers.Remove("Access-Control-Allow-Credentials");
-        return Task.CompletedTask;
-    });
-
-    await next();
-});
+    app.UseCors("Frontend");
+}
 
 // Correlation ID - adiciona ID de correlação em todas as requisições
 app.UseCorrelationId();
