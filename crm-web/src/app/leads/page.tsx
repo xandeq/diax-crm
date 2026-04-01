@@ -141,8 +141,8 @@ export default function LeadsPage() {
   const [createdAfterFilter, setCreatedAfterFilter] = useState<string>('');
 
   // Sorting (server-side)
-  const [sortBy, setSortBy] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<string | null>('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Modal / Form
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -228,8 +228,8 @@ export default function LeadsPage() {
   const clearFilters = () => {
     setSearchInput('');
     setStatusFilter('all');
-    setSortBy(null);
-    setSortDirection('asc');
+    setSortBy('createdAt');
+    setSortDirection('desc');
     setHasEmailFilter(undefined);
     setHasWhatsAppFilter(undefined);
     setPersonTypeFilter(undefined);
@@ -242,7 +242,7 @@ export default function LeadsPage() {
   const filtersActive =
     searchInput !== '' ||
     statusFilter !== 'all' ||
-    sortBy !== null ||
+    (sortBy !== null && sortBy !== 'createdAt') ||
     hasEmailFilter !== undefined ||
     hasWhatsAppFilter !== undefined ||
     personTypeFilter !== undefined ||
