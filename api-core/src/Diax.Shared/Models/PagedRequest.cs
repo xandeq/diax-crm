@@ -2,7 +2,7 @@ namespace Diax.Shared.Models;
 
 public class PagedRequest
 {
-    private const int MaxPageSize = 100;
+    private const int MaxPageSize = 200;
     private int _pageSize = 10;
 
     public int Page { get; set; } = 1;
