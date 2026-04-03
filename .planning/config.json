@@ -1,0 +1,13 @@
+{
+  "project": "diax-crm",
+  "version": "1.1",
+  "workflow": {
+    "research": true,
+    "commit_docs": true
+  },
+  "models": {
+    "researcher": "sonnet",
+    "synthesizer": "sonnet",
+    "roadmapper": "sonnet"
+  }
+}
