@@ -143,6 +143,15 @@ export function Header() {
                 <Link href="/utilities/lead-persona-generator" className={menuItemClass} role="menuitem">
                   Gerador de Personas
                 </Link>
+                <Link href="/utilities/outreach-ab-test" className={menuItemClass} role="menuitem">
+                  Teste A/B Outreach
+                </Link>
+                <Link href="/utilities/social-batch-generator" className={menuItemClass} role="menuitem">
+                  Batch Social Media
+                </Link>
+                <Link href="/utilities/customer-insights" className={menuItemClass} role="menuitem">
+                  Insights de Clientes
+                </Link>
               </div>
             </div>
 
