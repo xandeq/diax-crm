@@ -337,12 +337,8 @@ Log.Information("Configuring middleware pipeline...");
 
 // ===== MIDDLEWARE PIPELINE =====
 
-// CORS - Em produção (IIS), web.config cuida via customHeaders + rewrite rule para OPTIONS.
-// Em dev, usa middleware .NET pois não há IIS.
-if (!app.Environment.IsProduction())
-{
-    app.UseCors("Frontend");
-}
+// CORS - middleware .NET cuida em todos os ambientes (web.config não tem headers estáticos)
+app.UseCors("Frontend");
 
 // Correlation ID - adiciona ID de correlação em todas as requisições
 app.UseCorrelationId();
