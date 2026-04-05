@@ -6,6 +6,7 @@ using Diax.Domain.Finance;
 using Diax.Domain.Finance.Planner;
 using Diax.Domain.Finance.Planner.Repositories;
 using Diax.Shared.Results;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 using PlannerTransactionType = Diax.Domain.Finance.Planner.TransactionType;
@@ -18,6 +19,10 @@ public class PersonalFinanceControlService : IApplicationService
     private readonly IRecurringTransactionRepository _recurringRepository;
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly ICreditCardInvoiceRepository _creditCardInvoiceRepository;
+    private readonly ICreditCardGroupRepository _creditCardGroupRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IConfiguration _configuration;
+    private readonly IGoogleSheetsService? _googleSheetsService;
     private readonly ILogger<PersonalFinanceControlService> _logger;
 
     public PersonalFinanceControlService(
@@ -25,12 +30,20 @@ public class PersonalFinanceControlService : IApplicationService
         IRecurringTransactionRepository recurringRepository,
         ICreditCardRepository creditCardRepository,
         ICreditCardInvoiceRepository creditCardInvoiceRepository,
-        ILogger<PersonalFinanceControlService> logger)
+        ICreditCardGroupRepository creditCardGroupRepository,
+        IUnitOfWork unitOfWork,
+        IConfiguration configuration,
+        ILogger<PersonalFinanceControlService> logger,
+        IGoogleSheetsService? googleSheetsService = null)
     {
         _transactionRepository = transactionRepository;
         _recurringRepository = recurringRepository;
         _creditCardRepository = creditCardRepository;
         _creditCardInvoiceRepository = creditCardInvoiceRepository;
+        _creditCardGroupRepository = creditCardGroupRepository;
+        _unitOfWork = unitOfWork;
+        _configuration = configuration;
+        _googleSheetsService = googleSheetsService;
         _logger = logger;
     }
 
@@ -173,6 +186,252 @@ public class PersonalFinanceControlService : IApplicationService
         }
     }
 
+    public async Task<Result<ImportFromSheetResult>> ImportFromSheetAsync(
+        int year,
+        int month,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var spreadsheetId = _configuration["GoogleSheets:SpreadsheetId"];
+            if (string.IsNullOrWhiteSpace(spreadsheetId))
+                return Result.Failure<ImportFromSheetResult>(new Error("GoogleSheets.MissingConfig", "SpreadsheetId not configured"));
+
+            var sheetsService = GetGoogleSheetsService();
+            if (sheetsService == null)
+                return Result.Failure<ImportFromSheetResult>(new Error("GoogleSheets.ServiceNotAvailable", "Google Sheets service not registered"));
+
+            // Build tab name (try with accent, then without)
+            var tabName = BuildSheetTabName(month, year);
+            var fallbackTabName = BuildSheetTabNameFallback(month, year);
+
+            // Try to read from the sheet tab
+            List<List<string>> rows;
+            try
+            {
+                rows = await sheetsService.ReadRangeAsync(spreadsheetId, $"'{tabName}'!E:H", cancellationToken);
+            }
+            catch
+            {
+                try
+                {
+                    rows = await sheetsService.ReadRangeAsync(spreadsheetId, $"'{fallbackTabName}'!E:H", cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to read sheet tab '{Tab}' or '{Fallback}' for {Year}/{Month}", tabName, fallbackTabName, year, month);
+                    return Result.Failure<ImportFromSheetResult>(new Error("GoogleSheets.ReadFailed", $"Could not read sheet tab '{tabName}'. Make sure it exists."));
+                }
+            }
+
+            // Filter rows where column E starts with "Cart" (index 0 in our E:H range)
+            var cardRows = rows
+                .Where(row => row.Count > 0 && row[0].Trim().StartsWith("Cart", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (cardRows.Count == 0)
+                return Result<ImportFromSheetResult>.Success(new ImportFromSheetResult(0, 0, new List<ImportedCardResult>()));
+
+            // Load user's credit card groups
+            var groups = (await _creditCardGroupRepository.GetAllByUserIdAsync(userId, cancellationToken)).ToList();
+
+            var results = new List<ImportedCardResult>();
+
+            foreach (var row in cardRows)
+            {
+                var sheetName = row.Count > 0 ? row[0].Trim() : string.Empty;
+                var amountStr = row.Count > 1 ? row[1].Trim() : string.Empty;
+                // Col G (index 2) = paid status ('x' or empty)
+                // Col H (index 3) = payment date
+
+                decimal? amount = ParseBrazilianCurrency(amountStr);
+
+                // Fuzzy match against groups
+                var (bestGroup, bestScore) = FindBestMatchingGroup(sheetName, groups);
+
+                if (bestGroup == null || bestScore < 0.3)
+                {
+                    results.Add(new ImportedCardResult(sheetName, null, amount, false, "No matching card group found"));
+                    continue;
+                }
+
+                try
+                {
+                    // Find or create invoice for this group and period
+                    var invoice = await _creditCardInvoiceRepository.GetByGroupAndPeriodAsync(
+                        bestGroup.Id, month, year, cancellationToken);
+
+                    if (invoice == null)
+                    {
+                        // Create invoice
+                        var closingDate = new DateTime(year, month, Math.Min(bestGroup.ClosingDay, DateTime.DaysInMonth(year, month)));
+                        var nextMonth = closingDate.AddMonths(1);
+                        var dueDate = new DateTime(nextMonth.Year, nextMonth.Month, Math.Min(bestGroup.DueDay, DateTime.DaysInMonth(nextMonth.Year, nextMonth.Month)));
+
+                        invoice = new CreditCardInvoice(bestGroup.Id, month, year, closingDate, dueDate, userId);
+                        await _creditCardInvoiceRepository.AddAsync(invoice, cancellationToken);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                        // Reload the invoice to have the Id
+                        invoice = await _creditCardInvoiceRepository.GetByGroupAndPeriodAsync(
+                            bestGroup.Id, month, year, cancellationToken) ?? invoice;
+                    }
+
+                    // Set statement amount
+                    invoice.SetStatementAmount(amount);
+                    await _creditCardInvoiceRepository.UpdateAsync(invoice, cancellationToken);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    results.Add(new ImportedCardResult(sheetName, bestGroup.Name, amount, true, null));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error importing sheet row '{Name}' for group '{Group}'", sheetName, bestGroup.Name);
+                    results.Add(new ImportedCardResult(sheetName, bestGroup.Name, amount, false, ex.Message));
+                }
+            }
+
+            var matched = results.Count(r => r.Matched);
+            var unmatched = results.Count(r => !r.Matched);
+
+            return Result<ImportFromSheetResult>.Success(new ImportFromSheetResult(matched, unmatched, results));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to import from Google Sheet for user {UserId} {Year}/{Month}", userId, year, month);
+            return Result.Failure<ImportFromSheetResult>(new Error("GoogleSheets.ImportFailed", ex.Message));
+        }
+    }
+
+    private IGoogleSheetsService? GetGoogleSheetsService() => _googleSheetsService;
+
+    private static string BuildSheetTabName(int month, int year)
+    {
+        string[] monthNames = { "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+            "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO" };
+        return $"{monthNames[month - 1]} {year}";
+    }
+
+    private static string BuildSheetTabNameFallback(int month, int year)
+    {
+        // Some older tabs use "MARCO" without cedilla
+        string[] monthNames = { "JANEIRO", "FEVEREIRO", "MARCO", "ABRIL", "MAIO", "JUNHO",
+            "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO" };
+        return $"{monthNames[month - 1]} {year}";
+    }
+
+    private static decimal? ParseBrazilianCurrency(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        // Remove R$, spaces, non-breaking spaces
+        var cleaned = value
+            .Replace("R$", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("\u00a0", " ")
+            .Trim();
+
+        // Remove thousand separators (dots), replace decimal comma with dot
+        cleaned = cleaned.Replace(".", "").Replace(",", ".");
+
+        if (decimal.TryParse(cleaned, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var result))
+            return result;
+
+        return null;
+    }
+
+    private static (CreditCardGroup? Group, double Score) FindBestMatchingGroup(
+        string sheetName,
+        IReadOnlyCollection<CreditCardGroup> groups)
+    {
+        var normalizedSheet = NormalizeCardName(sheetName);
+
+        CreditCardGroup? best = null;
+        double bestScore = 0;
+
+        foreach (var group in groups)
+        {
+            var normalizedGroup = NormalizeCardName(group.Name);
+            var score = TokenOverlapScore(normalizedSheet, normalizedGroup);
+
+            // Also check individual card names in the group
+            foreach (var card in group.Cards)
+            {
+                var normalizedCard = NormalizeCardName(card.Name);
+                var cardScore = TokenOverlapScore(normalizedSheet, normalizedCard);
+                if (cardScore > score)
+                    score = cardScore;
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = group;
+            }
+        }
+
+        return (best, bestScore);
+    }
+
+    private static string NormalizeCardName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return string.Empty;
+
+        // Remove "Cartão - " or "Cartao - " prefix variants
+        var result = name;
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"^Cart[aã]o\s*-\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // Remove dashes and extra whitespace
+        result = result.Replace("-", " ");
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"\s+", " ").Trim();
+
+        // Lowercase
+        result = result.ToLowerInvariant();
+
+        // Remove accent characters (simple normalization)
+        result = RemoveAccents(result);
+
+        // Remove common Portuguese stop words
+        var stopWords = new HashSet<string> { "de", "do", "da", "dos", "das", "e", "a", "o" };
+        var tokens = result.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(t => !stopWords.Contains(t))
+            .ToArray();
+
+        return string.Join(" ", tokens);
+    }
+
+    private static string RemoveAccents(string text)
+    {
+        var normalized = text.Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in normalized)
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        }
+        return sb.ToString().Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+    private static double TokenOverlapScore(string a, string b)
+    {
+        if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b))
+            return 0;
+
+        var tokensA = new HashSet<string>(a.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        var tokensB = new HashSet<string>(b.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+        if (tokensA.Count == 0 || tokensB.Count == 0)
+            return 0;
+
+        var intersection = tokensA.Intersect(tokensB).Count();
+        var union = tokensA.Union(tokensB).Count();
+
+        return union == 0 ? 0 : (double)intersection / union;
+    }
+
     private static TransactionResponse MapTransaction(Transaction transaction)
     {
         return new TransactionResponse(
@@ -261,7 +520,9 @@ public class PersonalFinanceControlService : IApplicationService
                     InvoiceAmount = cardTransactions.Where(t => t.CreditCardInvoiceId == invoice?.Id).Sum(t => t.Amount),
                     InvoicePaid = invoice?.IsPaid ?? false,
                     InvoicePaymentDate = invoice?.PaymentDate,
-                    InvoiceDueDate = invoice?.DueDate
+                    InvoiceDueDate = invoice?.DueDate,
+                    StatementAmount = invoice?.StatementAmount,
+                    InvoiceId = invoice?.Id
                 };
             })
             .OrderByDescending(card => card.TotalAmount)

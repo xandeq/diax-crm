@@ -39,6 +39,7 @@ import {
   Calendar,
   CheckCircle2,
   CreditCard as CreditCardIcon,
+  Download,
   PencilLine,
   Plus,
   RotateCcw,
@@ -404,6 +405,10 @@ function Page() {
     id: string;
     name: string;
   } | null>(null);
+  const [importingSheet, setImportingSheet] = useState(false);
+  const [editingStatementId, setEditingStatementId] = useState<string | null>(null);
+  const [statementDraft, setStatementDraft] = useState('');
+  const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
 
   const loadMonth = async (year: number, month: number) => {
     setLoading(true);
@@ -495,6 +500,55 @@ function Page() {
     } catch (error) {
       console.error(error);
       toast.error('Falha ao excluir registro.');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const importFromSheet = async () => {
+    setImportingSheet(true);
+    try {
+      const result = await personalControlService.importFromSheet(period.year, period.month);
+      toast.success(`Importado: ${result.matchedCards} cartões correspondidos, ${result.unmatchedCards} sem correspondência.`);
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Falha ao importar da planilha.');
+    } finally {
+      setImportingSheet(false);
+    }
+  };
+
+  const saveStatementAmount = async (invoiceId: string) => {
+    const amount = parseFloat(statementDraft.replace(',', '.'));
+    if (isNaN(amount)) {
+      toast.error('Valor inválido.');
+      return;
+    }
+    setSavingKey(`statement-${invoiceId}`);
+    try {
+      await personalControlService.setCardStatementAmount(invoiceId, amount);
+      toast.success('Valor da fatura atualizado.');
+      setEditingStatementId(null);
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Falha ao atualizar valor da fatura.');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const payInvoice = async (invoiceId: string, paymentDate: string) => {
+    setSavingKey(`pay-invoice-${invoiceId}`);
+    try {
+      await personalControlService.payCardInvoice(invoiceId, paymentDate);
+      toast.success('Fatura marcada como paga.');
+      setPayingInvoiceId(null);
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Falha ao marcar fatura como paga.');
     } finally {
       setSavingKey(null);
     }
@@ -826,24 +880,134 @@ function Page() {
           </div>
         </SectionShell>
 
-        <SectionShell title="Cartões do mês" description="Agregação mensal das despesas por cartão.">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Cartão</TableHead><TableHead>Total</TableHead><TableHead>Pago</TableHead><TableHead>Pendente</TableHead><TableHead>Itens</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={5} className="py-12 text-center text-muted-foreground">Carregando cartões...</TableCell></TableRow> : monthView?.cardSummaries.length ? monthView.cardSummaries.map((item) => (
-                  <TableRow key={item.creditCardId}>
-                    <TableCell className="font-medium">{item.creditCardName}</TableCell>
-                    <TableCell>{formatCurrency(item.totalAmount)}</TableCell>
-                    <TableCell>{formatCurrency(item.paidAmount)}</TableCell>
-                    <TableCell>{formatCurrency(item.pendingAmount)}</TableCell>
-                    <TableCell><Badge variant="outline">{item.itemCount} lançamentos</Badge></TableCell>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-lg">Cartões do mês</CardTitle>
+                <CardDescription>Agregação mensal das despesas por cartão.</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => void importFromSheet()}
+                disabled={importingSheet}
+              >
+                <Download className="h-4 w-4" />
+                {importingSheet ? 'Importando...' : 'Importar da planilha'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cartão</TableHead>
+                    <TableHead>Fatura</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Itens</TableHead>
                   </TableRow>
-                )) : <TableRow><TableCell colSpan={5} className="py-12 text-center text-muted-foreground">Nenhum cartão com lançamentos neste mês.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-        </SectionShell>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Carregando cartões...</TableCell></TableRow>
+                  ) : monthView?.cardSummaries.length ? monthView.cardSummaries.map((item) => (
+                    <TableRow key={item.creditCardId}>
+                      <TableCell className="font-medium">{item.creditCardName}</TableCell>
+                      <TableCell>
+                        {editingStatementId === item.invoiceId && item.invoiceId ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              className="w-28 h-7 text-sm"
+                              value={statementDraft}
+                              onChange={(e) => setStatementDraft(e.target.value)}
+                              placeholder="0,00"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') void saveStatementAmount(item.invoiceId!);
+                                if (e.key === 'Escape') setEditingStatementId(null);
+                              }}
+                            />
+                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => void saveStatementAmount(item.invoiceId!)} disabled={savingKey === `statement-${item.invoiceId}`}>
+                              Salvar
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingStatementId(null)}>
+                              Cancelar
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="tabular-nums">
+                              {item.statementAmount != null
+                                ? formatCurrency(item.statementAmount)
+                                : formatCurrency(item.totalAmount)}
+                            </span>
+                            {item.invoiceId && (
+                              <button
+                                className="text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => {
+                                  setEditingStatementId(item.invoiceId!);
+                                  setStatementDraft(
+                                    item.statementAmount != null
+                                      ? String(item.statementAmount)
+                                      : String(item.totalAmount)
+                                  );
+                                }}
+                              >
+                                <PencilLine className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {item.invoicePaid ? (
+                          <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">Pago ✓</Badge>
+                        ) : item.invoiceId ? (
+                          payingInvoiceId === item.invoiceId ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="date"
+                                className="w-36 h-7 text-sm"
+                                defaultValue={new Date().toISOString().slice(0, 10)}
+                                id={`pay-date-${item.invoiceId}`}
+                              />
+                              <Button size="sm" className="h-7 px-2" onClick={() => {
+                                const input = document.getElementById(`pay-date-${item.invoiceId}`) as HTMLInputElement;
+                                const date = input?.value ? new Date(input.value).toISOString() : new Date().toISOString();
+                                void payInvoice(item.invoiceId!, date);
+                              }} disabled={savingKey === `pay-invoice-${item.invoiceId}`}>
+                                Confirmar
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setPayingInvoiceId(null)}>
+                                Cancelar
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => setPayingInvoiceId(item.invoiceId!)}
+                            >
+                              Marcar Pago
+                            </Button>
+                          )
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">Sem fatura</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell><Badge variant="outline">{item.itemCount} lançamentos</Badge></TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nenhum cartão com lançamentos neste mês.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>

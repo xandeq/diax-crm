@@ -167,7 +167,7 @@ public class CreditCardInvoiceService : IApplicationService
             return Result.Failure(new Error("CreditCardInvoice.NotFound", "Invoice not found"));
         }
 
-        invoice.MarkAsPaid(request.PaymentDate, request.PaidFromAccountId);
+        invoice.MarkAsPaid(request.PaymentDate, request.PaidFromAccountId, request.StatementAmount);
 
         await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -185,6 +185,19 @@ public class CreditCardInvoiceService : IApplicationService
 
         invoice.MarkAsUnpaid();
 
+        await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> SetStatementAmountAsync(Guid invoiceId, decimal? amount, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var invoice = await _invoiceRepository.GetByIdAndUserAsync(invoiceId, userId, cancellationToken);
+        if (invoice == null)
+            return Result.Failure(new Error("CreditCardInvoice.NotFound", "Invoice not found"));
+
+        invoice.SetStatementAmount(amount);
         await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

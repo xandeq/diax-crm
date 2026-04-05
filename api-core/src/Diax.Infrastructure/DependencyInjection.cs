@@ -246,6 +246,9 @@ public static class DependencyInjection
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.PdfFileParser>();
 
+        // ===== GOOGLE SHEETS =====
+        services.AddScoped<Diax.Application.Finance.IGoogleSheetsService, Diax.Infrastructure.Finance.GoogleSheetsService>();
+
         // ===== AI CLIENTS =====
         services.AddScoped<IAiTextTransformClient, ChatGptClient>();
         services.AddScoped<IAiTextTransformClient, PerplexityClient>();

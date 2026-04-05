@@ -82,6 +82,8 @@ public class CreditCardMonthlySummaryResponse
     public bool InvoicePaid { get; set; }
     public DateTime? InvoicePaymentDate { get; set; }
     public DateTime? InvoiceDueDate { get; set; }
+    public decimal? StatementAmount { get; set; }
+    public Guid? InvoiceId { get; set; }
 }
 
 public class CreditCardInvoiceMonthlySummaryResponse

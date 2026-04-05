@@ -95,6 +95,16 @@ public class CreditCardInvoicesController : BaseApiController
         return result.IsSuccess ? NoContent() : BadRequest(result.Error);
     }
 
+    [HttpPatch("{id}/statement")]
+    public async Task<IActionResult> SetStatement(Guid id, [FromBody] SetStatementAmountRequest request, CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _service.SetStatementAmountAsync(id, request.Amount, userId.Value, cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.Error);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

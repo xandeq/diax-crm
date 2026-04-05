@@ -30,6 +30,10 @@ export interface PersonalControlCardSummary {
   paidAmount: number;
   pendingAmount: number;
   itemCount: number;
+  statementAmount?: number;
+  invoiceId?: string;
+  invoicePaid?: boolean;
+  invoicePaymentDate?: string;
 }
 
 export interface PersonalControlIncomeItem {
@@ -220,6 +224,41 @@ export const personalControlService = {
     return apiFetch<void>(`${basePath}/subscriptions/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify(request),
+    });
+  },
+
+  setCardStatementAmount: async (invoiceId: string, amount: number | null) => {
+    return apiFetch<void>(`/credit-card-invoices/${invoiceId}/statement`, {
+      method: 'PATCH',
+      body: JSON.stringify({ amount }),
+    });
+  },
+
+  payCardInvoice: async (invoiceId: string, paymentDate: string, statementAmount?: number) => {
+    return apiFetch<void>(`/credit-card-invoices/${invoiceId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentDate, statementAmount }),
+    });
+  },
+
+  importFromSheet: async (year: number, month: number) => {
+    return apiFetch<{
+      matchedCards: number;
+      unmatchedCards: number;
+      results: Array<{
+        sheetName: string;
+        matchedCrmName?: string;
+        amount?: number;
+        matched: boolean;
+        error?: string;
+      }>;
+    }>(`${basePath}/import-sheet/${year}/${month}`, { method: 'POST' });
+  },
+
+  createInvoice: async (creditCardGroupId: string, year: number, month: number) => {
+    return apiFetch<string>(`/credit-card-invoices`, {
+      method: 'POST',
+      body: JSON.stringify({ creditCardGroupId, referenceYear: year, referenceMonth: month }),
     });
   },
 };

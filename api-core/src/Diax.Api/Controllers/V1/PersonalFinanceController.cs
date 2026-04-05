@@ -273,6 +273,16 @@ public class PersonalFinanceController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPost("import-sheet/{year:int}/{month:int}")]
+    public async Task<IActionResult> ImportFromSheet(int year, int month, CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _monthService.ImportFromSheetAsync(year, month, userId.Value, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+    }
+
     [HttpPost("subscriptions")]
     public async Task<IActionResult> CreateSubscription([FromBody] PersonalControlSubscriptionRequest request, CancellationToken cancellationToken)
     {
@@ -475,7 +485,11 @@ public class PersonalFinanceController : BaseApiController
                 totalAmount = card.TotalAmount,
                 paidAmount = card.PaidAmount,
                 pendingAmount = card.PendingAmount,
-                itemCount = card.ExpenseCount
+                itemCount = card.ExpenseCount,
+                statementAmount = card.StatementAmount,
+                invoiceId = card.InvoiceId,
+                invoicePaid = card.InvoicePaid,
+                invoicePaymentDate = card.InvoicePaymentDate
             })
         };
     }

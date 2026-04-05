@@ -22,6 +22,8 @@ public class CreditCardInvoice : AuditableEntity, IUserOwnedEntity
     public Guid? PaidFromAccountId { get; private set; }
     public virtual FinancialAccount? PaidFromAccount { get; private set; }
 
+    public decimal? StatementAmount { get; private set; }
+
     // Navigation properties
     public virtual ICollection<Transaction> Transactions { get; private set; } = new List<Transaction>();
 
@@ -65,13 +67,22 @@ public class CreditCardInvoice : AuditableEntity, IUserOwnedEntity
     }
 
     /// <summary>
+    /// Define o valor da fatura conforme extrato
+    /// </summary>
+    public void SetStatementAmount(decimal? amount)
+    {
+        StatementAmount = amount;
+    }
+
+    /// <summary>
     /// Marca a fatura como paga
     /// </summary>
-    public void MarkAsPaid(DateTime paymentDate, Guid? paidFromAccountId = null)
+    public void MarkAsPaid(DateTime paymentDate, Guid? paidFromAccountId = null, decimal? statementAmount = null)
     {
         IsPaid = true;
         PaymentDate = paymentDate;
         PaidFromAccountId = paidFromAccountId;
+        if (statementAmount.HasValue) StatementAmount = statementAmount;
     }
 
     /// <summary>
