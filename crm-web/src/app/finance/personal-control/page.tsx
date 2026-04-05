@@ -139,12 +139,35 @@ function subscriptionFormReset(): EditingState<CreatePersonalControlSubscription
   };
 }
 
-function StatusBadge({ paid }: { paid: boolean }) {
+function StatusBadge({ paid, onClick, loading }: { paid: boolean; onClick?: () => void; loading?: boolean }) {
+  const base = 'cursor-pointer select-none transition-opacity ' + (loading ? 'opacity-50 pointer-events-none' : '');
   return paid ? (
-    <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Pago</Badge>
+    <Badge onClick={onClick} className={cn('border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100', base)}>
+      Pago ✓
+    </Badge>
   ) : (
-    <Badge className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50">Pendente</Badge>
+    <Badge onClick={onClick} className={cn('border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100', base)}>
+      Pendente
+    </Badge>
   );
+}
+
+/** Retorna o dia efetivo de pagamento (sexta anterior se cair em sábado/domingo) */
+function getEffectivePayDay(dayOfMonth: number, year: number, month: number): { effectiveDay: number; adjusted: boolean; label: string } {
+  const safeDay = Math.min(dayOfMonth, new Date(year, month, 0).getDate());
+  const date = new Date(year, month - 1, safeDay);
+  const dow = date.getDay(); // 0=Dom, 6=Sab
+  if (dow === 6) {
+    const fri = new Date(date);
+    fri.setDate(safeDay - 1);
+    return { effectiveDay: fri.getDate(), adjusted: true, label: `Dia ${fri.getDate()} (sex, adj. do ${safeDay})` };
+  }
+  if (dow === 0) {
+    const fri = new Date(date);
+    fri.setDate(safeDay - 2);
+    return { effectiveDay: fri.getDate(), adjusted: true, label: `Dia ${fri.getDate()} (sex, adj. do ${safeDay})` };
+  }
+  return { effectiveDay: safeDay, adjusted: false, label: `Dia ${safeDay}` };
 }
 
 function MetricCard({
@@ -259,7 +282,10 @@ function SalaryPlannerSection({
 
   const buckets = salaryDates.map((day, i) => {
     const nextDay = salaryDates[i + 1] ?? 32;
-    const incomes = monthView.incomes.filter((item) => item.dayOfMonth >= day && item.dayOfMonth < nextDay);
+    const incomes = monthView.incomes.filter((item) => {
+      const eff = getEffectivePayDay(item.dayOfMonth, monthView.period.year, monthView.period.month);
+      return eff.effectiveDay >= day && eff.effectiveDay < nextDay;
+    });
     const expenses = monthView.expenses.filter((item) => item.dueDay >= day && item.dueDay < nextDay);
     const subscriptions = i === 0 ? monthView.subscriptions : ([] as typeof monthView.subscriptions);
     const totalIncome = incomes.reduce((s, item) => s + item.amount, 0);
@@ -726,21 +752,35 @@ function Page() {
       </SectionShell>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <SectionShell title="Receitas do mês" description="Lançamentos do período selecionado.">
+        <SectionShell title="Receitas do mês" description="Clique no badge de status para marcar como pago/pendente.">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Dia</TableHead><TableHead>Recorrente</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Dia pagamento</TableHead><TableHead>Recorrente</TableHead><TableHead>Status (clicável)</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
               <TableBody>
-                {loading ? <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.incomes.length ? monthView.incomes.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
-                    <TableCell>{formatCurrency(item.amount)}</TableCell>
-                    <TableCell>Dia {item.dayOfMonth}</TableCell>
-                    <TableCell><Badge variant="outline">{item.isRecurring ? 'Sim' : 'Não'}</Badge></TableCell>
-                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editIncome(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('income', item.id, !item.isPaid)} disabled={savingKey === `income-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'income', id: item.id, name: item.name })} disabled={savingKey === `delete-income-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
-                  </TableRow>
-                )) : <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>}
+                {loading ? <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.incomes.length ? monthView.incomes.map((item) => {
+                  const pay = getEffectivePayDay(item.dayOfMonth, period.year, period.month);
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                      <TableCell>{formatCurrency(item.amount)}</TableCell>
+                      <TableCell>
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-medium">{pay.label}</p>
+                          {pay.adjusted && <p className="text-xs text-amber-600">Ajustado (fim de semana)</p>}
+                        </div>
+                      </TableCell>
+                      <TableCell><Badge variant="outline">{item.isRecurring ? 'Sim' : 'Não'}</Badge></TableCell>
+                      <TableCell>
+                        <StatusBadge
+                          paid={item.isPaid}
+                          loading={savingKey === `income-${item.id}`}
+                          onClick={() => saveStatus('income', item.id, !item.isPaid)}
+                        />
+                      </TableCell>
+                      <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editIncome(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'income', id: item.id, name: item.name })} disabled={savingKey === `delete-income-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                    </TableRow>
+                  );
+                }) : <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>
@@ -758,8 +798,8 @@ function Page() {
                     <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
                     <TableCell>Dia {item.dueDay}</TableCell>
                     <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
-                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('expense', item.id, !item.isPaid)} disabled={savingKey === `expense-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                    <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
+                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                   </TableRow>
                 )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
               </TableBody>
@@ -781,8 +821,8 @@ function Page() {
                     <TableCell><Badge variant="outline">{billingFrequencyOptions.find((option) => option.value === item.billingFrequency)?.label || item.billingFrequency}</Badge></TableCell>
                     <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
                     <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
-                    <TableCell><StatusBadge paid={item.isPaid} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editSubscription(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => saveStatus('subscription', item.id, !item.isPaid)} disabled={savingKey === `subscription-${item.id}`}><CheckCircle2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'subscription', id: item.id, name: item.name })} disabled={savingKey === `delete-subscription-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                    <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `subscription-${item.id}`} onClick={() => saveStatus('subscription', item.id, !item.isPaid)} /></TableCell>
+                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editSubscription(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'subscription', id: item.id, name: item.name })} disabled={savingKey === `delete-subscription-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                   </TableRow>
                 )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma assinatura encontrada.</TableCell></TableRow>}
               </TableBody>
