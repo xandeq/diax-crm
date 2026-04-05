@@ -80,6 +80,9 @@ jobs:
 
       - name: Create appsettings.Production.json
         shell: bash
+        env:
+          GOOGLE_SHEETS_SA_JSON: ${{ secrets.GOOGLE_SHEETS_SA_JSON }}
+          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
         run: |
           # Use jq for proper JSON escaping (handles quotes, backslashes, special chars)
           jq -n \
@@ -111,8 +114,8 @@ jobs:
             --arg extractorUrl "${{ secrets.EXTRATOR_URL }}" \
             --arg extractorToken "${{ secrets.EXTRATOR_API_TOKEN }}" \
             --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
-            --arg googleSheetsJson "${{ secrets.GOOGLE_SHEETS_SA_JSON }}" \
-            --arg googleSheetsSpreadsheetId "${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}" \
+            --arg googleSheetsJson "$GOOGLE_SHEETS_SA_JSON" \
+            --arg googleSheetsSpreadsheetId "$GOOGLE_SHEETS_SPREADSHEET_ID" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
