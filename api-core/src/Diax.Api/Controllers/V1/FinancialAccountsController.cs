@@ -11,6 +11,7 @@ namespace Diax.Api.Controllers.V1;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/financial-accounts")]
 [Produces("application/json")]
 public class FinancialAccountsController : BaseApiController
 {
