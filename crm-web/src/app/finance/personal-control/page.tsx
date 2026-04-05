@@ -324,7 +324,7 @@ function SalaryPlannerSection({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {buckets.map(({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, balance, investSuggestion }) => (
             <div key={day} className={cn('rounded-2xl border p-4', balance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
               {/* Cabeçalho da linha */}
@@ -360,9 +360,9 @@ function SalaryPlannerSection({
                 </div>
               </div>
 
-              {/* Saídas em linha */}
+              {/* Saídas em coluna */}
               {(expenses.length > 0 || subscriptions.length > 0) && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col gap-1 mt-1">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas:</span>
                   {expenses.map((item) => (
                     <span key={item.id} className="rounded-md bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs text-slate-600">
