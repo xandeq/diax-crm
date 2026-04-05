@@ -20,16 +20,25 @@ public class GoogleSheetsService : IGoogleSheetsService
 
     public async Task<List<List<string>>> ReadRangeAsync(string spreadsheetId, string range, CancellationToken cancellationToken = default)
     {
-        var serviceAccountFile = _configuration["GoogleSheets:ServiceAccountFile"];
-        if (string.IsNullOrWhiteSpace(serviceAccountFile) || !File.Exists(serviceAccountFile))
-        {
-            _logger.LogError("Google Sheets service account file not found: {Path}", serviceAccountFile);
-            throw new FileNotFoundException($"Google Sheets service account file not found: {serviceAccountFile}");
-        }
-
         GoogleCredential credential;
-        await using (var stream = new FileStream(serviceAccountFile, FileMode.Open, FileAccess.Read))
+
+        var serviceAccountJson = _configuration["GoogleSheets:ServiceAccountJson"];
+        if (!string.IsNullOrWhiteSpace(serviceAccountJson))
         {
+            credential = GoogleCredential
+                .FromJson(serviceAccountJson)
+                .CreateScoped(SheetsService.Scope.SpreadsheetsReadonly);
+        }
+        else
+        {
+            var serviceAccountFile = _configuration["GoogleSheets:ServiceAccountFile"];
+            if (string.IsNullOrWhiteSpace(serviceAccountFile) || !File.Exists(serviceAccountFile))
+            {
+                _logger.LogError("Google Sheets service account file not found: {Path}", serviceAccountFile);
+                throw new FileNotFoundException($"Google Sheets service account file not found: {serviceAccountFile}");
+            }
+
+            await using var stream = new FileStream(serviceAccountFile, FileMode.Open, FileAccess.Read);
             credential = GoogleCredential
                 .FromStream(stream)
                 .CreateScoped(SheetsService.Scope.SpreadsheetsReadonly);

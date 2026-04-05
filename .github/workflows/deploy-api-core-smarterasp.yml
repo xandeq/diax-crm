@@ -111,6 +111,8 @@ jobs:
             --arg extractorUrl "${{ secrets.EXTRATOR_URL }}" \
             --arg extractorToken "${{ secrets.EXTRATOR_API_TOKEN }}" \
             --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
+            --arg googleSheetsJson "${{ secrets.GOOGLE_SHEETS_SA_JSON }}" \
+            --arg googleSheetsSpreadsheetId "${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
@@ -213,6 +215,10 @@ jobs:
                 "ApiToken": $extractorToken
               },
               "ServiceApiKey": $serviceApiKey,
+              "GoogleSheets": {
+                "ServiceAccountJson": $googleSheetsJson,
+                "SpreadsheetId": $googleSheetsSpreadsheetId
+              },
               "Cors": {
                 "AllowedOrigins": [
                   "https://crm.alexandrequeiroz.com.br",
