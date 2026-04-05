@@ -263,6 +263,7 @@ public class CreditCardInvoiceService : IApplicationService
             invoice.IsPaid,
             invoice.PaymentDate,
             invoice.PaidFromAccountId,
+            invoice.StatementAmount,
             invoice.CreatedAt,
             invoice.UpdatedAt
         );

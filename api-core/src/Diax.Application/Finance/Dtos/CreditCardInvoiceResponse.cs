@@ -12,6 +12,7 @@ public record CreditCardInvoiceResponse(
     bool IsPaid,
     DateTime? PaymentDate,
     Guid? PaidFromAccountId,
+    decimal? StatementAmount,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );
