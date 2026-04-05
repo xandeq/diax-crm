@@ -993,7 +993,7 @@ export const financeService = {
         });
     },
     updateAccountBalance: async (id: string, balance: number) => {
-        return apiFetch<void>(`/financialaccounts/${id}/balance`, {
+        return apiFetch<void>(`/financial-accounts/${id}/balance`, {
             method: 'PATCH',
             body: JSON.stringify({ balance }),
         });
