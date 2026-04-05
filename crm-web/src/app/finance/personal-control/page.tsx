@@ -324,62 +324,58 @@ function SalaryPlannerSection({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex flex-col gap-3">
           {buckets.map(({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, balance, investSuggestion }) => (
-            <div key={day} className={cn('flex flex-col gap-3 rounded-2xl border p-4', balance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-700">
+            <div key={day} className={cn('rounded-2xl border p-4', balance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
+              {/* Cabeçalho da linha */}
+              <div className="flex flex-wrap items-center gap-4 mb-3">
+                <span className="text-sm font-semibold text-slate-700 w-24 shrink-0">
                   Dia {day}{nextDay < 32 ? `–${nextDay - 1}` : '+'}
                 </span>
-                <span className={cn('text-xs font-bold tabular-nums', balance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
-                  {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
-                </span>
-              </div>
 
-              {incomes.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">Entradas</p>
-                  {incomes.map((item) => (
-                    <div key={item.id} className="flex justify-between text-xs text-slate-700">
-                      <span className="truncate max-w-[110px]">{item.name}</span>
-                      <span className="tabular-nums font-medium">{formatCurrency(item.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {(expenses.length > 0 || subscriptions.length > 0) && (
-                <div className="space-y-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas</p>
-                  {expenses.map((item) => (
-                    <div key={item.id} className="flex justify-between text-xs text-slate-600">
-                      <span className="truncate max-w-[110px]">{item.name}</span>
-                      <span className="tabular-nums">{formatCurrency(item.amount)}</span>
-                    </div>
-                  ))}
-                  {subscriptions.map((item) => (
-                    <div key={item.id} className="flex justify-between text-xs text-slate-600">
-                      <span className="truncate max-w-[110px]">{item.name}</span>
-                      <span className="tabular-nums">{formatCurrency(item.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-auto space-y-1 border-t border-current/10 pt-2">
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Receitas</span><span className="text-emerald-600 font-medium">{formatCurrency(totalIncome)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Despesas</span><span className="text-rose-500 font-medium">{formatCurrency(totalExpense)}</span>
-                </div>
-                {investSuggestion > 0 && (
-                  <div className="flex items-center justify-between rounded-lg bg-sky-50 px-2 py-1 text-xs text-sky-700">
-                    <div className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />Investir 20%</div>
-                    <span className="font-semibold">{formatCurrency(investSuggestion)}</span>
+                {/* Entradas inline */}
+                {incomes.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">Entradas:</span>
+                    {incomes.map((item) => (
+                      <span key={item.id} className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                        {item.name} {formatCurrency(item.amount)}
+                      </span>
+                    ))}
                   </div>
                 )}
+
+                {/* Totais e saldo à direita */}
+                <div className="ml-auto flex items-center gap-4 text-xs">
+                  <span className="text-slate-500">Receitas <span className="text-emerald-600 font-semibold">{formatCurrency(totalIncome)}</span></span>
+                  <span className="text-slate-500">Despesas <span className="text-rose-500 font-semibold">{formatCurrency(totalExpense)}</span></span>
+                  <span className={cn('font-bold tabular-nums text-sm', balance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
+                    {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
+                  </span>
+                  {investSuggestion > 0 && (
+                    <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1 text-sky-700">
+                      <TrendingUp className="h-3 w-3" />Investir 20%: <strong>{formatCurrency(investSuggestion)}</strong>
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Saídas em linha */}
+              {(expenses.length > 0 || subscriptions.length > 0) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas:</span>
+                  {expenses.map((item) => (
+                    <span key={item.id} className="rounded-md bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs text-slate-600">
+                      {item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
+                    </span>
+                  ))}
+                  {subscriptions.map((item) => (
+                    <span key={item.id} className="rounded-md bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs text-slate-600">
+                      {item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
