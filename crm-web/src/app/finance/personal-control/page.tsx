@@ -747,7 +747,7 @@ function Page() {
         </div>
       </SectionShell>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-[2fr_3fr]">
         <SectionShell title="Receitas do mês" description="Clique no badge de status para marcar como pago/pendente.">
           <div className="overflow-x-auto">
             <Table>
