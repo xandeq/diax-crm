@@ -11,16 +11,25 @@ namespace Diax.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "details",
-                table: "projected_transactions");
+            // Conditional: only drop if column still exists (idempotent for prod environments)
+            migrationBuilder.Sql(@"
+                IF EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'projected_transactions' AND COLUMN_NAME = 'details'
+                )
+                BEGIN
+                    ALTER TABLE projected_transactions DROP COLUMN details;
+                END");
 
-            migrationBuilder.AddColumn<string>(
-                name: "details",
-                table: "recurring_transactions",
-                type: "nvarchar(256)",
-                maxLength: 256,
-                nullable: true);
+            // Conditional: only add if column does not exist yet
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'recurring_transactions' AND COLUMN_NAME = 'details'
+                )
+                BEGIN
+                    ALTER TABLE recurring_transactions ADD details nvarchar(256) NULL;
+                END");
 
             migrationBuilder.AddColumn<decimal>(
                 name: "statement_amount",
