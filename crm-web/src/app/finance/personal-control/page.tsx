@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn, formatCurrency } from '@/lib/utils';
-import { financeService, type CreditCard } from '@/services/finance';
+import { financeService, type CreditCard, type FinancialAccount } from '@/services/finance';
 import {
   CreatePersonalControlExpenseRequest,
   CreatePersonalControlIncomeRequest,
@@ -35,12 +35,14 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpCircle,
+  Building2,
   Calendar,
   CheckCircle2,
   CreditCard as CreditCardIcon,
   PencilLine,
   Plus,
   RotateCcw,
+  TrendingUp,
   Trash2,
   Wallet,
 } from 'lucide-react';
@@ -203,12 +205,171 @@ function SectionShell({
   );
 }
 
+function PatrimonioWidget({ accounts }: { accounts: FinancialAccount[] }) {
+  if (accounts.length === 0) return null;
+  const total = accounts.reduce((sum, a) => sum + a.balance, 0);
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-gradient-to-r from-slate-50 to-white px-5 py-4 shadow-sm">
+      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+        <Building2 className="h-4 w-4 text-slate-500" />
+        Patrimônio
+      </div>
+      <div className="h-4 w-px bg-slate-200" />
+      {accounts.map((a) => (
+        <div key={a.id} className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm shadow-xs">
+          <span className="text-muted-foreground">{a.name}</span>
+          <span className={cn('font-semibold tabular-nums', a.balance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
+            {formatCurrency(a.balance)}
+          </span>
+        </div>
+      ))}
+      <div className="ml-auto flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-900 px-4 py-1.5 text-sm">
+        <span className="text-slate-300">Total</span>
+        <span className={cn('font-bold tabular-nums', total >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+          {formatCurrency(total)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SalaryPlannerSection({
+  monthView,
+  salaryDates,
+  onChangeDates,
+}: {
+  monthView: PersonalControlMonthView;
+  salaryDates: number[];
+  onChangeDates: (dates: number[]) => void;
+}) {
+  const [editingDates, setEditingDates] = useState(false);
+  const [draftDates, setDraftDates] = useState(salaryDates.join(', '));
+
+  const saveDates = () => {
+    const parsed = draftDates
+      .split(',')
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => !isNaN(n) && n >= 1 && n <= 31)
+      .sort((a, b) => a - b);
+    if (parsed.length > 0) {
+      onChangeDates(parsed);
+      setEditingDates(false);
+    }
+  };
+
+  const buckets = salaryDates.map((day, i) => {
+    const nextDay = salaryDates[i + 1] ?? 32;
+    const incomes = monthView.incomes.filter((item) => item.dayOfMonth >= day && item.dayOfMonth < nextDay);
+    const expenses = monthView.expenses.filter((item) => item.dueDay >= day && item.dueDay < nextDay);
+    const subscriptions = i === 0 ? monthView.subscriptions : ([] as typeof monthView.subscriptions);
+    const totalIncome = incomes.reduce((s, item) => s + item.amount, 0);
+    const totalExpense =
+      expenses.reduce((s, item) => s + item.amount, 0) +
+      subscriptions.reduce((s, item) => s + item.amount, 0);
+    const balance = totalIncome - totalExpense;
+    const investSuggestion = balance > 0 ? balance * 0.2 : 0;
+    return { day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, balance, investSuggestion };
+  });
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">Planner de Salário</CardTitle>
+            <CardDescription>Distribuição das contas por data de recebimento.</CardDescription>
+          </div>
+          {editingDates ? (
+            <div className="flex items-center gap-2">
+              <Input
+                className="h-8 w-40 text-xs"
+                value={draftDates}
+                onChange={(e) => setDraftDates(e.target.value)}
+                placeholder="1, 4, 10, 15"
+              />
+              <Button size="sm" onClick={saveDates}>Salvar</Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditingDates(false)}>Cancelar</Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => { setDraftDates(salaryDates.join(', ')); setEditingDates(true); }}>
+              Editar datas
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {buckets.map(({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, balance, investSuggestion }) => (
+            <div key={day} className={cn('flex flex-col gap-3 rounded-2xl border p-4', balance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-700">
+                  Dia {day}{nextDay < 32 ? `–${nextDay - 1}` : '+'}
+                </span>
+                <span className={cn('text-xs font-bold tabular-nums', balance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
+                  {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
+                </span>
+              </div>
+
+              {incomes.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">Entradas</p>
+                  {incomes.map((item) => (
+                    <div key={item.id} className="flex justify-between text-xs text-slate-700">
+                      <span className="truncate max-w-[110px]">{item.name}</span>
+                      <span className="tabular-nums font-medium">{formatCurrency(item.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(expenses.length > 0 || subscriptions.length > 0) && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas</p>
+                  {expenses.map((item) => (
+                    <div key={item.id} className="flex justify-between text-xs text-slate-600">
+                      <span className="truncate max-w-[110px]">{item.name}</span>
+                      <span className="tabular-nums">{formatCurrency(item.amount)}</span>
+                    </div>
+                  ))}
+                  {subscriptions.map((item) => (
+                    <div key={item.id} className="flex justify-between text-xs text-slate-600">
+                      <span className="truncate max-w-[110px]">{item.name}</span>
+                      <span className="tabular-nums">{formatCurrency(item.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-auto space-y-1 border-t border-current/10 pt-2">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Receitas</span><span className="text-emerald-600 font-medium">{formatCurrency(totalIncome)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Despesas</span><span className="text-rose-500 font-medium">{formatCurrency(totalExpense)}</span>
+                </div>
+                {investSuggestion > 0 && (
+                  <div className="flex items-center justify-between rounded-lg bg-sky-50 px-2 py-1 text-xs text-sky-700">
+                    <div className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />Investir 20%</div>
+                    <span className="font-semibold">{formatCurrency(investSuggestion)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function Page() {
   const [period, setPeriod] = useState(currentPeriod);
   const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
   const [monthView, setMonthView] = useState<PersonalControlMonthView | null>(null);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [salaryDates, setSalaryDates] = useState<number[]>([1, 4, 10, 15]);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [incomeForm, setIncomeForm] = useState(incomeFormReset);
   const [expenseForm, setExpenseForm] = useState(expenseFormReset);
@@ -225,12 +386,14 @@ function Page() {
   const loadMonth = async (year: number, month: number) => {
     setLoading(true);
     try {
-      const [view, cards] = await Promise.all([
+      const [view, cards, accts] = await Promise.all([
         personalControlService.getMonthView(year, month),
         financeService.getCreditCards(),
+        financeService.getFinancialAccounts(),
       ]);
       setMonthView(view);
       setCreditCards(cards);
+      setAccounts(accts);
     } catch (error) {
       console.error('Erro ao carregar controle mensal', error);
       setMonthView(null);
@@ -521,6 +684,8 @@ function Page() {
         </div>
       </div>
 
+      <PatrimonioWidget accounts={accounts} />
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Total de receitas" value={formatCurrency(summary?.totalIncome || 0)} description="Entradas fixas e recorrentes" icon={ArrowUpCircle} tone="green" />
         <MetricCard title="Total de despesas" value={formatCurrency(summary?.totalExpenses || 0)} description="Saídas do mês selecionado" icon={ArrowDownCircle} tone="red" />
@@ -534,6 +699,14 @@ function Page() {
         <MetricCard title="Com cartão" value={formatCurrency(summary?.withCardAmount || 0)} description="Itens com cartão de crédito" icon={CreditCardIcon} tone="blue" />
         <MetricCard title="Sem cartão" value={formatCurrency(summary?.withoutCardAmount || 0)} description="Itens pagos sem cartão" icon={Wallet} tone="slate" />
       </div>
+
+      {monthView && (
+        <SalaryPlannerSection
+          monthView={monthView}
+          salaryDates={salaryDates}
+          onChangeDates={setSalaryDates}
+        />
+      )}
 
       <SectionShell title="Ações" description="Abra os formulários só quando precisar criar ou editar um lançamento.">
         <div className="flex flex-wrap gap-3">

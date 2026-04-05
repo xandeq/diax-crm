@@ -293,7 +293,7 @@ public class PersonalFinanceController : BaseApiController
                 request.Amount,
                 CreateDate(request.Year, request.Month, 1),
                 Domain.Finance.TransactionType.Expense,
-                request.PaymentType == "credit" ? PaymentMethod.CreditCard : PaymentMethod.DebitCard,
+                recurringRequest.PaymentMethod,
                 null,
                 true,
                 recurringRequest.FinancialAccountId,
