@@ -229,9 +229,42 @@ function SectionShell({
   );
 }
 
-function PatrimonioWidget({ accounts }: { accounts: FinancialAccount[] }) {
+function PatrimonioWidget({
+  accounts,
+  onUpdateBalance,
+}: {
+  accounts: FinancialAccount[];
+  onUpdateBalance: (id: string, balance: number) => Promise<void>;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+
   if (accounts.length === 0) return null;
   const total = accounts.reduce((sum, a) => sum + a.balance, 0);
+
+  const startEdit = (a: FinancialAccount) => {
+    setEditingId(a.id);
+    setDraft(String(a.balance));
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft('');
+  };
+
+  const saveEdit = async (id: string) => {
+    const parsed = parseFloat(draft.replace(',', '.'));
+    if (isNaN(parsed)) return;
+    setSaving(true);
+    try {
+      await onUpdateBalance(id, parsed);
+    } finally {
+      setSaving(false);
+      setEditingId(null);
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-gradient-to-r from-slate-50 to-white px-5 py-4 shadow-sm">
       <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -242,9 +275,38 @@ function PatrimonioWidget({ accounts }: { accounts: FinancialAccount[] }) {
       {accounts.map((a) => (
         <div key={a.id} className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm shadow-xs">
           <span className="text-muted-foreground">{a.name}</span>
-          <span className={cn('font-semibold tabular-nums', a.balance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
-            {formatCurrency(a.balance)}
-          </span>
+          {editingId === a.id ? (
+            <div className="flex items-center gap-1">
+              <Input
+                className="h-6 w-28 text-xs px-1.5"
+                value={draft}
+                autoFocus
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void saveEdit(a.id);
+                  if (e.key === 'Escape') cancelEdit();
+                }}
+              />
+              <button
+                onClick={() => void saveEdit(a.id)}
+                disabled={saving}
+                className="text-emerald-600 hover:text-emerald-700 text-xs font-medium disabled:opacity-50"
+              >
+                ✓
+              </button>
+              <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => startEdit(a)}
+              className={cn(
+                'font-semibold tabular-nums hover:underline cursor-pointer',
+                a.balance >= 0 ? 'text-emerald-700' : 'text-rose-600'
+              )}
+            >
+              {formatCurrency(a.balance)}
+            </button>
+          )}
         </div>
       ))}
       <div className="ml-auto flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-900 px-4 py-1.5 text-sm">
@@ -723,6 +785,54 @@ function Page() {
     setSubscriptionDialogOpen(true);
   };
 
+  // FASE 2A — update account balance
+  const updateAccountBalance = async (id: string, balance: number) => {
+    await financeService.updateAccountBalance(id, balance);
+    toast.success('Saldo atualizado.');
+    await refresh();
+  };
+
+  // FASE 2C — quick expense
+  type QuickPaymentType = 'pix' | 'debit' | 'credit' | 'auto';
+  const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
+  const [quickExpense, setQuickExpense] = useState({
+    name: '',
+    amount: '' as string | number,
+    date: new Date().toISOString().slice(0, 10),
+    paymentKind: 'pix' as QuickPaymentType,
+    creditCardId: '',
+  });
+
+  const submitQuickExpense = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const amount = parseFloat(String(quickExpense.amount).replace(',', '.'));
+    if (isNaN(amount) || amount <= 0) { toast.error('Valor inválido.'); return; }
+    const date = new Date(quickExpense.date + 'T12:00:00');
+    const paymentType = quickExpense.paymentKind === 'credit' ? 'credit' : 'debit';
+    setSavingKey('quick-expense');
+    try {
+      await personalControlService.createExpense({
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        name: quickExpense.name,
+        amount,
+        paymentType,
+        dueDay: date.getDate(),
+        isPaid: false,
+        creditCardId: paymentType === 'credit' && quickExpense.creditCardId ? quickExpense.creditCardId : undefined,
+      });
+      toast.success('Despesa criada.');
+      setQuickExpenseOpen(false);
+      setQuickExpense({ name: '', amount: '', date: new Date().toISOString().slice(0, 10), paymentKind: 'pix', creditCardId: '' });
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      toast.error('Falha ao criar despesa.');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
   const summary = monthView?.summary;
 
   return (
@@ -760,7 +870,7 @@ function Page() {
         </div>
       </div>
 
-      <PatrimonioWidget accounts={accounts} />
+      <PatrimonioWidget accounts={accounts} onUpdateBalance={updateAccountBalance} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Total de receitas" value={formatCurrency(summary?.totalIncome || 0)} description="Entradas fixas e recorrentes" icon={ArrowUpCircle} tone="green" />
@@ -821,6 +931,10 @@ function Page() {
           <Button className="gap-2" onClick={openNewIncomeDialog}>
             <Plus className="h-4 w-4" />
             Adicionar receita
+          </Button>
+          <Button className="gap-2" onClick={() => setQuickExpenseOpen(true)} variant="outline">
+            <Plus className="h-4 w-4" />
+            Despesa rápida
           </Button>
           <Button className="gap-2" onClick={openNewExpenseDialog}>
             <Plus className="h-4 w-4" />
@@ -938,13 +1052,15 @@ function Page() {
                   <TableRow>
                     <TableHead>Cartão</TableHead>
                     <TableHead>Fatura</TableHead>
+                    <TableHead>Limite</TableHead>
+                    <TableHead>Disponível</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Itens</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Carregando cartões...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Carregando cartões...</TableCell></TableRow>
                   ) : monthView?.cardSummaries.length ? monthView.cardSummaries.map((item) => (
                     <TableRow key={item.creditCardId}>
                       <TableCell className="font-medium">{item.creditCardName}</TableCell>
@@ -993,6 +1109,27 @@ function Page() {
                           </div>
                         )}
                       </TableCell>
+                      <TableCell className="tabular-nums text-sm">
+                        {item.creditLimit ? formatCurrency(item.creditLimit) : <span className="text-muted-foreground text-xs">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        {item.creditLimit ? (
+                          <div className="flex flex-col gap-1 min-w-[100px]">
+                            <span className={cn('tabular-nums text-sm font-medium', (item.availableCredit ?? 0) >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
+                              {formatCurrency(item.availableCredit ?? 0)}
+                            </span>
+                            <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                              <div
+                                className={cn('h-full rounded-full', (item.availableCredit ?? 0) >= 0 ? 'bg-emerald-400' : 'bg-rose-400')}
+                                style={{ width: `${Math.min(100, Math.max(0, ((item.creditLimit - (item.availableCredit ?? 0)) / item.creditLimit) * 100))}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {Math.round(((item.creditLimit - (item.availableCredit ?? 0)) / item.creditLimit) * 100)}% usado
+                            </span>
+                          </div>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </TableCell>
                       <TableCell>
                         {item.invoicePaid ? (
                           <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">Pago ✓</Badge>
@@ -1033,7 +1170,7 @@ function Page() {
                       <TableCell><Badge variant="outline">{item.itemCount} lançamentos</Badge></TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow><TableCell colSpan={4} className="py-12 text-center text-muted-foreground">Nenhum cartão com lançamentos neste mês.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhum cartão com lançamentos neste mês.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -1041,6 +1178,99 @@ function Page() {
           </CardContent>
         </Card>
       </div>
+
+      {/* FASE 2C — Despesa Rápida */}
+      <Dialog open={quickExpenseOpen} onOpenChange={setQuickExpenseOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Despesa Rápida</DialogTitle>
+            <DialogDescription>Lance uma despesa sem precisar selecionar o período.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitQuickExpense} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="qe-name">Descrição</Label>
+              <Input
+                id="qe-name"
+                placeholder="Ex: Mercado, Uber, Farmácia..."
+                value={quickExpense.name}
+                onChange={(e) => setQuickExpense((c) => ({ ...c, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="qe-amount">Valor (R$)</Label>
+                <Input
+                  id="qe-amount"
+                  placeholder="0,00"
+                  value={quickExpense.amount}
+                  onChange={(e) => setQuickExpense((c) => ({ ...c, amount: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qe-date">Data</Label>
+                <Input
+                  id="qe-date"
+                  type="date"
+                  value={quickExpense.date}
+                  onChange={(e) => setQuickExpense((c) => ({ ...c, date: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de pagamento</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { value: 'pix', label: 'PIX' },
+                  { value: 'debit', label: 'Débito em Conta' },
+                  { value: 'credit', label: 'Cartão de Crédito' },
+                  { value: 'auto', label: 'Débito Automático' },
+                ] as { value: QuickPaymentType; label: string }[]).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setQuickExpense((c) => ({ ...c, paymentKind: value }))}
+                    className={cn(
+                      'rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors',
+                      quickExpense.paymentKind === value
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {quickExpense.paymentKind === 'credit' && (
+              <div className="space-y-2">
+                <Label>Cartão</Label>
+                <Select
+                  value={quickExpense.creditCardId || 'none'}
+                  onValueChange={(v) => setQuickExpense((c) => ({ ...c, creditCardId: v === 'none' ? '' : v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecionar cartão" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem cartão</SelectItem>
+                    {creditCards.map((card) => (
+                      <SelectItem key={card.id} value={card.id}>{card.name} •{card.lastFourDigits}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setQuickExpenseOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={savingKey === 'quick-expense'} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {savingKey === 'quick-expense' ? 'Criando...' : 'Criar despesa'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={incomeDialogOpen} onOpenChange={setIncomeDialogOpen}>
         <DialogContent className="sm:max-w-xl">

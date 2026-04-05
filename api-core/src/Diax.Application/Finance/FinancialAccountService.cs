@@ -151,6 +151,29 @@ public class FinancialAccountService : IApplicationService
         }
     }
 
+    public async Task<Result> UpdateBalanceAsync(Guid id, decimal newBalance, Guid userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Updating balance for financial account {AccountId} for user {UserId}", id, userId);
+            var account = await _repository.GetByIdAndUserAsync(id, userId, cancellationToken);
+            if (account == null)
+                return Result.Failure(new Error("FinancialAccount.NotFound", "Financial account not found"));
+
+            account.UpdateBalance(newBalance);
+            await _repository.UpdateAsync(account, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Successfully updated balance for financial account {AccountId} to {NewBalance}", id, newBalance);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update balance for financial account {AccountId}", id);
+            return Result.Failure(new Error("FinancialAccount.UpdateFailed", "Failed to update balance."));
+        }
+    }
+
     public async Task<Result> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         try

@@ -499,7 +499,9 @@ public class PersonalFinanceController : BaseApiController
                 statementAmount = card.StatementAmount,
                 invoiceId = card.InvoiceId,
                 invoicePaid = card.InvoicePaid,
-                invoicePaymentDate = card.InvoicePaymentDate
+                invoicePaymentDate = card.InvoicePaymentDate,
+                creditLimit = card.CreditLimit,
+                availableCredit = card.AvailableCredit
             })
         };
     }

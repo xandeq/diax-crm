@@ -135,6 +135,18 @@ public class FinancialAccountsController : BaseApiController
         return NoContent();
     }
 
+    [HttpPatch("{id}/balance")]
+    public async Task<IActionResult> UpdateBalance(Guid id, [FromBody] UpdateBalanceRequest request, CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _service.UpdateBalanceAsync(id, request.Balance, userId.Value, cancellationToken);
+        if (!result.IsSuccess)
+            return result.Error?.Code?.EndsWith("Failed") == true ? StatusCode(500, result.Error) : BadRequest(result.Error);
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -157,3 +169,5 @@ public class FinancialAccountsController : BaseApiController
         return NoContent();
     }
 }
+
+public record UpdateBalanceRequest(decimal Balance);

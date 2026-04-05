@@ -992,6 +992,12 @@ export const financeService = {
             body: JSON.stringify(data),
         });
     },
+    updateAccountBalance: async (id: string, balance: number) => {
+        return apiFetch<void>(`/financialaccounts/${id}/balance`, {
+            method: 'PATCH',
+            body: JSON.stringify({ balance }),
+        });
+    },
     deleteFinancialAccount: async (id: string) => {
         return apiFetch<void>(`/financialaccounts/${id}`, {
             method: 'DELETE',

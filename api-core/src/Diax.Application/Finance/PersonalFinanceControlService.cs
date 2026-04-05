@@ -522,7 +522,11 @@ public class PersonalFinanceControlService : IApplicationService
                     InvoicePaymentDate = invoice?.PaymentDate,
                     InvoiceDueDate = invoice?.DueDate,
                     StatementAmount = invoice?.StatementAmount,
-                    InvoiceId = invoice?.Id
+                    InvoiceId = invoice?.Id,
+                    CreditLimit = card.Limit,
+                    AvailableCredit = card.Limit > 0
+                        ? card.Limit - (invoice?.StatementAmount ?? cardTransactions.Sum(t => t.Amount))
+                        : 0m
                 };
             })
             .OrderByDescending(card => card.TotalAmount)

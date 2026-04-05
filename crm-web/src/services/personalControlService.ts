@@ -34,6 +34,8 @@ export interface PersonalControlCardSummary {
   invoiceId?: string;
   invoicePaid?: boolean;
   invoicePaymentDate?: string;
+  creditLimit?: number;
+  availableCredit?: number;
 }
 
 export interface PersonalControlIncomeItem {
