@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   playwright-smoke:
-    if: ${{ secrets.PLAYWRIGHT_LOGIN_EMAIL != '' && secrets.PLAYWRIGHT_LOGIN_PASSWORD != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
