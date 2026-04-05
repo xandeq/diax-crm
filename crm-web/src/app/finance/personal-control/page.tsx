@@ -776,6 +776,38 @@ function Page() {
         <MetricCard title="Sem cartão" value={formatCurrency(summary?.withoutCardAmount || 0)} description="Itens pagos sem cartão" icon={Wallet} tone="slate" />
       </div>
 
+      {/* KPIs de Cartões e Projeção Financeira */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Total faturas cartões"
+          value={formatCurrency((summary as any)?.totalCardStatements || 0)}
+          description={`${(summary as any)?.cardsPendingCount || 0} pendentes · ${(summary as any)?.cardsPaidCount || 0} pagas`}
+          icon={CreditCardIcon}
+          tone="blue"
+        />
+        <MetricCard
+          title="Faturas pendentes"
+          value={formatCurrency((summary as any)?.totalCardPending || 0)}
+          description="Cartões ainda não pagos"
+          icon={Calendar}
+          tone="red"
+        />
+        <MetricCard
+          title="Total a pagar"
+          value={formatCurrency((summary as any)?.totalToPay || 0)}
+          description="Débitos + faturas pendentes"
+          icon={ArrowDownCircle}
+          tone="red"
+        />
+        <MetricCard
+          title="Disponível p/ investir"
+          value={formatCurrency((summary as any)?.availableToInvest || 0)}
+          description="Receita − despesas − cartões"
+          icon={Wallet}
+          tone={(summary as any)?.availableToInvest > 0 ? 'green' : 'red'}
+        />
+      </div>
+
       {monthView && (
         <SalaryPlannerSection
           monthView={monthView}

@@ -447,7 +447,17 @@ public class PersonalFinanceController : BaseApiController
                 withCardAmount = source.Summary.ExpensesWithCard,
                 withoutCardAmount = source.Summary.ExpensesWithoutCard,
                 paidCount = source.Summary.PaidCount,
-                unpaidCount = source.Summary.UnpaidCount
+                unpaidCount = source.Summary.UnpaidCount,
+                // Card aggregates
+                totalCardStatements = source.CreditCards.Sum(c => c.StatementAmount ?? 0m),
+                totalCardPaid = source.CreditCards.Where(c => c.InvoicePaid == true).Sum(c => c.StatementAmount ?? 0m),
+                totalCardPending = source.CreditCards.Where(c => c.InvoicePaid != true).Sum(c => c.StatementAmount ?? 0m),
+                cardsPaidCount = source.CreditCards.Count(c => c.InvoicePaid == true),
+                cardsPendingCount = source.CreditCards.Count(c => c.InvoicePaid != true && c.StatementAmount > 0),
+                // What really needs to be paid (debit expenses pending + card invoices pending)
+                totalToPay = source.Summary.UnpaidExpenses + source.CreditCards.Where(c => c.InvoicePaid != true).Sum(c => c.StatementAmount ?? 0m),
+                // What can be invested (income - all expenses - all card statements)
+                availableToInvest = source.Summary.TotalIncome - source.Summary.TotalExpenses - source.CreditCards.Sum(c => c.StatementAmount ?? 0m)
             },
             incomes = source.Incomes.Select(item => new
             {
