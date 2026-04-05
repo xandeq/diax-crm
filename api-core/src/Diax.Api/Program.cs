@@ -277,6 +277,9 @@ try
             await EnsurePersonalFinanceSchemaAsync(db);
             Log.Information("Personal finance schema hotfix verified.");
 
+            await EnsureAddStatementAmountSchemaAsync(db);
+            Log.Information("AddStatementAmount schema patch applied.");
+
             // Seed initial admin (idempotent) — usa app.Configuration (após Build)
             UserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
             Log.Information("UserSeeder completed.");
@@ -484,6 +487,40 @@ static async Task EnsurePersonalFinanceSchemaAsync(DiaxDbContext db)
                 REFERENCES [recurring_transactions] ([id])
                 ON DELETE SET NULL;
         END;
+        """;
+
+    await db.Database.ExecuteSqlRawAsync(sql);
+}
+
+static async Task EnsureAddStatementAmountSchemaAsync(DiaxDbContext db)
+{
+    // Patch for migration 20260405145015 which may have been committed to
+    // __EFMigrationsHistory but had its DDL rolled back on first run.
+    const string sql = """
+        IF COL_LENGTH('credit_card_invoices', 'statement_amount') IS NULL
+            ALTER TABLE [credit_card_invoices] ADD [statement_amount] decimal(18,2) NULL;
+
+        IF COL_LENGTH('ai_usage_logs', 'error_category') IS NULL
+            ALTER TABLE [ai_usage_logs] ADD [error_category] nvarchar(256) NULL;
+
+        IF COL_LENGTH('ai_usage_logs', 'http_status_code') IS NULL
+            ALTER TABLE [ai_usage_logs] ADD [http_status_code] int NULL;
+
+        IF COL_LENGTH('ai_models', 'consecutive_failure_count') IS NULL
+            ALTER TABLE [ai_models] ADD [consecutive_failure_count] int NOT NULL
+                CONSTRAINT [DF_ai_models_consecutive_failure_count] DEFAULT(0);
+
+        IF COL_LENGTH('ai_models', 'last_failure_at') IS NULL
+            ALTER TABLE [ai_models] ADD [last_failure_at] datetime2 NULL;
+
+        IF COL_LENGTH('ai_models', 'last_failure_category') IS NULL
+            ALTER TABLE [ai_models] ADD [last_failure_category] nvarchar(256) NULL;
+
+        IF COL_LENGTH('ai_models', 'last_failure_message') IS NULL
+            ALTER TABLE [ai_models] ADD [last_failure_message] nvarchar(256) NULL;
+
+        IF COL_LENGTH('ai_models', 'last_success_at') IS NULL
+            ALTER TABLE [ai_models] ADD [last_success_at] datetime2 NULL;
         """;
 
     await db.Database.ExecuteSqlRawAsync(sql);
