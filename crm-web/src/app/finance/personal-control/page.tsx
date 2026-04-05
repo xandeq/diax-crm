@@ -255,10 +255,13 @@ function PatrimonioWidget({
 
   const saveEdit = async (id: string) => {
     const parsed = parseFloat(draft.replace(',', '.'));
-    if (isNaN(parsed)) return;
+    if (isNaN(parsed)) { toast.error('Valor inválido.'); return; }
     setSaving(true);
     try {
       await onUpdateBalance(id, parsed);
+    } catch (err) {
+      console.error('saveEdit error:', err);
+      toast.error('Erro ao salvar saldo: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSaving(false);
       setEditingId(null);
