@@ -338,6 +338,36 @@ Log.Information("Configuring middleware pipeline...");
 
 // ===== MIDDLEWARE PIPELINE =====
 
+// Manual OPTIONS handler — IIS on SmarterASP.NET swallows preflight before UseCors can run.
+// This middleware short-circuits OPTIONS with proper CORS headers so the browser proceeds.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Method == "OPTIONS")
+    {
+        var origin = context.Request.Headers.Origin.ToString();
+        var allowedOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "https://crm.alexandrequeiroz.com.br",
+            "https://alexandrequeiroz.com.br",
+            "http://localhost:3000"
+        };
+
+        if (allowedOrigins.Contains(origin))
+        {
+            context.Response.Headers.Append("Access-Control-Allow-Origin", origin);
+            context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+            context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-Api-Key, X-Correlation-Id");
+            context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+            context.Response.Headers.Append("Access-Control-Max-Age", "86400");
+        }
+
+        context.Response.StatusCode = StatusCodes.Status204NoContent;
+        return;
+    }
+
+    await next();
+});
+
 // CORS - middleware .NET cuida em todos os ambientes (web.config não tem headers estáticos)
 app.UseCors("Frontend");
 
