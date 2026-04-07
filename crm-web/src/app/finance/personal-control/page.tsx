@@ -326,49 +326,67 @@ function PatrimonioWidget({
 
 function SalaryPlannerSection({
   monthView,
-  salaryDates,
-  onChangeDates,
 }: {
   monthView: PersonalControlMonthView;
-  salaryDates: number[];
-  onChangeDates: (dates: number[]) => void;
 }) {
-  const [editingDates, setEditingDates] = useState(false);
-  const [draftDates, setDraftDates] = useState(salaryDates.join(', '));
+  // Cada salário forma um bucket próprio, ordenado pelo dia efetivo de pagamento.
+  // Despesas pertencem ao bucket do salário cujo dia <= dueDay < próximo salário.
+  // Despesas que excedem o caixa disponível do bucket são marcadas como PENDENTE.
+  type IncomeItem = (typeof monthView.incomes)[number];
+  type ExpenseItem = (typeof monthView.expenses)[number] & { _pending?: boolean };
+  type SubItem = (typeof monthView.subscriptions)[number] & { _pending?: boolean };
 
-  const saveDates = () => {
-    const parsed = draftDates
-      .split(',')
-      .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !isNaN(n) && n >= 1 && n <= 31)
-      .sort((a, b) => a - b);
-    if (parsed.length > 0) {
-      onChangeDates(parsed);
-      setEditingDates(false);
-    }
-  };
+  const sortedIncomes = [...monthView.incomes].sort((a, b) => {
+    const ea = getEffectivePayDay(a.dayOfMonth, monthView.period.year, monthView.period.month).effectiveDay;
+    const eb = getEffectivePayDay(b.dayOfMonth, monthView.period.year, monthView.period.month).effectiveDay;
+    return ea - eb;
+  });
 
-  const buckets = salaryDates.reduce<{
-    day: number; nextDay: number;
-    incomes: typeof monthView.incomes; expenses: typeof monthView.expenses; subscriptions: typeof monthView.subscriptions;
-    totalIncome: number; totalExpense: number; periodBalance: number; runningBalance: number; investSuggestion: number;
-  }[]>((acc, day, i) => {
-    const nextDay = salaryDates[i + 1] ?? 32;
-    const incomes = monthView.incomes.filter((item) => {
-      const eff = getEffectivePayDay(item.dayOfMonth, monthView.period.year, monthView.period.month);
-      return eff.effectiveDay >= day && eff.effectiveDay < nextDay;
+  const startDays = sortedIncomes.map((inc) =>
+    getEffectivePayDay(inc.dayOfMonth, monthView.period.year, monthView.period.month).effectiveDay,
+  );
+
+  const buckets = sortedIncomes.reduce<{
+    day: number; nextDay: number; incomeName: string;
+    incomes: IncomeItem[]; expenses: ExpenseItem[]; subscriptions: SubItem[];
+    totalIncome: number; totalExpense: number; pendingTotal: number;
+    periodBalance: number; runningBalance: number; investSuggestion: number;
+  }[]>((acc, inc, i) => {
+    const day = startDays[i];
+    const nextDay = startDays[i + 1] ?? 32;
+    const incomes = [inc];
+    const expensesRaw = monthView.expenses.filter((item) => item.dueDay >= day && item.dueDay < nextDay);
+    const subscriptionsRaw = i === 0 ? monthView.subscriptions : ([] as typeof monthView.subscriptions);
+    const totalIncome = inc.amount;
+
+    // Walk despesas em ordem de vencimento; marca PENDENTE quando o caixa estoura
+    const prevRunning = acc.length > 0 ? acc[acc.length - 1].runningBalance : 0;
+    let available = prevRunning + totalIncome;
+    const subscriptions: SubItem[] = subscriptionsRaw.map((s) => {
+      if (available - s.amount < 0) return { ...s, _pending: true };
+      available -= s.amount;
+      return { ...s, _pending: false };
     });
-    const expenses = monthView.expenses.filter((item) => item.dueDay >= day && item.dueDay < nextDay);
-    const subscriptions = i === 0 ? monthView.subscriptions : ([] as typeof monthView.subscriptions);
-    const totalIncome = incomes.reduce((s, item) => s + item.amount, 0);
+    const expensesSorted = [...expensesRaw].sort((a, b) => a.dueDay - b.dueDay);
+    const expenses: ExpenseItem[] = expensesSorted.map((e) => {
+      if (available - e.amount < 0) return { ...e, _pending: true };
+      available -= e.amount;
+      return { ...e, _pending: false };
+    });
+
     const totalExpense =
       expenses.reduce((s, item) => s + item.amount, 0) +
       subscriptions.reduce((s, item) => s + item.amount, 0);
+    const pendingTotal =
+      expenses.filter((e) => e._pending).reduce((s, e) => s + e.amount, 0) +
+      subscriptions.filter((e) => e._pending).reduce((s, e) => s + e.amount, 0);
     const periodBalance = totalIncome - totalExpense;
-    const prevRunning = acc.length > 0 ? acc[acc.length - 1].runningBalance : 0;
     const runningBalance = prevRunning + periodBalance;
-    const investSuggestion = runningBalance > 0 ? periodBalance > 0 ? periodBalance * 0.2 : 0 : 0;
-    acc.push({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, periodBalance, runningBalance, investSuggestion });
+    const investSuggestion = runningBalance > 0 && periodBalance > 0 ? periodBalance * 0.2 : 0;
+    acc.push({
+      day, nextDay, incomeName: inc.name, incomes, expenses, subscriptions,
+      totalIncome, totalExpense, pendingTotal, periodBalance, runningBalance, investSuggestion,
+    });
     return acc;
   }, []);
 
@@ -378,29 +396,13 @@ function SalaryPlannerSection({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg">Planner de Salário</CardTitle>
-            <CardDescription>Distribuição das contas por data de recebimento.</CardDescription>
+            <CardDescription>Cada salário cobre as despesas até o próximo recebimento. Despesas que excedem o caixa são marcadas como PENDENTE.</CardDescription>
           </div>
-          {editingDates ? (
-            <div className="flex items-center gap-2">
-              <Input
-                className="h-8 w-40 text-xs"
-                value={draftDates}
-                onChange={(e) => setDraftDates(e.target.value)}
-                placeholder="1, 4, 10, 15"
-              />
-              <Button size="sm" onClick={saveDates}>Salvar</Button>
-              <Button size="sm" variant="ghost" onClick={() => setEditingDates(false)}>Cancelar</Button>
-            </div>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => { setDraftDates(salaryDates.join(', ')); setEditingDates(true); }}>
-              Editar datas
-            </Button>
-          )}
         </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-3">
-          {buckets.map(({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, periodBalance, runningBalance, investSuggestion }) => (
+          {buckets.map(({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, pendingTotal, periodBalance, runningBalance, investSuggestion }) => (
             <div key={day} className={cn('rounded-2xl border p-4', runningBalance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
               {/* Cabeçalho da linha */}
               <div className="flex flex-wrap items-center gap-4 mb-3">
@@ -443,15 +445,20 @@ function SalaryPlannerSection({
                 <div className="flex flex-col gap-1 mt-1">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas:</span>
                   {expenses.map((item) => (
-                    <span key={item.id} className="rounded-md bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs text-slate-600">
-                      {item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
+                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
+                      {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
                     </span>
                   ))}
                   {subscriptions.map((item) => (
-                    <span key={item.id} className="rounded-md bg-rose-50 border border-rose-100 px-2 py-0.5 text-xs text-slate-600">
-                      {item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
+                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
+                      {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
                     </span>
                   ))}
+                  {pendingTotal > 0 && (
+                    <span className="mt-1 text-[11px] text-amber-700">
+                      Total não coberto por este salário: <strong>{formatCurrency(pendingTotal)}</strong> — será paga vencida ou com o próximo salário.
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -469,7 +476,6 @@ function Page() {
   const [monthView, setMonthView] = useState<PersonalControlMonthView | null>(null);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  const [salaryDates, setSalaryDates] = useState<number[]>([1, 4, 10, 15]);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [incomeForm, setIncomeForm] = useState(incomeFormReset);
   const [expenseForm, setExpenseForm] = useState(expenseFormReset);
@@ -934,11 +940,7 @@ function Page() {
       </div>
 
       {monthView && (
-        <SalaryPlannerSection
-          monthView={monthView}
-          salaryDates={salaryDates}
-          onChangeDates={setSalaryDates}
-        />
+        <SalaryPlannerSection monthView={monthView} />
       )}
 
       <SectionShell title="Ações" description="Abra os formulários só quando precisar criar ou editar um lançamento.">
