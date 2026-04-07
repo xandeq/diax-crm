@@ -1,0 +1,43 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "Alexandre Queiroz CRM" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "Alexandre Queiroz CRM" [ref=e6]
+      - navigation [ref=e7]:
+        - link "Início" [ref=e8] [cursor=pointer]:
+          - /url: /dashboard/
+        - link "Login" [ref=e9] [cursor=pointer]:
+          - /url: /login/
+    - main [ref=e10]:
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - img "AQ Logo" [ref=e15]
+          - heading "Bem-vindo de volta" [level=3] [ref=e16]
+          - paragraph [ref=e17]: Entre com suas credenciais para acessar o painel
+        - generic [ref=e19]:
+          - generic [ref=e21]:
+            - generic:
+              - img
+            - textbox "seu@email.com" [ref=e22]: admin@alexandrequeiroz.com.br
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - generic [ref=e25]: Senha
+              - link "Esqueceu a senha?" [ref=e26] [cursor=pointer]:
+                - /url: "#"
+            - generic [ref=e27]:
+              - generic:
+                - img
+              - textbox "Senha" [ref=e28]:
+                - /placeholder: ••••••••
+                - text: 1982Xandeq1982#
+          - generic [ref=e34]:
+            - img [ref=e35]
+            - text: Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente.
+          - button "Entrar" [ref=e29]
+        - generic [ref=e31]:
+          - text: Não tem uma conta?
+          - link "Criar conta" [ref=e32] [cursor=pointer]:
+            - /url: "#"
+    - region "Notifications alt+T"
+  - alert [ref=e33]

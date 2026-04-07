@@ -1,0 +1,41 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "Extrator de Dados Extrator Client" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard/
+        - img "Extrator de Dados" [ref=e7]
+        - generic [ref=e8]:
+          - heading "Extrator" [level=1] [ref=e9]
+          - paragraph [ref=e10]: Client
+      - navigation [ref=e11]:
+        - link "Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /dashboard/
+          - img [ref=e13]
+          - text: Dashboard
+        - link "Portal de Leads" [ref=e18] [cursor=pointer]:
+          - /url: /portal/
+          - img [ref=e19]
+          - text: Portal de Leads
+        - link "Leads" [ref=e22] [cursor=pointer]:
+          - /url: /leads/
+          - img [ref=e23]
+          - text: Leads
+        - link "Planos" [ref=e27] [cursor=pointer]:
+          - /url: /plans/
+          - img [ref=e28]
+          - text: Planos
+        - link "Solicitar Nicho" [ref=e30] [cursor=pointer]:
+          - /url: /request-niche/
+          - img [ref=e31]
+          - text: Solicitar Nicho
+        - link "Buscas Salvas" [ref=e33] [cursor=pointer]:
+          - /url: /saved-searches/
+          - img [ref=e34]
+          - text: Buscas Salvas
+      - button "Escuro" [ref=e37] [cursor=pointer]:
+        - img [ref=e38]
+        - text: Escuro
+    - generic [ref=e40]:
+      - banner [ref=e41]
+      - main [ref=e45]
+  - alert [ref=e89]

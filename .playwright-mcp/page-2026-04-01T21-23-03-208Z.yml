@@ -1,0 +1,22 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img "Extrator de Dados" [ref=e7]
+      - paragraph [ref=e8]: Faca login para continuar
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: Email
+        - textbox "Email" [ref=e13]:
+          - /placeholder: Digite seu email
+      - generic [ref=e14]:
+        - generic [ref=e15]: Senha
+        - generic [ref=e16]:
+          - textbox "Senha" [ref=e17]:
+            - /placeholder: Digite sua senha
+          - button [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+      - button "Entrar" [ref=e22] [cursor=pointer]:
+        - img [ref=e23]
+        - text: Entrar
+    - paragraph [ref=e26]: Extrator de Dados © 2026
+  - alert [ref=e27]

@@ -1,0 +1,388 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - link "SmarterASP.NET" [ref=e8] [cursor=pointer]:
+        - /url: "#"
+      - generic [ref=e9]:
+        - link "Live Chat" [ref=e11] [cursor=pointer]:
+          - /url: /cp/chat
+          - generic [ref=e12]:
+            - img [ref=e15]
+            - generic [ref=e17]: Live Chat
+        - generic [ref=e19]:
+          - img [ref=e22] [cursor=pointer]
+          - generic [ref=e28] [cursor=pointer]: base de conhecimento
+        - link "Central de Ajuda" [ref=e30] [cursor=pointer]:
+          - /url: /cp/helpdesk
+          - generic [ref=e31]:
+            - img [ref=e34]
+            - generic [ref=e39]: Central de Ajuda
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - img [ref=e44] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]: PARTIUROCK-003
+          - text: 
+    - list [ref=e53]:
+      - listitem [ref=e54]:
+        - link "" [ref=e55] [cursor=pointer]:
+          - /url: /cp/accountbilling
+          - generic [ref=e56]:
+            - img [ref=e58]
+            - generic [ref=e63]: 
+      - listitem [ref=e64]:
+        - link "Sites" [ref=e65] [cursor=pointer]:
+          - /url: /cp/boxinfo
+          - generic [ref=e66]: Sites
+      - listitem [ref=e67]:
+        - link " " [ref=e68] [cursor=pointer]:
+          - /url: ""
+          - generic [ref=e70]: 
+          - generic [ref=e71]: 
+        - text:    
+      - listitem [ref=e72]:
+        - link " " [ref=e73] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e75]: 
+          - generic [ref=e76]: 
+      - listitem [ref=e77]:
+        - link "" [ref=e78] [cursor=pointer]:
+          - /url: /cp/filemanager?pop=1&d=h:\root\home\partiurock-003\www
+          - generic [ref=e80]: 
+      - listitem [ref=e81]:
+        - link "Apps " [ref=e82] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e83]: Apps
+          - generic [ref=e84]: 
+        - text:    
+      - listitem [ref=e85]:
+        - link "FTP" [ref=e86] [cursor=pointer]:
+          - /url: /cp/ftp
+          - generic [ref=e87]: FTP
+      - listitem [ref=e88]:
+        - link "CDN" [ref=e89] [cursor=pointer]:
+          - /url: /cp/cloudflare
+          - generic [ref=e90]: CDN
+      - listitem [ref=e91]:
+        - link "DNS" [ref=e92] [cursor=pointer]:
+          - /url: /cp/dns/
+          - generic [ref=e93]: DNS
+      - listitem [ref=e94]:
+        - link "SSL" [ref=e95] [cursor=pointer]:
+          - /url: /cp/ssl_list
+          - generic [ref=e96]: SSL
+      - listitem [ref=e97]:
+        - link "Avançar " [ref=e98] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e99]: Avançar
+          - generic [ref=e100]: 
+        - text:       
+    - generic [ref=e102]:
+      - generic [ref=e104]:
+        - generic [ref=e106]:
+          - heading [level=5]
+          - list:
+            - listitem:
+              - link:
+                - /url: ""
+        - link "Voltar" [ref=e108] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e109]:
+        - text:  
+        - generic [ref=e110]:
+          - generic [ref=e112]:
+            - heading "Quotas" [level=3] [ref=e114]:
+              - generic [ref=e115]: Quotas
+            - generic [ref=e116]:
+              - generic [ref=e117]: "DB # Quota: 10/20"
+              - progressbar [ref=e119]
+              - generic [ref=e120]:
+                - text: Cota de disco do banco de dados [
+                - link "?" [ref=e121] [cursor=pointer]:
+                  - /url: http://www.SmarterASP.NET/support/KB/a379/what-are-databases-diskspace-quota.aspx
+                - text: "]:"
+                - text: 4600/10000 MB
+              - progressbar [ref=e123]
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - heading "MSSQL Gestor" [level=3] [ref=e127]:
+                - generic [ref=e128]: MSSQL Gestor
+              - generic [ref=e129]:
+                - link "+ Adicionar banco de dados" [ref=e130] [cursor=pointer]:
+                  - /url: "#"
+                - link "+ Quota" [ref=e131] [cursor=pointer]:
+                  - /url: /account/addon_purchase_special?cat=database
+                - link "+ Advanced Backup" [ref=e132] [cursor=pointer]:
+                  - /url: /cp/database_custombackup
+            - table [ref=e134]:
+              - rowgroup [ref=e135]:
+                - 'row "Click to copy db_aaf0a8_partiurock ID de login: Click to copy db_aaf0a8_partiurock_admin MSSQL 2022 Click to copy sql1001.site4now.net 5.5% 200MB 50 Ativo   " [ref=e136]':
+                  - 'cell "Click to copy db_aaf0a8_partiurock ID de login: Click to copy db_aaf0a8_partiurock_admin" [ref=e137]':
+                    - text: Click to copy db_aaf0a8_partiurock
+                    - generic [ref=e138]: "ID de login: Click to copy db_aaf0a8_partiurock_admin"
+                  - cell "MSSQL 2022 Click to copy sql1001.site4now.net" [ref=e139]:
+                    - text: MSSQL 2022
+                    - generic [ref=e140] [cursor=pointer]: Click to copy sql1001.site4now.net
+                  - cell "5.5% 200MB 50" [ref=e141]:
+                    - generic [ref=e142]:
+                      - generic [ref=e143]:
+                        - generic [ref=e144]: 5.5%
+                        - generic [ref=e145]: 200MB
+                      - progressbar [ref=e147]
+                  - cell "Ativo" [ref=e148]:
+                    - generic [ref=e149]: Ativo
+                  - cell "  " [ref=e150]:
+                    - generic [ref=e153] [cursor=pointer]: 
+                    - link "" [ref=e155] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_partiurock&dbid=276B4F90D9C5243300159B9482B04615&exttype=1&scriptname=mssql_action&sqlserver=sql1001.site4now.net
+                      - generic [ref=e156]: 
+                    - generic [ref=e159] [cursor=pointer]: 
+                    - link [ref=e160] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e162]
+                    - text:       
+                - row [ref=e168]:
+                  - cell [ref=e169]
+                - 'row "Click to copy db_aaf0a8_diaxcrm ID de login: Click to copy db_aaf0a8_diaxcrm_admin MSSQL 2022 Click to copy sql1002.site4now.net 43.4% 500MB 50 Ativo   " [ref=e170]':
+                  - 'cell "Click to copy db_aaf0a8_diaxcrm ID de login: Click to copy db_aaf0a8_diaxcrm_admin" [ref=e171]':
+                    - text: Click to copy db_aaf0a8_diaxcrm
+                    - generic [ref=e172]: "ID de login: Click to copy db_aaf0a8_diaxcrm_admin"
+                  - cell "MSSQL 2022 Click to copy sql1002.site4now.net" [ref=e173]:
+                    - text: MSSQL 2022
+                    - generic [ref=e174] [cursor=pointer]: Click to copy sql1002.site4now.net
+                  - cell "43.4% 500MB 50" [ref=e175]:
+                    - generic [ref=e176]:
+                      - generic [ref=e177]:
+                        - generic [ref=e178]: 43.4%
+                        - generic [ref=e179]: 500MB
+                      - progressbar [ref=e181]
+                  - cell "Ativo" [ref=e182]:
+                    - generic [ref=e183]: Ativo
+                  - cell "  " [ref=e184]:
+                    - generic [ref=e187] [cursor=pointer]: 
+                    - link "" [ref=e189] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_diaxcrm&dbid=E9DEA40E8D1E066705AAF3AD4AB5C189&exttype=1&scriptname=mssql_action&sqlserver=sql1002.site4now.net
+                      - generic [ref=e190]: 
+                    - generic [ref=e193] [cursor=pointer]: 
+                    - link [ref=e194] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e196]
+                    - text:       
+                - row [ref=e202]:
+                  - cell [ref=e203]
+                - 'row "Click to copy db_aaf0a8_surfvibe ID de login: Click to copy db_aaf0a8_surfvibe_admin MSSQL 2022 Click to copy sql1003.site4now.net 2.2% 500MB 50 Ativo   " [ref=e204]':
+                  - 'cell "Click to copy db_aaf0a8_surfvibe ID de login: Click to copy db_aaf0a8_surfvibe_admin" [ref=e205]':
+                    - text: Click to copy db_aaf0a8_surfvibe
+                    - generic [ref=e206]: "ID de login: Click to copy db_aaf0a8_surfvibe_admin"
+                  - cell "MSSQL 2022 Click to copy sql1003.site4now.net" [ref=e207]:
+                    - text: MSSQL 2022
+                    - generic [ref=e208] [cursor=pointer]: Click to copy sql1003.site4now.net
+                  - cell "2.2% 500MB 50" [ref=e209]:
+                    - generic [ref=e210]:
+                      - generic [ref=e211]:
+                        - generic [ref=e212]: 2.2%
+                        - generic [ref=e213]: 500MB
+                      - progressbar [ref=e215]
+                  - cell "Ativo" [ref=e216]:
+                    - generic [ref=e217]: Ativo
+                  - cell "  " [ref=e218]:
+                    - generic [ref=e221] [cursor=pointer]: 
+                    - link "" [ref=e223] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_surfvibe&dbid=611CCBDF6CA813153BBCA03DE99FF286&exttype=1&scriptname=mssql_action&sqlserver=sql1003.site4now.net
+                      - generic [ref=e224]: 
+                    - generic [ref=e227] [cursor=pointer]: 
+                    - link [ref=e228] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e230]
+                    - text:       
+                - row [ref=e236]:
+                  - cell [ref=e237]
+                - 'row "Click to copy db_aaf0a8_controledegastos ID de login: Click to copy db_aaf0a8_controledegastos_admin MSSQL 2022 Click to copy sql1002.site4now.net 5.5% 200MB 50 Ativo   " [ref=e238]':
+                  - 'cell "Click to copy db_aaf0a8_controledegastos ID de login: Click to copy db_aaf0a8_controledegastos_admin" [ref=e239]':
+                    - text: Click to copy db_aaf0a8_controledegastos
+                    - generic [ref=e240]: "ID de login: Click to copy db_aaf0a8_controledegastos_admin"
+                  - cell "MSSQL 2022 Click to copy sql1002.site4now.net" [ref=e241]:
+                    - text: MSSQL 2022
+                    - generic [ref=e242] [cursor=pointer]: Click to copy sql1002.site4now.net
+                  - cell "5.5% 200MB 50" [ref=e243]:
+                    - generic [ref=e244]:
+                      - generic [ref=e245]:
+                        - generic [ref=e246]: 5.5%
+                        - generic [ref=e247]: 200MB
+                      - progressbar [ref=e249]
+                  - cell "Ativo" [ref=e250]:
+                    - generic [ref=e251]: Ativo
+                  - cell "  " [ref=e252]:
+                    - generic [ref=e255] [cursor=pointer]: 
+                    - link "" [ref=e257] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_controledegastos&dbid=1A2753BFE43E0D3CA4334376A3970C38&exttype=1&scriptname=mssql_action&sqlserver=sql1002.site4now.net
+                      - generic [ref=e258]: 
+                    - generic [ref=e261] [cursor=pointer]: 
+                    - link [ref=e262] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e264]
+                    - text:       
+                - row [ref=e270]:
+                  - cell [ref=e271]
+                - 'row "Click to copy db_aaf0a8_alexandrequeiroz ID de login: Click to copy db_aaf0a8_alexandrequeiroz_admin MSSQL 2022 Click to copy sql1004.site4now.net 22% 50MB 50 Ativo   " [ref=e272]':
+                  - 'cell "Click to copy db_aaf0a8_alexandrequeiroz ID de login: Click to copy db_aaf0a8_alexandrequeiroz_admin" [ref=e273]':
+                    - text: Click to copy db_aaf0a8_alexandrequeiroz
+                    - generic [ref=e274]: "ID de login: Click to copy db_aaf0a8_alexandrequeiroz_admin"
+                  - cell "MSSQL 2022 Click to copy sql1004.site4now.net" [ref=e275]:
+                    - text: MSSQL 2022
+                    - generic [ref=e276] [cursor=pointer]: Click to copy sql1004.site4now.net
+                  - cell "22% 50MB 50" [ref=e277]:
+                    - generic [ref=e278]:
+                      - generic [ref=e279]:
+                        - generic [ref=e280]: 22%
+                        - generic [ref=e281]: 50MB
+                      - progressbar [ref=e283]
+                  - cell "Ativo" [ref=e284]:
+                    - generic [ref=e285]: Ativo
+                  - cell "  " [ref=e286]:
+                    - generic [ref=e289] [cursor=pointer]: 
+                    - link "" [ref=e291] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_alexandrequeiroz&dbid=3C8C07FC21C9E9F07BEE8ED2EBD34176&exttype=1&scriptname=mssql_action&sqlserver=sql1004.site4now.net
+                      - generic [ref=e292]: 
+                    - generic [ref=e295] [cursor=pointer]: 
+                    - link [ref=e296] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e298]
+                    - text:       
+                - row [ref=e304]:
+                  - cell [ref=e305]
+                - 'row "Click to copy db_aaf0a8_cursos ID de login: Click to copy db_aaf0a8_cursos_admin MSSQL 2022 Click to copy sql1004.site4now.net 22% 50MB 50 Ativo   " [ref=e306]':
+                  - 'cell "Click to copy db_aaf0a8_cursos ID de login: Click to copy db_aaf0a8_cursos_admin" [ref=e307]':
+                    - text: Click to copy db_aaf0a8_cursos
+                    - generic [ref=e308]: "ID de login: Click to copy db_aaf0a8_cursos_admin"
+                  - cell "MSSQL 2022 Click to copy sql1004.site4now.net" [ref=e309]:
+                    - text: MSSQL 2022
+                    - generic [ref=e310] [cursor=pointer]: Click to copy sql1004.site4now.net
+                  - cell "22% 50MB 50" [ref=e311]:
+                    - generic [ref=e312]:
+                      - generic [ref=e313]:
+                        - generic [ref=e314]: 22%
+                        - generic [ref=e315]: 50MB
+                      - progressbar [ref=e317]
+                  - cell "Ativo" [ref=e318]:
+                    - generic [ref=e319]: Ativo
+                  - cell "  " [ref=e320]:
+                    - generic [ref=e323] [cursor=pointer]: 
+                    - link "" [ref=e325] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_cursos&dbid=EABB3E1D52C300499DC55A40B92215C4&exttype=1&scriptname=mssql_action&sqlserver=sql1004.site4now.net
+                      - generic [ref=e326]: 
+                    - generic [ref=e329] [cursor=pointer]: 
+                    - link [ref=e330] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e332]
+                    - text:       
+                - row [ref=e338]:
+                  - cell [ref=e339]
+                - 'row "Click to copy db_aaf0a8_alecook ID de login: Click to copy db_aaf0a8_alecook_admin MSSQL 2022 Click to copy sql1001.site4now.net 49% 100MB 50 Ativo   " [ref=e340]':
+                  - 'cell "Click to copy db_aaf0a8_alecook ID de login: Click to copy db_aaf0a8_alecook_admin" [ref=e341]':
+                    - text: Click to copy db_aaf0a8_alecook
+                    - generic [ref=e342]: "ID de login: Click to copy db_aaf0a8_alecook_admin"
+                  - cell "MSSQL 2022 Click to copy sql1001.site4now.net" [ref=e343]:
+                    - text: MSSQL 2022
+                    - generic [ref=e344] [cursor=pointer]: Click to copy sql1001.site4now.net
+                  - cell "49% 100MB 50" [ref=e345]:
+                    - generic [ref=e346]:
+                      - generic [ref=e347]:
+                        - generic [ref=e348]: 49%
+                        - generic [ref=e349]: 100MB
+                      - progressbar [ref=e351]
+                  - cell "Ativo" [ref=e352]:
+                    - generic [ref=e353]: Ativo
+                  - cell "  " [ref=e354]:
+                    - generic [ref=e357] [cursor=pointer]: 
+                    - link "" [ref=e359] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_alecook&dbid=615D9B28E1F2EB3779FFA0AAEBA6932A&exttype=1&scriptname=mssql_action&sqlserver=sql1001.site4now.net
+                      - generic [ref=e360]: 
+                    - generic [ref=e363] [cursor=pointer]: 
+                    - link [ref=e364] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e366]
+                    - text:       
+                - row [ref=e372]:
+                  - cell [ref=e373]
+                - 'row "Click to copy db_aaf0a8_feradoprompt ID de login: Click to copy db_aaf0a8_feradoprompt_admin MSSQL 2022 Click to copy sql1003.site4now.net 1.1% 1000MB 50 Ativo   " [ref=e374]':
+                  - 'cell "Click to copy db_aaf0a8_feradoprompt ID de login: Click to copy db_aaf0a8_feradoprompt_admin" [ref=e375]':
+                    - text: Click to copy db_aaf0a8_feradoprompt
+                    - generic [ref=e376]: "ID de login: Click to copy db_aaf0a8_feradoprompt_admin"
+                  - cell "MSSQL 2022 Click to copy sql1003.site4now.net" [ref=e377]:
+                    - text: MSSQL 2022
+                    - generic [ref=e378] [cursor=pointer]: Click to copy sql1003.site4now.net
+                  - cell "1.1% 1000MB 50" [ref=e379]:
+                    - generic [ref=e380]:
+                      - generic [ref=e381]:
+                        - generic [ref=e382]: 1.1%
+                        - generic [ref=e383]: 1000MB
+                      - progressbar [ref=e385]
+                  - cell "Ativo" [ref=e386]:
+                    - generic [ref=e387]: Ativo
+                  - cell "  " [ref=e388]:
+                    - generic [ref=e391] [cursor=pointer]: 
+                    - link "" [ref=e393] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_feradoprompt&dbid=4C4C7093D00F848AB23B47824B48637D&exttype=1&scriptname=mssql_action&sqlserver=sql1003.site4now.net
+                      - generic [ref=e394]: 
+                    - generic [ref=e397] [cursor=pointer]: 
+                    - link [ref=e398] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e400]
+                    - text:       
+                - row [ref=e406]:
+                  - cell [ref=e407]
+                - 'row "Click to copy db_aaf0a8_vaganagringa ID de login: Click to copy db_aaf0a8_vaganagringa_admin MSSQL 2022 Click to copy sql1002.site4now.net 14% 1000MB 50 Ativo   " [ref=e408]':
+                  - 'cell "Click to copy db_aaf0a8_vaganagringa ID de login: Click to copy db_aaf0a8_vaganagringa_admin" [ref=e409]':
+                    - text: Click to copy db_aaf0a8_vaganagringa
+                    - generic [ref=e410]: "ID de login: Click to copy db_aaf0a8_vaganagringa_admin"
+                  - cell "MSSQL 2022 Click to copy sql1002.site4now.net" [ref=e411]:
+                    - text: MSSQL 2022
+                    - generic [ref=e412] [cursor=pointer]: Click to copy sql1002.site4now.net
+                  - cell "14% 1000MB 50" [ref=e413]:
+                    - generic [ref=e414]:
+                      - generic [ref=e415]:
+                        - generic [ref=e416]: 14%
+                        - generic [ref=e417]: 1000MB
+                      - progressbar [ref=e419]
+                  - cell "Ativo" [ref=e420]:
+                    - generic [ref=e421]: Ativo
+                  - cell "  " [ref=e422]:
+                    - generic [ref=e425] [cursor=pointer]: 
+                    - link "" [ref=e427] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_vaganagringa&dbid=90D1DE3D6485C5323F9857972A3996F3&exttype=1&scriptname=mssql_action&sqlserver=sql1002.site4now.net
+                      - generic [ref=e428]: 
+                    - generic [ref=e431] [cursor=pointer]: 
+                    - link [ref=e432] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e434]
+                    - text:       
+                - row [ref=e440]:
+                  - cell [ref=e441]
+                - 'row "Click to copy db_aaf0a8_extratordedados ID de login: Click to copy db_aaf0a8_extratordedados_admin MSSQL 2022 Click to copy sql1001.site4now.net 1.1% 1000MB 50 Ativo   " [ref=e442]':
+                  - 'cell "Click to copy db_aaf0a8_extratordedados ID de login: Click to copy db_aaf0a8_extratordedados_admin" [ref=e443]':
+                    - text: Click to copy db_aaf0a8_extratordedados
+                    - generic [ref=e444]: "ID de login: Click to copy db_aaf0a8_extratordedados_admin"
+                  - cell "MSSQL 2022 Click to copy sql1001.site4now.net" [ref=e445]:
+                    - text: MSSQL 2022
+                    - generic [ref=e446] [cursor=pointer]: Click to copy sql1001.site4now.net
+                  - cell "1.1% 1000MB 50" [ref=e447]:
+                    - generic [ref=e448]:
+                      - generic [ref=e449]:
+                        - generic [ref=e450]: 1.1%
+                        - generic [ref=e451]: 1000MB
+                      - progressbar [ref=e453]
+                  - cell "Ativo" [ref=e454]:
+                    - generic [ref=e455]: Ativo
+                  - cell "  " [ref=e456]:
+                    - generic [ref=e459] [cursor=pointer]: 
+                    - link "" [ref=e461] [cursor=pointer]:
+                      - /url: mssql_restore?dbname=db_aaf0a8_extratordedados&dbid=A60641C0BFCDE9C7A497C20AEA13ED75&exttype=1&scriptname=mssql_action&sqlserver=sql1001.site4now.net
+                      - generic [ref=e462]: 
+                    - generic [ref=e465] [cursor=pointer]: 
+                    - link [ref=e466] [cursor=pointer]:
+                      - /url: "#"
+                      - img [ref=e468]
+                    - text:       
+                - row:
+                  - cell
+  - img

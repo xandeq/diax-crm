@@ -1,0 +1,22 @@
+[    1432ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://extratordedados.com.br/login/:0
+[    1441ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.extratordedados.com.br/api/client/credits:0
+[    1444ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.extratordedados.com.br/api/leads/saved-filters:0
+[    1446ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.extratordedados.com.br/api/client/usage:0
+[    1448ms] [ERROR] Error fetching plan: AxiosError: Request failed with status code 401
+    at t5 (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:26649)
+    at XMLHttpRequest.g (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:31238)
+    at eO.request (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:39744)
+    at async https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:46264 @ https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:105
+[    1539ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.extratordedados.com.br/api/me:0
+[    1540ms] [ERROR] Failed to fetch user: AxiosError: Request failed with status code 401
+    at t5 (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:26649)
+    at XMLHttpRequest.g (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:31238)
+    at eO.request (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:39744)
+    at async t (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:96:4188) @ https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:95
+[    1642ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.extratordedados.com.br/api/me:0
+[    1643ms] [ERROR] Failed to fetch user: AxiosError: Request failed with status code 401
+    at t5 (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:26649)
+    at XMLHttpRequest.g (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:31238)
+    at eO.request (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:39744)
+    at async t (https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:106:3782) @ https://extratordedados.com.br/_next/static/chunks/pages/_app-77dbbdc35664a56b.js:105
+[    1835ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://extratordedados.com.br/login/:0

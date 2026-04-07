@@ -1,0 +1,1009 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - link "SmarterASP.NET" [ref=e8] [cursor=pointer]:
+        - /url: "#"
+      - generic [ref=e9]:
+        - link "Live Chat" [ref=e11] [cursor=pointer]:
+          - /url: /cp/chat
+          - generic [ref=e12]:
+            - img [ref=e15]
+            - generic [ref=e17]: Live Chat
+        - generic [ref=e19]:
+          - img [ref=e22] [cursor=pointer]
+          - generic [ref=e28] [cursor=pointer]: base de conhecimento
+        - link "Central de Ajuda" [ref=e30] [cursor=pointer]:
+          - /url: /cp/helpdesk
+          - generic [ref=e31]:
+            - img [ref=e34]
+            - generic [ref=e39]: Central de Ajuda
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - img [ref=e44] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]: PARTIUROCK-003
+          - text: 
+    - list [ref=e53]:
+      - listitem [ref=e54]:
+        - link "" [ref=e55] [cursor=pointer]:
+          - /url: /cp/accountbilling
+          - generic [ref=e56]:
+            - img [ref=e58]
+            - generic [ref=e63]: 
+      - listitem [ref=e64]:
+        - link "Sites" [ref=e65] [cursor=pointer]:
+          - /url: /cp/boxinfo
+          - generic [ref=e66]: Sites
+      - listitem [ref=e67]:
+        - link " " [ref=e68] [cursor=pointer]:
+          - /url: ""
+          - generic [ref=e70]: 
+          - generic [ref=e71]: 
+        - text:    
+      - listitem [ref=e72]:
+        - link " " [ref=e73] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e75]: 
+          - generic [ref=e76]: 
+      - listitem [ref=e77]:
+        - link "" [ref=e78] [cursor=pointer]:
+          - /url: /cp/filemanager?pop=1&d=h:\root\home\partiurock-003\www
+          - generic [ref=e80]: 
+      - listitem [ref=e81]:
+        - link "Apps " [ref=e82] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e83]: Apps
+          - generic [ref=e84]: 
+        - text:    
+      - listitem [ref=e85]:
+        - link "FTP" [ref=e86] [cursor=pointer]:
+          - /url: /cp/ftp
+          - generic [ref=e87]: FTP
+      - listitem [ref=e88]:
+        - link "CDN" [ref=e89] [cursor=pointer]:
+          - /url: /cp/cloudflare
+          - generic [ref=e90]: CDN
+      - listitem [ref=e91]:
+        - link "DNS" [ref=e92] [cursor=pointer]:
+          - /url: /cp/dns/
+          - generic [ref=e93]: DNS
+      - listitem [ref=e94]:
+        - link "SSL" [ref=e95] [cursor=pointer]:
+          - /url: /cp/ssl_list
+          - generic [ref=e96]: SSL
+      - listitem [ref=e97]:
+        - link "Avançar " [ref=e98] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e99]: Avançar
+          - generic [ref=e100]: 
+        - text:       
+    - generic [ref=e102]:
+      - generic [ref=e104]:
+        - generic [ref=e106]:
+          - heading "File Manager" [level=5] [ref=e107]
+          - list:
+            - listitem:
+              - link:
+                - /url: ""
+        - link "Voltar" [ref=e109] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e113]:
+        - generic [ref=e115]:
+          - generic [ref=e116] [cursor=pointer]: Zip
+          - generic [ref=e117] [cursor=pointer]: Descompactar
+          - generic [ref=e118] [cursor=pointer]: Copiar
+          - generic [ref=e119] [cursor=pointer]: Mover
+          - generic [ref=e120] [cursor=pointer]: Renomear
+          - generic [ref=e121] [cursor=pointer]: Editar
+          - link " Fila de trabalho" [ref=e122] [cursor=pointer]:
+            - /url: /cp/newfileman/workqueue
+            - generic [ref=e123]: 
+            - text: Fila de trabalho
+          - link "" [ref=e124] [cursor=pointer]:
+            - /url: javascript:location.reload();
+            - generic [ref=e125]: 
+          - generic [ref=e127] [cursor=pointer]: 
+          - link "" [ref=e128] [cursor=pointer]:
+            - /url: "#myModal-upload"
+            - generic [ref=e129]: 
+          - generic [ref=e131] [cursor=pointer]: 
+          - generic [ref=e132]:
+            - button "+" [ref=e133] [cursor=pointer]
+            - button "" [ref=e134] [cursor=pointer]
+            - text:  
+          - generic [ref=e138]:
+            - img [ref=e142]
+            - textbox "Search..." [ref=e145]
+        - table [ref=e149]:
+          - rowgroup [ref=e150]:
+            - row "Nome Ext Tamanho Modificar" [ref=e151]:
+              - columnheader [ref=e152]:
+                - checkbox [ref=e153]
+              - columnheader "Nome" [ref=e154]
+              - columnheader "Ext" [ref=e155]
+              - columnheader "Tamanho" [ref=e156]
+              - columnheader "Modificar" [ref=e157]:
+                - text: Modificar
+                - generic [ref=e158]: 
+          - rowgroup [ref=e159]:
+            - row ".. [current directory=h:\\root\\home\\partiurock-003\\www\\api-diax-crm]" [ref=e160]:
+              - cell [ref=e161]
+              - cell ".. [current directory=h:\\root\\home\\partiurock-003\\www\\api-diax-crm]" [ref=e162]:
+                - link [ref=e163] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h%3A%5Croot%5Chome%5Cpartiurock%2D003%5Cwww
+                  - img [ref=e164]
+                - text: .. [current directory=h:\root\home\partiurock-003\www\api-diax-crm]
+              - cell [ref=e165]
+            - row " .well-known < dir > 12/20/2025 6:16:01 PM" [ref=e166]:
+              - cell [ref=e167]:
+                - checkbox [ref=e168]
+              - cell " .well-known" [ref=e169]:
+                - link "" [ref=e170] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\%2Ewell%2Dknown\
+                  - generic [ref=e171]: 
+                - link ".well-known" [ref=e172] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\%2Ewell%2Dknown\
+              - cell "< dir >" [ref=e173]
+              - cell [ref=e174]
+              - cell "12/20/2025 6:16:01 PM" [ref=e175]
+              - cell [ref=e176]
+              - text: 
+            - row " App_Data < dir > 3/12/2026 3:46:02 AM" [ref=e177]:
+              - cell [ref=e178]:
+                - checkbox [ref=e179]
+              - cell " App_Data" [ref=e180]:
+                - link "" [ref=e181] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\App%5FData\
+                  - generic [ref=e182]: 
+                - link "App_Data" [ref=e183] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\App%5FData\
+              - cell "< dir >" [ref=e184]
+              - cell [ref=e185]
+              - cell "3/12/2026 3:46:02 AM" [ref=e186]
+              - cell [ref=e187]
+              - text: 
+            - row " logs < dir > 4/1/2026 1:00:30 AM" [ref=e188]:
+              - cell [ref=e189]:
+                - checkbox [ref=e190]
+              - cell " logs" [ref=e191]:
+                - link "" [ref=e192] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\logs\
+                  - generic [ref=e193]: 
+                - link "logs" [ref=e194] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\logs\
+              - cell "< dir >" [ref=e195]
+              - cell [ref=e196]
+              - cell "4/1/2026 1:00:30 AM" [ref=e197]
+              - cell [ref=e198]
+              - text: 
+            - row " runtimes < dir > 1/14/2026 5:02:25 PM" [ref=e199]:
+              - cell [ref=e200]:
+                - checkbox [ref=e201]
+              - cell " runtimes" [ref=e202]:
+                - link "" [ref=e203] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\runtimes\
+                  - generic [ref=e204]: 
+                - link "runtimes" [ref=e205] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\runtimes\
+              - cell "< dir >" [ref=e206]
+              - cell [ref=e207]
+              - cell "1/14/2026 5:02:25 PM" [ref=e208]
+              - cell [ref=e209]
+              - text: 
+            - row " wwwroot < dir > 3/7/2026 11:36:26 AM" [ref=e210]:
+              - cell [ref=e211]:
+                - checkbox [ref=e212]
+              - cell " wwwroot" [ref=e213]:
+                - link "" [ref=e214] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\wwwroot\
+                  - generic [ref=e215]: 
+                - link "wwwroot" [ref=e216] [cursor=pointer]:
+                  - /url: filemanager.asp?d=h:\root\home\partiurock-003\www\api-diax-crm\wwwroot\
+              - cell "< dir >" [ref=e217]
+              - cell [ref=e218]
+              - cell "3/7/2026 11:36:26 AM" [ref=e219]
+              - cell [ref=e220]
+              - text: 
+            - text: 
+            - row ".ftp-deploy-sync-state.json json 19 kb 1/18/2026 11:29:26 AM" [ref=e221]:
+              - cell [ref=e222]:
+                - checkbox [ref=e223]
+              - cell ".ftp-deploy-sync-state.json" [ref=e224]
+              - cell "json" [ref=e225]
+              - cell "19 kb" [ref=e226]
+              - cell "1/18/2026 11:29:26 AM" [ref=e227]
+              - cell [ref=e228]
+              - text: 
+            - row ".ftp-deploy-sync-state.offline.json json 1 kb 4/1/2026 3:36:34 AM" [ref=e229]:
+              - cell [ref=e230]:
+                - checkbox [ref=e231]
+              - cell ".ftp-deploy-sync-state.offline.json" [ref=e232]
+              - cell "json" [ref=e233]
+              - cell "1 kb" [ref=e234]
+              - cell "4/1/2026 3:36:34 AM" [ref=e235]
+              - cell [ref=e236]
+              - text: 
+            - row ".ftp-deploy-sync-state.v2.json json 22 kb 4/1/2026 3:36:51 AM" [ref=e237]:
+              - cell [ref=e238]:
+                - checkbox [ref=e239]
+              - cell ".ftp-deploy-sync-state.v2.json" [ref=e240]
+              - cell "json" [ref=e241]
+              - cell "22 kb" [ref=e242]
+              - cell "4/1/2026 3:36:51 AM" [ref=e243]
+              - cell [ref=e244]
+              - text: 
+            - row "Amazon.Extensions.Configuration.SystemsManager.dll dll 56 kb 3/6/2026 4:06:19 PM" [ref=e245]:
+              - cell [ref=e246]:
+                - checkbox [ref=e247]
+              - cell "Amazon.Extensions.Configuration.SystemsManager.dll" [ref=e248]
+              - cell "dll" [ref=e249]
+              - cell "56 kb" [ref=e250]
+              - cell "3/6/2026 4:06:19 PM" [ref=e251]
+              - cell [ref=e252]
+              - text: 
+            - row "AngleSharp.Css.dll dll 398 kb 2/14/2026 12:21:17 PM" [ref=e253]:
+              - cell [ref=e254]:
+                - checkbox [ref=e255]
+              - cell "AngleSharp.Css.dll" [ref=e256]
+              - cell "dll" [ref=e257]
+              - cell "398 kb" [ref=e258]
+              - cell "2/14/2026 12:21:17 PM" [ref=e259]
+              - cell [ref=e260]
+              - text: 
+            - row "AngleSharp.dll dll 862 kb 2/14/2026 12:21:17 PM" [ref=e261]:
+              - cell [ref=e262]:
+                - checkbox [ref=e263]
+              - cell "AngleSharp.dll" [ref=e264]
+              - cell "dll" [ref=e265]
+              - cell "862 kb" [ref=e266]
+              - cell "2/14/2026 12:21:17 PM" [ref=e267]
+              - cell [ref=e268]
+              - text: 
+            - row "appsettings.json json 2 kb 3/28/2026 1:20:30 PM" [ref=e269]:
+              - cell [ref=e270]:
+                - checkbox [ref=e271]
+              - cell "appsettings.json" [ref=e272]
+              - cell "json" [ref=e273]
+              - cell "2 kb" [ref=e274]
+              - cell "3/28/2026 1:20:30 PM" [ref=e275]
+              - cell [ref=e276]
+              - text: 
+            - row "appsettings.Production.json json 4 kb 3/24/2026 3:59:34 AM" [ref=e277]:
+              - cell [ref=e278]:
+                - checkbox [ref=e279]
+              - cell "appsettings.Production.json" [ref=e280]
+              - cell "json" [ref=e281]
+              - cell "4 kb" [ref=e282]
+              - cell "3/24/2026 3:59:34 AM" [ref=e283]
+              - cell [ref=e284]
+              - text: 
+            - row "Asp.Versioning.Abstractions.dll dll 74 kb 1/18/2026 11:59:58 AM" [ref=e285]:
+              - cell [ref=e286]:
+                - checkbox [ref=e287]
+              - cell "Asp.Versioning.Abstractions.dll" [ref=e288]
+              - cell "dll" [ref=e289]
+              - cell "74 kb" [ref=e290]
+              - cell "1/18/2026 11:59:58 AM" [ref=e291]
+              - cell [ref=e292]
+              - text: 
+            - row "Asp.Versioning.Http.dll dll 129 kb 1/18/2026 11:59:58 AM" [ref=e293]:
+              - cell [ref=e294]:
+                - checkbox [ref=e295]
+              - cell "Asp.Versioning.Http.dll" [ref=e296]
+              - cell "dll" [ref=e297]
+              - cell "129 kb" [ref=e298]
+              - cell "1/18/2026 11:59:58 AM" [ref=e299]
+              - cell [ref=e300]
+              - text: 
+            - row "Asp.Versioning.Mvc.ApiExplorer.dll dll 56 kb 1/18/2026 11:59:59 AM" [ref=e301]:
+              - cell [ref=e302]:
+                - checkbox [ref=e303]
+              - cell "Asp.Versioning.Mvc.ApiExplorer.dll" [ref=e304]
+              - cell "dll" [ref=e305]
+              - cell "56 kb" [ref=e306]
+              - cell "1/18/2026 11:59:59 AM" [ref=e307]
+              - cell [ref=e308]
+              - text: 
+            - row "Asp.Versioning.Mvc.dll dll 62 kb 1/18/2026 11:59:59 AM" [ref=e309]:
+              - cell [ref=e310]:
+                - checkbox [ref=e311]
+              - cell "Asp.Versioning.Mvc.dll" [ref=e312]
+              - cell "dll" [ref=e313]
+              - cell "62 kb" [ref=e314]
+              - cell "1/18/2026 11:59:59 AM" [ref=e315]
+              - cell [ref=e316]
+              - text: 
+            - row "AWSSDK.AppConfigData.dll dll 46 kb 3/6/2026 4:06:19 PM" [ref=e317]:
+              - cell [ref=e318]:
+                - checkbox [ref=e319]
+              - cell "AWSSDK.AppConfigData.dll" [ref=e320]
+              - cell "dll" [ref=e321]
+              - cell "46 kb" [ref=e322]
+              - cell "3/6/2026 4:06:19 PM" [ref=e323]
+              - cell [ref=e324]
+              - text: 
+            - row "AWSSDK.Core.dll dll 962 kb 3/15/2026 6:10:10 AM" [ref=e325]:
+              - cell [ref=e326]:
+                - checkbox [ref=e327]
+              - cell "AWSSDK.Core.dll" [ref=e328]
+              - cell "dll" [ref=e329]
+              - cell "962 kb" [ref=e330]
+              - cell "3/15/2026 6:10:10 AM" [ref=e331]
+              - cell [ref=e332]
+              - text: 
+            - row "AWSSDK.Extensions.NETCore.Setup.dll dll 45 kb 3/6/2026 4:06:19 PM" [ref=e333]:
+              - cell [ref=e334]:
+                - checkbox [ref=e335]
+              - cell "AWSSDK.Extensions.NETCore.Setup.dll" [ref=e336]
+              - cell "dll" [ref=e337]
+              - cell "45 kb" [ref=e338]
+              - cell "3/6/2026 4:06:19 PM" [ref=e339]
+              - cell [ref=e340]
+              - text: 
+            - row "AWSSDK.SecretsManager.dll dll 143 kb 3/15/2026 6:10:09 AM" [ref=e341]:
+              - cell [ref=e342]:
+                - checkbox [ref=e343]
+              - cell "AWSSDK.SecretsManager.dll" [ref=e344]
+              - cell "dll" [ref=e345]
+              - cell "143 kb" [ref=e346]
+              - cell "3/15/2026 6:10:09 AM" [ref=e347]
+              - cell [ref=e348]
+              - text: 
+            - row "AWSSDK.SimpleSystemsManagement.dll dll 1205 kb 3/6/2026 4:06:19 PM" [ref=e349]:
+              - cell [ref=e350]:
+                - checkbox [ref=e351]
+              - cell "AWSSDK.SimpleSystemsManagement.dll" [ref=e352]
+              - cell "dll" [ref=e353]
+              - cell "1205 kb" [ref=e354]
+              - cell "3/6/2026 4:06:19 PM" [ref=e355]
+              - cell [ref=e356]
+              - text: 
+            - row "Azure.Core.dll dll 392 kb 1/18/2026 11:59:59 AM" [ref=e357]:
+              - cell [ref=e358]:
+                - checkbox [ref=e359]
+              - cell "Azure.Core.dll" [ref=e360]
+              - cell "dll" [ref=e361]
+              - cell "392 kb" [ref=e362]
+              - cell "1/18/2026 11:59:59 AM" [ref=e363]
+              - cell [ref=e364]
+              - text: 
+            - row "Azure.Identity.dll dll 335 kb 1/18/2026 11:59:59 AM" [ref=e365]:
+              - cell [ref=e366]:
+                - checkbox [ref=e367]
+              - cell "Azure.Identity.dll" [ref=e368]
+              - cell "dll" [ref=e369]
+              - cell "335 kb" [ref=e370]
+              - cell "1/18/2026 11:59:59 AM" [ref=e371]
+              - cell [ref=e372]
+              - text: 
+            - row "CsvHelper.dll dll 222 kb 1/25/2026 8:41:34 AM" [ref=e373]:
+              - cell [ref=e374]:
+                - checkbox [ref=e375]
+              - cell "CsvHelper.dll" [ref=e376]
+              - cell "dll" [ref=e377]
+              - cell "222 kb" [ref=e378]
+              - cell "1/25/2026 8:41:34 AM" [ref=e379]
+              - cell [ref=e380]
+              - text: 
+            - row "Diax.Api Api 71 kb 3/11/2026 1:28:55 AM" [ref=e381]:
+              - cell [ref=e382]:
+                - checkbox [ref=e383]
+              - cell "Diax.Api" [ref=e384]
+              - cell "Api" [ref=e385]
+              - cell "71 kb" [ref=e386]
+              - cell "3/11/2026 1:28:55 AM" [ref=e387]
+              - cell [ref=e388]
+              - text: 
+            - row "Diax.Api.deps.json json 89 kb 3/28/2026 4:00:54 AM" [ref=e389]:
+              - cell [ref=e390]:
+                - checkbox [ref=e391]
+              - cell "Diax.Api.deps.json" [ref=e392]
+              - cell "json" [ref=e393]
+              - cell "89 kb" [ref=e394]
+              - cell "3/28/2026 4:00:54 AM" [ref=e395]
+              - cell [ref=e396]
+              - text: 
+            - row "Diax.Api.dll dll 548 kb 4/1/2026 3:36:50 AM" [ref=e397]:
+              - cell [ref=e398]:
+                - checkbox [ref=e399]
+              - cell "Diax.Api.dll" [ref=e400]
+              - cell "dll" [ref=e401]
+              - cell "548 kb" [ref=e402]
+              - cell "4/1/2026 3:36:50 AM" [ref=e403]
+              - cell [ref=e404]
+              - text: 
+            - row "Diax.Api.pdb pdb 43 kb 1/14/2026 5:02:34 PM" [ref=e405]:
+              - cell [ref=e406]:
+                - checkbox [ref=e407]
+              - cell "Diax.Api.pdb" [ref=e408]
+              - cell "pdb" [ref=e409]
+              - cell "43 kb" [ref=e410]
+              - cell "1/14/2026 5:02:34 PM" [ref=e411]
+              - cell [ref=e412]
+              - text: 
+            - row "Diax.Api.runtimeconfig.json json 1 kb 1/19/2026 6:24:52 AM" [ref=e413]:
+              - cell [ref=e414]:
+                - checkbox [ref=e415]
+              - cell "Diax.Api.runtimeconfig.json" [ref=e416]
+              - cell "json" [ref=e417]
+              - cell "1 kb" [ref=e418]
+              - cell "1/19/2026 6:24:52 AM" [ref=e419]
+              - cell [ref=e420]
+              - text: 
+            - row "Diax.Application.dll dll 1314 kb 4/1/2026 3:36:50 AM" [ref=e421]:
+              - cell [ref=e422]:
+                - checkbox [ref=e423]
+              - cell "Diax.Application.dll" [ref=e424]
+              - cell "dll" [ref=e425]
+              - cell "1314 kb" [ref=e426]
+              - cell "4/1/2026 3:36:50 AM" [ref=e427]
+              - cell [ref=e428]
+              - text: 
+            - row "Diax.Application.pdb pdb 52 kb 1/14/2026 5:02:35 PM" [ref=e429]:
+              - cell [ref=e430]:
+                - checkbox [ref=e431]
+              - cell "Diax.Application.pdb" [ref=e432]
+              - cell "pdb" [ref=e433]
+              - cell "52 kb" [ref=e434]
+              - cell "1/14/2026 5:02:35 PM" [ref=e435]
+              - cell [ref=e436]
+              - text: 
+            - row "Diax.Domain.dll dll 169 kb 4/1/2026 3:36:51 AM" [ref=e437]:
+              - cell [ref=e438]:
+                - checkbox [ref=e439]
+              - cell "Diax.Domain.dll" [ref=e440]
+              - cell "dll" [ref=e441]
+              - cell "169 kb" [ref=e442]
+              - cell "4/1/2026 3:36:51 AM" [ref=e443]
+              - cell [ref=e444]
+              - text: 
+            - row "Diax.Domain.pdb pdb 25 kb 1/14/2026 5:02:36 PM" [ref=e445]:
+              - cell [ref=e446]:
+                - checkbox [ref=e447]
+              - cell "Diax.Domain.pdb" [ref=e448]
+              - cell "pdb" [ref=e449]
+              - cell "25 kb" [ref=e450]
+              - cell "1/14/2026 5:02:36 PM" [ref=e451]
+              - cell [ref=e452]
+              - text: 
+            - row "Diax.Infrastructure.dll dll 2428 kb 4/1/2026 3:36:51 AM" [ref=e453]:
+              - cell [ref=e454]:
+                - checkbox [ref=e455]
+              - cell "Diax.Infrastructure.dll" [ref=e456]
+              - cell "dll" [ref=e457]
+              - cell "2428 kb" [ref=e458]
+              - cell "4/1/2026 3:36:51 AM" [ref=e459]
+              - cell [ref=e460]
+              - text: 
+            - row "Diax.Infrastructure.pdb pdb 41 kb 1/14/2026 5:02:36 PM" [ref=e461]:
+              - cell [ref=e462]:
+                - checkbox [ref=e463]
+              - cell "Diax.Infrastructure.pdb" [ref=e464]
+              - cell "pdb" [ref=e465]
+              - cell "41 kb" [ref=e466]
+              - cell "1/14/2026 5:02:36 PM" [ref=e467]
+              - cell [ref=e468]
+              - text: 
+            - row "Diax.Shared.dll dll 26 kb 4/1/2026 3:36:51 AM" [ref=e469]:
+              - cell [ref=e470]:
+                - checkbox [ref=e471]
+              - cell "Diax.Shared.dll" [ref=e472]
+              - cell "dll" [ref=e473]
+              - cell "26 kb" [ref=e474]
+              - cell "4/1/2026 3:36:51 AM" [ref=e475]
+              - cell [ref=e476]
+              - text: 
+            - row "Diax.Shared.pdb pdb 13 kb 1/14/2026 5:02:37 PM" [ref=e477]:
+              - cell [ref=e478]:
+                - checkbox [ref=e479]
+              - cell "Diax.Shared.pdb" [ref=e480]
+              - cell "pdb" [ref=e481]
+              - cell "13 kb" [ref=e482]
+              - cell "1/14/2026 5:02:37 PM" [ref=e483]
+              - cell [ref=e484]
+              - text: 
+            - row "FluentValidation.DependencyInjectionExtensions.dll dll 17 kb 1/18/2026 11:59:59 AM" [ref=e485]:
+              - cell [ref=e486]:
+                - checkbox [ref=e487]
+              - cell "FluentValidation.DependencyInjectionExtensions.dll" [ref=e488]
+              - cell "dll" [ref=e489]
+              - cell "17 kb" [ref=e490]
+              - cell "1/18/2026 11:59:59 AM" [ref=e491]
+              - cell [ref=e492]
+              - text: 
+            - row "FluentValidation.dll dll 464 kb 1/18/2026 11:59:59 AM" [ref=e493]:
+              - cell [ref=e494]:
+                - checkbox [ref=e495]
+              - cell "FluentValidation.dll" [ref=e496]
+              - cell "dll" [ref=e497]
+              - cell "464 kb" [ref=e498]
+              - cell "1/18/2026 11:59:59 AM" [ref=e499]
+              - cell [ref=e500]
+              - text: 
+            - row "HtmlAgilityPack.dll dll 162 kb 1/18/2026 11:59:59 AM" [ref=e501]:
+              - cell [ref=e502]:
+                - checkbox [ref=e503]
+              - cell "HtmlAgilityPack.dll" [ref=e504]
+              - cell "dll" [ref=e505]
+              - cell "162 kb" [ref=e506]
+              - cell "1/18/2026 11:59:59 AM" [ref=e507]
+              - cell [ref=e508]
+              - text: 
+            - row "HtmlSanitizer.dll dll 51 kb 3/28/2026 4:00:54 AM" [ref=e509]:
+              - cell [ref=e510]:
+                - checkbox [ref=e511]
+              - cell "HtmlSanitizer.dll" [ref=e512]
+              - cell "dll" [ref=e513]
+              - cell "51 kb" [ref=e514]
+              - cell "3/28/2026 4:00:54 AM" [ref=e515]
+              - cell [ref=e516]
+              - text: 
+            - row "Microsoft.AspNetCore.Authentication.JwtBearer.dll dll 51 kb 1/18/2026 11:59:59 AM" [ref=e517]:
+              - cell [ref=e518]:
+                - checkbox [ref=e519]
+              - cell "Microsoft.AspNetCore.Authentication.JwtBearer.dll" [ref=e520]
+              - cell "dll" [ref=e521]
+              - cell "51 kb" [ref=e522]
+              - cell "1/18/2026 11:59:59 AM" [ref=e523]
+              - cell [ref=e524]
+              - text: 
+            - row "Microsoft.Bcl.AsyncInterfaces.dll dll 16 kb 1/18/2026 11:59:59 AM" [ref=e525]:
+              - cell [ref=e526]:
+                - checkbox [ref=e527]
+              - cell "Microsoft.Bcl.AsyncInterfaces.dll" [ref=e528]
+              - cell "dll" [ref=e529]
+              - cell "16 kb" [ref=e530]
+              - cell "1/18/2026 11:59:59 AM" [ref=e531]
+              - cell [ref=e532]
+              - text: 
+            - row "Microsoft.Data.SqlClient.dll dll 270 kb 1/18/2026 11:59:59 AM" [ref=e533]:
+              - cell [ref=e534]:
+                - checkbox [ref=e535]
+              - cell "Microsoft.Data.SqlClient.dll" [ref=e536]
+              - cell "dll" [ref=e537]
+              - cell "270 kb" [ref=e538]
+              - cell "1/18/2026 11:59:59 AM" [ref=e539]
+              - cell [ref=e540]
+              - text: 
+            - row "Microsoft.EntityFrameworkCore.Abstractions.dll dll 34 kb 1/18/2026 11:59:59 AM" [ref=e541]:
+              - cell [ref=e542]:
+                - checkbox [ref=e543]
+              - cell "Microsoft.EntityFrameworkCore.Abstractions.dll" [ref=e544]
+              - cell "dll" [ref=e545]
+              - cell "34 kb" [ref=e546]
+              - cell "1/18/2026 11:59:59 AM" [ref=e547]
+              - cell [ref=e548]
+              - text: 
+            - row "Microsoft.EntityFrameworkCore.dll dll 2475 kb 1/18/2026 11:59:59 AM" [ref=e549]:
+              - cell [ref=e550]:
+                - checkbox [ref=e551]
+              - cell "Microsoft.EntityFrameworkCore.dll" [ref=e552]
+              - cell "dll" [ref=e553]
+              - cell "2475 kb" [ref=e554]
+              - cell "1/18/2026 11:59:59 AM" [ref=e555]
+              - cell [ref=e556]
+              - text: 
+            - row "Microsoft.EntityFrameworkCore.Relational.dll dll 1948 kb 1/18/2026 11:59:59 AM" [ref=e557]:
+              - cell [ref=e558]:
+                - checkbox [ref=e559]
+              - cell "Microsoft.EntityFrameworkCore.Relational.dll" [ref=e560]
+              - cell "dll" [ref=e561]
+              - cell "1948 kb" [ref=e562]
+              - cell "1/18/2026 11:59:59 AM" [ref=e563]
+              - cell [ref=e564]
+              - text: 
+            - row "Microsoft.EntityFrameworkCore.SqlServer.dll dll 536 kb 1/18/2026 11:59:59 AM" [ref=e565]:
+              - cell [ref=e566]:
+                - checkbox [ref=e567]
+              - cell "Microsoft.EntityFrameworkCore.SqlServer.dll" [ref=e568]
+              - cell "dll" [ref=e569]
+              - cell "536 kb" [ref=e570]
+              - cell "1/18/2026 11:59:59 AM" [ref=e571]
+              - cell [ref=e572]
+              - text: 
+            - row "Microsoft.Extensions.Caching.Memory.dll dll 45 kb 1/18/2026 11:59:59 AM" [ref=e573]:
+              - cell [ref=e574]:
+                - checkbox [ref=e575]
+              - cell "Microsoft.Extensions.Caching.Memory.dll" [ref=e576]
+              - cell "dll" [ref=e577]
+              - cell "45 kb" [ref=e578]
+              - cell "1/18/2026 11:59:59 AM" [ref=e579]
+              - cell [ref=e580]
+              - text: 
+            - row "Microsoft.Extensions.DependencyInjection.Abstractions.dll dll 62 kb 1/18/2026 11:59:59 AM" [ref=e581]:
+              - cell [ref=e582]:
+                - checkbox [ref=e583]
+              - cell "Microsoft.Extensions.DependencyInjection.Abstractions.dll" [ref=e584]
+              - cell "dll" [ref=e585]
+              - cell "62 kb" [ref=e586]
+              - cell "1/18/2026 11:59:59 AM" [ref=e587]
+              - cell [ref=e588]
+              - text: 
+            - row "Microsoft.Extensions.DependencyInjection.dll dll 91 kb 1/18/2026 11:59:59 AM" [ref=e589]:
+              - cell [ref=e590]:
+                - checkbox [ref=e591]
+              - cell "Microsoft.Extensions.DependencyInjection.dll" [ref=e592]
+              - cell "dll" [ref=e593]
+              - cell "91 kb" [ref=e594]
+              - cell "1/18/2026 11:59:59 AM" [ref=e595]
+              - cell [ref=e596]
+              - text: 
+            - row "Microsoft.Extensions.DependencyModel.dll dll 78 kb 1/18/2026 11:59:59 AM" [ref=e597]:
+              - cell [ref=e598]:
+                - checkbox [ref=e599]
+              - cell "Microsoft.Extensions.DependencyModel.dll" [ref=e600]
+              - cell "dll" [ref=e601]
+              - cell "78 kb" [ref=e602]
+              - cell "1/18/2026 11:59:59 AM" [ref=e603]
+              - cell [ref=e604]
+              - text: 
+            - row "Microsoft.Extensions.Logging.Abstractions.dll dll 64 kb 1/18/2026 11:59:59 AM" [ref=e605]:
+              - cell [ref=e606]:
+                - checkbox [ref=e607]
+              - cell "Microsoft.Extensions.Logging.Abstractions.dll" [ref=e608]
+              - cell "dll" [ref=e609]
+              - cell "64 kb" [ref=e610]
+              - cell "1/18/2026 11:59:59 AM" [ref=e611]
+              - cell [ref=e612]
+              - text: 
+            - row "Microsoft.Extensions.Logging.dll dll 50 kb 1/18/2026 11:59:59 AM" [ref=e613]:
+              - cell [ref=e614]:
+                - checkbox [ref=e615]
+              - cell "Microsoft.Extensions.Logging.dll" [ref=e616]
+              - cell "dll" [ref=e617]
+              - cell "50 kb" [ref=e618]
+              - cell "1/18/2026 11:59:59 AM" [ref=e619]
+              - cell [ref=e620]
+              - text: 
+            - row "Microsoft.Extensions.Options.dll dll 63 kb 1/18/2026 11:59:59 AM" [ref=e621]:
+              - cell [ref=e622]:
+                - checkbox [ref=e623]
+              - cell "Microsoft.Extensions.Options.dll" [ref=e624]
+              - cell "dll" [ref=e625]
+              - cell "63 kb" [ref=e626]
+              - cell "1/18/2026 11:59:59 AM" [ref=e627]
+              - cell [ref=e628]
+              - text: 
+            - row "Microsoft.Identity.Client.dll dll 982 kb 1/18/2026 11:59:59 AM" [ref=e629]:
+              - cell [ref=e630]:
+                - checkbox [ref=e631]
+              - cell "Microsoft.Identity.Client.dll" [ref=e632]
+              - cell "dll" [ref=e633]
+              - cell "982 kb" [ref=e634]
+              - cell "1/18/2026 11:59:59 AM" [ref=e635]
+              - cell [ref=e636]
+              - text: 
+            - row "Microsoft.Identity.Client.Extensions.Msal.dll dll 65 kb 1/18/2026 11:59:59 AM" [ref=e637]:
+              - cell [ref=e638]:
+                - checkbox [ref=e639]
+              - cell "Microsoft.Identity.Client.Extensions.Msal.dll" [ref=e640]
+              - cell "dll" [ref=e641]
+              - cell "65 kb" [ref=e642]
+              - cell "1/18/2026 11:59:59 AM" [ref=e643]
+              - cell [ref=e644]
+              - text: 
+            - row "Microsoft.IdentityModel.Abstractions.dll dll 19 kb 1/18/2026 11:59:59 AM" [ref=e645]:
+              - cell [ref=e646]:
+                - checkbox [ref=e647]
+              - cell "Microsoft.IdentityModel.Abstractions.dll" [ref=e648]
+              - cell "dll" [ref=e649]
+              - cell "19 kb" [ref=e650]
+              - cell "1/18/2026 11:59:59 AM" [ref=e651]
+              - cell [ref=e652]
+              - text: 
+            - row "Microsoft.IdentityModel.JsonWebTokens.dll dll 125 kb 1/18/2026 11:59:59 AM" [ref=e653]:
+              - cell [ref=e654]:
+                - checkbox [ref=e655]
+              - cell "Microsoft.IdentityModel.JsonWebTokens.dll" [ref=e656]
+              - cell "dll" [ref=e657]
+              - cell "125 kb" [ref=e658]
+              - cell "1/18/2026 11:59:59 AM" [ref=e659]
+              - cell [ref=e660]
+              - text: 
+            - row "Microsoft.IdentityModel.Logging.dll dll 36 kb 1/18/2026 11:59:59 AM" [ref=e661]:
+              - cell [ref=e662]:
+                - checkbox [ref=e663]
+              - cell "Microsoft.IdentityModel.Logging.dll" [ref=e664]
+              - cell "dll" [ref=e665]
+              - cell "36 kb" [ref=e666]
+              - cell "1/18/2026 11:59:59 AM" [ref=e667]
+              - cell [ref=e668]
+              - text: 
+            - row "Microsoft.IdentityModel.Protocols.dll dll 39 kb 1/18/2026 11:59:59 AM" [ref=e669]:
+              - cell [ref=e670]:
+                - checkbox [ref=e671]
+              - cell "Microsoft.IdentityModel.Protocols.dll" [ref=e672]
+              - cell "dll" [ref=e673]
+              - cell "39 kb" [ref=e674]
+              - cell "1/18/2026 11:59:59 AM" [ref=e675]
+              - cell [ref=e676]
+              - text: 
+            - row "Microsoft.IdentityModel.Protocols.OpenIdConnect.dll dll 117 kb 1/18/2026 11:59:59 AM" [ref=e677]:
+              - cell [ref=e678]:
+                - checkbox [ref=e679]
+              - cell "Microsoft.IdentityModel.Protocols.OpenIdConnect.dll" [ref=e680]
+              - cell "dll" [ref=e681]
+              - cell "117 kb" [ref=e682]
+              - cell "1/18/2026 11:59:59 AM" [ref=e683]
+              - cell [ref=e684]
+              - text: 
+            - row "Microsoft.IdentityModel.Tokens.dll dll 279 kb 1/18/2026 11:59:59 AM" [ref=e685]:
+              - cell [ref=e686]:
+                - checkbox [ref=e687]
+              - cell "Microsoft.IdentityModel.Tokens.dll" [ref=e688]
+              - cell "dll" [ref=e689]
+              - cell "279 kb" [ref=e690]
+              - cell "1/18/2026 11:59:59 AM" [ref=e691]
+              - cell [ref=e692]
+              - text: 
+            - row "Microsoft.OpenApi.dll dll 170 kb 1/18/2026 11:59:59 AM" [ref=e693]:
+              - cell [ref=e694]:
+                - checkbox [ref=e695]
+              - cell "Microsoft.OpenApi.dll" [ref=e696]
+              - cell "dll" [ref=e697]
+              - cell "170 kb" [ref=e698]
+              - cell "1/18/2026 11:59:59 AM" [ref=e699]
+              - cell [ref=e700]
+              - text: 
+            - row "Microsoft.SqlServer.Server.dll dll 23 kb 1/18/2026 11:59:59 AM" [ref=e701]:
+              - cell [ref=e702]:
+                - checkbox [ref=e703]
+              - cell "Microsoft.SqlServer.Server.dll" [ref=e704]
+              - cell "dll" [ref=e705]
+              - cell "23 kb" [ref=e706]
+              - cell "1/18/2026 11:59:59 AM" [ref=e707]
+              - cell [ref=e708]
+              - text: 
+            - row "Microsoft.Win32.SystemEvents.dll dll 26 kb 1/18/2026 11:59:59 AM" [ref=e709]:
+              - cell [ref=e710]:
+                - checkbox [ref=e711]
+              - cell "Microsoft.Win32.SystemEvents.dll" [ref=e712]
+              - cell "dll" [ref=e713]
+              - cell "26 kb" [ref=e714]
+              - cell "1/18/2026 11:59:59 AM" [ref=e715]
+              - cell [ref=e716]
+              - text: 
+            - row "Serilog.AspNetCore.dll dll 16 kb 1/18/2026 12:00:00 PM" [ref=e717]:
+              - cell [ref=e718]:
+                - checkbox [ref=e719]
+              - cell "Serilog.AspNetCore.dll" [ref=e720]
+              - cell "dll" [ref=e721]
+              - cell "16 kb" [ref=e722]
+              - cell "1/18/2026 12:00:00 PM" [ref=e723]
+              - cell [ref=e724]
+              - text: 
+            - row "Serilog.dll dll 148 kb 1/18/2026 12:00:00 PM" [ref=e725]:
+              - cell [ref=e726]:
+                - checkbox [ref=e727]
+              - cell "Serilog.dll" [ref=e728]
+              - cell "dll" [ref=e729]
+              - cell "148 kb" [ref=e730]
+              - cell "1/18/2026 12:00:00 PM" [ref=e731]
+              - cell [ref=e732]
+              - text: 
+            - row "Serilog.Extensions.Hosting.dll dll 29 kb 1/18/2026 12:00:00 PM" [ref=e733]:
+              - cell [ref=e734]:
+                - checkbox [ref=e735]
+              - cell "Serilog.Extensions.Hosting.dll" [ref=e736]
+              - cell "dll" [ref=e737]
+              - cell "29 kb" [ref=e738]
+              - cell "1/18/2026 12:00:00 PM" [ref=e739]
+              - cell [ref=e740]
+              - text: 
+            - row "Serilog.Extensions.Logging.dll dll 29 kb 1/18/2026 12:00:00 PM" [ref=e741]:
+              - cell [ref=e742]:
+                - checkbox [ref=e743]
+              - cell "Serilog.Extensions.Logging.dll" [ref=e744]
+              - cell "dll" [ref=e745]
+              - cell "29 kb" [ref=e746]
+              - cell "1/18/2026 12:00:00 PM" [ref=e747]
+              - cell [ref=e748]
+              - text: 
+            - row "Serilog.Formatting.Compact.dll dll 10 kb 1/18/2026 12:00:00 PM" [ref=e749]:
+              - cell [ref=e750]:
+                - checkbox [ref=e751]
+              - cell "Serilog.Formatting.Compact.dll" [ref=e752]
+              - cell "dll" [ref=e753]
+              - cell "10 kb" [ref=e754]
+              - cell "1/18/2026 12:00:00 PM" [ref=e755]
+              - cell [ref=e756]
+              - text: 
+            - row "Serilog.Settings.Configuration.dll dll 74 kb 1/18/2026 12:00:00 PM" [ref=e757]:
+              - cell [ref=e758]:
+                - checkbox [ref=e759]
+              - cell "Serilog.Settings.Configuration.dll" [ref=e760]
+              - cell "dll" [ref=e761]
+              - cell "74 kb" [ref=e762]
+              - cell "1/18/2026 12:00:00 PM" [ref=e763]
+              - cell [ref=e764]
+              - text: 
+            - row "Serilog.Sinks.Console.dll dll 38 kb 1/18/2026 12:00:00 PM" [ref=e765]:
+              - cell [ref=e766]:
+                - checkbox [ref=e767]
+              - cell "Serilog.Sinks.Console.dll" [ref=e768]
+              - cell "dll" [ref=e769]
+              - cell "38 kb" [ref=e770]
+              - cell "1/18/2026 12:00:00 PM" [ref=e771]
+              - cell [ref=e772]
+              - text: 
+            - row "Serilog.Sinks.Debug.dll dll 7 kb 1/18/2026 12:00:00 PM" [ref=e773]:
+              - cell [ref=e774]:
+                - checkbox [ref=e775]
+              - cell "Serilog.Sinks.Debug.dll" [ref=e776]
+              - cell "dll" [ref=e777]
+              - cell "7 kb" [ref=e778]
+              - cell "1/18/2026 12:00:00 PM" [ref=e779]
+              - cell [ref=e780]
+              - text: 
+            - row "Serilog.Sinks.File.dll dll 30 kb 1/18/2026 12:00:00 PM" [ref=e781]:
+              - cell [ref=e782]:
+                - checkbox [ref=e783]
+              - cell "Serilog.Sinks.File.dll" [ref=e784]
+              - cell "dll" [ref=e785]
+              - cell "30 kb" [ref=e786]
+              - cell "1/18/2026 12:00:00 PM" [ref=e787]
+              - cell [ref=e788]
+              - text: 
+            - row "Swashbuckle.AspNetCore.Swagger.dll dll 15 kb 1/18/2026 12:00:00 PM" [ref=e789]:
+              - cell [ref=e790]:
+                - checkbox [ref=e791]
+              - cell "Swashbuckle.AspNetCore.Swagger.dll" [ref=e792]
+              - cell "dll" [ref=e793]
+              - cell "15 kb" [ref=e794]
+              - cell "1/18/2026 12:00:00 PM" [ref=e795]
+              - cell [ref=e796]
+              - text: 
+            - row "Swashbuckle.AspNetCore.SwaggerGen.dll dll 95 kb 1/18/2026 12:00:00 PM" [ref=e797]:
+              - cell [ref=e798]:
+                - checkbox [ref=e799]
+              - cell "Swashbuckle.AspNetCore.SwaggerGen.dll" [ref=e800]
+              - cell "dll" [ref=e801]
+              - cell "95 kb" [ref=e802]
+              - cell "1/18/2026 12:00:00 PM" [ref=e803]
+              - cell [ref=e804]
+              - text: 
+            - row "Swashbuckle.AspNetCore.SwaggerUI.dll dll 3178 kb 1/18/2026 12:00:00 PM" [ref=e805]:
+              - cell [ref=e806]:
+                - checkbox [ref=e807]
+              - cell "Swashbuckle.AspNetCore.SwaggerUI.dll" [ref=e808]
+              - cell "dll" [ref=e809]
+              - cell "3178 kb" [ref=e810]
+              - cell "1/18/2026 12:00:00 PM" [ref=e811]
+              - cell [ref=e812]
+              - text: 
+            - row "System.ClientModel.dll dll 28 kb 1/18/2026 12:00:00 PM" [ref=e813]:
+              - cell [ref=e814]:
+                - checkbox [ref=e815]
+              - cell "System.ClientModel.dll" [ref=e816]
+              - cell "dll" [ref=e817]
+              - cell "28 kb" [ref=e818]
+              - cell "1/18/2026 12:00:00 PM" [ref=e819]
+              - cell [ref=e820]
+              - text: 
+            - row "System.Configuration.ConfigurationManager.dll dll 387 kb 1/18/2026 12:00:00 PM" [ref=e821]:
+              - cell [ref=e822]:
+                - checkbox [ref=e823]
+              - cell "System.Configuration.ConfigurationManager.dll" [ref=e824]
+              - cell "dll" [ref=e825]
+              - cell "387 kb" [ref=e826]
+              - cell "1/18/2026 12:00:00 PM" [ref=e827]
+              - cell [ref=e828]
+              - text: 
+            - row "System.Drawing.Common.dll dll 171 kb 1/18/2026 12:00:00 PM" [ref=e829]:
+              - cell [ref=e830]:
+                - checkbox [ref=e831]
+              - cell "System.Drawing.Common.dll" [ref=e832]
+              - cell "dll" [ref=e833]
+              - cell "171 kb" [ref=e834]
+              - cell "1/18/2026 12:00:00 PM" [ref=e835]
+              - cell [ref=e836]
+              - text: 
+            - row "System.IdentityModel.Tokens.Jwt.dll dll 80 kb 1/18/2026 12:00:00 PM" [ref=e837]:
+              - cell [ref=e838]:
+                - checkbox [ref=e839]
+              - cell "System.IdentityModel.Tokens.Jwt.dll" [ref=e840]
+              - cell "dll" [ref=e841]
+              - cell "80 kb" [ref=e842]
+              - cell "1/18/2026 12:00:00 PM" [ref=e843]
+              - cell [ref=e844]
+              - text: 
+            - row "System.Memory.Data.dll dll 21 kb 1/18/2026 12:00:00 PM" [ref=e845]:
+              - cell [ref=e846]:
+                - checkbox [ref=e847]
+              - cell "System.Memory.Data.dll" [ref=e848]
+              - cell "dll" [ref=e849]
+              - cell "21 kb" [ref=e850]
+              - cell "1/18/2026 12:00:00 PM" [ref=e851]
+              - cell [ref=e852]
+              - text: 
+            - row "System.Runtime.Caching.dll dll 87 kb 1/18/2026 12:00:00 PM" [ref=e853]:
+              - cell [ref=e854]:
+                - checkbox [ref=e855]
+              - cell "System.Runtime.Caching.dll" [ref=e856]
+              - cell "dll" [ref=e857]
+              - cell "87 kb" [ref=e858]
+              - cell "1/18/2026 12:00:00 PM" [ref=e859]
+              - cell [ref=e860]
+              - text: 
+            - row "System.Security.Cryptography.ProtectedData.dll dll 20 kb 1/18/2026 12:00:00 PM" [ref=e861]:
+              - cell [ref=e862]:
+                - checkbox [ref=e863]
+              - cell "System.Security.Cryptography.ProtectedData.dll" [ref=e864]
+              - cell "dll" [ref=e865]
+              - cell "20 kb" [ref=e866]
+              - cell "1/18/2026 12:00:00 PM" [ref=e867]
+              - cell [ref=e868]
+              - text: 
+            - row "System.Security.Permissions.dll dll 102 kb 1/18/2026 12:00:00 PM" [ref=e869]:
+              - cell [ref=e870]:
+                - checkbox [ref=e871]
+              - cell "System.Security.Permissions.dll" [ref=e872]
+              - cell "dll" [ref=e873]
+              - cell "102 kb" [ref=e874]
+              - cell "1/18/2026 12:00:00 PM" [ref=e875]
+              - cell [ref=e876]
+              - text: 
+            - row "System.Windows.Extensions.dll dll 25 kb 1/18/2026 12:00:00 PM" [ref=e877]:
+              - cell [ref=e878]:
+                - checkbox [ref=e879]
+              - cell "System.Windows.Extensions.dll" [ref=e880]
+              - cell "dll" [ref=e881]
+              - cell "25 kb" [ref=e882]
+              - cell "1/18/2026 12:00:00 PM" [ref=e883]
+              - cell [ref=e884]
+              - text: 
+            - row "UglyToad.PdfPig.Core.dll dll 42 kb 2/10/2026 2:36:54 PM" [ref=e885]:
+              - cell [ref=e886]:
+                - checkbox [ref=e887]
+              - cell "UglyToad.PdfPig.Core.dll" [ref=e888]
+              - cell "dll" [ref=e889]
+              - cell "42 kb" [ref=e890]
+              - cell "2/10/2026 2:36:54 PM" [ref=e891]
+              - cell [ref=e892]
+              - text: 
+            - row "UglyToad.PdfPig.dll dll 3878 kb 2/10/2026 2:36:55 PM" [ref=e893]:
+              - cell [ref=e894]:
+                - checkbox [ref=e895]
+              - cell "UglyToad.PdfPig.dll" [ref=e896]
+              - cell "dll" [ref=e897]
+              - cell "3878 kb" [ref=e898]
+              - cell "2/10/2026 2:36:55 PM" [ref=e899]
+              - cell [ref=e900]
+              - text: 
+            - row "UglyToad.PdfPig.Fonts.dll dll 998 kb 2/10/2026 2:36:56 PM" [ref=e901]:
+              - cell [ref=e902]:
+                - checkbox [ref=e903]
+              - cell "UglyToad.PdfPig.Fonts.dll" [ref=e904]
+              - cell "dll" [ref=e905]
+              - cell "998 kb" [ref=e906]
+              - cell "2/10/2026 2:36:56 PM" [ref=e907]
+              - cell [ref=e908]
+              - text: 
+            - row "UglyToad.PdfPig.Tokenization.dll dll 20 kb 2/10/2026 2:36:56 PM" [ref=e909]:
+              - cell [ref=e910]:
+                - checkbox [ref=e911]
+              - cell "UglyToad.PdfPig.Tokenization.dll" [ref=e912]
+              - cell "dll" [ref=e913]
+              - cell "20 kb" [ref=e914]
+              - cell "2/10/2026 2:36:56 PM" [ref=e915]
+              - cell [ref=e916]
+              - text: 
+            - row "UglyToad.PdfPig.Tokens.dll dll 42 kb 2/10/2026 2:36:56 PM" [ref=e917]:
+              - cell [ref=e918]:
+                - checkbox [ref=e919]
+              - cell "UglyToad.PdfPig.Tokens.dll" [ref=e920]
+              - cell "dll" [ref=e921]
+              - cell "42 kb" [ref=e922]
+              - cell "2/10/2026 2:36:56 PM" [ref=e923]
+              - cell [ref=e924]
+              - text: 
+            - row "web.config config 1 kb 1/18/2026 12:00:00 PM" [ref=e925]:
+              - cell [ref=e926]:
+                - checkbox [ref=e927]
+              - cell "web.config" [ref=e928]
+              - cell "config" [ref=e929]
+              - cell "1 kb" [ref=e930]
+              - cell "1/18/2026 12:00:00 PM" [ref=e931]
+              - cell [ref=e932]
+              - text: 
+        - text:   
+  - img

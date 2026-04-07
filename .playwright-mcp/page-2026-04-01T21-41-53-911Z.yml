@@ -1,0 +1,289 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - link "SmarterASP.NET" [ref=e8] [cursor=pointer]:
+        - /url: "#"
+      - generic [ref=e9]:
+        - link "Live Chat" [ref=e11] [cursor=pointer]:
+          - /url: /cp/chat
+          - generic [ref=e12]:
+            - img [ref=e15]
+            - generic [ref=e17]: Live Chat
+        - generic [ref=e19]:
+          - img [ref=e22] [cursor=pointer]
+          - generic [ref=e28] [cursor=pointer]: base de conhecimento
+        - link "Central de Ajuda" [ref=e30] [cursor=pointer]:
+          - /url: /cp/helpdesk
+          - generic [ref=e31]:
+            - img [ref=e34]
+            - generic [ref=e39]: Central de Ajuda
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - img [ref=e44] [cursor=pointer]
+            - generic [ref=e49] [cursor=pointer]: PARTIUROCK-003
+          - text: 
+    - list [ref=e53]:
+      - listitem [ref=e54]:
+        - link "" [ref=e55] [cursor=pointer]:
+          - /url: /cp/accountbilling
+          - generic [ref=e56]:
+            - img [ref=e58]
+            - generic [ref=e63]: 
+      - listitem [ref=e64]:
+        - link "Sites" [ref=e65] [cursor=pointer]:
+          - /url: /cp/boxinfo
+          - generic [ref=e66]: Sites
+      - listitem [ref=e67]:
+        - link " " [ref=e68] [cursor=pointer]:
+          - /url: ""
+          - generic [ref=e70]: 
+          - generic [ref=e71]: 
+        - text:    
+      - listitem [ref=e72]:
+        - link " " [ref=e73] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e75]: 
+          - generic [ref=e76]: 
+      - listitem [ref=e77]:
+        - link "" [ref=e78] [cursor=pointer]:
+          - /url: /cp/filemanager?pop=1&d=h:\root\home\partiurock-003\www
+          - generic [ref=e80]: 
+      - listitem [ref=e81]:
+        - link "Apps " [ref=e82] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e83]: Apps
+          - generic [ref=e84]: 
+        - text:    
+      - listitem [ref=e85]:
+        - link "FTP" [ref=e86] [cursor=pointer]:
+          - /url: /cp/ftp
+          - generic [ref=e87]: FTP
+      - listitem [ref=e88]:
+        - link "CDN" [ref=e89] [cursor=pointer]:
+          - /url: /cp/cloudflare
+          - generic [ref=e90]: CDN
+      - listitem [ref=e91]:
+        - link "DNS" [ref=e92] [cursor=pointer]:
+          - /url: /cp/dns/
+          - generic [ref=e93]: DNS
+      - listitem [ref=e94]:
+        - link "SSL" [ref=e95] [cursor=pointer]:
+          - /url: /cp/ssl_list
+          - generic [ref=e96]: SSL
+      - listitem [ref=e97]:
+        - link "Avançar " [ref=e98] [cursor=pointer]:
+          - /url: javascript:;
+          - generic [ref=e99]: Avançar
+          - generic [ref=e100]: 
+        - text:       
+    - generic [ref=e102]:
+      - generic [ref=e104]:
+        - generic [ref=e106]:
+          - heading "recursos avançados" [level=5] [ref=e107]
+          - list [ref=e108]:
+            - listitem [ref=e109]:
+              - link "Gerenciador de pool" [ref=e110] [cursor=pointer]:
+                - /url: ""
+        - link "Voltar" [ref=e112] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e113]:
+        - text:  
+        - generic [ref=e114]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - heading "Gerenciador de pool" [level=3] [ref=e118]:
+                - generic [ref=e119]: Gerenciador de pool
+              - generic [ref=e120]:
+                - text: "Ram Quotas: 2304/3072 MB"
+                - generic "Create Pool" [ref=e121] [cursor=pointer]:
+                  - generic [ref=e122]: 
+                  - text: Pool
+                - link " Ram" [ref=e123] [cursor=pointer]:
+                  - /url: /cp/accountbilling
+                  - generic [ref=e124]: 
+                  - text: Ram
+            - table [ref=e126]:
+              - rowgroup [ref=e127]:
+                - row "Pool Name Versão atual Configuração da RAM Bit Load User Profile Websites Action" [ref=e128]:
+                  - columnheader "Pool Name" [ref=e129]
+                  - columnheader "Versão atual" [ref=e130]
+                  - columnheader "Configuração da RAM" [ref=e131]
+                  - columnheader "Bit" [ref=e132]
+                  - columnheader "Load User Profile" [ref=e133]
+                  - columnheader "Websites" [ref=e134]
+                  - columnheader "Action" [ref=e135]
+              - rowgroup [ref=e136]:
+                - row "partiurock-003 ASP.NET 4.x, Integrated 256 MB 32-bit False partiurock-site, alecook, monster-log, api-extratordedados, site13, investiq Ações Toggle Dropdown " [ref=e137]:
+                  - cell "partiurock-003" [ref=e138]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e139]
+                  - cell "256 MB" [ref=e140]:
+                    - generic [ref=e141]: "256"
+                    - text: MB
+                    - generic [ref=e143] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e144]
+                  - cell "False" [ref=e145]
+                  - cell "partiurock-site, alecook, monster-log, api-extratordedados, site13, investiq" [ref=e146]
+                  - cell "Ações Toggle Dropdown " [ref=e147]:
+                    - generic [ref=e148]:
+                      - button "Ações" [ref=e149] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e150] [cursor=pointer]:
+                        - generic [ref=e151]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003cau ASP.NET 4.x, Integrated 256 MB 32-bit False api Ações Toggle Dropdown " [ref=e152]:
+                  - cell "partiurock-003cau" [ref=e153]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e154]
+                  - cell "256 MB" [ref=e155]:
+                    - generic [ref=e156]: "256"
+                    - text: MB
+                    - generic [ref=e158] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e159]
+                  - cell "False" [ref=e160]
+                  - cell "api" [ref=e161]
+                  - cell "Ações Toggle Dropdown " [ref=e162]:
+                    - generic [ref=e163]:
+                      - button "Ações" [ref=e164] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e165] [cursor=pointer]:
+                        - generic [ref=e166]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003dia ASP.NET 4.x, Integrated 256 MB 32-bit False tarefista Ações Toggle Dropdown " [ref=e167]:
+                  - cell "partiurock-003dia" [ref=e168]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e169]
+                  - cell "256 MB" [ref=e170]:
+                    - generic [ref=e171]: "256"
+                    - text: MB
+                    - generic [ref=e173] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e174]
+                  - cell "False" [ref=e175]
+                  - cell "tarefista" [ref=e176]
+                  - cell "Ações Toggle Dropdown " [ref=e177]:
+                    - generic [ref=e178]:
+                      - button "Ações" [ref=e179] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e180] [cursor=pointer]:
+                        - generic [ref=e181]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003dwf ASP.NET 4.x, Integrated 256 MB 32-bit False alecook-api Ações Toggle Dropdown " [ref=e182]:
+                  - cell "partiurock-003dwf" [ref=e183]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e184]
+                  - cell "256 MB" [ref=e185]:
+                    - generic [ref=e186]: "256"
+                    - text: MB
+                    - generic [ref=e188] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e189]
+                  - cell "False" [ref=e190]
+                  - cell "alecook-api" [ref=e191]
+                  - cell "Ações Toggle Dropdown " [ref=e192]:
+                    - generic [ref=e193]:
+                      - button "Ações" [ref=e194] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e195] [cursor=pointer]:
+                        - generic [ref=e196]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003fsh ASP.NET 4.x, Integrated 256 MB 32-bit False api-diax-crm Ações Toggle Dropdown " [ref=e197]:
+                  - cell "partiurock-003fsh" [ref=e198]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e199]
+                  - cell "256 MB" [ref=e200]:
+                    - generic [ref=e201]: "256"
+                    - text: MB
+                    - generic [ref=e203] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e204]
+                  - cell "False" [ref=e205]
+                  - cell "api-diax-crm" [ref=e206]
+                  - cell "Ações Toggle Dropdown " [ref=e207]:
+                    - generic [ref=e208]:
+                      - button "Ações" [ref=e209] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e210] [cursor=pointer]:
+                        - generic [ref=e211]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003npp ASP.NET 4.x, Integrated 256 MB 32-bit False tarefista-api Ações Toggle Dropdown " [ref=e212]:
+                  - cell "partiurock-003npp" [ref=e213]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e214]
+                  - cell "256 MB" [ref=e215]:
+                    - generic [ref=e216]: "256"
+                    - text: MB
+                    - generic [ref=e218] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e219]
+                  - cell "False" [ref=e220]
+                  - cell "tarefista-api" [ref=e221]
+                  - cell "Ações Toggle Dropdown " [ref=e222]:
+                    - generic [ref=e223]:
+                      - button "Ações" [ref=e224] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e225] [cursor=pointer]:
+                        - generic [ref=e226]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003oly ASP.NET 4.x, Integrated 256 MB 32-bit False web-vaganagringa Ações Toggle Dropdown " [ref=e227]:
+                  - cell "partiurock-003oly" [ref=e228]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e229]
+                  - cell "256 MB" [ref=e230]:
+                    - generic [ref=e231]: "256"
+                    - text: MB
+                    - generic [ref=e233] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e234]
+                  - cell "False" [ref=e235]
+                  - cell "web-vaganagringa" [ref=e236]
+                  - cell "Ações Toggle Dropdown " [ref=e237]:
+                    - generic [ref=e238]:
+                      - button "Ações" [ref=e239] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e240] [cursor=pointer]:
+                        - generic [ref=e241]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003ooa ASP.NET 4.x, Integrated 256 MB 32-bit False feradoprompt Ações Toggle Dropdown " [ref=e242]:
+                  - cell "partiurock-003ooa" [ref=e243]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e244]
+                  - cell "256 MB" [ref=e245]:
+                    - generic [ref=e246]: "256"
+                    - text: MB
+                    - generic [ref=e248] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e249]
+                  - cell "False" [ref=e250]
+                  - cell "feradoprompt" [ref=e251]
+                  - cell "Ações Toggle Dropdown " [ref=e252]:
+                    - generic [ref=e253]:
+                      - button "Ações" [ref=e254] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e255] [cursor=pointer]:
+                        - generic [ref=e256]: Toggle Dropdown
+                        - text: 
+                - row "partiurock-003oyr ASP.NET 4.x, Integrated 256 MB 32-bit False api-vaganagringa Ações Toggle Dropdown " [ref=e257]:
+                  - cell "partiurock-003oyr" [ref=e258]
+                  - cell "ASP.NET 4.x, Integrated" [ref=e259]
+                  - cell "256 MB" [ref=e260]:
+                    - generic [ref=e261]: "256"
+                    - text: MB
+                    - generic [ref=e263] [cursor=pointer]: 
+                  - cell "32-bit" [ref=e264]
+                  - cell "False" [ref=e265]
+                  - cell "api-vaganagringa" [ref=e266]
+                  - cell "Ações Toggle Dropdown " [ref=e267]:
+                    - generic [ref=e268]:
+                      - button "Ações" [ref=e269] [cursor=pointer]
+                      - button "Toggle Dropdown " [ref=e270] [cursor=pointer]:
+                        - generic [ref=e271]: Toggle Dropdown
+                        - text: 
+          - generic [ref=e275]:
+            - text: "[KB Article]"
+            - link "How to create pool for sites" [ref=e276] [cursor=pointer]:
+              - /url: http://www.SmarterASP.NET/support/kb/a2248/how-to-create-a-dedicated-application-pool-for-new-site.aspx
+            - text: "[KB Article]"
+            - link "How to move existing sites to dedicated pool" [ref=e277] [cursor=pointer]:
+              - /url: http://www.SmarterASP.NET/support/kb/a2253/how-to-move-a-site-to-a-dedicated-pool.aspx
+            - table
+          - generic [ref=e279]:
+            - heading "Tips" [level=3] [ref=e281]:
+              - generic [ref=e282]: Tips
+            - table [ref=e285]:
+              - rowgroup [ref=e286]:
+                - row [ref=e287]:
+                  - cell [ref=e288]:
+                    - generic [ref=e289]: Why do you need dedicated pool per site?
+                    - text: IIS application pool serves websites and web applications hosted on the server. Dedicated IIS application pool allows you to have a level of isolation between websites. Since each dedicated application pool runs independently, errors in one application pool belonging to one site will not affect the applications running in other application pools dedicated to other sites.
+                    - text: For those companies which need reliable and secure websites, hosting dedicated application pool to each site is especially helpful and strongly recommended.
+                    - generic [ref=e290]: O que devo fazer se tiver sites com uma versão diferente do ASP.NET?
+                    - text: Each application pool can only support one .net version. If you need multiple version, please purchase another hosting account or create additional application pool.
+                    - generic [ref=e291]: How to fix High memory usage for ASP.NET Core?
+                    - text: "Configure the .net core application to use workstation garbage collection will lower the memory consumption. You don't require rebuilding the project, just set the value in the runtimeconfig.json file: \"System.GC.Server\": false"
+                    - generic [ref=e292]: How to choose .net version of pool for ASP.NET Core?
+                    - text: It is not necessary to change IIS pool setting, because asp.net core IIS module will load .NET Core CLR itself, without IIS intervention. We support .NET 10.x, .NET 9.x, .NET 8.x, .NET 7.x, .NET 6.x, .NET 5.x, .NET Core 3.x and .NET Core 2.x by default.
+                    - generic [ref=e293]: Can I run multiple ASP.NET Core APPs?
+                    - text: Yes, you can do it as long as you use Out-of-process hosting model in all your core apps or create additional application pool.
+                    - text: "[KB Article]"
+                    - link "ASP.NET Core does not support multiple apps in the same app pool" [ref=e294] [cursor=pointer]:
+                      - /url: https://www.SmarterASP.NET/support/kb/a1999/what-should-we-do-when-get-http-error-500_34-ancm-mixed-hosting-models-not-supportedx
+  - img

@@ -1,0 +1,9 @@
+[    1665ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://crm.alexandrequeiroz.com.br/login/:0
+[   15815ms] [ERROR] Access to fetch at 'https://api.alexandrequeiroz.com.br/api/v1/auth/login' from origin 'https://crm.alexandrequeiroz.com.br' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://crm.alexandrequeiroz.com.br/login/:0
+[   15816ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://api.alexandrequeiroz.com.br/api/v1/auth/login:0
+[   15816ms] [ERROR] Network request failed: TypeError: Failed to fetch
+    at d (https://crm.alexandrequeiroz.com.br/_next/static/chunks/app/layout-c4fda131bf46ddff.js:1:12893)
+    at u (https://crm.alexandrequeiroz.com.br/_next/static/chunks/app/layout-c4fda131bf46ddff.js:1:13325)
+    at o (https://crm.alexandrequeiroz.com.br/_next/static/chunks/app/login/page-5ec432fa07bda4d9.js:1:13453)
+    at C (https://crm.alexandrequeiroz.com.br/_next/static/chunks/app/login/page-5ec432fa07bda4d9.js:1:1843)
+    at https://crm.alexandrequeiroz.com.br/_next/static/chunks/7760-f181b6976fdbb472.js:1:20144 @ https://crm.alexandrequeiroz.com.br/_next/static/chunks/2117-18a23dd69a0e18ce.js:0

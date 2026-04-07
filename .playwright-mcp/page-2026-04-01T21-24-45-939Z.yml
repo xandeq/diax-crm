@@ -1,0 +1,141 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic:
+      - generic [ref=e4]:
+        - img [ref=e5]
+        - text: +1-888-993-7327 (Toll Free)
+      - generic [ref=e6]:
+        - listitem [ref=e7]:
+          - link "Support" [ref=e8] [cursor=pointer]:
+            - /url: https://www.smarterasp.net/contact
+            - img [ref=e9]
+            - text: Support
+        - listitem [ref=e10]:
+          - link "Customer Login" [ref=e11] [cursor=pointer]:
+            - /url: https://www.smarterasp.net/login
+            - img [ref=e12]
+            - text: Customer Login
+        - listitem [ref=e13]:
+          - link "Live Chat Online" [ref=e14] [cursor=pointer]:
+            - /url: javascript:void()
+            - img [ref=e15]
+            - text: Live Chat Online
+  - generic [ref=e16]:
+    - generic:
+      - link "SmarterASP.net Home" [ref=e18] [cursor=pointer]:
+        - /url: https://www.smarterasp.net
+        - img "SmarterASP.net Home" [ref=e19]
+      - generic [ref=e20]:
+        - list:
+          - listitem [ref=e21]:
+            - link "home" [ref=e22] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e23]:
+            - link "Free Trial" [ref=e24] [cursor=pointer]:
+              - /url: https://www.smarterasp.net/free_trial
+          - listitem [ref=e25]:
+            - link "Hosting Plans" [ref=e26] [cursor=pointer]:
+              - /url: https://www.smarterasp.net/hosting_plans
+          - listitem [ref=e27]:
+            - link "$12 Domains" [ref=e28] [cursor=pointer]:
+              - /url: https://www.smarterasp.net/domain
+          - listitem [ref=e29]:
+            - link "Affiliates" [ref=e30] [cursor=pointer]:
+              - /url: https://www.smarterasp.net/Affiliates
+          - listitem [ref=e31]:
+            - link "why Us" [ref=e32] [cursor=pointer]:
+              - /url: https://www.smarterasp.net/whyus
+          - listitem [ref=e33]:
+            - link "Contact Us" [ref=e34] [cursor=pointer]:
+              - /url: https://www.smarterasp.net/contact
+  - generic [ref=e37]:
+    - heading "404 Page Not Found" [level=1] [ref=e38]
+    - paragraph
+  - generic [ref=e40]:
+    - paragraph [ref=e41]:
+      - link [ref=e42] [cursor=pointer]:
+        - /url: https://www.smarterasp.net/
+        - img [ref=e43]
+    - paragraph
+  - generic [ref=e45]:
+    - generic [ref=e46]:
+      - text: Our Services
+      - listitem [ref=e47]:
+        - link "ASP.NET, ASP, PHP Hosting" [ref=e48] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/hosting_plans
+      - listitem [ref=e49]:
+        - link "VPS" [ref=e50] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/vps
+        - text: ","
+        - link "Cloud" [ref=e51] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/cloud
+        - text: ","
+        - link "Dedicated Server" [ref=e52] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/dedicated-servers
+      - listitem [ref=e53]:
+        - link "Managed Hosting" [ref=e54] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/managed-hosting
+        - text: ","
+        - link "Linux VPS" [ref=e55] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/vps_linux
+      - listitem [ref=e56]:
+        - link "Domain Names @ $12/yr" [ref=e57] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/domain
+      - listitem [ref=e58]:
+        - link "SSL Certificates" [ref=e59] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/ssl_certificates_hosting
+      - listitem [ref=e60]:
+        - link "Why Choose Us?" [ref=e61] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/datacenter
+    - generic [ref=e62]:
+      - text: Help and Support
+      - listitem [ref=e63]:
+        - link "FAQ" [ref=e64] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/faq
+      - listitem [ref=e65]:
+        - link "Knowledge Base" [ref=e66] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/support
+      - listitem [ref=e67]:
+        - link "Ticket System" [ref=e68] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/login
+      - listitem [ref=e69]:
+        - link "Contacts" [ref=e70] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/contact
+      - listitem [ref=e71]:
+        - link "Affiliates" [ref=e72] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/affiliates
+      - listitem [ref=e73]:
+        - link "Affiliate Terms" [ref=e74] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/affiliate_terms
+    - generic [ref=e75]:
+      - text: User's area
+      - listitem [ref=e76]:
+        - link "Control Panel Login" [ref=e77] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/login
+      - listitem [ref=e78]:
+        - link "Server/Network Status" [ref=e79] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/status
+      - listitem [ref=e80]:
+        - link "Cookies" [ref=e81] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/cookies
+      - listitem [ref=e82]:
+        - link "Privacy policy" [ref=e83] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/privacy
+      - listitem [ref=e84]:
+        - link "Terms of service" [ref=e85] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/tos
+      - listitem [ref=e86]:
+        - link "Service Level Agreement (SLA)" [ref=e87] [cursor=pointer]:
+          - /url: https://www.smarterasp.net/sla
+    - generic [ref=e88]:
+      - text: Share us
+      - table [ref=e89]:
+        - rowgroup [ref=e90]:
+          - row [ref=e91]:
+            - cell [ref=e92]:
+              - iframe [ref=e93]:
+                
+            - cell [ref=e94]
+    - generic [ref=e95]:
+      - img [ref=e96]
+      - paragraph [ref=e97]: SmarterASP.NET Copyright 2026

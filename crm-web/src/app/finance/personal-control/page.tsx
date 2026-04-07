@@ -158,14 +158,16 @@ function getEffectivePayDay(dayOfMonth: number, year: number, month: number): { 
   const safeDay = Math.min(dayOfMonth, new Date(year, month, 0).getDate());
   const date = new Date(year, month - 1, safeDay);
   const dow = date.getDay(); // 0=Dom, 6=Sab
-  if (dow === 6) {
+  const shift = dow === 6 ? 1 : dow === 0 ? 2 : 0;
+  if (shift > 0) {
     const fri = new Date(date);
-    fri.setDate(safeDay - 1);
-    return { effectiveDay: fri.getDate(), adjusted: true, label: `Dia ${fri.getDate()} (sex, adj. do ${safeDay})` };
-  }
-  if (dow === 0) {
-    const fri = new Date(date);
-    fri.setDate(safeDay - 2);
+    fri.setDate(safeDay - shift);
+    // Se a antecipação cruzar para o mês anterior, manter o dia original
+    // (o pagamento real cai no mês anterior, mas no planner do mês atual
+    // a entrada deve aparecer no primeiro bucket, não no último).
+    if (fri.getMonth() !== date.getMonth()) {
+      return { effectiveDay: safeDay, adjusted: false, label: `Dia ${safeDay}` };
+    }
     return { effectiveDay: fri.getDate(), adjusted: true, label: `Dia ${fri.getDate()} (sex, adj. do ${safeDay})` };
   }
   return { effectiveDay: safeDay, adjusted: false, label: `Dia ${safeDay}` };
@@ -346,7 +348,11 @@ function SalaryPlannerSection({
     }
   };
 
-  const buckets = salaryDates.map((day, i) => {
+  const buckets = salaryDates.reduce<{
+    day: number; nextDay: number;
+    incomes: typeof monthView.incomes; expenses: typeof monthView.expenses; subscriptions: typeof monthView.subscriptions;
+    totalIncome: number; totalExpense: number; periodBalance: number; runningBalance: number; investSuggestion: number;
+  }[]>((acc, day, i) => {
     const nextDay = salaryDates[i + 1] ?? 32;
     const incomes = monthView.incomes.filter((item) => {
       const eff = getEffectivePayDay(item.dayOfMonth, monthView.period.year, monthView.period.month);
@@ -358,10 +364,13 @@ function SalaryPlannerSection({
     const totalExpense =
       expenses.reduce((s, item) => s + item.amount, 0) +
       subscriptions.reduce((s, item) => s + item.amount, 0);
-    const balance = totalIncome - totalExpense;
-    const investSuggestion = balance > 0 ? balance * 0.2 : 0;
-    return { day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, balance, investSuggestion };
-  });
+    const periodBalance = totalIncome - totalExpense;
+    const prevRunning = acc.length > 0 ? acc[acc.length - 1].runningBalance : 0;
+    const runningBalance = prevRunning + periodBalance;
+    const investSuggestion = runningBalance > 0 ? periodBalance > 0 ? periodBalance * 0.2 : 0 : 0;
+    acc.push({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, periodBalance, runningBalance, investSuggestion });
+    return acc;
+  }, []);
 
   return (
     <Card className="shadow-sm">
@@ -391,8 +400,8 @@ function SalaryPlannerSection({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-3">
-          {buckets.map(({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, balance, investSuggestion }) => (
-            <div key={day} className={cn('rounded-2xl border p-4', balance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
+          {buckets.map(({ day, nextDay, incomes, expenses, subscriptions, totalIncome, totalExpense, periodBalance, runningBalance, investSuggestion }) => (
+            <div key={day} className={cn('rounded-2xl border p-4', runningBalance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
               {/* Cabeçalho da linha */}
               <div className="flex flex-wrap items-center gap-4 mb-3">
                 <span className="text-sm font-semibold text-slate-700 w-24 shrink-0">
@@ -415,8 +424,11 @@ function SalaryPlannerSection({
                 <div className="ml-auto flex items-center gap-4 text-xs">
                   <span className="text-slate-500">Receitas <span className="text-emerald-600 font-semibold">{formatCurrency(totalIncome)}</span></span>
                   <span className="text-slate-500">Despesas <span className="text-rose-500 font-semibold">{formatCurrency(totalExpense)}</span></span>
-                  <span className={cn('font-bold tabular-nums text-sm', balance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
-                    {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
+                  <span className={cn('font-bold tabular-nums text-xs', periodBalance >= 0 ? 'text-emerald-600' : 'text-rose-500')}>
+                    Per\u00edodo: {periodBalance >= 0 ? '+' : ''}{formatCurrency(periodBalance)}
+                  </span>
+                  <span className={cn('font-bold tabular-nums text-sm border-l pl-3', runningBalance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
+                    Acum: {runningBalance >= 0 ? '+' : ''}{formatCurrency(runningBalance)}
                   </span>
                   {investSuggestion > 0 && (
                     <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1 text-sky-700">

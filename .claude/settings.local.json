@@ -202,7 +202,8 @@
       "Bash(echo 'Looking for User Secrets file...' SECRETS_FILE=~/.microsoft/usersecrets/*/secrets.json __NEW_LINE_2d4a8c8d098d9158__ ls -la ~/.microsoft/usersecrets/*/secrets.json)",
       "Bash(head -5 echo echo 'If found, listing contents:' cat ~/.microsoft/usersecrets/*/secrets.json)",
       "Bash(echo 'Searching for .env files in the repository...' find 'C:/Users/acq20/Desktop/Trabalho/Alexandre Queiroz Marketing Digital/DIAX/CRM' -name .env* -o -name appsettings*.json)",
-      "Bash(timeout 20 dotnet run)"
+      "Bash(timeout 20 dotnet run)",
+      "mcp__playwright__browser_evaluate"
     ],
     "additionalDirectories": [
       "C:\\Users\\acq20\\.claude",

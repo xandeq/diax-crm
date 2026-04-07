@@ -1,0 +1,3 @@
+[      78ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://extratordedados.com.br/login/:0
+[   18268ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.extratordedados.com.br/api/login:0
+[   18298ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://extratordedados.com.br/login/:0

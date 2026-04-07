@@ -1,0 +1,45 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - link:
+        - /url: "#"
+      - generic [ref=e6]:
+        - heading "Welcome to SmarterASP.NET" [level=3] [ref=e7]
+        - paragraph [ref=e8]: The ultimate hosting control panel experience for everyone! Manage all your websites with ease.
+      - generic [ref=e10]: © 2026 SmarterASP.NET
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - text: Dont have an account yet?
+        - link "Sign Up!" [ref=e13] [cursor=pointer]:
+          - /url: https://www.smarterasp.net
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - heading "assinar em" [level=3] [ref=e17]
+          - paragraph [ref=e18]: Nome de Usuário / Senha
+        - generic [ref=e19]:
+          - textbox "Nome de Usuário" [ref=e21]
+          - textbox "Senha" [ref=e23]
+          - combobox [ref=e25]:
+            - option "Select Language"
+            - option "English"
+            - option "Español"
+            - option "Français"
+            - option "Deutsch"
+            - option "Pусский"
+            - option "简体中文"
+            - option "繁體中文"
+            - option "български"
+            - option "Türkçe"
+            - option "italiano"
+            - option "Português" [selected]
+            - option "भारतीय"
+            - option "svenska"
+            - option "(contact us to add more..)"
+          - text: Stay Logged-In
+          - checkbox [checked] [ref=e26]
+          - paragraph [ref=e28]: Human Check
+          - generic [ref=e31]:
+            - link "Esqueci a minha senha" [ref=e32] [cursor=pointer]:
+              - /url: retrieve_password
+            - button "assinar em" [ref=e33] [cursor=pointer]
+  - img
