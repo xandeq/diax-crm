@@ -327,7 +327,11 @@ export function AgendaClient() {
                         <Button variant={view === 'month' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('month')} className="h-8 px-3">
                             <CalendarIcon className="w-4 h-4 mr-1.5" /> Mês
                         </Button>
-                        <Button variant={view === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('week')} className="h-8 px-3">
+                        <Button variant={view === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => {
+                            // Se hoje é domingo, avança para a próxima semana automaticamente
+                            if (new Date().getDay() === 0) setCurrentDate(addDays(new Date(), 1));
+                            setView('week');
+                        }} className="h-8 px-3">
                             <Clock className="w-4 h-4 mr-1.5" /> Semana
                         </Button>
                         <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('list')} className="h-8 px-3">
