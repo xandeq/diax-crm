@@ -11,6 +11,13 @@ using Asp.Versioning;
 
 namespace Diax.Api.Controllers.V1;
 
+public record ExtractorImportRequest(
+    string? Search,
+    string? Status,
+    string? Tag,
+    string? City,
+    int? MaxPages);
+
 [Authorize]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/leads")]
@@ -142,6 +149,21 @@ public class LeadsController : BaseApiController
 
         // ✅ Return only URL; token stays server-side for security
         return Ok(new { url });
+    }
+
+    [HttpPost("import/extrator")]
+    public async Task<IActionResult> ImportFromExtrator(
+        [FromBody] ExtractorImportRequest request,
+        [FromServices] IExtractorIntegrationService extractorIntegration)
+    {
+        var result = await extractorIntegration.ImportLeadsAsync(
+            request.Search,
+            request.Status,
+            request.Tag,
+            request.City,
+            request.MaxPages ?? 10);
+
+        return HandleResult(result);
     }
 
     [HttpGet("extrator-leads")]

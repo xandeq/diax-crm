@@ -1,0 +1,6 @@
+<Project>
+  <!-- Disable incremental build cache checks to prevent MSB3492 file-lock conflicts on Windows -->
+  <PropertyGroup>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+  </PropertyGroup>
+</Project>

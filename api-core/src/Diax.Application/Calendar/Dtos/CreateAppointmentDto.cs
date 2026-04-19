@@ -8,4 +8,6 @@ public record CreateAppointmentDto
     public string? Description { get; init; }
     public required DateTime Date { get; init; }
     public AppointmentType Type { get; init; }
+    public int DurationMinutes { get; init; } = 60;
+    public Guid? LabelId { get; init; }
 }

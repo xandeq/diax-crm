@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IUserGroupService, UserGroupService>();
         services.AddScoped<Diax.Application.Calendar.IAppointmentService, Diax.Application.Calendar.AppointmentService>();
+        services.AddScoped<Diax.Application.Calendar.IAppointmentLabelService, Diax.Application.Calendar.AppointmentLabelService>();
         services.AddScoped<CustomerService>();
         services.AddScoped<CustomerImportService>();
         services.AddScoped<ILeadSanitizationService, LeadSanitizationService>();
@@ -109,6 +110,7 @@ public static class DependencyInjection
 
         // ===== EXTRATOR INTEGRATION =====
         services.AddScoped<IExtractorService, ExtractorService>();
+        services.AddScoped<IExtractorIntegrationService, ExtractorIntegrationService>();
 
         // ===== BLOG & API KEYS SERVICES =====
         services.AddScoped<ApiKeyService>();

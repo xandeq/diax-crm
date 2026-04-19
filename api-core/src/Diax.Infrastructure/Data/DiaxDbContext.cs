@@ -84,6 +84,7 @@ public class DiaxDbContext : DbContext
 
     // Calendar
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<AppointmentLabel> AppointmentLabels => Set<AppointmentLabel>();
 
     // AI & RBAC
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
@@ -205,6 +206,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<ImportedTransaction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<FacebookAdAccount>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<Appointment>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<AppointmentLabel>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<TaxDocument>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====

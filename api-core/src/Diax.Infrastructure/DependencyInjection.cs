@@ -217,6 +217,7 @@ public static class DependencyInjection
         services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
         services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
         services.AddScoped<Diax.Domain.Calendar.IAppointmentRepository, AppointmentRepository>();
+        services.AddScoped<Diax.Domain.Calendar.IAppointmentLabelRepository, AppointmentLabelRepository>();
 
         // ===== TAX DOCUMENTS =====
         services.AddScoped<Diax.Domain.TaxDocuments.ITaxDocumentRepository, TaxDocumentRepository>();

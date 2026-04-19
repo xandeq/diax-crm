@@ -1,6 +1,6 @@
 // src/services/agenda.ts
 import { apiFetch, apiRequest } from '@/services/api';
-import { Appointment, CreateAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
+import { Appointment, CreateAppointmentDto, RecurringAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
 
 export const agendaService = {
     async create(data: CreateAppointmentDto): Promise<Appointment> {
@@ -12,7 +12,6 @@ export const agendaService = {
     },
 
     async getByDateRange(startDate: string, endDate: string): Promise<Appointment[]> {
-        // using apiFetch to pass query params in the URL since apiRequest focuses on method/body
         return await apiFetch<Appointment[]>(`appointments?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`);
     },
 
@@ -20,8 +19,12 @@ export const agendaService = {
         return await apiRequest<Appointment>(`appointments/${id}`, 'PUT', data);
     },
 
-    async delete(id: string): Promise<void> {
-        await apiRequest<void>(`appointments/${id}`, 'DELETE');
+    async delete(id: string, scope: 'one' | 'forward' | 'all' = 'one'): Promise<void> {
+        await apiFetch<void>(`appointments/${id}?scope=${scope}`, { method: 'DELETE' });
+    },
+
+    async createRecurring(data: RecurringAppointmentDto): Promise<Appointment[]> {
+        return await apiRequest<Appointment[]>('appointments/recurring', 'POST', data);
     },
 
     async importFromText(text: string): Promise<CreateAppointmentDto[]> {

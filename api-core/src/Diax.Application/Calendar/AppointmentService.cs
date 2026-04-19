@@ -49,6 +49,8 @@ public class AppointmentService : IAppointmentService
             Description = dto.Description,
             Date = dto.Date,
             Type = dto.Type,
+            DurationMinutes = dto.DurationMinutes > 0 ? dto.DurationMinutes : 60,
+            LabelId = dto.LabelId,
             UserId = userId.Value
         };
 
@@ -60,7 +62,7 @@ public class AppointmentService : IAppointmentService
 
     public async Task<Result<AppointmentDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var appointment = await _appointmentRepository.GetByIdAsync(id, cancellationToken);
+        var appointment = await _appointmentRepository.GetByIdWithLabelAsync(id, cancellationToken);
 
         if (appointment == null)
             return Result.Failure<AppointmentDto>(new Error("NotFound", "Appointment not found."));
@@ -70,13 +72,13 @@ public class AppointmentService : IAppointmentService
 
     public async Task<Result<IEnumerable<AppointmentDto>>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
     {
-        var appointments = await _appointmentRepository.GetByDateRangeAsync(startDate, endDate, cancellationToken);
+        var appointments = await _appointmentRepository.GetByDateRangeWithLabelAsync(startDate, endDate, cancellationToken);
         return Result.Success(appointments.Select(MapToDto));
     }
 
     public async Task<Result<AppointmentDto>> UpdateAsync(Guid id, UpdateAppointmentDto dto, CancellationToken cancellationToken = default)
     {
-        var appointment = await _appointmentRepository.GetByIdAsync(id, cancellationToken);
+        var appointment = await _appointmentRepository.GetByIdWithLabelAsync(id, cancellationToken);
 
         if (appointment == null)
             return Result.Failure<AppointmentDto>(new Error("NotFound", "Appointment not found."));
@@ -85,6 +87,8 @@ public class AppointmentService : IAppointmentService
         if (dto.Description != null) appointment.Description = dto.Description;
         if (dto.Date.HasValue) appointment.Date = dto.Date.Value;
         if (dto.Type.HasValue) appointment.Type = dto.Type.Value;
+        if (dto.DurationMinutes.HasValue && dto.DurationMinutes.Value > 0) appointment.DurationMinutes = dto.DurationMinutes.Value;
+        if (dto.LabelId.HasValue) appointment.LabelId = dto.LabelId;
 
         await _appointmentRepository.UpdateAsync(appointment, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -103,6 +107,95 @@ public class AppointmentService : IAppointmentService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
+    }
+
+    public async Task<Result> DeleteWithScopeAsync(Guid id, string scope, CancellationToken cancellationToken = default)
+    {
+        var appointment = await _appointmentRepository.GetByIdAsync(id, cancellationToken);
+        if (appointment == null)
+            return Result.Failure(new Error("NotFound", "Appointment not found."));
+
+        if (scope == "one" || appointment.RecurrenceGroupId == null)
+        {
+            // Soft-cancel apenas esta ocorrência
+            appointment.IsCancelled = true;
+            await _appointmentRepository.UpdateAsync(appointment, cancellationToken);
+        }
+        else if (scope == "forward" && appointment.RecurrenceGroupId.HasValue)
+        {
+            // Cancela este e os seguintes da série
+            var series = await _appointmentRepository.GetByRecurrenceGroupAsync(
+                appointment.RecurrenceGroupId.Value, cancellationToken);
+            foreach (var a in series.Where(a => a.Date >= appointment.Date))
+            {
+                a.IsCancelled = true;
+                await _appointmentRepository.UpdateAsync(a, cancellationToken);
+            }
+        }
+        else if (scope == "all" && appointment.RecurrenceGroupId.HasValue)
+        {
+            // Deleta toda a série
+            var series = await _appointmentRepository.GetByRecurrenceGroupAsync(
+                appointment.RecurrenceGroupId.Value, cancellationToken);
+            foreach (var a in series)
+                await _appointmentRepository.DeleteAsync(a, cancellationToken);
+        }
+        else
+        {
+            await _appointmentRepository.DeleteAsync(appointment, cancellationToken);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    public async Task<Result<IEnumerable<AppointmentDto>>> CreateRecurringAsync(RecurringAppointmentDto dto, CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == null)
+            return Result.Failure<IEnumerable<AppointmentDto>>(new Error("Unauthorized", "User is not authenticated."));
+
+        if (!TimeOnly.TryParse(dto.TimeHHmm, out var time))
+            return Result.Failure<IEnumerable<AppointmentDto>>(new Error("Validation", "Invalid time format. Use HH:mm."));
+
+        var groupId = Guid.NewGuid();
+        var excludedSet = new HashSet<string>(dto.ExcludedDates ?? []);
+        var created = new List<Appointment>();
+
+        var current = dto.StartDate;
+        while (current <= dto.EndDate)
+        {
+            var dayOfWeek = (int)current.DayOfWeek;
+            var dateStr = current.ToString("yyyy-MM-dd");
+
+            if (dto.DaysOfWeek.Contains(dayOfWeek) && !excludedSet.Contains(dateStr))
+            {
+                // Combina data + hora como UTC-3 (Brasília) → UTC
+                var localDt = new DateTime(current.Year, current.Month, current.Day,
+                    time.Hour, time.Minute, 0, DateTimeKind.Unspecified);
+                var utcDt = TimeZoneInfo.ConvertTimeToUtc(localDt,
+                    TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time"));
+
+                var appt = new Appointment
+                {
+                    Title = dto.Title,
+                    Description = dto.Description,
+                    Type = dto.Type,
+                    Date = utcDt,
+                    DurationMinutes = dto.DurationMinutes > 0 ? dto.DurationMinutes : 60,
+                    LabelId = dto.LabelId,
+                    RecurrenceGroupId = groupId,
+                    UserId = userId.Value
+                };
+                created.Add(appt);
+                await _appointmentRepository.AddAsync(appt, cancellationToken);
+            }
+
+            current = current.AddDays(1);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success(created.Select(MapToDto));
     }
 
     public async Task<Result> SendDailyAgendaNotificationAsync(CancellationToken cancellationToken = default)
@@ -172,15 +265,18 @@ public class AppointmentService : IAppointmentService
             return Result.Failure<IEnumerable<CreateAppointmentDto>>(new Error("Validation", "Text cannot be empty"));
 
         var currentYear = DateTime.Now.Year;
+        var today = DateTime.Now.ToString("dd/MM/yyyy");
 
         var metaPrompt = $@"
 Seu objetivo é analisar o texto do usuário contendo uma lista de compromissos ou um texto livre e extrair os dados.
-Se o usuário informar um mês sem o ano (ex: 15/03), assuma que o ano atual é {currentYear}. Se o mês já tiver passado neste ano em relação à data atual ({DateTime.Now:dd/MM/yyyy}), também assuma o ano de {currentYear} (assumindo que seja para o mesmo ano a menos que faça explícito sentido ser no próximo). Assuma que todos os compromissos são de ano corrente {currentYear}.
+Se o usuário informar um mês sem o ano (ex: 15/03), assuma que o ano atual é {currentYear}. Se o mês já tiver passado neste ano em relação à data atual ({today}), também assuma o ano de {currentYear} (assumindo que seja para o mesmo ano a menos que faça explícito sentido ser no próximo). Assuma que todos os compromissos são de ano corrente {currentYear}.
+
+O usuário está no fuso horário de Brasília (UTC-3). Ao gerar o campo date, converta o horário informado para UTC somando 3 horas. Por exemplo, se o usuário mencionar 10:30, retorne T13:30:00.000Z. Se mencionar 08:00, retorne T11:00:00.000Z.
 
 Regras do Array JSON:
 Retorne uma lista de objetos contendo *apenas* as seguintes propriedades:
 - title: string (nome ou título do compromisso, inclua aqui informações extras como observações, ex: 'Aplicação ferrosa clínica (R$ 160)')
-- date: string no formato completo ISO 8601 UTC (ex: '2026-03-03T10:00:00.000Z'). Se a pessoa não definir uma hora exata, assuma às 08:00 da manhã.
+- date: string no formato ISO 8601 UTC (ex: '2026-04-21T13:30:00.000Z' para 10:30 Brasília). Se a pessoa não definir uma hora exata, assuma às 08:00 Brasília = T11:00:00.000Z.
 - type: string (Classifique baseado no título. Os tipos permitidos *estritamente* são: 'Medical' (médicos/clínicas/exames), 'HomeService' (serviços casa/compras), 'Payment' (pagar/cobrar), 'Other' (padrão se não couber nas demais)).
 - description: string (opcional. use apenas se houver contexto extra).
 
@@ -231,7 +327,18 @@ TEXTO PARA EXTRAIR:
             Description = entity.Description,
             Date = entity.Date,
             Type = entity.Type,
-            DailyNotificationSent = entity.DailyNotificationSent
+            DurationMinutes = entity.DurationMinutes,
+            DailyNotificationSent = entity.DailyNotificationSent,
+            LabelId = entity.LabelId,
+            Label = entity.Label != null ? new AppointmentLabelDto
+            {
+                Id = entity.Label.Id,
+                Name = entity.Label.Name,
+                Color = entity.Label.Color,
+                Order = entity.Label.Order
+            } : null,
+            RecurrenceGroupId = entity.RecurrenceGroupId,
+            IsCancelled = entity.IsCancelled
         };
     }
 }

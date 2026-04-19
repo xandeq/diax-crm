@@ -60,11 +60,19 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(Guid id, [FromQuery] string scope = "one", CancellationToken cancellationToken = default)
     {
-        var result = await _appointmentService.DeleteAsync(id, cancellationToken);
+        var result = await _appointmentService.DeleteWithScopeAsync(id, scope, cancellationToken);
         if (result.IsFailure) return BadRequest(result.Error);
         return NoContent();
+    }
+
+    [HttpPost("recurring")]
+    public async Task<IActionResult> CreateRecurring([FromBody] Diax.Application.Calendar.Dtos.RecurringAppointmentDto request, CancellationToken cancellationToken)
+    {
+        var result = await _appointmentService.CreateRecurringAsync(request, cancellationToken);
+        if (result.IsFailure) return BadRequest(result.Error);
+        return Ok(result.Value);
     }
 
     [AllowAnonymous] // Cron call is external without Bearer
