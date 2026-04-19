@@ -1,6 +1,6 @@
 // src/services/agenda.ts
 import { apiFetch, apiRequest } from '@/services/api';
-import { Appointment, CreateAppointmentDto, RecurringAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
+import { AiBatchCommandRequest, AiBatchResponse, Appointment, CreateAppointmentDto, RecurringAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
 
 export const agendaService = {
     async create(data: CreateAppointmentDto): Promise<Appointment> {
@@ -29,5 +29,9 @@ export const agendaService = {
 
     async importFromText(text: string): Promise<CreateAppointmentDto[]> {
         return await apiRequest<CreateAppointmentDto[]>('appointments/import-text', 'POST', { text });
+    },
+
+    async aiBatchCommand(data: AiBatchCommandRequest): Promise<AiBatchResponse> {
+        return await apiRequest('appointments/ai-batch-command', 'POST', data);
     }
 };

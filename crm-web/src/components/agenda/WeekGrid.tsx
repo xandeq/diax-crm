@@ -3,23 +3,28 @@
 import { Appointment } from '@/types/agenda';
 import { addDays, format, isSameDay, parseISO, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useState } from 'react';
 
 const HOUR_START = 7;
 const HOUR_END = 22;
 const TOTAL_HOURS = HOUR_END - HOUR_START;
-const HOUR_HEIGHT = 64; // px por hora
+const HOUR_HEIGHT = 64; // px per hour
 
 interface WeekGridProps {
     currentDate: Date;
     appointments: Appointment[];
     onSlotClick: (date: Date) => void;
     onAppointmentClick: (appt: Appointment) => void;
+    onAppointmentDrop?: (id: string, newDateISO: string) => void;
 }
 
-export function WeekGrid({ currentDate, appointments, onSlotClick, onAppointmentClick }: WeekGridProps) {
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // segunda
+export function WeekGrid({ currentDate, appointments, onSlotClick, onAppointmentClick, onAppointmentDrop }: WeekGridProps) {
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     const hours = Array.from({ length: TOTAL_HOURS }, (_, i) => HOUR_START + i);
+
+    const [draggingId, setDraggingId] = useState<string | null>(null);
+    const [dropHighlight, setDropHighlight] = useState<string | null>(null); // "dayISO-hour"
 
     const getApptStyle = (appt: Appointment) => {
         const d = parseISO(appt.date);
@@ -39,6 +44,16 @@ export function WeekGrid({ currentDate, appointments, onSlotClick, onAppointment
             Other: '#64748b',
         };
         return fallback[appt.type] ?? '#64748b';
+    };
+
+    const handleDrop = (day: Date, h: number, e: React.DragEvent) => {
+        e.preventDefault();
+        if (!draggingId || !onAppointmentDrop) return;
+        const newDate = new Date(day);
+        newDate.setHours(h, 0, 0, 0);
+        onAppointmentDrop(draggingId, newDate.toISOString());
+        setDraggingId(null);
+        setDropHighlight(null);
     };
 
     return (
@@ -73,7 +88,7 @@ export function WeekGrid({ currentDate, appointments, onSlotClick, onAppointment
                     ))}
                 </div>
 
-                {/* Days columns */}
+                {/* Day columns */}
                 {days.map(day => {
                     const dayAppts = appointments.filter(a => isSameDay(parseISO(a.date), day));
                     return (
@@ -82,34 +97,57 @@ export function WeekGrid({ currentDate, appointments, onSlotClick, onAppointment
                             className="flex-1 relative border-l border-slate-200"
                             style={{ minHeight: `${TOTAL_HOURS * HOUR_HEIGHT}px` }}
                         >
-                            {/* Hour lines */}
-                            {hours.map(h => (
-                                <div
-                                    key={h}
-                                    className="absolute left-0 right-0 border-t border-slate-100 cursor-pointer hover:bg-blue-50/40 transition-colors"
-                                    style={{ top: `${(h - HOUR_START) * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
-                                    onClick={() => {
-                                        const d = new Date(day);
-                                        d.setHours(h, 0, 0, 0);
-                                        onSlotClick(d);
-                                    }}
-                                />
-                            ))}
+                            {/* Hour slots — droppable */}
+                            {hours.map(h => {
+                                const slotKey = `${day.toISOString()}-${h}`;
+                                const isHighlighted = dropHighlight === slotKey;
+                                return (
+                                    <div
+                                        key={h}
+                                        className={`absolute left-0 right-0 border-t border-slate-100 cursor-pointer transition-colors
+                                            ${isHighlighted ? 'bg-blue-100/60' : 'hover:bg-blue-50/40'}`}
+                                        style={{ top: `${(h - HOUR_START) * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
+                                        onClick={() => {
+                                            const d = new Date(day);
+                                            d.setHours(h, 0, 0, 0);
+                                            onSlotClick(d);
+                                        }}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setDropHighlight(slotKey);
+                                        }}
+                                        onDragLeave={() => setDropHighlight(null)}
+                                        onDrop={(e) => handleDrop(day, h, e)}
+                                    />
+                                );
+                            })}
 
                             {/* Appointments */}
                             {dayAppts.map(appt => {
                                 const color = getApptColor(appt);
                                 const style = getApptStyle(appt);
+                                const isDragging = draggingId === appt.id;
                                 return (
                                     <div
                                         key={appt.id}
-                                        className="absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 cursor-pointer overflow-hidden shadow-sm hover:shadow-md transition-shadow z-10"
+                                        draggable={!!onAppointmentDrop}
+                                        className={`absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 overflow-hidden shadow-sm hover:shadow-md transition-all z-10
+                                            ${onAppointmentDrop ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
+                                            ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
                                         style={{
                                             ...style,
                                             backgroundColor: color + '25',
                                             borderLeft: `3px solid ${color}`,
                                         }}
-                                        onClick={e => {
+                                        onDragStart={(e) => {
+                                            setDraggingId(appt.id);
+                                            e.dataTransfer.effectAllowed = 'move';
+                                        }}
+                                        onDragEnd={() => {
+                                            setDraggingId(null);
+                                            setDropHighlight(null);
+                                        }}
+                                        onClick={(e) => {
                                             e.stopPropagation();
                                             onAppointmentClick(appt);
                                         }}

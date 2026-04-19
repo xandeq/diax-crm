@@ -59,3 +59,26 @@ export interface CreateAppointmentLabelDto {
     color: string;
     order: number;
 }
+
+// AI Batch Command
+export interface AiBatchCommandRequest {
+    command: string;
+    appointments: {
+        id: string;
+        title: string;
+        date: string;
+        labelName?: string;
+    }[];
+}
+
+export interface AiBatchChange {
+    id: string;
+    newDate?: string;
+    newTitle?: string;
+    delete?: boolean;
+}
+
+export interface AiBatchResponse {
+    summary: string;
+    changes: AiBatchChange[];
+}

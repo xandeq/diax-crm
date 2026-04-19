@@ -318,6 +318,64 @@ TEXTO PARA EXTRAIR:
         }
     }
 
+    public async Task<Result<AiBatchResponseDto>> AiBatchCommandAsync(AiBatchCommandDto dto, CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUserService.UserId;
+        if (userId == null)
+            return Result.Failure<AiBatchResponseDto>(new Error("Unauthorized", "User is not authenticated."));
+
+        var today = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+        var apptList = string.Join("\n", dto.Appointments.Select(a =>
+            $"- id: {a.Id}, titulo: \"{a.Title}\", data_utc: {a.Date}{(a.LabelName != null ? $", label: {a.LabelName}" : "")}"));
+
+        var prompt = $@"Você é um assistente de agenda. O usuário quer fazer alterações em lote nos compromissos.
+
+DATA/HORA ATUAL: {today} (Brasília UTC-3)
+
+COMPROMISSOS DO USUÁRIO:
+{apptList}
+
+COMANDO DO USUÁRIO: {dto.Command}
+
+Analise o comando e retorne as alterações. O usuário está em Brasília (UTC-3). Ao gerar newDate, converta para UTC (some +3h ao horário de Brasília). Ex: 11:30 Brasília → T14:30:00.000Z.
+
+Retorne SOMENTE este JSON (sem markdown):
+{{
+  ""summary"": ""Resumo em português do que será feito"",
+  ""changes"": [
+    {{ ""id"": ""uuid"", ""newDate"": ""2026-04-21T13:30:00.000Z"" }},
+    {{ ""id"": ""uuid"", ""newTitle"": ""Novo título"" }},
+    {{ ""id"": ""uuid"", ""delete"": true }}
+  ]
+}}
+
+Se nenhum compromisso corresponder ao comando, retorne changes: [] e explique no summary.";
+
+        try
+        {
+            var jsonResult = await _promptGenerator.GenerateAsync(prompt, "chatgpt", "json_extraction");
+            jsonResult = jsonResult.Replace("```json", "").Replace("```", "").Trim();
+
+            var start = jsonResult.IndexOf('{');
+            var end = jsonResult.LastIndexOf('}');
+            if (start >= 0 && end >= start)
+                jsonResult = jsonResult.Substring(start, end - start + 1);
+
+            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var response = System.Text.Json.JsonSerializer.Deserialize<AiBatchResponseDto>(jsonResult, options);
+
+            if (response == null)
+                return Result.Failure<AiBatchResponseDto>(new Error("AIError", "Failed to parse AI response."));
+
+            return Result.Success(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in AiBatchCommandAsync");
+            return Result.Failure<AiBatchResponseDto>(new Error("AIError", "Failed to process command: " + ex.Message));
+        }
+    }
+
     private static AppointmentDto MapToDto(Appointment entity)
     {
         return new AppointmentDto

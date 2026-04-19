@@ -2,13 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { agendaService } from '@/services/agenda';
 import { appointmentLabelsService } from '@/services/appointmentLabels';
-import { Appointment, AppointmentLabel, AppointmentType, CreateAppointmentDto, RecurringAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
+import { AiBatchChange, AiBatchResponse, Appointment, AppointmentLabel, AppointmentType, CreateAppointmentDto, RecurringAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
 import { addDays, addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, parseISO, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Check, ChevronLeft, ChevronRight, Clock, Copy, List as ListIcon, Loader2, Plus, Sparkles, Tag, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Calendar as CalendarIcon, Check, ChevronLeft, ChevronRight, Clock, List as ListIcon, Loader2, Plus, Send, Sparkles, Tag, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppointmentForm } from './AppointmentForm';
 import { ImportTextDialog } from './ImportTextDialog';
@@ -31,7 +32,6 @@ export function AgendaClient() {
     const [isLoading, setIsLoading] = useState(false);
     const [view, setView] = useState<ViewMode>('month');
 
-    const [copied, setCopied] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false);
@@ -41,6 +41,14 @@ export function AgendaClient() {
     // Recurring delete modal
     const [deleteTarget, setDeleteTarget] = useState<Appointment | undefined>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+    // AI chat batch
+    const [aiCommand, setAiCommand] = useState('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [aiBatchResult, setAiBatchResult] = useState<AiBatchResponse | null>(null);
+    const [isAiBatchModalOpen, setIsAiBatchModalOpen] = useState(false);
+    const [isApplyingBatch, setIsApplyingBatch] = useState(false);
+    const aiInputRef = useRef<HTMLInputElement>(null);
 
     const fetchLabels = useCallback(async () => {
         try {
@@ -59,8 +67,9 @@ export function AgendaClient() {
                 start = startOfWeek(currentDate, { weekStartsOn: 1 });
                 end = endOfWeek(currentDate, { weekStartsOn: 1 });
             } else {
-                start = startOfWeek(startOfMonth(currentDate));
-                end = endOfWeek(endOfMonth(currentDate));
+                // Month view: starts from Monday
+                start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
+                end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 });
             }
             const data = await agendaService.getByDateRange(start.toISOString(), end.toISOString());
             setAppointments(data);
@@ -149,53 +158,87 @@ export function AgendaClient() {
         }
     };
 
-    const handleCopyWeek = async () => {
-        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
-
-        const weekAppts = appointments
-            .filter(a => {
-                const d = parseISO(a.date);
-                return d >= weekStart && d <= weekEnd;
-            })
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-        const lines: string[] = [`Agenda da Semana (${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')})`];
-
-        for (let i = 0; i < 7; i++) {
-            const day = addDays(weekStart, i);
-            const dayAppts = weekAppts.filter(a => isSameDay(parseISO(a.date), day));
-            if (!dayAppts.length) continue;
-            lines.push('');
-            lines.push(`${dayNames[day.getDay()]} ${format(day, 'dd/MM')}`);
-            for (const appt of dayAppts) {
-                const labelStr = appt.label ? ` [${appt.label.name}]` : '';
-                lines.push(`  ${format(parseISO(appt.date), 'HH:mm')} - ${appt.title}${labelStr}`);
-                if (appt.description) lines.push(`    ${appt.description}`);
-            }
-        }
-
-        if (!weekAppts.length) lines.push('', 'Nenhum compromisso nesta semana.');
-
+    // Drag and drop handler
+    const handleAppointmentDrop = async (id: string, newDateISO: string) => {
         try {
-            await navigator.clipboard.writeText(lines.join('\n'));
-            setCopied(true);
-            toast.success('Agenda da semana copiada!');
-            setTimeout(() => setCopied(false), 2000);
+            await agendaService.update(id, { date: newDateISO });
+            toast.success('Horário atualizado!');
+            fetchAppointments();
         } catch {
-            toast.error('Erro ao copiar.');
+            toast.error('Erro ao mover compromisso.');
+        }
+    };
+
+    // AI batch command
+    const handleAiCommand = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!aiCommand.trim() || isAiLoading) return;
+        setIsAiLoading(true);
+        try {
+            const result = await agendaService.aiBatchCommand({
+                command: aiCommand,
+                appointments: appointments.map(a => ({
+                    id: a.id,
+                    title: a.title,
+                    date: a.date,
+                    labelName: a.label?.name,
+                })),
+            });
+            setAiBatchResult(result);
+            setIsAiBatchModalOpen(true);
+        } catch {
+            toast.error('Erro ao processar comando da IA.');
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
+    const handleApplyBatch = async () => {
+        if (!aiBatchResult) return;
+        setIsApplyingBatch(true);
+        let applied = 0;
+        let failed = 0;
+        try {
+            for (const change of aiBatchResult.changes) {
+                try {
+                    if (change.delete) {
+                        const appt = appointments.find(a => a.id === change.id);
+                        await agendaService.delete(change.id, appt?.recurrenceGroupId ? 'one' : 'one');
+                    } else {
+                        const updateDto: UpdateAppointmentDto = {};
+                        if (change.newDate) updateDto.date = change.newDate;
+                        if (change.newTitle) updateDto.title = change.newTitle;
+                        await agendaService.update(change.id, updateDto);
+                    }
+                    applied++;
+                } catch {
+                    failed++;
+                }
+            }
+            setIsAiBatchModalOpen(false);
+            setAiBatchResult(null);
+            setAiCommand('');
+            fetchAppointments();
+            if (failed > 0) {
+                toast.warning(`${applied} alterações aplicadas, ${failed} falharam.`);
+            } else {
+                toast.success(`${applied} alteração${applied !== 1 ? 'ões' : ''} aplicada${applied !== 1 ? 's' : ''}!`);
+            }
+        } finally {
+            setIsApplyingBatch(false);
         }
     };
 
     const getDaysArray = () => {
-        const start = startOfWeek(startOfMonth(currentDate));
-        const end = endOfWeek(endOfMonth(currentDate));
+        // Start from Monday to match WeekGrid
+        const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
+        const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 });
         return eachDayOfInterval({ start, end });
     };
 
     const days = getDaysArray();
-    const weekDaysShort = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    // Week headers starting from Monday
+    const weekDaysShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
     const upcomingAppointments = [...appointments]
         .filter(a => parseISO(a.date) >= new Date(new Date().setHours(0, 0, 0, 0)))
@@ -214,8 +257,23 @@ export function AgendaClient() {
         return fallback[appt.type];
     };
 
+    // Format batch change preview
+    const formatBatchChange = (change: AiBatchChange) => {
+        const appt = appointments.find(a => a.id === change.id);
+        const title = appt?.title ?? change.id.slice(0, 8) + '...';
+        if (change.delete) return `🗑️ Excluir: "${title}"`;
+        const parts: string[] = [];
+        if (change.newDate) {
+            const oldTime = appt ? format(parseISO(appt.date), 'dd/MM HH:mm') : '?';
+            const newTime = format(parseISO(change.newDate), 'dd/MM HH:mm');
+            parts.push(`${oldTime} → ${newTime}`);
+        }
+        if (change.newTitle) parts.push(`Título: "${change.newTitle}"`);
+        return `✏️ "${title}": ${parts.join(', ')}`;
+    };
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-4">
@@ -250,10 +308,6 @@ export function AgendaClient() {
                     <Button variant="outline" size="sm" className="font-medium" onClick={() => setIsLabelManagerOpen(true)}>
                         <Tag className="w-4 h-4 mr-1.5" /> Labels
                     </Button>
-                    <Button variant="outline" size="sm" className="font-medium" onClick={handleCopyWeek}>
-                        {copied ? <Check className="w-4 h-4 mr-1.5 text-green-600" /> : <Copy className="w-4 h-4 mr-1.5" />}
-                        {copied ? 'Copiado!' : 'Copiar Semana'}
-                    </Button>
                     <Button variant="outline" size="sm" className="border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-medium" onClick={() => setIsImportOpen(true)}>
                         <Sparkles className="w-4 h-4 mr-1.5 text-purple-600" /> IA Extrair
                     </Button>
@@ -262,6 +316,30 @@ export function AgendaClient() {
                     </Button>
                 </div>
             </div>
+
+            {/* AI Batch Command Bar */}
+            <form onSubmit={handleAiCommand} className="flex gap-2">
+                <div className="relative flex-1">
+                    <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400" />
+                    <Input
+                        ref={aiInputRef}
+                        value={aiCommand}
+                        onChange={e => setAiCommand(e.target.value)}
+                        placeholder='IA: "Mover todas reuniões KPIT para 11:30" ou "Cancelar meetings de sexta"...'
+                        className="pl-9 border-purple-200 focus-visible:ring-purple-400 bg-purple-50/30 placeholder:text-slate-400"
+                        disabled={isAiLoading}
+                    />
+                </div>
+                <Button
+                    type="submit"
+                    variant="outline"
+                    size="sm"
+                    disabled={!aiCommand.trim() || isAiLoading}
+                    className="border-purple-200 text-purple-700 hover:bg-purple-100 px-4"
+                >
+                    {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+            </form>
 
             {/* Main Area */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -276,10 +354,12 @@ export function AgendaClient() {
                             appointments={appointments}
                             onSlotClick={d => handleOpenForm(d)}
                             onAppointmentClick={appt => handleOpenForm(undefined, appt)}
+                            onAppointmentDrop={handleAppointmentDrop}
                         />
                     </div>
                 ) : view === 'month' ? (
                     <div className="flex flex-col h-full">
+                        {/* Month view headers — starts Monday */}
                         <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/50">
                             {weekDaysShort.map(day => (
                                 <div key={day} className="py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -445,6 +525,51 @@ export function AgendaClient() {
                         </Button>
                         <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* AI Batch Preview Modal */}
+            <Dialog open={isAiBatchModalOpen} onOpenChange={setIsAiBatchModalOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-purple-600" /> Alterações propostas pela IA
+                        </DialogTitle>
+                    </DialogHeader>
+                    {aiBatchResult && (
+                        <div className="space-y-4 mt-2">
+                            <p className="text-sm font-medium text-slate-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
+                                {aiBatchResult.summary}
+                            </p>
+                            {aiBatchResult.changes.length === 0 ? (
+                                <p className="text-sm text-slate-500 text-center py-4">Nenhuma alteração encontrada.</p>
+                            ) : (
+                                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                                    {aiBatchResult.changes.map((change, i) => (
+                                        <div key={i} className="text-sm text-slate-600 bg-slate-50 rounded px-3 py-1.5 border border-slate-100">
+                                            {formatBatchChange(change)}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-2 pt-2">
+                                <Button variant="ghost" onClick={() => setIsAiBatchModalOpen(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    onClick={handleApplyBatch}
+                                    disabled={isApplyingBatch || aiBatchResult.changes.length === 0}
+                                    className="bg-purple-600 hover:bg-purple-700"
+                                >
+                                    {isApplyingBatch ? (
+                                        <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Aplicando...</>
+                                    ) : (
+                                        <><Check className="w-4 h-4 mr-1.5" /> Aplicar {aiBatchResult.changes.length} alteração{aiBatchResult.changes.length !== 1 ? 'ões' : ''}</>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
 

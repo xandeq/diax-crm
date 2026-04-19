@@ -75,6 +75,14 @@ public class AppointmentsController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpPost("ai-batch-command")]
+    public async Task<IActionResult> AiBatchCommand([FromBody] Diax.Application.Calendar.Dtos.AiBatchCommandDto request, CancellationToken cancellationToken)
+    {
+        var result = await _appointmentService.AiBatchCommandAsync(request, cancellationToken);
+        if (result.IsFailure) return BadRequest(result.Error);
+        return Ok(result.Value);
+    }
+
     [AllowAnonymous] // Cron call is external without Bearer
     [HttpPost("trigger-daily-notification")]
     public async Task<IActionResult> TriggerDailyNotification([FromHeader(Name = "X-Cron-Key")] string cronKey, CancellationToken cancellationToken)

@@ -14,4 +14,5 @@ public interface IAppointmentService
     Task<Result<IEnumerable<AppointmentDto>>> CreateRecurringAsync(RecurringAppointmentDto dto, CancellationToken cancellationToken = default);
     Task<Result> SendDailyAgendaNotificationAsync(CancellationToken cancellationToken = default);
     Task<Result<IEnumerable<CreateAppointmentDto>>> ParseFromTextAsync(string text, CancellationToken cancellationToken = default);
+    Task<Result<AiBatchResponseDto>> AiBatchCommandAsync(AiBatchCommandDto dto, CancellationToken cancellationToken = default);
 }
