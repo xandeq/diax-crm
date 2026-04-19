@@ -8,7 +8,7 @@ import { appointmentLabelsService } from '@/services/appointmentLabels';
 import { AiBatchChange, AiBatchResponse, Appointment, AppointmentLabel, AppointmentType, CreateAppointmentDto, RecurringAppointmentDto, UpdateAppointmentDto } from '@/types/agenda';
 import { addDays, addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, parseISO, startOfMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Check, ChevronLeft, ChevronRight, Clock, List as ListIcon, Loader2, Plus, Send, Sparkles, Tag, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronLeft, ChevronRight, Clock, Copy, List as ListIcon, Loader2, Plus, Send, Sparkles, Tag, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { AppointmentForm } from './AppointmentForm';
@@ -261,6 +261,47 @@ export function AgendaClient() {
         return fallback[appt.type];
     };
 
+    const [weekCopied, setWeekCopied] = useState(false);
+
+    const handleCopyWeek = () => {
+        const ws = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const we = endOfWeek(currentDate, { weekStartsOn: 1 });
+        const weekDays = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+
+        const DAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+        const DAY_EMOJIS = ['💼', '💼', '💼', '💼', '💼', '🏖️', '🏖️'];
+
+        const lines: string[] = [];
+        lines.push(`📅 *Agenda ${format(ws, 'dd/MM')} – ${format(we, 'dd/MM/yyyy')}*`);
+        lines.push('');
+
+        let hasAny = false;
+        weekDays.forEach((day, i) => {
+            const dayAppts = appointments
+                .filter(a => isSameDay(parseISO(a.date), day))
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            if (dayAppts.length === 0) return;
+            hasAny = true;
+            lines.push(`${DAY_EMOJIS[i]} *${DAY_NAMES[i]}, ${format(day, 'dd/MM')}*`);
+            dayAppts.forEach(appt => {
+                const time = format(parseISO(appt.date), 'HH:mm');
+                const label = appt.label?.name ? ` _[${appt.label.name}]_` : '';
+                lines.push(`• ${time} – ${appt.title}${label}`);
+            });
+            lines.push('');
+        });
+
+        if (!hasAny) {
+            lines.push('_Sem compromissos nessa semana._');
+            lines.push('');
+        }
+
+        navigator.clipboard.writeText(lines.join('\n')).then(() => {
+            setWeekCopied(true);
+            setTimeout(() => setWeekCopied(false), 2500);
+        });
+    };
+
     // Format batch change preview
     const formatBatchChange = (change: AiBatchChange) => {
         const appt = appointments.find(a => a.id === change.id);
@@ -308,6 +349,18 @@ export function AgendaClient() {
                                 <ChevronRight className="h-4 w-4" />
                             </Button>
                         </div>
+                    )}
+                    {view === 'week' && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={`font-medium transition-colors ${weekCopied ? 'border-green-300 text-green-700 bg-green-50' : 'border-slate-200'}`}
+                            onClick={handleCopyWeek}
+                        >
+                            {weekCopied
+                                ? <><Check className="w-4 h-4 mr-1.5 text-green-600" /> Copiado!</>
+                                : <><Copy className="w-4 h-4 mr-1.5" /> Copiar Semana</>}
+                        </Button>
                     )}
                     <Button variant="outline" size="sm" className="font-medium" onClick={() => setIsLabelManagerOpen(true)}>
                         <Tag className="w-4 h-4 mr-1.5" /> Labels
