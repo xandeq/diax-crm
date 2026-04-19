@@ -1,11 +1,15 @@
 using System;
+using Diax.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Diax.Infrastructure.Data.Migrations
 {
-    /// <inheritdoc />
+    [DbContext(typeof(DiaxDbContext))]
+    [Migration("20260419120000_AddAgendaLabelsAndRecurrence")]
     public partial class AddAgendaLabelsAndRecurrence : Migration
     {
         /// <inheritdoc />
