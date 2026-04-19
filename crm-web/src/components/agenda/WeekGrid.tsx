@@ -3,7 +3,7 @@
 import { Appointment } from '@/types/agenda';
 import { addDays, format, isSameDay, parseISO, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const HOUR_START = 7;
 const HOUR_END = 22;
@@ -25,6 +25,13 @@ export function WeekGrid({ currentDate, appointments, onSlotClick, onAppointment
 
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dropHighlight, setDropHighlight] = useState<string | null>(null); // "dayISO-hour"
+
+    const scrollRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = (8 - HOUR_START) * HOUR_HEIGHT; // scroll to 08:00
+        }
+    }, []);
 
     const getApptStyle = (appt: Appointment) => {
         const d = parseISO(appt.date);
@@ -76,7 +83,7 @@ export function WeekGrid({ currentDate, appointments, onSlotClick, onAppointment
             </div>
 
             {/* Scrollable grid */}
-            <div className="flex overflow-y-auto flex-1">
+            <div ref={scrollRef} className="flex overflow-y-auto flex-1">
                 {/* Time gutter */}
                 <div className="w-14 flex-shrink-0 relative">
                     {hours.map(h => (

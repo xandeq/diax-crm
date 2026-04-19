@@ -158,6 +158,10 @@ export function AgendaClient() {
         }
     };
 
+    // Month view drag and drop state
+    const [monthDraggingAppt, setMonthDraggingAppt] = useState<Appointment | null>(null);
+    const [monthDropTarget, setMonthDropTarget] = useState<string | null>(null); // day ISO
+
     // Drag and drop handler
     const handleAppointmentDrop = async (id: string, newDateISO: string) => {
         try {
@@ -372,18 +376,37 @@ export function AgendaClient() {
                                 const dayAppointments = appointments.filter(a => isSameDay(parseISO(a.date), day));
                                 const isCurrentMonth = isSameMonth(day, currentDate);
 
+                                const dayKey = day.toISOString();
+                                const isDropTarget = monthDropTarget === dayKey;
                                 return (
                                     <div
-                                        key={day.toISOString()}
+                                        key={dayKey}
                                         className={`min-h-[120px] p-2 border-slate-100 relative group transition-colors
                                             ${!isCurrentMonth ? 'bg-slate-50/50 text-slate-400' : 'bg-white'}
                                             ${dayIdx > 6 ? 'border-t' : ''}
                                             ${dayIdx % 7 !== 6 ? 'border-r' : ''}
-                                            hover:bg-slate-50 cursor-pointer`}
+                                            ${isDropTarget ? 'bg-blue-50 ring-2 ring-inset ring-blue-300' : 'hover:bg-slate-50'}
+                                            cursor-pointer`}
                                         onClick={(e) => {
                                             if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'DIV') {
                                                 handleOpenForm(day);
                                             }
+                                        }}
+                                        onDragOver={(e) => {
+                                            if (!monthDraggingAppt) return;
+                                            e.preventDefault();
+                                            setMonthDropTarget(dayKey);
+                                        }}
+                                        onDragLeave={() => setMonthDropTarget(null)}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            setMonthDropTarget(null);
+                                            if (!monthDraggingAppt) return;
+                                            const origDate = parseISO(monthDraggingAppt.date);
+                                            const newDate = new Date(day);
+                                            newDate.setHours(origDate.getHours(), origDate.getMinutes(), 0, 0);
+                                            handleAppointmentDrop(monthDraggingAppt.id, newDate.toISOString());
+                                            setMonthDraggingAppt(null);
                                         }}
                                     >
                                         <div className="flex justify-between items-start mb-1">
@@ -396,14 +419,26 @@ export function AgendaClient() {
                                         <div className="space-y-1 overflow-y-auto max-h-[85px] no-scrollbar">
                                             {dayAppointments.map(appt => {
                                                 const labelColor = appt.label?.color;
+                                                const isDraggingThis = monthDraggingAppt?.id === appt.id;
                                                 return (
                                                     <div
                                                         key={appt.id}
+                                                        draggable
+                                                        onDragStart={(e) => {
+                                                            setMonthDraggingAppt(appt);
+                                                            e.dataTransfer.effectAllowed = 'move';
+                                                        }}
+                                                        onDragEnd={() => {
+                                                            setMonthDraggingAppt(null);
+                                                            setMonthDropTarget(null);
+                                                        }}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             handleOpenForm(undefined, appt);
                                                         }}
-                                                        className={`text-xs px-1.5 py-1 rounded truncate border hover:opacity-80 transition-opacity ${!labelColor ? getApptBgStyle(appt) : ''}`}
+                                                        className={`text-xs px-1.5 py-1 rounded truncate border hover:opacity-80 transition-opacity cursor-grab active:cursor-grabbing
+                                                            ${isDraggingThis ? 'opacity-40' : ''}
+                                                            ${!labelColor ? getApptBgStyle(appt) : ''}`}
                                                         style={labelColor ? { backgroundColor: labelColor + '20', borderColor: labelColor, color: labelColor } : {}}
                                                         title={`${format(parseISO(appt.date), 'HH:mm')} - ${appt.title}`}
                                                     >
