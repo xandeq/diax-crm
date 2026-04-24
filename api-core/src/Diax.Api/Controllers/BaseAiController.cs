@@ -1,4 +1,5 @@
 using Diax.Application.AI;
+using Diax.Domain.AI;
 using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -79,17 +80,23 @@ public abstract class BaseAiController : BaseApiController
             if (ex is ArgumentException argEx)
             {
                 _logger.LogWarning(argEx, "[BaseAiController] ArgumentException: {Message}", argEx.Message);
-                return BadRequest(new { Message = argEx.Message });
+                return BadRequest(new { message = argEx.Message, errorCode = AiErrorCategory.InvalidRequest });
+            }
+
+            if (ex is AiProviderException aiEx)
+            {
+                _logger.LogError(aiEx, "[BaseAiController] AiProviderException [{ErrorCode}]: {Message}", aiEx.ErrorCode, aiEx.Message);
+                return StatusCode(502, new { message = aiEx.Message, errorCode = aiEx.ErrorCode });
             }
 
             if (ex is InvalidOperationException invOpEx)
             {
                 _logger.LogError(invOpEx, "[BaseAiController] InvalidOperationException: {Message}", invOpEx.Message);
-                return StatusCode(502, new { Message = invOpEx.Message });
+                return StatusCode(502, new { message = invOpEx.Message, errorCode = AiErrorCategory.Unknown });
             }
 
             _logger.LogError(ex, "[BaseAiController] Unexpected error executing AI action");
-            return StatusCode(500, new { Message = "Erro inesperado ao executar ação de IA." });
+            return StatusCode(500, new { message = "Erro inesperado ao executar ação de IA.", errorCode = AiErrorCategory.Unknown });
         }
     }
 }

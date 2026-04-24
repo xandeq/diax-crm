@@ -9,7 +9,7 @@ import { ModelCard } from '@/components/ai/ModelCard';
 import { QuotaStatusCard, type QuotaStatusDto } from '@/components/QuotaStatusCard';
 import { isModelFree, requiresLicenseAcceptance } from '@/lib/aiModelClassification';
 import { type AiModel } from '@/services/aiCatalog';
-import { apiFetch } from '@/services/api';
+import { apiFetch, ApiError } from '@/services/api';
 import {
   generateImage,
   generateVideo,
@@ -84,6 +84,37 @@ function formatSeconds(s: number): string {
   return `${Math.floor(s / 60)}m ${s % 60}s`;
 }
 
+interface ErrorInfo {
+  title: string;
+  detail: string;
+  isTransient: boolean;
+}
+
+function getErrorInfo(code: string | undefined, rawMessage: string): ErrorInfo {
+  switch (code) {
+    case 'QuotaExhausted':
+      return { title: 'Créditos esgotados', detail: 'O saldo deste provider acabou. Recarregue os créditos para continuar.', isTransient: false };
+    case 'RateLimit':
+      return { title: 'Limite de requisições atingido', detail: 'Muitas chamadas em pouco tempo. Aguarde alguns minutos e tente novamente.', isTransient: true };
+    case 'AuthFailed':
+      return { title: 'Chave de API inválida', detail: 'A credencial do provider está incorreta ou expirada. Verifique a configuração.', isTransient: false };
+    case 'ModelNotFound':
+      return { title: 'Modelo indisponível', detail: 'Este modelo foi descontinuado ou não está acessível no provider.', isTransient: false };
+    case 'InvalidRequest':
+      return { title: 'Prompt ou parâmetros inválidos', detail: rawMessage, isTransient: false };
+    case 'ProviderUnavailable':
+      return { title: 'Provider fora do ar', detail: 'O serviço está temporariamente indisponível. Tente novamente em breve.', isTransient: true };
+    case 'Timeout':
+      return { title: 'Tempo esgotado', detail: 'O provider demorou demais para responder. Pode ser uma cold start — tente novamente em alguns segundos.', isTransient: true };
+    case 'ConfigurationMissing':
+      return { title: 'API key não configurada', detail: 'Configure as credenciais deste provider no painel de administração.', isTransient: false };
+    case 'CapabilityMismatch':
+      return { title: 'Função não suportada', detail: 'Este modelo não suporta este tipo de geração. Escolha outro modelo.', isTransient: false };
+    default:
+      return { title: 'Algo deu errado', detail: rawMessage || 'Erro inesperado. Tente novamente.', isTransient: false };
+  }
+}
+
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export default function ImageGenerationPage() {
@@ -130,6 +161,8 @@ export default function ImageGenerationPage() {
   const [imageResult, setImageResult] = useState<ImageGenerationResponse | null>(null);
   const [videoResult, setVideoResult] = useState<VideoGenerationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
+  const clearError = () => { setError(null); setErrorCode(undefined); };
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -254,7 +287,7 @@ export default function ImageGenerationPage() {
       const dataUrl = e.target?.result as string;
       setReferenceImageBase64(dataUrl.split(',')[1]);
       setReferenceImagePreview(dataUrl);
-      setError(null);
+      clearError();
     };
     reader.readAsDataURL(file);
   }, []);
@@ -283,7 +316,7 @@ export default function ImageGenerationPage() {
     }
 
     setIsGenerating(true);
-    setError(null);
+    clearError();
     setImageResult(null);
     setVideoResult(null);
 
@@ -321,7 +354,9 @@ export default function ImageGenerationPage() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado ao gerar.';
+      const code = err instanceof ApiError ? err.code : undefined;
       setError(msg);
+      setErrorCode(code);
     } finally {
       setIsGenerating(false);
     }
@@ -383,7 +418,7 @@ export default function ImageGenerationPage() {
           <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10">
             <button
               type="button"
-              onClick={() => { setActiveTab('image'); setError(null); }}
+              onClick={() => { setActiveTab('image'); clearError(); }}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 activeTab === 'image'
                   ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
@@ -395,7 +430,7 @@ export default function ImageGenerationPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setActiveTab('video'); setError(null); }}
+              onClick={() => { setActiveTab('video'); clearError(); }}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 activeTab === 'video'
                   ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
@@ -815,28 +850,38 @@ export default function ImageGenerationPage() {
             <div className="flex-1 flex flex-col items-center justify-center p-6">
 
               {/* ── Error ── */}
-              {error && !isGenerating && (
+              {error && !isGenerating && (() => {
+                const info = getErrorInfo(errorCode, error);
+                return (
                 <div className="w-full max-w-lg">
                   <div className="rounded-2xl bg-red-500/10 border border-red-500/20 p-6 text-center space-y-4">
                     <div className="h-12 w-12 mx-auto rounded-2xl bg-red-500/20 flex items-center justify-center">
-                      <AlertCircle className="h-6 w-6 text-red-400" />
+                      {info.isTransient
+                        ? <Clock className="h-6 w-6 text-red-400" />
+                        : <AlertCircle className="h-6 w-6 text-red-400" />
+                      }
                     </div>
                     <div>
-                      <p className="font-semibold text-red-300 mb-1">Ops! Algo deu errado</p>
-                      <p className="text-sm text-red-400/80 leading-relaxed">{error}</p>
+                      <p className="font-semibold text-red-300 mb-1">{info.title}</p>
+                      <p className="text-sm text-red-400/80 leading-relaxed">{info.detail}</p>
+                      {errorCode && errorCode !== 'Unknown' && (
+                        <p className="text-xs text-red-500/50 mt-2 font-mono">{errorCode}</p>
+                      )}
                     </div>
                     <div className="flex items-center justify-center gap-3 pt-1">
+                      {info.isTransient && (
+                        <button
+                          type="button"
+                          onClick={handleGenerate}
+                          disabled={!prompt.trim() || !selectedModel}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm font-medium border border-red-500/30 transition-all"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" /> Tentar Novamente
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={handleGenerate}
-                        disabled={!prompt.trim() || !selectedModel}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm font-medium border border-red-500/30 transition-all"
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" /> Tentar Novamente
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setError(null)}
+                        onClick={clearError}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-white/50 text-sm border border-white/10 transition-all"
                       >
                         <X className="h-3.5 w-3.5" /> Fechar
@@ -844,7 +889,8 @@ export default function ImageGenerationPage() {
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* ── Generating ── */}
               {isGenerating && (

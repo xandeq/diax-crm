@@ -305,7 +305,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 }
             }, CancellationToken.None);
 
-            throw;
+            throw new AiProviderException(ex.Message, errorCategory, ex);
         }
     }
 }

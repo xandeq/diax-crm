@@ -254,7 +254,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                 }
             }, CancellationToken.None);
 
-            throw;
+            throw new AiProviderException(ex.Message, errorCategory, ex);
         }
     }
 }
