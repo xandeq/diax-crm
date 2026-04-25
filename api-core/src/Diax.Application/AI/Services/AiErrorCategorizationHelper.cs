@@ -23,13 +23,13 @@ public static class AiErrorCategorizationHelper
         {
             return httpStatusCode.Value switch
             {
-                401 or 403 => AiErrorCategory.AuthFailed,
-                402         => AiErrorCategory.QuotaExhausted,
-                404         => AiErrorCategory.ModelNotFound,
-                422         => AiErrorCategory.InvalidRequest,
-                429         => AiErrorCategory.RateLimit,
-                >= 500      => AiErrorCategory.ProviderUnavailable,
-                _           => AiErrorCategory.Unknown
+                401 or 403  => AiErrorCategory.AuthFailed,
+                402          => AiErrorCategory.QuotaExhausted,
+                404 or 410   => AiErrorCategory.ModelNotFound,   // 410 Gone = deprecated model
+                422 or 400   => AiErrorCategory.InvalidRequest,
+                429          => AiErrorCategory.RateLimit,
+                >= 500       => AiErrorCategory.ProviderUnavailable,
+                _            => AiErrorCategory.Unknown
             };
         }
 
@@ -56,7 +56,8 @@ public static class AiErrorCategorizationHelper
         if (ContainsAny(msg,
             "not found", "model not found", "no such model", "404",
             "deprecated", "does not exist", "unknown model",
-            "invalid model", "model_not_found"))
+            "invalid model", "model_not_found", "410", "gone",
+            "no longer supported", "not supported by provider"))
             return AiErrorCategory.ModelNotFound;
 
         if (ContainsAny(msg,
