@@ -93,7 +93,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         Guid financialAccountId,
         Guid userId,
         string? details = null,
-        Guid? recurringTransactionId = null)
+        Guid? recurringTransactionId = null,
+        DateTime? paidDate = null)
     {
         ValidateCommonFields(description, amount, userId);
 
@@ -113,7 +114,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
             UserId = userId,
             Details = details,
             RecurringTransactionId = recurringTransactionId,
-            Status = TransactionStatus.Paid // Incomes são sempre "pagos"
+            Status = TransactionStatus.Paid,
+            PaidDate = paidDate ?? DateTime.UtcNow
         };
     }
 

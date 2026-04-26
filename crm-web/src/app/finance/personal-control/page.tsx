@@ -1011,9 +1011,24 @@ function Page() {
                         <div className="space-y-0.5">
                           <p className="text-sm font-medium">{pay.label}</p>
                           {pay.adjusted && <p className="text-xs text-amber-600">Ajustado (fim de semana)</p>}
+                          {item.paymentDate && (() => {
+                            const pd = new Date(item.paymentDate);
+                            const actualDay = pd.getUTCDate();
+                            if (actualDay !== pay.effectiveDay) {
+                              const d = pd.getUTCDate().toString().padStart(2, '0');
+                              const m = (pd.getUTCMonth() + 1).toString().padStart(2, '0');
+                              return <p className="text-xs text-sky-600 font-medium">Pago em {d}/{m}</p>;
+                            }
+                            return null;
+                          })()}
                         </div>
                       </TableCell>
-                      <TableCell><Badge variant="outline">{item.isRecurring ? 'Sim' : 'Não'}</Badge></TableCell>
+                      <TableCell>
+                        {item.isRecurring
+                          ? <Badge variant="outline" className="border-emerald-200 text-emerald-700">Recorrente</Badge>
+                          : <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">Encerrado</Badge>
+                        }
+                      </TableCell>
                       <TableCell>
                         <StatusBadge
                           paid={item.isPaid}
@@ -1330,10 +1345,32 @@ function Page() {
             <div className="space-y-2"><Label htmlFor="income-name">Nome</Label><Input id="income-name" value={incomeForm.name} onChange={(event) => setIncomeForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label htmlFor="income-amount">Valor</Label><Input id="income-amount" type="number" min="0" step="0.01" value={incomeForm.amount} onChange={(event) => setIncomeForm((current) => ({ ...current, amount: Number(event.target.value) }))} /></div>
-              <div className="space-y-2"><Label htmlFor="income-day">Dia</Label><Input id="income-day" type="number" min="1" max="31" value={incomeForm.dayOfMonth} onChange={(event) => setIncomeForm((current) => ({ ...current, dayOfMonth: Number(event.target.value) }))} /></div>
+              <div className="space-y-2"><Label htmlFor="income-day">Dia previsto</Label><Input id="income-day" type="number" min="1" max="31" value={incomeForm.dayOfMonth} onChange={(event) => setIncomeForm((current) => ({ ...current, dayOfMonth: Number(event.target.value) }))} /></div>
             </div>
-            <div className="space-y-2"><Label htmlFor="income-details">Detalhes</Label><Input id="income-details" value={incomeForm.details || ''} onChange={(event) => setIncomeForm((current) => ({ ...current, details: event.target.value }))} /></div>
-            <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-2 text-sm"><input type="checkbox" checked={Boolean(incomeForm.isRecurring)} onChange={(event) => setIncomeForm((current) => ({ ...current, isRecurring: event.target.checked }))} />Receita recorrente</label>
+            <div className="space-y-2"><Label htmlFor="income-details">Detalhes / Observações</Label><Input id="income-details" value={incomeForm.details || ''} onChange={(event) => setIncomeForm((current) => ({ ...current, details: event.target.value }))} /></div>
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border bg-white px-3 py-2 text-sm">
+                <input type="checkbox" checked={Boolean(incomeForm.isPaid)} onChange={(event) => setIncomeForm((current) => ({ ...current, isPaid: event.target.checked, paymentDate: event.target.checked ? (current.paymentDate || new Date().toISOString().split('T')[0] + 'T00:00:00Z') : undefined }))} />
+                Pago
+              </label>
+              {incomeForm.isPaid && (
+                <div className="space-y-1 pl-1">
+                  <Label htmlFor="income-payment-date">Data do pagamento</Label>
+                  <Input
+                    id="income-payment-date"
+                    type="date"
+                    value={incomeForm.paymentDate ? incomeForm.paymentDate.split('T')[0] : new Date().toISOString().split('T')[0]}
+                    onChange={(event) => setIncomeForm((current) => ({ ...current, paymentDate: event.target.value ? event.target.value + 'T00:00:00Z' : undefined }))}
+                  />
+                  <p className="text-xs text-muted-foreground">Preencha se pago em data diferente do dia previsto (ex: pagamento antecipado).</p>
+                </div>
+              )}
+            </div>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border bg-white px-3 py-2 text-sm">
+              <input type="checkbox" checked={Boolean(incomeForm.isRecurring)} onChange={(event) => setIncomeForm((current) => ({ ...current, isRecurring: event.target.checked }))} />
+              <span>Receita recorrente</span>
+              {!incomeForm.isRecurring && <span className="ml-auto text-xs font-medium text-orange-600">Contrato encerrado</span>}
+            </label>
             <DialogFooter>
               {incomeForm.editingId ? <Button type="button" variant="outline" onClick={() => setIncomeForm(incomeFormReset())}>Limpar</Button> : null}
               <Button type="submit" className="gap-2" disabled={savingKey === 'income'}><Plus className="h-4 w-4" />{savingKey === 'income' ? 'Salvando...' : incomeForm.editingId ? 'Atualizar receita' : 'Criar receita'}</Button>

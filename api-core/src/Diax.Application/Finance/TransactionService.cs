@@ -141,7 +141,7 @@ public class TransactionService : IApplicationService
                     request.Description, request.Amount, request.Date,
                     request.PaymentMethod, request.CategoryId,
                     request.IsRecurring, request.FinancialAccountId.Value, userId,
-                    request.Details);
+                    request.Details, paidDate: request.PaidDate);
                 break;
 
             case TransactionType.Expense:
