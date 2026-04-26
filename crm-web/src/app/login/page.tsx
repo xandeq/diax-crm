@@ -82,6 +82,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="seu@email.com"
+                  autoComplete="email"
                   disabled={isLoading}
                   className={`pl-10 ${errors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   {...register('email')}
@@ -111,6 +112,7 @@ export default function LoginPage() {
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   disabled={isLoading}
                   className={`pl-10 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   {...register('password')}

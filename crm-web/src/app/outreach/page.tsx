@@ -520,6 +520,7 @@ function ConfigTab({ config, loading, onSave, saving }: ConfigTabProps) {
             <Input
               id="apifyApiToken"
               type="password"
+              autoComplete="off"
               value={apifyApiToken}
               onChange={(e) => setApifyApiToken(e.target.value)}
               placeholder="apify_api_..."

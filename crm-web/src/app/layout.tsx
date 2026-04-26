@@ -41,7 +41,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}>
-      <body className="font-sans antialiased bg-background text-foreground min-h-screen flex flex-col">
+      <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground min-h-screen flex flex-col">
         <AuthProvider>
           <AuthGuard>
             <div className="w-full max-w-[1400px] mx-auto px-6 flex-1 flex flex-col">
