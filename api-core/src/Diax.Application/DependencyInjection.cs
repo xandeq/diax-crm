@@ -128,6 +128,9 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Finance.Planner.MonthlySimulationService>();
         services.AddScoped<PersonalFinanceControlService>();
 
+        // ===== INVESTIQ INTEGRATION =====
+        services.AddScoped<IInvestIQIntegrationService, InvestIQIntegrationService>();
+
         return services;
     }
 }

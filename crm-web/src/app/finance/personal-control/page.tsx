@@ -21,6 +21,7 @@ import {
   CreatePersonalControlExpenseRequest,
   CreatePersonalControlIncomeRequest,
   CreatePersonalControlSubscriptionRequest,
+  InvestIQPortfolioSummary,
   PersonalControlBillingFrequency,
   PersonalControlExpenseItem,
   PersonalControlIncomeItem,
@@ -28,6 +29,7 @@ import {
   PersonalControlPaymentType,
   PersonalControlSubscriptionItem,
   TogglePersonalControlStatusRequest,
+  investiqService,
   personalControlService,
 } from '@/services/personalControlService';
 import {
@@ -35,6 +37,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpCircle,
+  BarChart3,
   Building2,
   Calendar,
   CheckCircle2,
@@ -43,6 +46,7 @@ import {
   PencilLine,
   Plus,
   RotateCcw,
+  TrendingDown,
   TrendingUp,
   Trash2,
   Wallet,
@@ -228,6 +232,85 @@ function SectionShell({
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
+  );
+}
+
+const ASSET_CLASS_LABELS: Record<string, string> = {
+  acao: 'Ações',
+  fii: 'FIIs',
+  renda_fixa: 'Renda Fixa',
+  bdr: 'BDRs',
+  etf: 'ETFs',
+};
+
+function InvestIQWidget({ data, loading }: { data: InvestIQPortfolioSummary | null; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border bg-gradient-to-r from-violet-50 to-indigo-50 px-5 py-4 shadow-sm text-sm text-muted-foreground">
+        <BarChart3 className="h-4 w-4 text-violet-400 animate-pulse" />
+        Carregando InvestIQ...
+      </div>
+    );
+  }
+
+  if (!data || data.configured === false) return null;
+
+  const pnl = data.unrealized_pnl + data.realized_pnl;
+  const pnlPositive = pnl >= 0;
+  const retPct = data.total_return_pct;
+
+  return (
+    <div className="rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-indigo-50 to-white px-5 py-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-violet-700">
+          <BarChart3 className="h-4 w-4" />
+          InvestIQ
+        </div>
+        <div className="h-4 w-px bg-violet-200" />
+
+        {/* Portfolio value */}
+        <div className="flex items-center gap-1.5 rounded-lg border border-violet-100 bg-white px-3 py-1.5 text-sm shadow-xs">
+          <span className="text-muted-foreground">Carteira</span>
+          <span className="font-bold tabular-nums text-violet-700">{formatCurrency(data.portfolio_value)}</span>
+        </div>
+
+        {/* P&L */}
+        <div className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm shadow-xs">
+          {pnlPositive ? (
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+          ) : (
+            <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
+          )}
+          <span className="text-muted-foreground">P&L</span>
+          <span className={cn('font-semibold tabular-nums', pnlPositive ? 'text-emerald-600' : 'text-rose-500')}>
+            {pnlPositive ? '+' : ''}{formatCurrency(pnl)}
+            {retPct !== null && (
+              <span className="ml-1 text-xs opacity-75">({retPct >= 0 ? '+' : ''}{retPct?.toFixed(2)}%)</span>
+            )}
+          </span>
+        </div>
+
+        {/* Dividends last 30d */}
+        {data.monthly_dividends > 0 && (
+          <div className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm shadow-xs">
+            <span className="text-muted-foreground">Dividendos/30d</span>
+            <span className="font-semibold tabular-nums text-emerald-600">+{formatCurrency(data.monthly_dividends)}</span>
+          </div>
+        )}
+
+        {/* Allocation pills */}
+        {data.asset_allocation.map((a) => (
+          <div key={a.asset_class} className="flex items-center gap-1 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs text-indigo-700">
+            <span className="font-medium">{ASSET_CLASS_LABELS[a.asset_class] ?? a.asset_class}</span>
+            <span className="opacity-60">{a.percentage.toFixed(1)}%</span>
+          </div>
+        ))}
+
+        <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
+          <span>{data.position_count} posições</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -507,6 +590,8 @@ function Page() {
   const [monthView, setMonthView] = useState<PersonalControlMonthView | null>(null);
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [investiq, setInvestiq] = useState<InvestIQPortfolioSummary | null>(null);
+  const [investiqLoading, setInvestiqLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [incomeForm, setIncomeForm] = useState(incomeFormReset);
   const [expenseForm, setExpenseForm] = useState(expenseFormReset);
@@ -543,6 +628,14 @@ function Page() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setInvestiqLoading(true);
+    void investiqService.getPortfolioSummary().then((data) => {
+      setInvestiq(data);
+      setInvestiqLoading(false);
+    });
+  }, []);
 
   useEffect(() => {
     void loadMonth(period.year, period.month);
@@ -923,6 +1016,8 @@ function Page() {
       </div>
 
       <PatrimonioWidget accounts={accounts} onUpdateBalance={updateAccountBalance} />
+
+      <InvestIQWidget data={investiq} loading={investiqLoading} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Total de receitas" value={formatCurrency(summary?.totalIncome || 0)} description="Entradas fixas e recorrentes" icon={ArrowUpCircle} tone="green" />

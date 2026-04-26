@@ -264,3 +264,34 @@ export const personalControlService = {
     });
   },
 };
+
+// ─── InvestIQ Integration ────────────────────────────────────────────────────
+
+export interface InvestIQAllocationItem {
+  asset_class: string;
+  total_value: number;
+  percentage: number;
+}
+
+export interface InvestIQPortfolioSummary {
+  portfolio_value: number;
+  total_invested: number;
+  unrealized_pnl: number;
+  realized_pnl: number;
+  total_return_pct: number | null;
+  monthly_dividends: number;
+  position_count: number;
+  asset_allocation: InvestIQAllocationItem[];
+  cached_at: string;
+  configured?: boolean;
+}
+
+export const investiqService = {
+  getPortfolioSummary: async (): Promise<InvestIQPortfolioSummary | null> => {
+    try {
+      return await apiFetch<InvestIQPortfolioSummary>('/planner/investiq/portfolio-summary');
+    } catch {
+      return null;
+    }
+  },
+};
