@@ -24,5 +24,6 @@ public record CreateTransactionRequest(
     TransactionStatus Status = TransactionStatus.Pending,
     DateTime? PaidDate = null,
     string? Details = null,
-    bool IsSubscription = false
+    bool IsSubscription = false,
+    bool HasVariableAmount = false
 );

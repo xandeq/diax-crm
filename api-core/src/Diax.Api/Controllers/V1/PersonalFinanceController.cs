@@ -192,7 +192,8 @@ public class PersonalFinanceController : BaseApiController
                 request.IsPaid ? TransactionStatus.Paid : TransactionStatus.Pending,
                 request.PaymentDate,
                 request.Details,
-                false),
+                false,
+                request.HasVariableAmount),
             userId.Value,
             cancellationToken);
 
@@ -243,7 +244,8 @@ public class PersonalFinanceController : BaseApiController
                 request.IsPaid ? TransactionStatus.Paid : TransactionStatus.Pending,
                 request.PaymentDate,
                 request.Details,
-                false),
+                false,
+                request.HasVariableAmount),
             userId.Value,
             cancellationToken);
 
@@ -423,6 +425,7 @@ public class PersonalFinanceController : BaseApiController
                 details = subscription.Details,
                 creditCardId = subscription.CreditCardId,
                 creditCardName = source.CreditCards.FirstOrDefault(card => card.CreditCardId == subscription.CreditCardId)?.CreditCardName,
+                hasVariableAmount = subscription.HasVariableAmount,
                 createdAt = matchedTransaction?.CreatedAt,
                 updatedAt = matchedTransaction?.UpdatedAt
             };
@@ -484,6 +487,7 @@ public class PersonalFinanceController : BaseApiController
                 details = item.Details,
                 creditCardId = item.CreditCardId,
                 creditCardName = item.CreditCardName,
+                hasVariableAmount = item.HasVariableAmount,
                 createdAt = item.CreatedAt,
                 updatedAt = item.UpdatedAt
             }),
@@ -571,7 +575,8 @@ public class PersonalFinanceController : BaseApiController
             PaymentMethod = paymentMethod,
             CreditCardId = cardId,
             FinancialAccountId = accountId,
-            Priority = 50
+            Priority = 50,
+            HasVariableAmount = request.HasVariableAmount
         };
     }
 
@@ -597,7 +602,8 @@ public class PersonalFinanceController : BaseApiController
             CreditCardId = create.CreditCardId,
             FinancialAccountId = create.FinancialAccountId,
             Priority = create.Priority,
-            IsActive = true
+            IsActive = true,
+            HasVariableAmount = create.HasVariableAmount
         };
     }
 
@@ -622,7 +628,8 @@ public class PersonalFinanceController : BaseApiController
         bool IsPaid = false,
         DateTime? PaymentDate = null,
         string? Details = null,
-        string? CreditCardId = null);
+        string? CreditCardId = null,
+        bool HasVariableAmount = false);
 
     public record PersonalControlSubscriptionRequest(
         int Year,
@@ -634,7 +641,8 @@ public class PersonalFinanceController : BaseApiController
         bool IsPaid = false,
         DateTime? PaymentDate = null,
         string? Details = null,
-        string? CreditCardId = null);
+        string? CreditCardId = null,
+        bool HasVariableAmount = false);
 
     public record TogglePersonalControlStatusRequest(bool IsPaid, DateTime? PaymentDate = null);
 

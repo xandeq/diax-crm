@@ -15,5 +15,6 @@ public record UpdateTransactionRequest(
     TransactionStatus? Status = null,
     DateTime? PaidDate = null,
     string? Details = null,
-    bool? IsSubscription = null
+    bool? IsSubscription = null,
+    bool? HasVariableAmount = null
 );

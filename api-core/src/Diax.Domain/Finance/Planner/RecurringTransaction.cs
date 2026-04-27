@@ -87,6 +87,11 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
     /// </summary>
     public int Priority { get; set; }
 
+    /// <summary>
+    /// Indica que o valor pode variar mês a mês (ex: plano de saúde, condomínio).
+    /// </summary>
+    public bool HasVariableAmount { get; set; }
+
     public void Update(
         TransactionType type,
         string description,
@@ -102,7 +107,8 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
         bool isActive,
         int priority,
         string? details,
-        RecurringItemKind itemKind)
+        RecurringItemKind itemKind,
+        bool hasVariableAmount = false)
     {
         Type = type;
         Description = description;
@@ -119,6 +125,7 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
         Priority = priority;
         Details = details;
         ItemKind = itemKind;
+        HasVariableAmount = hasVariableAmount;
     }
 
     /// <summary>

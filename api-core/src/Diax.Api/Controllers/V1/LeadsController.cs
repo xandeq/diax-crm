@@ -97,6 +97,13 @@ public class LeadsController : BaseApiController
         return HandleResult(result);
     }
 
+    [HttpPatch("{id:guid}/segment")]
+    public async Task<IActionResult> UpdateSegment(Guid id, [FromBody] UpdateSegmentRequest request)
+    {
+        var result = await _service.UpdateSegmentAsync(id, request.Segment);
+        return HandleResult(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

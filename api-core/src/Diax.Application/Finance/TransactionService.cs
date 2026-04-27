@@ -151,7 +151,8 @@ public class TransactionService : IApplicationService
                     request.IsRecurring, userId,
                     request.CreditCardId, request.CreditCardInvoiceId,
                     request.FinancialAccountId, request.Status, request.PaidDate,
-                    request.Details, null, request.IsSubscription);
+                    request.Details, null, request.IsSubscription,
+                    request.HasVariableAmount);
                 break;
 
             case TransactionType.Transfer:
@@ -247,7 +248,7 @@ public class TransactionService : IApplicationService
             request.PaymentMethod, request.CategoryId, request.IsRecurring,
             request.FinancialAccountId, request.CreditCardId,
             request.CreditCardInvoiceId, request.Status, request.PaidDate,
-            request.Details, request.IsSubscription);
+            request.Details, request.IsSubscription, request.HasVariableAmount);
 
         await _repository.UpdateAsync(tx, ct);
         await _unitOfWork.SaveChangesAsync(ct);
@@ -474,6 +475,7 @@ public class TransactionService : IApplicationService
             tx.Category?.Name,
             tx.IsRecurring,
             tx.IsSubscription,
+            tx.HasVariableAmount,
             tx.FinancialAccountId,
             tx.FinancialAccount?.Name,
             tx.CreditCardId,

@@ -62,6 +62,7 @@ public class RecurringOccurrenceResponse
     public Guid? CreditCardId { get; set; }
     public Guid? FinancialAccountId { get; set; }
     public bool IsSubscription { get; set; }
+    public bool HasVariableAmount { get; set; }
     public int Priority { get; set; }
     public bool IsActive { get; set; }
 }

@@ -16,6 +16,7 @@ public record TransactionResponse(
     string? CategoryName,
     bool IsRecurring,
     bool IsSubscription,
+    bool HasVariableAmount,
     Guid? FinancialAccountId,
     string? FinancialAccountName,
     Guid? CreditCardId,

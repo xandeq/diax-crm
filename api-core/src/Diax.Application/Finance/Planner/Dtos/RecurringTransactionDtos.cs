@@ -26,6 +26,7 @@ public class RecurringTransactionResponse
     public bool IsActive { get; set; }
     public int Priority { get; set; }
     public bool IsSubscription { get; set; }
+    public bool HasVariableAmount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -46,6 +47,7 @@ public class CreateRecurringTransactionRequest
     public Guid? CreditCardId { get; set; }
     public Guid? FinancialAccountId { get; set; }
     public int Priority { get; set; } = 50;
+    public bool HasVariableAmount { get; set; }
 }
 
 public class UpdateRecurringTransactionRequest
@@ -65,4 +67,5 @@ public class UpdateRecurringTransactionRequest
     public Guid? FinancialAccountId { get; set; }
     public bool IsActive { get; set; } = true;
     public int Priority { get; set; } = 50;
+    public bool HasVariableAmount { get; set; }
 }

@@ -448,6 +448,7 @@ public class PersonalFinanceControlService : IApplicationService
             transaction.Category?.Name,
             transaction.IsRecurring,
             transaction.IsSubscription,
+            transaction.HasVariableAmount,
             transaction.FinancialAccountId,
             transaction.FinancialAccount?.Name,
             transaction.CreditCardId,
@@ -483,6 +484,7 @@ public class PersonalFinanceControlService : IApplicationService
                 CreditCardId = recurring.CreditCardId,
                 FinancialAccountId = recurring.FinancialAccountId,
                 IsSubscription = recurring.ItemKind == RecurringItemKind.Subscription,
+                HasVariableAmount = recurring.HasVariableAmount,
                 Priority = recurring.Priority,
                 IsActive = recurring.IsActive
             })

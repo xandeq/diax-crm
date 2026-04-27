@@ -60,6 +60,7 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
     public virtual CreditCardInvoice? CreditCardInvoice { get; private set; }
     public Guid? RecurringTransactionId { get; private set; }
     public bool IsSubscription { get; private set; }
+    public bool HasVariableAmount { get; private set; }
 
     // Status e pagamento (relevante para Expense)
     public TransactionStatus Status { get; private set; }
@@ -137,7 +138,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         DateTime? paidDate = null,
         string? details = null,
         Guid? recurringTransactionId = null,
-        bool isSubscription = false)
+        bool isSubscription = false,
+        bool hasVariableAmount = false)
     {
         ValidateCommonFields(description, amount, userId);
 
@@ -158,7 +160,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
             PaidDate = paidDate,
             Details = details,
             RecurringTransactionId = recurringTransactionId,
-            IsSubscription = isSubscription
+            IsSubscription = isSubscription,
+            HasVariableAmount = hasVariableAmount
         };
 
         transaction.ValidateExpenseConstraints();
@@ -256,7 +259,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         TransactionStatus? status = null,
         DateTime? paidDate = null,
         string? details = null,
-        bool? isSubscription = null)
+        bool? isSubscription = null,
+        bool? hasVariableAmount = null)
     {
         ValidateCommonFields(description, amount, UserId);
 
@@ -279,6 +283,9 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
 
         if (isSubscription.HasValue)
             IsSubscription = isSubscription.Value;
+
+        if (hasVariableAmount.HasValue)
+            HasVariableAmount = hasVariableAmount.Value;
 
         if (Type == TransactionType.Expense)
             ValidateExpenseConstraints();

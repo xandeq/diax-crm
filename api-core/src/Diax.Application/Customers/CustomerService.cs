@@ -336,6 +336,24 @@ public class CustomerService : IApplicationService
         return CustomerResponse.FromEntity(customer);
     }
 
+    public async Task<Result<CustomerResponse>> UpdateSegmentAsync(
+        Guid id,
+        LeadSegment segment,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await _repository.GetByIdAsync(id, cancellationToken);
+
+        if (customer is null)
+            return Result.Failure<CustomerResponse>(Error.NotFound("Customer", id));
+
+        customer.UpdateSegmentation(customer.LeadScore ?? 0, segment);
+
+        await _repository.UpdateAsync(customer, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return CustomerResponse.FromEntity(customer);
+    }
+
     /// <summary>
     /// Registra um contato/interaÃ§Ã£o com o customer.
     /// </summary>

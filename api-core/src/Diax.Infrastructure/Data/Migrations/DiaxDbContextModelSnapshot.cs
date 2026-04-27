@@ -1061,9 +1061,29 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnName("date");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
                         .HasColumnName("description");
+
+                    b.Property<int>("DurationMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(60)
+                        .HasColumnName("duration_minutes");
+
+                    b.Property<bool>("IsCancelled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_cancelled");
+
+                    b.Property<Guid?>("LabelId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("label_id");
+
+                    b.Property<Guid?>("RecurrenceGroupId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("recurrence_group_id");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -1090,9 +1110,70 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LabelId");
+
+                    b.HasIndex("RecurrenceGroupId")
+                        .HasDatabaseName("IX_Appointments_RecurrenceGroupId")
+                        .HasFilter("[recurrence_group_id] IS NOT NULL");
+
                     b.HasIndex("UserId");
 
-                    b.ToTable("appointments");
+                    b.ToTable("appointments", (string)null);
+                });
+
+            modelBuilder.Entity("Diax.Domain.Calendar.AppointmentLabel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Order")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_AppointmentLabels_UserId");
+
+                    b.ToTable("appointment_labels", (string)null);
                 });
 
             modelBuilder.Entity("Diax.Domain.Customers.Customer", b =>
@@ -2949,6 +3030,10 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("int")
                         .HasColumnName("frequency_type");
 
+                    b.Property<bool>("HasVariableAmount")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_variable_amount");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
@@ -3222,6 +3307,10 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.Property<Guid?>("FinancialAccountId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("financial_account_id");
+
+                    b.Property<bool>("HasVariableAmount")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_variable_amount");
 
                     b.Property<bool>("IsRecurring")
                         .HasColumnType("bit")
@@ -4660,6 +4749,16 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.Navigation("Group");
 
                     b.Navigation("Permission");
+                });
+
+            modelBuilder.Entity("Diax.Domain.Calendar.Appointment", b =>
+                {
+                    b.HasOne("Diax.Domain.Calendar.AppointmentLabel", "Label")
+                        .WithMany()
+                        .HasForeignKey("LabelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Label");
                 });
 
             modelBuilder.Entity("Diax.Domain.EmailMarketing.EmailQueueItem", b =>

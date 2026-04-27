@@ -57,11 +57,11 @@ public class LeadSanitizationService : ILeadSanitizationService
 
     private static readonly Regex EmailRegex = new(
         @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant);
 
     private static readonly Regex SearchPhraseEnding = new(
-        @"\s+(em|no|na|nos|nas|de|do|da|dos|das|para)\s+[A-ZÃ€-Ãš][a-zÃ -Ãº]+(\s+[A-ZÃ€-Ãš][a-zÃ -Ãº]+)*\s*$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        @"\s+(em|no|na|nos|nas|de|do|da|dos|das|para)\s+[A-Za-zÀ-ÖØ-öø-ÿ]+(\s+[A-Za-zÀ-ÖØ-öø-ÿ]+)*\s*$",
+        RegexOptions.IgnoreCase);
 
     private static readonly HashSet<string> SearchCategoryWords = new(StringComparer.OrdinalIgnoreCase)
     {

@@ -79,13 +79,15 @@ public class RecurringTransactionRepository : Repository<RecurringTransaction>, 
 
     public async Task<bool> ExistsDuplicateAsync(Guid userId, string description, int dayOfMonth, decimal amount, Diax.Domain.Finance.TransactionType type, RecurringItemKind itemKind, Guid? excludeId = null)
     {
+        int typeInt = (int)type;
+        var plannerType = (Diax.Domain.Finance.Planner.TransactionType)typeInt;
         return await Context.RecurringTransactions
             .AnyAsync(r =>
                 r.UserId == userId
                 && r.Description == description
                 && r.DayOfMonth == dayOfMonth
                 && r.Amount == amount
-                && (int)r.Type == (int)type
+                && r.Type == plannerType
                 && r.ItemKind == itemKind
                 && (!excludeId.HasValue || r.Id != excludeId.Value));
     }

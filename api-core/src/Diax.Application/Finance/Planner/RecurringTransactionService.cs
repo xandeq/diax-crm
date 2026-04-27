@@ -110,7 +110,7 @@ public class RecurringTransactionService : IApplicationService
                 request.Description.Trim(),
                 request.DayOfMonth,
                 request.Amount,
-                (Diax.Domain.Finance.TransactionType)request.Type,
+                (Diax.Domain.Finance.TransactionType)(int)request.Type,
                 request.ItemKind);
 
             if (existsDuplicate)
@@ -136,7 +136,8 @@ public class RecurringTransactionService : IApplicationService
                 CreditCardId = request.CreditCardId,
                 FinancialAccountId = request.FinancialAccountId,
                 IsActive = true,
-                Priority = request.Priority
+                Priority = request.Priority,
+                HasVariableAmount = request.HasVariableAmount
             };
 
             await _repository.AddAsync(transaction);
@@ -186,7 +187,7 @@ public class RecurringTransactionService : IApplicationService
                 request.Description.Trim(),
                 request.DayOfMonth,
                 request.Amount,
-                (Diax.Domain.Finance.TransactionType)request.Type,
+                (Diax.Domain.Finance.TransactionType)(int)request.Type,
                 request.ItemKind,
                 id);
 
@@ -211,7 +212,8 @@ public class RecurringTransactionService : IApplicationService
                 request.IsActive,
                 request.Priority,
                 request.Details?.Trim(),
-                request.ItemKind);
+                request.ItemKind,
+                request.HasVariableAmount);
 
             await _repository.UpdateAsync(recurring);
             await _unitOfWork.SaveChangesAsync();
@@ -274,6 +276,7 @@ public class RecurringTransactionService : IApplicationService
             IsActive = transaction.IsActive,
             Priority = transaction.Priority,
             IsSubscription = transaction.ItemKind == RecurringItemKind.Subscription,
+            HasVariableAmount = transaction.HasVariableAmount,
             CreatedAt = transaction.CreatedAt,
             UpdatedAt = transaction.UpdatedAt ?? transaction.CreatedAt
         };
