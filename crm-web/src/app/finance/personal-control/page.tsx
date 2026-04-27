@@ -37,6 +37,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpCircle,
+  Banknote,
   BarChart3,
   Building2,
   Calendar,
@@ -550,8 +551,11 @@ function SalaryPlannerSection({
                     </span>
                   ))}
                   {subscriptions.map((item) => (
-                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
+                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border flex items-center gap-1', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
                       {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
+                      {item.paymentType === 'credit'
+                        ? <span className="ml-1 inline-flex items-center gap-0.5 rounded bg-blue-100 px-1 text-[10px] text-blue-700"><CreditCardIcon className="h-2.5 w-2.5" />{item.creditCardName || 'Crédito'}</span>
+                        : <span className="ml-1 inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1 text-[10px] text-emerald-700"><Banknote className="h-2.5 w-2.5" />PIX</span>}
                     </span>
                   ))}
                   {pendingTotal > 0 && (
@@ -1149,9 +1153,9 @@ function Page() {
                   <TableRow key={item.id}>
                     <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
                     <TableCell>{formatCurrency(item.amount)}</TableCell>
-                    <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
+                    <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
                     <TableCell>Dia {item.dueDay}</TableCell>
-                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
+                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
                     <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
                     <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                   </TableRow>
@@ -1173,8 +1177,8 @@ function Page() {
                     <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
                     <TableCell>{formatCurrency(item.amount)}</TableCell>
                     <TableCell><Badge variant="outline">{billingFrequencyOptions.find((option) => option.value === item.billingFrequency)?.label || item.billingFrequency}</Badge></TableCell>
-                    <TableCell><Badge variant="outline">{item.paymentType === 'credit' ? 'Crédito' : 'Débito'}</Badge></TableCell>
-                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">{item.creditCardName}</Badge> : <span className="text-sm text-muted-foreground">Sem cartão</span>}</TableCell>
+                    <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
+                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
                     <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `subscription-${item.id}`} onClick={() => saveStatus('subscription', item.id, !item.isPaid)} /></TableCell>
                     <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editSubscription(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'subscription', id: item.id, name: item.name })} disabled={savingKey === `delete-subscription-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                   </TableRow>
