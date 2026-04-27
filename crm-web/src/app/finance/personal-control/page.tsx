@@ -124,6 +124,7 @@ function expenseFormReset(): EditingState<CreatePersonalControlExpenseRequest> {
     paymentDate: undefined,
     creditCardId: '',
     details: '',
+    hasVariableAmount: false,
     editingId: null,
   };
 }
@@ -141,6 +142,7 @@ function subscriptionFormReset(): EditingState<CreatePersonalControlSubscription
     paymentDate: undefined,
     creditCardId: '',
     details: '',
+    hasVariableAmount: false,
     editingId: null,
   };
 }
@@ -897,6 +899,7 @@ function Page() {
       paymentDate: item.paymentDate,
       creditCardId: item.creditCardId || '',
       details: item.details || '',
+      hasVariableAmount: item.hasVariableAmount ?? false,
       editingId: item.id,
     });
     setExpenseDialogOpen(true);
@@ -914,6 +917,7 @@ function Page() {
       paymentDate: item.paymentDate,
       creditCardId: item.creditCardId || '',
       details: item.details || '',
+      hasVariableAmount: item.hasVariableAmount ?? false,
       editingId: item.id,
     });
     setSubscriptionDialogOpen(true);
@@ -1151,7 +1155,7 @@ function Page() {
               <TableBody>
                 {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.expenses.length ? monthView.expenses.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                    <TableCell><div className="space-y-1"><p className="font-medium flex items-center gap-1">{item.name}{item.hasVariableAmount && <span title="Valor variável — verificar mês a mês" className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">~valor</span>}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
                     <TableCell>{formatCurrency(item.amount)}</TableCell>
                     <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
                     <TableCell>Dia {item.dueDay}</TableCell>
@@ -1174,7 +1178,7 @@ function Page() {
               <TableBody>
                 {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.subscriptions.length ? monthView.subscriptions.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                    <TableCell><div className="space-y-1"><p className="font-medium flex items-center gap-1">{item.name}{item.hasVariableAmount && <span title="Valor variável — verificar mês a mês" className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">~valor</span>}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
                     <TableCell>{formatCurrency(item.amount)}</TableCell>
                     <TableCell><Badge variant="outline">{billingFrequencyOptions.find((option) => option.value === item.billingFrequency)?.label || item.billingFrequency}</Badge></TableCell>
                     <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
@@ -1510,6 +1514,10 @@ function Page() {
               </div>
             </div>
             <div className="space-y-2"><Label htmlFor="expense-details">Detalhes</Label><Input id="expense-details" value={expenseForm.details || ''} onChange={(event) => setExpenseForm((current) => ({ ...current, details: event.target.value }))} /></div>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
+              <input type="checkbox" className="rounded border-gray-300" checked={!!expenseForm.hasVariableAmount} onChange={(e) => setExpenseForm((c) => ({ ...c, hasVariableAmount: e.target.checked }))} />
+              <span className="text-muted-foreground">Valor variável mês a mês <span className="text-amber-600 font-medium">(ex: plano de saúde, condomínio)</span></span>
+            </label>
             <DialogFooter>
               {expenseForm.editingId ? <Button type="button" variant="outline" onClick={() => setExpenseForm(expenseFormReset())}>Limpar</Button> : null}
               <Button type="submit" className="gap-2" disabled={savingKey === 'expense'}><Plus className="h-4 w-4" />{savingKey === 'expense' ? 'Salvando...' : expenseForm.editingId ? 'Atualizar despesa' : 'Criar despesa'}</Button>
@@ -1556,6 +1564,10 @@ function Page() {
               </div>
             </div>
             <div className="space-y-2"><Label htmlFor="subscription-details">Detalhes</Label><Input id="subscription-details" value={subscriptionForm.details || ''} onChange={(event) => setSubscriptionForm((current) => ({ ...current, details: event.target.value }))} /></div>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
+              <input type="checkbox" className="rounded border-gray-300" checked={!!subscriptionForm.hasVariableAmount} onChange={(e) => setSubscriptionForm((c) => ({ ...c, hasVariableAmount: e.target.checked }))} />
+              <span className="text-muted-foreground">Valor variável mês a mês <span className="text-amber-600 font-medium">(ex: plano de saúde, condomínio)</span></span>
+            </label>
             <DialogFooter>
               {subscriptionForm.editingId ? <Button type="button" variant="outline" onClick={() => setSubscriptionForm(subscriptionFormReset())}>Limpar</Button> : null}
               <Button type="submit" className="gap-2" disabled={savingKey === 'subscription'}><Plus className="h-4 w-4" />{savingKey === 'subscription' ? 'Salvando...' : subscriptionForm.editingId ? 'Atualizar assinatura' : 'Criar assinatura'}</Button>

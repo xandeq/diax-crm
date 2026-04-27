@@ -62,6 +62,7 @@ export interface PersonalControlExpenseItem {
   details?: string;
   creditCardId?: string;
   creditCardName?: string;
+  hasVariableAmount?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -77,6 +78,7 @@ export interface PersonalControlSubscriptionItem {
   details?: string;
   creditCardId?: string;
   creditCardName?: string;
+  hasVariableAmount?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -115,6 +117,7 @@ export interface CreatePersonalControlExpenseRequest {
   paymentDate?: string;
   details?: string;
   creditCardId?: string;
+  hasVariableAmount?: boolean;
 }
 
 export interface UpdatePersonalControlExpenseRequest extends CreatePersonalControlExpenseRequest {}
@@ -130,6 +133,7 @@ export interface CreatePersonalControlSubscriptionRequest {
   paymentDate?: string;
   details?: string;
   creditCardId?: string;
+  hasVariableAmount?: boolean;
 }
 
 export interface UpdatePersonalControlSubscriptionRequest extends CreatePersonalControlSubscriptionRequest {}
