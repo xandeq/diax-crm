@@ -3,6 +3,7 @@ using Diax.Application.Finance.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.Finance;
 using Diax.Shared.Results;
+using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 
 namespace Diax.Application.Finance;
@@ -23,19 +24,22 @@ public class TransactionService : IApplicationService
     private readonly IFinancialAccountRepository _accountRepository;
     private readonly IImportedTransactionRepository _importedTransactionRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<TransactionService> _logger;
 
     public TransactionService(
         ITransactionRepository repository,
         ITransactionCategoryRepository categoryRepository,
         IFinancialAccountRepository accountRepository,
         IImportedTransactionRepository importedTransactionRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<TransactionService> logger)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
         _accountRepository = accountRepository;
         _importedTransactionRepository = importedTransactionRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     // ── Queries ──────────────────────────────────────────────────
@@ -263,9 +267,9 @@ public class TransactionService : IApplicationService
         {
             var any = await _repository.GetByIdAsync(id, ct);
             if (any != null)
-                Console.WriteLine($"[TransactionService.DeleteAsync] ERRO: Transação {id} pertence ao usuário {any.UserId}, tentativa por {userId}");
+                _logger.LogWarning("DeleteAsync: transação {TransactionId} pertence ao usuário {OwnerUserId}, tentativa por {RequesterUserId}", id, any.UserId, userId);
             else
-                Console.WriteLine($"[TransactionService.DeleteAsync] ERRO: Transação {id} não existe");
+                _logger.LogWarning("DeleteAsync: transação {TransactionId} não existe", id);
 
             return Result.Failure(Errors.NotFound);
         }
@@ -307,7 +311,7 @@ public class TransactionService : IApplicationService
         if (request.Ids.Count > 100)
             return Result.Failure<BulkDeleteResponse>(new Error("General.BatchLimitExceeded", "O limite máximo é de 100 itens por exclusão."));
 
-        Console.WriteLine($"[TransactionService.DeleteRangeAsync] Exclusão de {request.Ids.Count} transações, user {userId}");
+        _logger.LogInformation("DeleteRangeAsync: solicitação de exclusão de {Count} transações pelo usuário {UserId}", request.Ids.Count, userId);
 
         return await _unitOfWork.ExecuteStrategyAsync(async (cToken) =>
         {

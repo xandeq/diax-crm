@@ -59,11 +59,19 @@ public class CreditCardInvoice : AuditableEntity, IUserOwnedEntity
     }
 
     /// <summary>
-    /// Calcula o valor total da fatura baseado nas despesas vinculadas
+    /// Calcula o valor total da fatura baseado nas transações e despesas legadas vinculadas.
     /// </summary>
     public decimal GetTotalAmount()
     {
-        return Expenses?.Sum(e => e.Amount) ?? 0;
+        var transactionsTotal = Transactions?
+            .Where(t => t.Type == TransactionType.Expense)
+            .Sum(t => t.Amount) ?? 0m;
+
+#pragma warning disable CS0618
+        var legacyExpensesTotal = Expenses?.Sum(e => e.Amount) ?? 0m;
+#pragma warning restore CS0618
+
+        return transactionsTotal + legacyExpensesTotal;
     }
 
     /// <summary>
