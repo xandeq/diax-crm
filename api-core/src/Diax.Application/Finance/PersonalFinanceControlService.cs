@@ -20,6 +20,7 @@ public class PersonalFinanceControlService : IApplicationService
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly ICreditCardInvoiceRepository _creditCardInvoiceRepository;
     private readonly ICreditCardGroupRepository _creditCardGroupRepository;
+    private readonly IFinancialAccountRepository _financialAccountRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
     private readonly IGoogleSheetsService? _googleSheetsService;
@@ -31,6 +32,7 @@ public class PersonalFinanceControlService : IApplicationService
         ICreditCardRepository creditCardRepository,
         ICreditCardInvoiceRepository creditCardInvoiceRepository,
         ICreditCardGroupRepository creditCardGroupRepository,
+        IFinancialAccountRepository financialAccountRepository,
         IUnitOfWork unitOfWork,
         IConfiguration configuration,
         ILogger<PersonalFinanceControlService> logger,
@@ -41,6 +43,7 @@ public class PersonalFinanceControlService : IApplicationService
         _creditCardRepository = creditCardRepository;
         _creditCardInvoiceRepository = creditCardInvoiceRepository;
         _creditCardGroupRepository = creditCardGroupRepository;
+        _financialAccountRepository = financialAccountRepository;
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _googleSheetsService = googleSheetsService;
@@ -183,6 +186,134 @@ public class PersonalFinanceControlService : IApplicationService
             _logger.LogError(ex, "Failed to build monthly personal finance view for user {UserId}", userId);
             return Result.Failure<PersonalFinanceMonthResponse>(
                 new Error("PersonalFinance.MonthViewFailed", "Falha ao montar a visão mensal"));
+        }
+    }
+
+    /// <summary>
+    /// Materialises active recurring templates as actual Transaction rows for the target
+    /// month, mirroring the behaviour of TransactionService.CreateAsync (Income → Paid +
+    /// account credited; non-card Expense → Pending + account debited; CreditCard expenses
+    /// skipped in v1 because invoice resolution requires more context).
+    ///
+    /// Idempotent: a template that already has a Transaction for (year, month) is skipped
+    /// with reason "AlreadyExists", so calling this twice for the same month is safe.
+    /// </summary>
+    public async Task<Result<CopyRecurringMonthResult>> CopyRecurringForMonthAsync(
+        int year,
+        int month,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (month < 1 || month > 12)
+            return Result.Failure<CopyRecurringMonthResult>(new Error("PersonalFinance.InvalidMonth", "Mês deve estar entre 1 e 12"));
+
+        if (year < 2000)
+            return Result.Failure<CopyRecurringMonthResult>(new Error("PersonalFinance.InvalidYear", "Ano deve ser 2000 ou maior"));
+
+        try
+        {
+            var templates = await _recurringRepository.GetRecurringForMonthAsync(userId, month, year);
+
+            var created = new List<CopyRecurringItem>();
+            var skipped = new List<CopyRecurringItem>();
+            var anyCreated = false;
+
+            foreach (var template in templates)
+            {
+                var existing = await _transactionRepository.GetByRecurringTransactionForMonthAsync(
+                    template.Id, year, month, userId, cancellationToken);
+                if (existing != null)
+                {
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, existing.Id, "AlreadyExists"));
+                    continue;
+                }
+
+                if (template.PaymentMethod == PaymentMethod.CreditCard)
+                {
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "CreditCardSkipped"));
+                    continue;
+                }
+
+                if (!template.FinancialAccountId.HasValue)
+                {
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "MissingAccount"));
+                    continue;
+                }
+
+                var account = await _financialAccountRepository.GetByIdAndUserAsync(
+                    template.FinancialAccountId.Value, userId, cancellationToken);
+                if (account == null || !account.IsActive)
+                {
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "InvalidAccount"));
+                    continue;
+                }
+
+                var safeDay = Math.Min(template.DayOfMonth, DateTime.DaysInMonth(year, month));
+                var targetDate = new DateTime(year, month, safeDay, 12, 0, 0, DateTimeKind.Utc);
+                var domainType = (Domain.Finance.TransactionType)(int)template.Type;
+
+                Transaction tx;
+                if (domainType == Domain.Finance.TransactionType.Income)
+                {
+                    tx = Transaction.CreateIncome(
+                        description: template.Description,
+                        amount: template.Amount,
+                        date: targetDate,
+                        paymentMethod: template.PaymentMethod,
+                        categoryId: template.CategoryId,
+                        isRecurring: true,
+                        financialAccountId: template.FinancialAccountId.Value,
+                        userId: userId,
+                        details: template.Details,
+                        recurringTransactionId: template.Id,
+                        paidDate: targetDate);
+
+                    account.Credit(template.Amount);
+                }
+                else if (domainType == Domain.Finance.TransactionType.Expense)
+                {
+                    tx = Transaction.CreateExpense(
+                        description: template.Description,
+                        amount: template.Amount,
+                        date: targetDate,
+                        paymentMethod: template.PaymentMethod,
+                        categoryId: template.CategoryId,
+                        isRecurring: true,
+                        userId: userId,
+                        financialAccountId: template.FinancialAccountId.Value,
+                        status: TransactionStatus.Pending,
+                        details: template.Details,
+                        recurringTransactionId: template.Id,
+                        isSubscription: template.ItemKind == RecurringItemKind.Subscription,
+                        hasVariableAmount: template.HasVariableAmount);
+
+                    account.Debit(template.Amount);
+                }
+                else
+                {
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "UnsupportedType"));
+                    continue;
+                }
+
+                await _transactionRepository.AddAsync(tx, cancellationToken);
+                await _financialAccountRepository.UpdateAsync(account, cancellationToken);
+                created.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, tx.Id, null));
+                anyCreated = true;
+            }
+
+            if (anyCreated)
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "CopyRecurringForMonth user={UserId} {Year}/{Month}: created={Created} skipped={Skipped}",
+                userId, year, month, created.Count, skipped.Count);
+
+            return Result<CopyRecurringMonthResult>.Success(new CopyRecurringMonthResult(year, month, created, skipped));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CopyRecurringForMonth failed user={UserId} {Year}/{Month}", userId, year, month);
+            return Result.Failure<CopyRecurringMonthResult>(new Error("PersonalFinance.CopyRecurringFailed", "Falha ao copiar recorrentes"));
         }
     }
 
