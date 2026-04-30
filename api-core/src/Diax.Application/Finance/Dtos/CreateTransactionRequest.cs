@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Diax.Domain.Finance;
 
 namespace Diax.Application.Finance.Dtos;
@@ -11,8 +12,8 @@ namespace Diax.Application.Finance.Dtos;
 /// - Transfer: FinancialAccountId obrigatório, gerido via AccountTransferService
 /// </summary>
 public record CreateTransactionRequest(
-    string Description,
-    decimal Amount,
+    [property: Required, StringLength(500, MinimumLength = 1)] string Description,
+    [property: Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
     DateTime Date,
     TransactionType Type,
     PaymentMethod PaymentMethod,
@@ -23,7 +24,7 @@ public record CreateTransactionRequest(
     Guid? CreditCardInvoiceId = null,
     TransactionStatus Status = TransactionStatus.Pending,
     DateTime? PaidDate = null,
-    string? Details = null,
+    [property: StringLength(2000)] string? Details = null,
     bool IsSubscription = false,
     bool HasVariableAmount = false
 );
