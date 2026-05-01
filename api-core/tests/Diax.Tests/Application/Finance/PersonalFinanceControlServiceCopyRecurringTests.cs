@@ -181,6 +181,38 @@ public class PersonalFinanceControlServiceCopyRecurringTests
     }
 
     [Fact]
+    public async Task CopyRecurring_VariableAmountTemplate_FlagsResultItem()
+    {
+        // Condomínio com taxa extra e salário dolarizado/por dias úteis: a UI usa esse flag
+        // para lembrar o usuário de conferir/editar o valor depois que a transação é gerada.
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 1000m);
+        var template = NewExpenseTemplate(userId, account.Id, 600m, dayOfMonth: 10);
+        template.HasVariableAmount = true;
+        template.Description = "Condomínio";
+
+        _recurringRepo.Setup(r => r.GetRecurringForMonthAsync(userId, 5, 2026))
+            .ReturnsAsync(new List<RecurringTransaction> { template });
+        _txRepo.Setup(r => r.GetByRecurringTransactionForMonthAsync(template.Id, 2026, 5, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Transaction?)null);
+        _accountRepo.Setup(r => r.GetByIdAndUserAsync(account.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(account);
+
+        Transaction? added = null;
+        _txRepo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
+            .Callback<Transaction, CancellationToken>((t, _) => added = t)
+            .ReturnsAsync((Transaction t, CancellationToken _) => t);
+
+        var result = await BuildService().CopyRecurringForMonthAsync(2026, 5, userId);
+
+        Assert.True(result.IsSuccess);
+        var item = Assert.Single(result.Value.Created);
+        Assert.True(item.HasVariableAmount);
+        Assert.NotNull(added);
+        Assert.True(added!.HasVariableAmount);
+    }
+
+    [Fact]
     public async Task CopyRecurring_SubscriptionTemplate_MarksTransactionAsSubscription()
     {
         var userId = Guid.NewGuid();

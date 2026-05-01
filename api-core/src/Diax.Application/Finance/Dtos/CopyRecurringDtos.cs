@@ -19,10 +19,14 @@ public record CopyRecurringMonthResult(
 /// - "MissingAccount": template has no FinancialAccountId (data integrity issue).
 /// - "InvalidAccount": account not found or inactive.
 /// - "UnsupportedType": template Type isn't Income or Expense.
+///
+/// HasVariableAmount: surfaced from the source template so the UI can prompt the user to confirm
+/// the actual value (e.g. condomínio with extra fees, dollarized salary, work-day-based pay).
 /// </remarks>
 public record CopyRecurringItem(
     Guid TemplateId,
     string Description,
     decimal Amount,
     Guid? CreatedTransactionId,
-    string? SkipReason);
+    string? SkipReason,
+    bool HasVariableAmount = false);

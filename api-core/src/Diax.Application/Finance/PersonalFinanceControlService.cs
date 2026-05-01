@@ -224,19 +224,19 @@ public class PersonalFinanceControlService : IApplicationService
                     template.Id, year, month, userId, cancellationToken);
                 if (existing != null)
                 {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, existing.Id, "AlreadyExists"));
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, existing.Id, "AlreadyExists", template.HasVariableAmount));
                     continue;
                 }
 
                 if (template.PaymentMethod == PaymentMethod.CreditCard)
                 {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "CreditCardSkipped"));
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "CreditCardSkipped", template.HasVariableAmount));
                     continue;
                 }
 
                 if (!template.FinancialAccountId.HasValue)
                 {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "MissingAccount"));
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "MissingAccount", template.HasVariableAmount));
                     continue;
                 }
 
@@ -244,7 +244,7 @@ public class PersonalFinanceControlService : IApplicationService
                     template.FinancialAccountId.Value, userId, cancellationToken);
                 if (account == null || !account.IsActive)
                 {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "InvalidAccount"));
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "InvalidAccount", template.HasVariableAmount));
                     continue;
                 }
 
@@ -291,13 +291,13 @@ public class PersonalFinanceControlService : IApplicationService
                 }
                 else
                 {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "UnsupportedType"));
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "UnsupportedType", template.HasVariableAmount));
                     continue;
                 }
 
                 await _transactionRepository.AddAsync(tx, cancellationToken);
                 await _financialAccountRepository.UpdateAsync(account, cancellationToken);
-                created.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, tx.Id, null));
+                created.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, tx.Id, null, template.HasVariableAmount));
                 anyCreated = true;
             }
 
