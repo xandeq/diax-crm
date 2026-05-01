@@ -12,8 +12,6 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
     public new async Task<FinancialAccount?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Include(a => a.Incomes)
-            .Include(a => a.Expenses)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
     }
 
@@ -60,8 +58,6 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
     public async Task<FinancialAccount?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet
-            .Include(a => a.Incomes)
-            .Include(a => a.Expenses)
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
     }
 }
