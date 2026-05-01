@@ -250,6 +250,17 @@ public class PersonalFinanceControlService : IApplicationService
 
                 var safeDay = Math.Min(template.DayOfMonth, DateTime.DaysInMonth(year, month));
                 var targetDate = new DateTime(year, month, safeDay, 12, 0, 0, DateTimeKind.Utc);
+
+                // Mirror RecurringTransaction.GetNextOccurrences:196 — the first
+                // materialised occurrence must land on or after the template's StartDate.
+                // Otherwise a template starting mid-month with an earlier DayOfMonth
+                // would create a transaction dated before the template was supposed to begin.
+                if (targetDate.Date < template.StartDate.Date)
+                {
+                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "BeforeStartDate", template.HasVariableAmount));
+                    continue;
+                }
+
                 var domainType = (Domain.Finance.TransactionType)(int)template.Type;
 
                 Transaction tx;

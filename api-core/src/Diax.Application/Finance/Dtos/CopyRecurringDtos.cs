@@ -19,6 +19,9 @@ public record CopyRecurringMonthResult(
 /// - "MissingAccount": template has no FinancialAccountId (data integrity issue).
 /// - "InvalidAccount": account not found or inactive.
 /// - "UnsupportedType": template Type isn't Income or Expense.
+/// - "BeforeStartDate": the clamped target day falls before the template's StartDate
+///   (e.g. template starts on the 15th but DayOfMonth=10 — the first valid occurrence is the
+///   following month). Mirrors RecurringTransaction.GetNextOccurrences gating.
 ///
 /// HasVariableAmount: surfaced from the source template so the UI can prompt the user to confirm
 /// the actual value (e.g. condomínio with extra fees, dollarized salary, work-day-based pay).

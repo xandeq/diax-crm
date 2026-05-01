@@ -311,6 +311,61 @@ public class PersonalFinanceControlServiceCopyRecurringTests
     }
 
     [Fact]
+    public async Task CopyRecurring_StartDateAfterClampedDay_SkipsWithBeforeStartDate()
+    {
+        // Template starts mid-month (2026-05-15) with DayOfMonth=10. The clamped
+        // target date is 2026-05-10, which is BEFORE the template's StartDate.
+        // RecurringTransaction.GetNextOccurrences gates this case with
+        // `occurrence >= StartDate.Date`; CopyRecurring must do the same so the
+        // first materialised transaction lands on or after the start date.
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 1000m);
+        var template = NewExpenseTemplate(userId, account.Id, 1500m, dayOfMonth: 10);
+        template.StartDate = new DateTime(2026, 5, 15);
+
+        _recurringRepo.Setup(r => r.GetRecurringForMonthAsync(userId, 5, 2026))
+            .ReturnsAsync(new List<RecurringTransaction> { template });
+        _txRepo.Setup(r => r.GetByRecurringTransactionForMonthAsync(template.Id, 2026, 5, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Transaction?)null);
+        _accountRepo.Setup(r => r.GetByIdAndUserAsync(account.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(account);
+
+        var result = await BuildService().CopyRecurringForMonthAsync(2026, 5, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Value.Created);
+        var skip = Assert.Single(result.Value.Skipped);
+        Assert.Equal("BeforeStartDate", skip.SkipReason);
+        Assert.Equal(1000m, account.Balance); // unchanged
+        _txRepo.Verify(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CopyRecurring_StartDateAtClampedDay_Materialises()
+    {
+        // Boundary: StartDate equals the target day. Should materialise.
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 1000m);
+        var template = NewExpenseTemplate(userId, account.Id, 1500m, dayOfMonth: 15);
+        template.StartDate = new DateTime(2026, 5, 15);
+
+        _recurringRepo.Setup(r => r.GetRecurringForMonthAsync(userId, 5, 2026))
+            .ReturnsAsync(new List<RecurringTransaction> { template });
+        _txRepo.Setup(r => r.GetByRecurringTransactionForMonthAsync(template.Id, 2026, 5, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Transaction?)null);
+        _accountRepo.Setup(r => r.GetByIdAndUserAsync(account.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(account);
+        _txRepo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Transaction t, CancellationToken _) => t);
+
+        var result = await BuildService().CopyRecurringForMonthAsync(2026, 5, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Value.Created);
+        Assert.Empty(result.Value.Skipped);
+    }
+
+    [Fact]
     public async Task CopyRecurring_DayOfMonth31_ClampsToFebruary28()
     {
         var userId = Guid.NewGuid();
