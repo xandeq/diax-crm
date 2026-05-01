@@ -11,11 +11,17 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
 
     public new async Task<CreditCardInvoice?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        // GetTotalAmount() reads BOTH .Transactions (post-unification fd9eee0) and
+        // .Expenses (legacy). Loading only one yields a wrong total during the
+        // transition window — see commit 6c60317 for the entity-level fix.
         return await DbSet
             .Include(i => i.CreditCardGroup)
             .ThenInclude(g => g.Cards)
             .Include(i => i.PaidFromAccount)
+            .Include(i => i.Transactions)
+#pragma warning disable CS0618
             .Include(i => i.Expenses)
+#pragma warning restore CS0618
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }
 
@@ -37,7 +43,10 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
 
         return await DbSet
             .Where(i => i.CreditCardGroupId == card.CreditCardGroupId)
+            .Include(i => i.Transactions)
+#pragma warning disable CS0618
             .Include(i => i.Expenses)
+#pragma warning restore CS0618
             .OrderByDescending(i => i.ReferenceYear)
             .ThenByDescending(i => i.ReferenceMonth)
             .ToListAsync(cancellationToken);
@@ -53,7 +62,10 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
         return await DbSet
             .Include(i => i.CreditCardGroup)
             .ThenInclude(g => g.Cards)
+            .Include(i => i.Transactions)
+#pragma warning disable CS0618
             .Include(i => i.Expenses)
+#pragma warning restore CS0618
             .FirstOrDefaultAsync(i => i.CreditCardGroupId == card.CreditCardGroupId
                 && i.ReferenceMonth == month
                 && i.ReferenceYear == year, cancellationToken);
@@ -63,7 +75,10 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     {
         return await DbSet
             .Where(i => i.CreditCardGroupId == creditCardGroupId)
+            .Include(i => i.Transactions)
+#pragma warning disable CS0618
             .Include(i => i.Expenses)
+#pragma warning restore CS0618
             .OrderByDescending(i => i.ReferenceYear)
             .ThenByDescending(i => i.ReferenceMonth)
             .ToListAsync(cancellationToken);
@@ -74,7 +89,10 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
         return await DbSet
             .Include(i => i.CreditCardGroup)
             .ThenInclude(g => g.Cards)
+            .Include(i => i.Transactions)
+#pragma warning disable CS0618
             .Include(i => i.Expenses)
+#pragma warning restore CS0618
             .FirstOrDefaultAsync(i => i.CreditCardGroupId == creditCardGroupId
                 && i.ReferenceMonth == month
                 && i.ReferenceYear == year, cancellationToken);
@@ -82,10 +100,16 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
 
     public async Task<List<CreditCardInvoice>> GetUnpaidInvoicesAsync(CancellationToken cancellationToken = default)
     {
+        // FinancialSummaryService.cs:90 sums GetTotalAmount() over the result, so we must
+        // load both Transactions (post-unification) and the legacy Expenses navigation.
         return await DbSet
             .Where(i => !i.IsPaid)
             .Include(i => i.CreditCardGroup)
             .ThenInclude(g => g.Cards)
+            .Include(i => i.Transactions)
+#pragma warning disable CS0618
+            .Include(i => i.Expenses)
+#pragma warning restore CS0618
             .OrderBy(i => i.DueDate)
             .ToListAsync(cancellationToken);
     }
@@ -106,7 +130,10 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
             .Include(i => i.CreditCardGroup)
             .ThenInclude(g => g.Cards)
             .Include(i => i.PaidFromAccount)
+            .Include(i => i.Transactions)
+#pragma warning disable CS0618
             .Include(i => i.Expenses)
+#pragma warning restore CS0618
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
     }
 
