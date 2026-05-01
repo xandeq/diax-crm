@@ -353,6 +353,86 @@ public class TransactionServiceBalanceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_DebitCardToCreditCard_RefundsAccountAndStopsTrackingThere()
+    {
+        // Despesa originalmente em conta corrente (DebitCard) virou despesa de cartão de
+        // crédito. Esperado: a conta é creditada de volta com o valor (refund) e a nova
+        // forma de pagamento (cartão) não toca em conta nenhuma.
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 750m); // já debitado de 250 (1000 inicial)
+        SetupAccount(account, userId);
+
+        var expense = Transaction.CreateExpense(
+            description: "Mercado",
+            amount: 250m,
+            date: new DateTime(2026, 4, 5),
+            paymentMethod: PaymentMethod.DebitCard,
+            categoryId: null,
+            isRecurring: false,
+            userId: userId,
+            financialAccountId: account.Id);
+
+        _txRepo.Setup(r => r.GetByIdAndUserAsync(expense.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expense);
+
+        var creditCardId = Guid.NewGuid();
+        var request = new UpdateTransactionRequest(
+            Description: "Mercado",
+            Amount: 250m,
+            Date: new DateTime(2026, 4, 5),
+            PaymentMethod: PaymentMethod.CreditCard,
+            CategoryId: null,
+            IsRecurring: false,
+            FinancialAccountId: null,
+            CreditCardId: creditCardId);
+
+        var result = await BuildService().UpdateAsync(expense.Id, request, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1000m, account.Balance); // refunded
+    }
+
+    [Fact]
+    public async Task UpdateAsync_CreditCardToDebitCard_DoesNotRefundOldButDebitsNewAccount()
+    {
+        // Despesa originalmente no cartão (sem impacto na conta) virou DebitCard. Esperado:
+        // não há nada para reverter no lado antigo (cartão não afeta saldo) e a nova conta
+        // é debitada normalmente.
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 1000m);
+        SetupAccount(account, userId);
+
+        var expense = Transaction.CreateExpense(
+            description: "Compra",
+            amount: 250m,
+            date: new DateTime(2026, 4, 10),
+            paymentMethod: PaymentMethod.CreditCard,
+            categoryId: null,
+            isRecurring: false,
+            userId: userId,
+            creditCardId: Guid.NewGuid(),
+            creditCardInvoiceId: Guid.NewGuid());
+
+        _txRepo.Setup(r => r.GetByIdAndUserAsync(expense.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expense);
+
+        var request = new UpdateTransactionRequest(
+            Description: "Compra",
+            Amount: 250m,
+            Date: new DateTime(2026, 4, 10),
+            PaymentMethod: PaymentMethod.DebitCard,
+            CategoryId: null,
+            IsRecurring: false,
+            FinancialAccountId: account.Id,
+            CreditCardId: null);
+
+        var result = await BuildService().UpdateAsync(expense.Id, request, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(750m, account.Balance); // debited; nothing to refund on the credit-card side
+    }
+
+    [Fact]
     public async Task UpdateAsync_ChangeAmount_AdjustsBalanceBy_NewMinusOld()
     {
         // Income on the same account changes from 500 → 800 → balance moves +300.
