@@ -69,6 +69,18 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
             .ToListAsync(ct);
     }
 
+    public async Task<IEnumerable<Transaction>> GetByStatusAsync(TransactionStatus status, Guid userId, CancellationToken ct = default)
+    {
+        return await DbSet
+            .IgnoreQueryFilters()
+            .Include(t => t.Category)
+            .Include(t => t.FinancialAccount)
+            .Include(t => t.CreditCard)
+            .Where(t => t.UserId == userId && t.Status == status)
+            .OrderByDescending(t => t.Date)
+            .ToListAsync(ct);
+    }
+
     public async Task<IEnumerable<Transaction>> GetByMonthAsync(int year, int month, Guid userId, CancellationToken ct = default)
     {
         return await DbSet

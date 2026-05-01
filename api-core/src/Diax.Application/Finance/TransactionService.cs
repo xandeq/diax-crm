@@ -105,9 +105,8 @@ public class TransactionService : IApplicationService
 
     public async Task<Result<IEnumerable<TransactionResponse>>> GetByStatusAsync(TransactionStatus status, Guid userId, CancellationToken ct = default)
     {
-        var items = await _repository.GetAllByUserIdAsync(userId, ct);
-        var filtered = items.Where(t => t.Status == status);
-        return Result<IEnumerable<TransactionResponse>>.Success(filtered.Select(MapToResponse));
+        var items = await _repository.GetByStatusAsync(status, userId, ct);
+        return Result<IEnumerable<TransactionResponse>>.Success(items.Select(MapToResponse));
     }
 
     // ── Commands ─────────────────────────────────────────────────
