@@ -19,21 +19,6 @@ public class CreditCardGroupRepository : Repository<CreditCardGroup>, ICreditCar
             .ToListAsync();
     }
 
-    public async Task<CreditCardGroup?> GetByIdWithCardsAsync(Guid id)
-    {
-        return await Context.CreditCardGroups
-            .Include(g => g.Cards)
-            .FirstOrDefaultAsync(g => g.Id == id);
-    }
-
-    public async Task<CreditCardGroup?> GetByIdWithInvoicesAsync(Guid id)
-    {
-        return await Context.CreditCardGroups
-            .Include(g => g.Invoices)
-            .ThenInclude(i => i.Expenses)
-            .FirstOrDefaultAsync(g => g.Id == id);
-    }
-
     public async Task<IEnumerable<CreditCardGroup>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await Context.CreditCardGroups
