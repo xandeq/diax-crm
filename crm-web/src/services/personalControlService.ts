@@ -21,6 +21,13 @@ export interface PersonalControlSummary {
   withoutCardAmount: number;
   paidCount: number;
   unpaidCount: number;
+  totalCardStatements: number;
+  totalCardPaid: number;
+  totalCardPending: number;
+  cardsPaidCount: number;
+  cardsPendingCount: number;
+  totalToPay: number;
+  availableToInvest: number;
 }
 
 export interface PersonalControlCardSummary {
@@ -145,6 +152,22 @@ export interface TogglePersonalControlStatusRequest {
   paymentDate?: string;
 }
 
+export interface CopyRecurringItem {
+  templateId: string;
+  description: string;
+  amount: number;
+  createdTransactionId?: string;
+  skipReason?: 'AlreadyExists' | 'CreditCardSkipped' | 'MissingAccount' | 'InvalidAccount' | 'UnsupportedType' | 'BeforeStartDate' | string | null;
+  hasVariableAmount?: boolean;
+}
+
+export interface CopyRecurringMonthResult {
+  year: number;
+  month: number;
+  created: CopyRecurringItem[];
+  skipped: CopyRecurringItem[];
+}
+
 const basePath = '/personal-control';
 
 export const personalControlService = {
@@ -265,6 +288,21 @@ export const personalControlService = {
     return apiFetch<string>(`/credit-card-invoices`, {
       method: 'POST',
       body: JSON.stringify({ creditCardGroupId, referenceYear: year, referenceMonth: month }),
+    });
+  },
+
+  parseStatement: async (file: File): Promise<{ transactions: Array<{ description: string; amount: number; date: string }> }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiFetch<{ transactions: Array<{ description: string; amount: number; date: string }> }>(
+      `${basePath}/parse-statement`,
+      { method: 'POST', body: formData }
+    );
+  },
+
+  copyRecurring: async (year: number, month: number): Promise<CopyRecurringMonthResult> => {
+    return apiFetch<CopyRecurringMonthResult>(`${basePath}/copy-recurring/${year}/${month}`, {
+      method: 'POST',
     });
   },
 };

@@ -245,7 +245,8 @@ public static class DependencyInjection
 
         // ===== PARSERS =====
         services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.CsvFileParser>();
-        services.AddScoped<IFileParser, Diax.Infrastructure.Finance.Parsers.PdfFileParser>();
+        services.AddScoped<Diax.Infrastructure.Finance.Parsers.PdfFileParser>();
+        services.AddScoped<IFileParser>(sp => sp.GetRequiredService<Diax.Infrastructure.Finance.Parsers.PdfFileParser>());
 
         // ===== GOOGLE SHEETS =====
         services.AddScoped<Diax.Application.Finance.IGoogleSheetsService, Diax.Infrastructure.Finance.GoogleSheetsService>();

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Asp.Versioning;
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
@@ -8,6 +9,7 @@ using Diax.Domain.Finance.Planner;
 using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Diax.Infrastructure.Finance.Parsers;
 
 namespace Diax.Api.Controllers.V1;
 
@@ -23,6 +25,7 @@ public class PersonalFinanceController : BaseApiController
     private readonly RecurringTransactionService _recurringService;
     private readonly IFinancialAccountRepository _financialAccountRepository;
     private readonly ICreditCardRepository _creditCardRepository;
+    private readonly PdfFileParser _pdfParser;
     private readonly DiaxDbContext _db;
 
     public PersonalFinanceController(
@@ -31,6 +34,7 @@ public class PersonalFinanceController : BaseApiController
         RecurringTransactionService recurringService,
         IFinancialAccountRepository financialAccountRepository,
         ICreditCardRepository creditCardRepository,
+        PdfFileParser pdfParser,
         DiaxDbContext db)
     {
         _monthService = monthService;
@@ -38,6 +42,7 @@ public class PersonalFinanceController : BaseApiController
         _recurringService = recurringService;
         _financialAccountRepository = financialAccountRepository;
         _creditCardRepository = creditCardRepository;
+        _pdfParser = pdfParser;
         _db = db;
     }
 
@@ -314,7 +319,8 @@ public class PersonalFinanceController : BaseApiController
                 request.IsPaid ? TransactionStatus.Paid : TransactionStatus.Pending,
                 request.PaymentDate,
                 request.Details,
-                true),
+                true,
+                request.HasVariableAmount),
             userId.Value,
             cancellationToken);
 
@@ -332,7 +338,52 @@ public class PersonalFinanceController : BaseApiController
             return BadRequest(new { message = "Não foi possível atualizar a assinatura sem uma conta financeira ativa ou cartão válido." });
 
         var result = await _recurringService.UpdateAsync(id, recurringRequest, userId.Value);
-        return HandleResult(result);
+        if (!result.IsSuccess)
+            return HandleResult(result);
+
+        // Option A — propagate amount change to the existing Transaction for this month.
+        // After the template update, occurrence.Amount = new value. The prefer-exact-then-fallback
+        // below fails the exact match (Transaction still has old amount) and hits the fallback
+        // (Description+Date), finding the Transaction. TransactionService.UpdateAsync then
+        // reverses the old balance impact and applies the new one atomically.
+        var monthView = await _monthService.GetMonthAsync(request.Year, request.Month, userId.Value, cancellationToken);
+        if (monthView.IsSuccess)
+        {
+            var occurrence = monthView.Value.Subscriptions.FirstOrDefault(x => x.SourceRecurringTransactionId == id);
+            if (occurrence != null)
+            {
+                var tx = monthView.Value.Items.FirstOrDefault(x =>
+                        x.IsSubscription && x.Description == occurrence.Description
+                        && x.Amount == occurrence.Amount && x.Date.Date == occurrence.Date.Date)
+                    ?? monthView.Value.Items.FirstOrDefault(x =>
+                        x.IsSubscription && x.Description == occurrence.Description
+                        && x.Date.Date == occurrence.Date.Date);
+
+                if (tx != null && tx.Amount != occurrence.Amount)
+                {
+                    await _transactionService.UpdateAsync(tx.Id,
+                        new UpdateTransactionRequest(
+                            tx.Description,
+                            occurrence.Amount,
+                            tx.Date,
+                            tx.PaymentMethod,
+                            tx.CategoryId,
+                            tx.IsRecurring,
+                            tx.FinancialAccountId,
+                            tx.CreditCardId,
+                            tx.CreditCardInvoiceId,
+                            tx.Status,
+                            tx.PaidDate,
+                            tx.Details,
+                            true,
+                            occurrence.HasVariableAmount),
+                        userId.Value,
+                        cancellationToken);
+                }
+            }
+        }
+
+        return Ok();
     }
 
     [HttpDelete("subscriptions/{id:guid}")]
@@ -359,11 +410,19 @@ public class PersonalFinanceController : BaseApiController
         if (occurrence == null)
             return NotFound(new { message = "Assinatura não encontrada para o período informado." });
 
+        // Prefer exact match (Description, Amount, Date), fall back to (Description, Date).
+        // The fallback prevents silent duplicate Transactions when the user toggles status on
+        // a HasVariableAmount subscription whose template Amount was edited away from the
+        // Transaction's original amount. See MapMonthView for the same pattern.
         var transaction = monthView.Value.Items.FirstOrDefault(x =>
-            x.IsSubscription
-            && x.Description == occurrence.Description
-            && x.Amount == occurrence.Amount
-            && x.Date.Date == occurrence.Date.Date);
+                x.IsSubscription
+                && x.Description == occurrence.Description
+                && x.Amount == occurrence.Amount
+                && x.Date.Date == occurrence.Date.Date)
+            ?? monthView.Value.Items.FirstOrDefault(x =>
+                x.IsSubscription
+                && x.Description == occurrence.Description
+                && x.Date.Date == occurrence.Date.Date);
 
         if (transaction == null)
         {
@@ -382,16 +441,13 @@ public class PersonalFinanceController : BaseApiController
                     request.IsPaid ? TransactionStatus.Paid : TransactionStatus.Pending,
                     request.PaymentDate,
                     occurrence.Details,
-                    true),
+                    true,
+                    occurrence.HasVariableAmount),
                 userId.Value,
                 cancellationToken);
 
             if (!createResult.IsSuccess)
                 return BadRequest(createResult.Error);
-
-            var transactionResult = await _transactionService.GetByIdAsync(createResult.Value, userId.Value, cancellationToken);
-            if (!transactionResult.IsSuccess)
-                return NotFound(transactionResult.Error);
 
             return Ok();
         }
@@ -407,16 +463,33 @@ public class PersonalFinanceController : BaseApiController
     {
         var subscriptionItems = source.Subscriptions.Select(subscription =>
         {
+            // Prefer exact match on (Description, Amount, Date) so non-variable subscriptions
+            // and the rare case of two templates sharing description+date but with different
+            // amounts continue to work. Fall back to (Description, Date) for variable-amount
+            // subscriptions where the user edited the template (e.g. condomínio com taxa
+            // extra) — the Transaction.Amount still reflects the original materialisation.
+            // Without this fallback the row would show "Pendente" forever and the toggle
+            // endpoint would silently create duplicate Transactions on every click.
+            // Proper long-term fix: link via RecurringTransactionId (TODO).
             var matchedTransaction = source.Items.FirstOrDefault(item =>
-                item.IsSubscription
-                && item.Description == subscription.Description
-                && item.Amount == subscription.Amount
-                && item.Date.Date == subscription.Date.Date);
+                    item.IsSubscription
+                    && item.Description == subscription.Description
+                    && item.Amount == subscription.Amount
+                    && item.Date.Date == subscription.Date.Date)
+                ?? source.Items.FirstOrDefault(item =>
+                    item.IsSubscription
+                    && item.Description == subscription.Description
+                    && item.Date.Date == subscription.Date.Date);
 
             return new
             {
                 id = subscription.SourceRecurringTransactionId,
                 name = subscription.Description,
+                // Always display the template's Amount (subscription.Amount) — that's the
+                // value the user just entered when editing the subscription. The Transaction's
+                // own Amount may be stale because UpdateSubscription only writes the template;
+                // it doesn't propagate to existing month Transactions. Showing matchedTransaction
+                // .Amount here would surface the stale value and surprise the user.
                 amount = subscription.Amount,
                 billingFrequency = ToBillingFrequency(subscription.FrequencyType),
                 paymentType = subscription.PaymentMethod == PaymentMethod.CreditCard ? "credit" : "debit",
@@ -508,6 +581,54 @@ public class PersonalFinanceController : BaseApiController
                 availableCredit = card.AvailableCredit
             })
         };
+    }
+
+    [HttpPost("copy-recurring/{year:int}/{month:int}")]
+    public async Task<IActionResult> CopyRecurring(int year, int month, CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _monthService.CopyRecurringForMonthAsync(year, month, userId.Value, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(new { code = result.Error.Code, message = result.Error.Message });
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("parse-statement")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> ParseStatement(IFormFile file, CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Arquivo inválido." });
+
+        if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) &&
+            !file.ContentType.Contains("pdf", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Apenas arquivos PDF são suportados." });
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var transactions = new List<object>();
+            await foreach (var tx in _pdfParser.ParseAsync(stream, cancellationToken))
+            {
+                transactions.Add(new
+                {
+                    description = tx.RawDescription,
+                    amount = tx.Amount,
+                    date = tx.TransactionDate.ToString("yyyy-MM-dd")
+                });
+            }
+            return Ok(new { transactions });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     private static string ToBillingFrequency(FrequencyType frequencyType) => frequencyType switch
@@ -608,43 +729,47 @@ public class PersonalFinanceController : BaseApiController
     }
 
     public record PersonalControlIncomeRequest(
-        int Year,
-        int Month,
-        string Name,
-        decimal Amount,
-        int DayOfMonth,
+        [property: Range(2000, 2100)] int Year,
+        [property: Range(1, 12)] int Month,
+        [property: Required, StringLength(200, MinimumLength = 1)] string Name,
+        [property: Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
+        [property: Range(1, 31)] int DayOfMonth,
         bool IsRecurring = true,
         bool IsPaid = true,
         DateTime? PaymentDate = null,
-        string? Details = null);
+        [property: StringLength(2000)] string? Details = null);
 
     public record PersonalControlExpenseRequest(
-        int Year,
-        int Month,
-        string Name,
-        decimal Amount,
-        string PaymentType,
-        int DueDay,
+        [property: Range(2000, 2100)] int Year,
+        [property: Range(1, 12)] int Month,
+        [property: Required, StringLength(200, MinimumLength = 1)] string Name,
+        [property: Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
+        [property: Required, StringLength(50, MinimumLength = 1)] string PaymentType,
+        [property: Range(1, 31)] int DueDay,
         bool IsPaid = false,
         DateTime? PaymentDate = null,
-        string? Details = null,
+        [property: StringLength(2000)] string? Details = null,
         string? CreditCardId = null,
         bool HasVariableAmount = false);
 
     public record PersonalControlSubscriptionRequest(
-        int Year,
-        int Month,
-        string Name,
-        decimal Amount,
-        string BillingFrequency,
-        string PaymentType,
+        [property: Range(2000, 2100)] int Year,
+        [property: Range(1, 12)] int Month,
+        [property: Required, StringLength(200, MinimumLength = 1)] string Name,
+        [property: Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
+        [property: Required, StringLength(50, MinimumLength = 1)] string BillingFrequency,
+        [property: Required, StringLength(50, MinimumLength = 1)] string PaymentType,
         bool IsPaid = false,
         DateTime? PaymentDate = null,
-        string? Details = null,
+        [property: StringLength(2000)] string? Details = null,
         string? CreditCardId = null,
         bool HasVariableAmount = false);
 
     public record TogglePersonalControlStatusRequest(bool IsPaid, DateTime? PaymentDate = null);
 
-    public record TogglePersonalControlSubscriptionStatusRequest(int Year, int Month, bool IsPaid, DateTime? PaymentDate = null);
+    public record TogglePersonalControlSubscriptionStatusRequest(
+        [property: Range(2000, 2100)] int Year,
+        [property: Range(1, 12)] int Month,
+        bool IsPaid,
+        DateTime? PaymentDate = null);
 }

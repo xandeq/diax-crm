@@ -44,12 +44,15 @@ import {
   CheckCircle2,
   CreditCard as CreditCardIcon,
   Download,
+  FileText,
   PencilLine,
   Plus,
   RotateCcw,
+  Sparkles,
   TrendingDown,
   TrendingUp,
   Trash2,
+  Upload,
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -148,13 +151,37 @@ function subscriptionFormReset(): EditingState<CreatePersonalControlSubscription
 }
 
 function StatusBadge({ paid, onClick, loading }: { paid: boolean; onClick?: () => void; loading?: boolean }) {
-  const base = 'cursor-pointer select-none transition-opacity ' + (loading ? 'opacity-50 pointer-events-none' : '');
+  const interactive = !!onClick;
+  const base = 'select-none transition-opacity ' +
+    (interactive ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500 ' : '') +
+    (loading ? 'opacity-50 pointer-events-none' : '');
+
+  const handleKeyDown = interactive
+    ? (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick?.();
+        }
+      }
+    : undefined;
+
+  const a11y = interactive
+    ? {
+        role: 'button' as const,
+        tabIndex: 0,
+        'aria-pressed': paid,
+        'aria-busy': loading || undefined,
+        'aria-label': paid ? 'Marcar como pendente' : 'Marcar como pago',
+        onKeyDown: handleKeyDown,
+      }
+    : {};
+
   return paid ? (
-    <Badge onClick={onClick} className={cn('border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100', base)}>
+    <Badge onClick={onClick} className={cn('border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100', base)} {...a11y}>
       Pago ✓
     </Badge>
   ) : (
-    <Badge onClick={onClick} className={cn('border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100', base)}>
+    <Badge onClick={onClick} className={cn('border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100', base)} {...a11y}>
       Pendente
     </Badge>
   );
@@ -311,6 +338,63 @@ function InvestIQWidget({ data, loading }: { data: InvestIQPortfolioSummary | nu
 
         <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
           <span>{data.position_count} posições</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PatrimonioTotalCard({
+  accountsTotal,
+  accountsCount,
+  investiqValue,
+  investiqConfigured,
+  investiqLoading,
+}: {
+  accountsTotal: number;
+  accountsCount: number;
+  investiqValue: number | null;
+  investiqConfigured: boolean;
+  investiqLoading: boolean;
+}) {
+  if (accountsCount === 0 && !investiqConfigured && !investiqLoading) return null;
+
+  const investiqAmount = investiqConfigured ? (investiqValue ?? 0) : 0;
+  const total = accountsTotal + investiqAmount;
+  const accountsPct = total > 0 ? Math.round((accountsTotal / total) * 100) : 0;
+  const investiqPct = total > 0 ? Math.round((investiqAmount / total) * 100) : 0;
+
+  return (
+    <div className="rounded-2xl border bg-gradient-to-r from-emerald-50 via-white to-violet-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-slate-950 dark:to-violet-950/40">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-violet-500 p-2.5 text-white">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Patrimônio Total</p>
+            <p className="text-3xl font-semibold tracking-tight">{formatCurrency(total)}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <div className="rounded-lg border bg-white/70 px-3 py-2 text-xs shadow-xs dark:bg-slate-900/70">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" />
+              <span>Contas</span>
+              {accountsPct > 0 && <span className="font-medium text-foreground">{accountsPct}%</span>}
+            </div>
+            <p className="font-semibold tabular-nums">{formatCurrency(accountsTotal)}</p>
+          </div>
+          <div className="rounded-lg border bg-white/70 px-3 py-2 text-xs shadow-xs dark:bg-slate-900/70">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span>InvestIQ</span>
+              {investiqConfigured && investiqPct > 0 && <span className="font-medium text-foreground">{investiqPct}%</span>}
+            </div>
+            <p className="font-semibold tabular-nums">
+              {investiqLoading ? '—' : investiqConfigured ? formatCurrency(investiqAmount) : 'não configurado'}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -611,9 +695,17 @@ function Page() {
     name: string;
   } | null>(null);
   const [importingSheet, setImportingSheet] = useState(false);
+  const [copyingRecurring, setCopyingRecurring] = useState(false);
   const [editingStatementId, setEditingStatementId] = useState<string | null>(null);
   const [statementDraft, setStatementDraft] = useState('');
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
+
+  // Feature 2 — PDF statement import
+  type ParsedStatementTx = { description: string; amount: number; date: string; selected: boolean };
+  const [pdfImportCard, setPdfImportCard] = useState<{ creditCardId: string; creditCardName: string } | null>(null);
+  const [parsedTxList, setParsedTxList] = useState<ParsedStatementTx[]>([]);
+  const [pdfParsing, setPdfParsing] = useState(false);
+  const [pdfImporting, setPdfImporting] = useState(false);
 
   const loadMonth = async (year: number, month: number) => {
     setLoading(true);
@@ -730,6 +822,94 @@ function Page() {
     } finally {
       setImportingSheet(false);
     }
+  };
+
+  const handleCopyRecurring = async () => {
+    setCopyingRecurring(true);
+    try {
+      const result = await personalControlService.copyRecurring(period.year, period.month);
+      const createdCount = result.created.length;
+      const skippedCount = result.skipped.length;
+      const cardSkipped = result.skipped.filter((s) => s.skipReason === 'CreditCardSkipped').length;
+      const variableAmount = result.created.filter((c) => c.hasVariableAmount);
+
+      if (createdCount === 0 && skippedCount === 0) {
+        toast.info('Nenhuma recorrência aplicável a este mês.');
+      } else if (createdCount === 0) {
+        toast.info(`Nenhuma recorrência criada (${skippedCount} já existem ou não puderam ser geradas).`);
+      } else {
+        const cardSuffix = cardSkipped > 0 ? ` ${cardSkipped} de cartão precisam ser geradas manualmente.` : '';
+        toast.success(`${createdCount} lançamento${createdCount !== 1 ? 's' : ''} gerado${createdCount !== 1 ? 's' : ''} a partir das recorrências.${cardSuffix}`);
+
+        // Variable-amount items (condomínio com taxa extra, salário dolarizado, por dias úteis):
+        // surface a separate warning so the user remembers to update the actual value.
+        if (variableAmount.length > 0) {
+          const sample = variableAmount.slice(0, 3).map((v) => v.description).join(', ');
+          const more = variableAmount.length > 3 ? ` e mais ${variableAmount.length - 3}` : '';
+          toast.warning(
+            `${variableAmount.length} item${variableAmount.length !== 1 ? 's' : ''} com valor variável: ${sample}${more}. Confirme o valor real do mês.`,
+            { duration: 8000 },
+          );
+        }
+      }
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Falha ao copiar recorrências.');
+    } finally {
+      setCopyingRecurring(false);
+    }
+  };
+
+  const handlePdfUpload = async (file: File, card: { creditCardId: string; creditCardName: string }) => {
+    setPdfImportCard(card);
+    setParsedTxList([]);
+    setPdfParsing(true);
+    try {
+      const result = await personalControlService.parseStatement(file);
+      const txs: ParsedStatementTx[] = result.transactions.map((t: { description: string; amount: number; date: string }) => ({
+        ...t,
+        amount: Math.abs(t.amount),
+        selected: t.amount < 0,
+      }));
+      setParsedTxList(txs);
+      if (txs.length === 0) toast.info('Nenhuma transação encontrada no PDF.');
+    } catch {
+      toast.error('Falha ao analisar o PDF. Verifique se o arquivo não está protegido por senha.');
+      setPdfImportCard(null);
+    } finally {
+      setPdfParsing(false);
+    }
+  };
+
+  const importSelectedPdfTxs = async () => {
+    if (!pdfImportCard) return;
+    const selected = parsedTxList.filter((t) => t.selected);
+    if (selected.length === 0) { toast.info('Nenhuma transação selecionada.'); return; }
+    setPdfImporting(true);
+    let ok = 0; let fail = 0;
+    for (const tx of selected) {
+      try {
+        const d = new Date(tx.date + 'T12:00:00Z');
+        await personalControlService.createExpense({
+          year: period.year,
+          month: period.month,
+          name: tx.description,
+          amount: tx.amount,
+          paymentType: 'credit',
+          dueDay: d.getUTCDate(),
+          isPaid: false,
+          creditCardId: pdfImportCard.creditCardId,
+        });
+        ok++;
+      } catch { fail++; }
+    }
+    await loadMonth(period.year, period.month);
+    setPdfImportCard(null);
+    setParsedTxList([]);
+    if (fail === 0) toast.success(`${ok} despesa${ok !== 1 ? 's' : ''} importada${ok !== 1 ? 's' : ''} com sucesso.`);
+    else toast.warning(`${ok} importadas, ${fail} falhas.`);
+    setPdfImporting(false);
   };
 
   const saveStatementAmount = async (invoiceId: string) => {
@@ -1023,6 +1203,14 @@ function Page() {
         </div>
       </div>
 
+      <PatrimonioTotalCard
+        accountsTotal={accounts.reduce((sum, a) => sum + a.balance, 0)}
+        accountsCount={accounts.length}
+        investiqValue={investiq?.portfolio_value ?? null}
+        investiqConfigured={investiq !== null && investiq.configured !== false}
+        investiqLoading={investiqLoading}
+      />
+
       <PatrimonioWidget accounts={accounts} onUpdateBalance={updateAccountBalance} />
 
       <InvestIQWidget data={investiq} loading={investiqLoading} />
@@ -1045,37 +1233,67 @@ function Page() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Total faturas cartões"
-          value={formatCurrency((summary as any)?.totalCardStatements || 0)}
-          description={`${(summary as any)?.cardsPendingCount || 0} pendentes · ${(summary as any)?.cardsPaidCount || 0} pagas`}
+          value={formatCurrency(summary?.totalCardStatements || 0)}
+          description={`${summary?.cardsPendingCount || 0} pendentes · ${summary?.cardsPaidCount || 0} pagas`}
           icon={CreditCardIcon}
           tone="blue"
         />
         <MetricCard
           title="Faturas pendentes"
-          value={formatCurrency((summary as any)?.totalCardPending || 0)}
+          value={formatCurrency(summary?.totalCardPending || 0)}
           description="Cartões ainda não pagos"
           icon={Calendar}
           tone="red"
         />
         <MetricCard
           title="Total a pagar"
-          value={formatCurrency((summary as any)?.totalToPay || 0)}
+          value={formatCurrency(summary?.totalToPay || 0)}
           description="Débitos + faturas pendentes"
           icon={ArrowDownCircle}
           tone="red"
         />
         <MetricCard
           title="Disponível p/ investir"
-          value={formatCurrency((summary as any)?.availableToInvest || 0)}
+          value={formatCurrency(summary?.availableToInvest || 0)}
           description="Receita − despesas − cartões"
           icon={Wallet}
-          tone={(summary as any)?.availableToInvest > 0 ? 'green' : 'red'}
+          tone={(summary?.availableToInvest ?? 0) > 0 ? 'green' : 'red'}
         />
       </div>
 
       {monthView && (
         <SalaryPlannerSection monthView={monthView} />
       )}
+
+      {monthView
+        && monthView.incomes.length === 0
+        && monthView.expenses.length === 0
+        && monthView.subscriptions.length === 0
+        && (
+          <div className="rounded-lg border border-violet-200 bg-violet-50 p-4 dark:border-violet-900 dark:bg-violet-950/30">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-violet-600 dark:text-violet-400" />
+                <div className="space-y-1">
+                  <p className="font-medium text-violet-900 dark:text-violet-100">
+                    Mês ainda vazio
+                  </p>
+                  <p className="text-sm text-violet-800/80 dark:text-violet-200/80">
+                    Gere automaticamente as receitas, despesas e assinaturas recorrentes ativas para {monthView.period.label}. Despesas no cartão precisam ser lançadas manualmente.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleCopyRecurring}
+                disabled={copyingRecurring}
+                className="gap-2 self-start bg-violet-600 hover:bg-violet-700 text-white sm:self-auto"
+              >
+                <Sparkles className="h-4 w-4" />
+                {copyingRecurring ? 'Gerando...' : 'Copiar recorrências'}
+              </Button>
+            </div>
+          </div>
+        )}
 
       <SectionShell title="Ações" description="Abra os formulários só quando precisar criar ou editar um lançamento.">
         <div className="flex flex-wrap gap-3">
@@ -1333,7 +1551,26 @@ function Page() {
                           <Badge variant="outline" className="text-muted-foreground">Sem fatura</Badge>
                         )}
                       </TableCell>
-                      <TableCell><Badge variant="outline">{item.itemCount} lançamentos</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{item.itemCount} lançamentos</Badge>
+                          <label className="cursor-pointer" title="Importar fatura PDF com IA">
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              className="sr-only"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) void handlePdfUpload(file, { creditCardId: item.creditCardId, creditCardName: item.creditCardName });
+                                e.target.value = '';
+                              }}
+                            />
+                            <Button size="sm" variant="ghost" className="h-7 px-2 pointer-events-none" asChild>
+                              <span><Upload className="h-3.5 w-3.5" /></span>
+                            </Button>
+                          </label>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   )) : (
                     <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhum cartão com lançamentos neste mês.</TableCell></TableRow>
@@ -1344,6 +1581,73 @@ function Page() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Feature 2 — PDF Statement Import Modal */}
+      <Dialog open={!!pdfImportCard && !pdfParsing} onOpenChange={(open) => { if (!open) { setPdfImportCard(null); setParsedTxList([]); } }}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Importar fatura — {pdfImportCard?.creditCardName}
+            </DialogTitle>
+            <DialogDescription>
+              Selecione as transações que deseja importar como despesas de {months[period.month - 1]} {period.year}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            {parsedTxList.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma transação encontrada.</p>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    checked={parsedTxList.every((t) => t.selected)}
+                    onChange={(e) => setParsedTxList((prev) => prev.map((t) => ({ ...t, selected: e.target.checked })))}
+                  />
+                  <span className="text-xs text-muted-foreground font-medium">Selecionar todas ({parsedTxList.filter((t) => t.selected).length}/{parsedTxList.length})</span>
+                </div>
+                {parsedTxList.map((tx, i) => (
+                  <label key={i} className="flex items-center gap-3 py-2 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 shrink-0"
+                      checked={tx.selected}
+                      onChange={(e) => setParsedTxList((prev) => prev.map((t, idx) => idx === i ? { ...t, selected: e.target.checked } : t))}
+                    />
+                    <span className="flex-1 text-sm truncate">{tx.description}</span>
+                    <span className="text-sm tabular-nums text-rose-600 font-medium">{formatCurrency(tx.amount)}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{tx.date}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setPdfImportCard(null); setParsedTxList([]); }}>Cancelar</Button>
+            <Button
+              onClick={() => void importSelectedPdfTxs()}
+              disabled={pdfImporting || parsedTxList.filter((t) => t.selected).length === 0}
+            >
+              {pdfImporting ? 'Importando...' : `Importar ${parsedTxList.filter((t) => t.selected).length} despesa${parsedTxList.filter((t) => t.selected).length !== 1 ? 's' : ''}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Parsing Loading Overlay */}
+      <Dialog open={pdfParsing} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600 animate-pulse" />
+              Analisando PDF com IA...
+            </DialogTitle>
+            <DialogDescription>Aguarde enquanto extraímos as transações da fatura.</DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
 
       {/* FASE 2C — Despesa Rápida */}
       <Dialog open={quickExpenseOpen} onOpenChange={setQuickExpenseOpen}>
