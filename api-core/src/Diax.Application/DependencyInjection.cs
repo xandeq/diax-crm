@@ -131,6 +131,10 @@ public static class DependencyInjection
         // ===== INVESTIQ INTEGRATION =====
         services.AddScoped<IInvestIQIntegrationService, InvestIQIntegrationService>();
 
+        // ===== INTEGRATIONS (DIAX → external) =====
+        services.AddScoped<Diax.Application.Integrations.ICashFlowProjectionIntegrationService,
+                          Diax.Application.Integrations.CashFlowProjectionIntegrationService>();
+
         return services;
     }
 }
