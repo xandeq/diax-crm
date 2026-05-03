@@ -1173,19 +1173,19 @@ export const financeService = {
     },
     reclassifyTransaction: async (id: string, data: ReclassifyTransactionRequest) => {
         return apiFetch<void>(`/transactions/${id}/reclassify`, {
-            method: 'PATCH',
+            method: 'POST',
             body: JSON.stringify(data),
         });
     },
     markTransactionAsPaid: async (id: string, paidDate?: string) => {
         return apiFetch<void>(`/transactions/${id}/mark-paid`, {
-            method: 'PATCH',
+            method: 'POST',
             body: JSON.stringify({ paidDate }),
         });
     },
     markTransactionAsPending: async (id: string) => {
         return apiFetch<void>(`/transactions/${id}/mark-pending`, {
-            method: 'PATCH',
+            method: 'POST',
         });
     },
 
@@ -1249,13 +1249,13 @@ export const financeService = {
     },
     markPersonalFinanceTransactionAsPaid: async (id: string, paidDate?: string) => {
         return apiFetch<void>(`/personal-control/expenses/${id}/status`, {
-            method: 'PATCH',
+            method: 'POST',
             body: JSON.stringify({ isPaid: true, paymentDate: paidDate }),
         });
     },
     markPersonalFinanceTransactionAsPending: async (id: string) => {
         return apiFetch<void>(`/personal-control/expenses/${id}/status`, {
-            method: 'PATCH',
+            method: 'POST',
             body: JSON.stringify({ isPaid: false }),
         });
     },

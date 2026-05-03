@@ -50,19 +50,19 @@ export const blogService = {
   // Admin - Ações
   publish: async (id: string): Promise<BlogPost> => {
     return apiFetch<BlogPost>(`/blog/admin/${id}/publish`, {
-      method: 'PATCH'
+      method: 'POST'
     });
   },
 
   archive: async (id: string): Promise<BlogPost> => {
     return apiFetch<BlogPost>(`/blog/admin/${id}/archive`, {
-      method: 'PATCH'
+      method: 'POST'
     });
   },
 
   toggleFeatured: async (id: string): Promise<BlogPost> => {
     return apiFetch<BlogPost>(`/blog/admin/${id}/toggle-featured`, {
-      method: 'PATCH'
+      method: 'POST'
     });
   }
 };

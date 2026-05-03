@@ -97,6 +97,7 @@ public class CreditCardInvoicesController : BaseApiController
     }
 
     [HttpPatch("{id}/statement")]
+    [HttpPost("{id}/statement")]
     public async Task<IActionResult> SetStatement(Guid id, [FromBody] SetStatementAmountRequest request, CancellationToken cancellationToken)
     {
         var userId = await ResolveUserIdAsync(_db, cancellationToken);

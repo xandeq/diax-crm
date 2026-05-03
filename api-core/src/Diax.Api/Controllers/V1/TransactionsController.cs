@@ -146,6 +146,7 @@ public class TransactionsController : BaseApiController
     /// Ex: Mudar de Income → Transfer, ou Expense → Ignored.
     /// </summary>
     [HttpPatch("{id}/reclassify")]
+    [HttpPost("{id}/reclassify")]
     public async Task<IActionResult> Reclassify(Guid id, [FromBody] ReclassifyTransactionRequest request, CancellationToken ct)
     {
         var userId = await ResolveUserIdAsync(_db, ct);
@@ -159,6 +160,7 @@ public class TransactionsController : BaseApiController
     /// Marca uma transação como paga.
     /// </summary>
     [HttpPatch("{id}/mark-paid")]
+    [HttpPost("{id}/mark-paid")]
     public async Task<IActionResult> MarkAsPaid(Guid id, [FromBody] MarkPaidRequest? request, CancellationToken ct)
     {
         var userId = await ResolveUserIdAsync(_db, ct);
@@ -172,6 +174,7 @@ public class TransactionsController : BaseApiController
     /// Marca uma transação como pendente.
     /// </summary>
     [HttpPatch("{id}/mark-pending")]
+    [HttpPost("{id}/mark-pending")]
     public async Task<IActionResult> MarkAsPending(Guid id, CancellationToken ct)
     {
         var userId = await ResolveUserIdAsync(_db, ct);

@@ -141,6 +141,7 @@ public class PersonalFinanceController : BaseApiController
     }
 
     [HttpPatch("incomes/{id:guid}/status")]
+    [HttpPost("incomes/{id:guid}/status")]
     public async Task<IActionResult> ToggleIncomeStatus(Guid id, [FromBody] TogglePersonalControlStatusRequest request, CancellationToken cancellationToken)
     {
         var userId = await ResolveUserIdAsync(_db, cancellationToken);
@@ -268,6 +269,7 @@ public class PersonalFinanceController : BaseApiController
     }
 
     [HttpPatch("expenses/{id:guid}/status")]
+    [HttpPost("expenses/{id:guid}/status")]
     public async Task<IActionResult> ToggleExpenseStatus(Guid id, [FromBody] TogglePersonalControlStatusRequest request, CancellationToken cancellationToken)
     {
         var userId = await ResolveUserIdAsync(_db, cancellationToken);
@@ -397,6 +399,7 @@ public class PersonalFinanceController : BaseApiController
     }
 
     [HttpPatch("subscriptions/{id:guid}/status")]
+    [HttpPost("subscriptions/{id:guid}/status")]
     public async Task<IActionResult> ToggleSubscriptionStatus(Guid id, [FromBody] TogglePersonalControlSubscriptionStatusRequest request, CancellationToken cancellationToken)
     {
         var userId = await ResolveUserIdAsync(_db, cancellationToken);

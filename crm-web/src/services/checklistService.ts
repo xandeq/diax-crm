@@ -77,32 +77,32 @@ export const checklistService = {
 
   markBought: async (id: string, actualPrice?: number) => {
     return apiFetch<void>(`/Checklists/items/${id}/mark-bought`, {
-      method: 'PATCH',
+      method: 'POST',
       body: JSON.stringify({ actualPrice })
     });
   },
 
   markCanceled: async (id: string) => {
     return apiFetch<void>(`/Checklists/items/${id}/mark-canceled`, {
-      method: 'PATCH'
+      method: 'POST'
     });
   },
 
   reactivate: async (id: string) => {
     return apiFetch<void>(`/Checklists/items/${id}/reactivate`, {
-      method: 'PATCH'
+      method: 'POST'
     });
   },
 
   archive: async (id: string) => {
     return apiFetch<void>(`/Checklists/items/${id}/archive`, {
-      method: 'PATCH'
+      method: 'POST'
     });
   },
 
   unarchive: async (id: string) => {
     return apiFetch<void>(`/Checklists/items/${id}/unarchive`, {
-      method: 'PATCH'
+      method: 'POST'
     });
   },
 

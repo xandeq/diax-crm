@@ -89,6 +89,7 @@ public class ChecklistsController : BaseApiController
     // ===== ACTIONS =====
 
     [HttpPatch("items/{id}/mark-bought")]
+    [HttpPost("items/{id}/mark-bought")]
     public async Task<IActionResult> MarkBought(Guid id, [FromBody] MarkBoughtRequest? request)
     {
         var result = await _itemService.MarkBoughtAsync(id, request?.ActualPrice);
@@ -96,6 +97,7 @@ public class ChecklistsController : BaseApiController
     }
 
     [HttpPatch("items/{id}/mark-canceled")]
+    [HttpPost("items/{id}/mark-canceled")]
     public async Task<IActionResult> MarkCanceled(Guid id)
     {
         var result = await _itemService.MarkCanceledAsync(id);
@@ -103,6 +105,7 @@ public class ChecklistsController : BaseApiController
     }
 
     [HttpPatch("items/{id}/reactivate")]
+    [HttpPost("items/{id}/reactivate")]
     public async Task<IActionResult> Reactivate(Guid id)
     {
         var result = await _itemService.ReactivateAsync(id);
@@ -110,6 +113,7 @@ public class ChecklistsController : BaseApiController
     }
 
     [HttpPatch("items/{id}/archive")]
+    [HttpPost("items/{id}/archive")]
     public async Task<IActionResult> Archive(Guid id)
     {
         var result = await _itemService.ArchiveAsync(id);
@@ -117,6 +121,7 @@ public class ChecklistsController : BaseApiController
     }
 
     [HttpPatch("items/{id}/unarchive")]
+    [HttpPost("items/{id}/unarchive")]
     public async Task<IActionResult> Unarchive(Guid id)
     {
         var result = await _itemService.UnarchiveAsync(id);

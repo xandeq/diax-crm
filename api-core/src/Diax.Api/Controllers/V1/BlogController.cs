@@ -164,6 +164,7 @@ public class BlogController : BaseApiController
     /// Publica post (muda status para Published)
     /// </summary>
     [HttpPatch("admin/{id}/publish")]
+    [HttpPost("admin/{id}/publish")]
     [Authorize]
     [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
@@ -185,6 +186,7 @@ public class BlogController : BaseApiController
     /// Arquiva post (muda status para Archived)
     /// </summary>
     [HttpPatch("admin/{id}/archive")]
+    [HttpPost("admin/{id}/archive")]
     [Authorize]
     [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
@@ -206,6 +208,7 @@ public class BlogController : BaseApiController
     /// Alterna status de destaque (featured)
     /// </summary>
     [HttpPatch("admin/{id}/toggle-featured")]
+    [HttpPost("admin/{id}/toggle-featured")]
     [Authorize]
     [RequirePermission("blog.manage")]
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]

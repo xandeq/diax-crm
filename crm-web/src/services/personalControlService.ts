@@ -197,7 +197,7 @@ export const personalControlService = {
 
   toggleIncomeStatus: async (id: string, request: TogglePersonalControlStatusRequest) => {
     return apiFetch<void>(`${basePath}/incomes/${id}/status`, {
-      method: 'PATCH',
+      method: 'POST',
       body: JSON.stringify(request),
     });
   },
@@ -224,7 +224,7 @@ export const personalControlService = {
 
   toggleExpenseStatus: async (id: string, request: TogglePersonalControlStatusRequest) => {
     return apiFetch<void>(`${basePath}/expenses/${id}/status`, {
-      method: 'PATCH',
+      method: 'POST',
       body: JSON.stringify(request),
     });
   },
@@ -251,14 +251,14 @@ export const personalControlService = {
 
   toggleSubscriptionStatus: async (id: string, request: TogglePersonalControlStatusRequest) => {
     return apiFetch<void>(`${basePath}/subscriptions/${id}/status`, {
-      method: 'PATCH',
+      method: 'POST',
       body: JSON.stringify(request),
     });
   },
 
   setCardStatementAmount: async (invoiceId: string, amount: number | null) => {
     return apiFetch<void>(`/credit-card-invoices/${invoiceId}/statement`, {
-      method: 'PATCH',
+      method: 'POST',
       body: JSON.stringify({ amount }),
     });
   },
