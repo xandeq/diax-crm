@@ -358,7 +358,7 @@ app.Use(async (context, next) =>
             context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
             context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-Api-Key, X-Correlation-Id");
             context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
-            context.Response.Headers.Append("Access-Control-Max-Age", "86400");
+            context.Response.Headers.Append("Access-Control-Max-Age", "3600");
         }
 
         context.Response.StatusCode = StatusCodes.Status204NoContent;

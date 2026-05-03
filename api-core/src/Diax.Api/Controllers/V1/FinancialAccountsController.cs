@@ -136,6 +136,7 @@ public class FinancialAccountsController : BaseApiController
         return NoContent();
     }
 
+    [HttpPut("{id}/balance")]
     [HttpPatch("{id}/balance")]
     public async Task<IActionResult> UpdateBalance(Guid id, [FromBody] UpdateBalanceRequest request, CancellationToken cancellationToken)
     {
