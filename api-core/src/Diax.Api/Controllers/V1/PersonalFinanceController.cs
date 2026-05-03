@@ -582,6 +582,28 @@ public class PersonalFinanceController : BaseApiController
                 invoicePaymentDate = card.InvoicePaymentDate,
                 creditLimit = card.CreditLimit,
                 availableCredit = card.AvailableCredit
+            }),
+            invoicesDueThisMonth = source.InvoicesDueThisMonth.Select(inv => new
+            {
+                invoiceId = inv.InvoiceId,
+                creditCardGroupId = inv.CreditCardGroupId,
+                creditCardGroupName = inv.CreditCardGroupName,
+                dueDate = inv.DueDate,
+                referenceMonth = inv.ReferenceMonth,
+                referenceYear = inv.ReferenceYear,
+                totalTransactionsAmount = inv.TotalTransactionsAmount,
+                statementAmount = inv.StatementAmount,
+                isPaid = inv.IsPaid,
+                paymentDate = inv.PaymentDate,
+                linkedSubscriptions = inv.LinkedSubscriptions.Select(ls => new
+                {
+                    templateId = ls.TemplateId,
+                    description = ls.Description,
+                    amount = ls.Amount,
+                    hasVariableAmount = ls.HasVariableAmount,
+                    creditCardId = ls.CreditCardId,
+                    creditCardName = ls.CreditCardName
+                })
             })
         };
     }

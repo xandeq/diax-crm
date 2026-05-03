@@ -97,6 +97,7 @@ export interface PersonalControlMonthView {
   expenses: PersonalControlExpenseItem[];
   subscriptions: PersonalControlSubscriptionItem[];
   cardSummaries: PersonalControlCardSummary[];
+  invoicesDueThisMonth: PersonalControlInvoiceDueThisMonth[];
 }
 
 export interface CreatePersonalControlIncomeRequest {
@@ -150,6 +151,29 @@ export interface TogglePersonalControlStatusRequest {
   month?: number;
   isPaid: boolean;
   paymentDate?: string;
+}
+
+export interface LinkedSubscriptionPreview {
+  templateId: string;
+  description: string;
+  amount: number;
+  hasVariableAmount: boolean;
+  creditCardId?: string;
+  creditCardName?: string;
+}
+
+export interface PersonalControlInvoiceDueThisMonth {
+  invoiceId: string;
+  creditCardGroupId: string;
+  creditCardGroupName: string;
+  dueDate: string;
+  referenceMonth: number;
+  referenceYear: number;
+  totalTransactionsAmount: number;
+  statementAmount?: number;
+  isPaid: boolean;
+  paymentDate?: string;
+  linkedSubscriptions: LinkedSubscriptionPreview[];
 }
 
 export interface CopyRecurringItem {

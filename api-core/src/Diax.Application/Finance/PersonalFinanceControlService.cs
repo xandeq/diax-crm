@@ -79,8 +79,13 @@ public class PersonalFinanceControlService : IApplicationService
 
             var recurringTemplates = await _recurringRepository.GetRecurringForMonthAsync(userId, targetMonth, targetYear);
             var cards = (await _creditCardRepository.GetAllByUserIdAsync(userId, cancellationToken)).ToList();
-            var invoices = (await _creditCardInvoiceRepository.GetAllByUserIdAsync(userId, cancellationToken))
+            var allUserInvoices = (await _creditCardInvoiceRepository.GetAllByUserIdAsync(userId, cancellationToken)).ToList();
+            var invoices = allUserInvoices
                 .Where(i => i.ReferenceYear == targetYear && i.ReferenceMonth == targetMonth)
+                .ToList();
+            var invoicesDueInPeriod = allUserInvoices
+                .Where(i => i.DueDate.Date >= periodStart.Date && i.DueDate.Date <= periodEnd.Date)
+                .OrderBy(i => i.DueDate)
                 .ToList();
 
             var warnings = new List<string>();
@@ -164,6 +169,46 @@ public class PersonalFinanceControlService : IApplicationService
                 UnpaidCount = expenses.Count(e => e.Status == TransactionStatus.Pending)
             };
 
+            var subscriptionTemplates = recurringTemplates
+                .Where(t => t.ItemKind == RecurringItemKind.Subscription)
+                .ToList();
+
+            var invoicesDueThisMonthList = invoicesDueInPeriod.Select(invoice =>
+            {
+                var groupCardIds = cards
+                    .Where(c => c.CreditCardGroupId == invoice.CreditCardGroupId)
+                    .Select(c => c.Id)
+                    .ToHashSet();
+
+                var linked = subscriptionTemplates
+                    .Where(t => t.CreditCardId.HasValue && groupCardIds.Contains(t.CreditCardId.Value))
+                    .Select(t => new LinkedSubscriptionPreview
+                    {
+                        TemplateId = t.Id,
+                        Description = t.Description,
+                        Amount = t.Amount,
+                        HasVariableAmount = t.HasVariableAmount,
+                        CreditCardId = t.CreditCardId,
+                        CreditCardName = cards.FirstOrDefault(c => c.Id == t.CreditCardId)?.Name
+                    })
+                    .ToList();
+
+                return new InvoiceDueThisMonthResponse
+                {
+                    InvoiceId = invoice.Id,
+                    CreditCardGroupId = invoice.CreditCardGroupId,
+                    CreditCardGroupName = invoice.CreditCardGroup?.Name ?? string.Empty,
+                    DueDate = invoice.DueDate,
+                    ReferenceMonth = invoice.ReferenceMonth,
+                    ReferenceYear = invoice.ReferenceYear,
+                    TotalTransactionsAmount = transactions.Where(t => t.CreditCardInvoiceId == invoice.Id).Sum(t => t.Amount),
+                    StatementAmount = invoice.StatementAmount,
+                    IsPaid = invoice.IsPaid,
+                    PaymentDate = invoice.PaymentDate,
+                    LinkedSubscriptions = linked
+                };
+            }).ToList();
+
             return Result<PersonalFinanceMonthResponse>.Success(new PersonalFinanceMonthResponse
             {
                 Year = targetYear,
@@ -177,6 +222,7 @@ public class PersonalFinanceControlService : IApplicationService
                 Subscriptions = subscriptions,
                 CreditCards = cardSummaries,
                 CreditCardInvoices = invoiceSummaries,
+                InvoicesDueThisMonth = invoicesDueThisMonthList,
                 Summary = summary,
                 Warnings = warnings.Distinct().ToList()
             });

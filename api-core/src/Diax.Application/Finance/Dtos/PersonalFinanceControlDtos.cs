@@ -24,6 +24,7 @@ public class PersonalFinanceMonthResponse
     public IReadOnlyList<RecurringOccurrenceResponse> Subscriptions { get; set; } = Array.Empty<RecurringOccurrenceResponse>();
     public IReadOnlyList<CreditCardMonthlySummaryResponse> CreditCards { get; set; } = Array.Empty<CreditCardMonthlySummaryResponse>();
     public IReadOnlyList<CreditCardInvoiceMonthlySummaryResponse> CreditCardInvoices { get; set; } = Array.Empty<CreditCardInvoiceMonthlySummaryResponse>();
+    public IReadOnlyList<InvoiceDueThisMonthResponse> InvoicesDueThisMonth { get; set; } = Array.Empty<InvoiceDueThisMonthResponse>();
     public PersonalFinanceMonthSummaryResponse Summary { get; set; } = new();
     public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();
 }
@@ -103,4 +104,29 @@ public class CreditCardInvoiceMonthlySummaryResponse
     public DateTime? PaymentDate { get; set; }
     public Guid? PaidFromAccountId { get; set; }
     public string? PaidFromAccountName { get; set; }
+}
+
+public class InvoiceDueThisMonthResponse
+{
+    public Guid InvoiceId { get; set; }
+    public Guid CreditCardGroupId { get; set; }
+    public string CreditCardGroupName { get; set; } = string.Empty;
+    public DateTime DueDate { get; set; }
+    public int ReferenceMonth { get; set; }
+    public int ReferenceYear { get; set; }
+    public decimal TotalTransactionsAmount { get; set; }
+    public decimal? StatementAmount { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime? PaymentDate { get; set; }
+    public List<LinkedSubscriptionPreview> LinkedSubscriptions { get; set; } = new();
+}
+
+public class LinkedSubscriptionPreview
+{
+    public Guid TemplateId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public bool HasVariableAmount { get; set; }
+    public Guid? CreditCardId { get; set; }
+    public string? CreditCardName { get; set; }
 }

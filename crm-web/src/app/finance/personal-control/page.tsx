@@ -25,6 +25,7 @@ import {
   PersonalControlBillingFrequency,
   PersonalControlExpenseItem,
   PersonalControlIncomeItem,
+  PersonalControlInvoiceDueThisMonth,
   PersonalControlMonthView,
   PersonalControlPaymentType,
   PersonalControlSubscriptionItem,
@@ -42,6 +43,8 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   CreditCard as CreditCardIcon,
   Download,
   FileText,
@@ -494,17 +497,67 @@ function PatrimonioWidget({
   );
 }
 
+function InvoiceBucketRow({
+  invoice,
+}: {
+  invoice: PersonalControlInvoiceDueThisMonth & { _pending?: boolean };
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const displayAmount = invoice.statementAmount ?? invoice.totalTransactionsAmount;
+  const dueDay = new Date(invoice.dueDate).getUTCDate();
+  const hasLinked = invoice.linkedSubscriptions.length > 0;
+
+  return (
+    <div className={cn('rounded-md border text-xs', invoice._pending ? 'bg-amber-50 border-amber-300' : invoice.isPaid ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200')}>
+      <div className="flex items-center gap-2 px-2 py-1">
+        {invoice._pending && <span className="text-amber-800 font-semibold">⚠ PENDENTE —</span>}
+        <CreditCardIcon className="h-3 w-3 text-blue-500 shrink-0" />
+        <span className={cn('font-medium flex-1', invoice.isPaid ? 'line-through text-slate-400' : 'text-slate-700')}>
+          Fatura {invoice.creditCardGroupName}
+        </span>
+        <span className="text-slate-500 tabular-nums">dia {dueDay}</span>
+        <span className={cn('font-semibold tabular-nums', invoice.isPaid ? 'text-slate-400 line-through' : invoice._pending ? 'text-amber-800' : 'text-blue-700')}>
+          {formatCurrency(displayAmount)}
+        </span>
+        {invoice.statementAmount == null && invoice.totalTransactionsAmount > 0 && (
+          <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">estimado</span>
+        )}
+        {invoice.isPaid && <span className="rounded bg-emerald-100 px-1 text-[9px] text-emerald-700">pago</span>}
+        {hasLinked && (
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="ml-1 text-slate-400 hover:text-slate-600"
+            aria-label={expanded ? 'Recolher' : 'Expandir'}
+          >
+            {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          </button>
+        )}
+      </div>
+      {expanded && hasLinked && (
+        <div className="border-t border-blue-100 px-3 py-1.5 flex flex-col gap-0.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-500 mb-0.5">Recorrências previstas:</span>
+          {invoice.linkedSubscriptions.map((ls) => (
+            <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-slate-600">
+              <span className="flex-1">{ls.description}</span>
+              {ls.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">variável</span>}
+              <span className="tabular-nums font-medium">{formatCurrency(ls.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SalaryPlannerSection({
   monthView,
 }: {
   monthView: PersonalControlMonthView;
 }) {
-  // Cada salário forma um bucket próprio, ordenado pelo dia efetivo de pagamento.
-  // Despesas pertencem ao bucket do salário cujo dia <= dueDay < próximo salário.
-  // Despesas que excedem o caixa disponível do bucket são marcadas como PENDENTE.
   type IncomeItem = (typeof monthView.incomes)[number];
   type ExpenseItem = (typeof monthView.expenses)[number] & { _pending?: boolean };
   type SubItem = (typeof monthView.subscriptions)[number] & { _pending?: boolean };
+  type InvoiceItem = PersonalControlInvoiceDueThisMonth & { _pending?: boolean };
 
   const sortedIncomes = [...monthView.incomes].sort((a, b) => {
     const ea = getEffectivePayDay(a.dayOfMonth, monthView.period.year, monthView.period.month).effectiveDay;
@@ -516,59 +569,81 @@ function SalaryPlannerSection({
     getEffectivePayDay(inc.dayOfMonth, monthView.period.year, monthView.period.month).effectiveDay,
   );
 
+  // CC subscriptions are planning-only; they live inside the invoice, not in the cash walk.
+  const debitSubscriptions = monthView.subscriptions.filter((s) => s.paymentType !== 'credit');
+  const ccSubscriptions = monthView.subscriptions.filter((s) => s.paymentType === 'credit');
+
   const buckets = sortedIncomes.reduce<{
     day: number; nextDay: number; incomeName: string;
     incomes: IncomeItem[];
-    expensesAtVista: ExpenseItem[]; expensesCredito: ExpenseItem[];
-    subscriptions: SubItem[];
-    totalIncome: number; totalExpenseAtVista: number; totalExpenseCredito: number;
+    expensesAtVista: ExpenseItem[];
+    debitSubs: SubItem[];
+    invoicesDue: InvoiceItem[];
+    totalIncome: number; totalCashOut: number;
     pendingTotal: number;
     periodBalance: number; runningBalance: number; investSuggestion: number;
   }[]>((acc, inc, i) => {
     const day = startDays[i];
     const nextDay = startDays[i + 1] ?? 32;
     const incomes = [inc];
-    // Separa despesas por tipo: apenas 'debit' afeta o caixa; 'credit' é informativa
     const inRange = (dueDay: number) => dueDay >= day && dueDay < nextDay;
-    const expensesAtVistaRaw = monthView.expenses.filter((item) => inRange(item.dueDay) && item.paymentType !== 'credit');
-    const expensesCreditoRaw = monthView.expenses.filter((item) => inRange(item.dueDay) && item.paymentType === 'credit');
-    const subscriptionsRaw = i === 0 ? monthView.subscriptions : ([] as typeof monthView.subscriptions);
-    const totalIncome = inc.amount;
 
-    // Walk apenas despesas à vista + subscriptions (afetam o caixa).
-    // Crédito nunca participa do walking e nunca é marcado como PENDENTE.
+    // Layer 1: debit expenses (dueDay in range)
+    const expensesAtVistaRaw = monthView.expenses
+      .filter((item) => inRange(item.dueDay) && item.paymentType !== 'credit')
+      .sort((a, b) => a.dueDay - b.dueDay);
+
+    // Layer 1: debit subscriptions only in bucket 0
+    const debitSubsRaw = i === 0 ? debitSubscriptions : ([] as typeof debitSubscriptions);
+
+    // Layer 2: invoices whose DueDate falls in this bucket
+    const invoicesDueRaw = monthView.invoicesDueThisMonth
+      .filter((inv) => {
+        const dueDay = new Date(inv.dueDate).getUTCDate();
+        return dueDay >= day && dueDay < nextDay;
+      })
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+    const totalIncome = inc.amount;
     const prevRunning = acc.length > 0 ? acc[acc.length - 1].runningBalance : 0;
     let available = prevRunning + totalIncome;
-    const subscriptions: SubItem[] = subscriptionsRaw.map((s) => {
+
+    // Cash walk: debit subs first (bucket 0 only), then expenses by dueDay, then invoices by dueDate
+    const debitSubs: SubItem[] = debitSubsRaw.map((s) => {
       if (available - s.amount < 0) return { ...s, _pending: true };
       available -= s.amount;
       return { ...s, _pending: false };
     });
-    const expensesAtVistaSorted = [...expensesAtVistaRaw].sort((a, b) => a.dueDay - b.dueDay);
-    const expensesAtVista: ExpenseItem[] = expensesAtVistaSorted.map((e) => {
+    const expensesAtVista: ExpenseItem[] = expensesAtVistaRaw.map((e) => {
       if (available - e.amount < 0) return { ...e, _pending: true };
       available -= e.amount;
       return { ...e, _pending: false };
     });
-    const expensesCredito: ExpenseItem[] = [...expensesCreditoRaw]
-      .sort((a, b) => a.dueDay - b.dueDay)
-      .map((e) => ({ ...e, _pending: false }));
+    const invoicesDue: InvoiceItem[] = invoicesDueRaw.map((inv) => {
+      const amount = inv.statementAmount ?? inv.totalTransactionsAmount;
+      if (amount <= 0) return { ...inv, _pending: false };
+      if (available - amount < 0) return { ...inv, _pending: true };
+      available -= amount;
+      return { ...inv, _pending: false };
+    });
 
-    const totalExpenseAtVista =
-      expensesAtVista.reduce((s, item) => s + item.amount, 0) +
-      subscriptions.reduce((s, item) => s + item.amount, 0);
-    const totalExpenseCredito = expensesCredito.reduce((s, item) => s + item.amount, 0);
+    const totalCashOut =
+      debitSubs.reduce((s, x) => s + x.amount, 0) +
+      expensesAtVista.reduce((s, x) => s + x.amount, 0) +
+      invoicesDue.reduce((s, x) => s + (x.statementAmount ?? x.totalTransactionsAmount), 0);
+
     const pendingTotal =
-      expensesAtVista.filter((e) => e._pending).reduce((s, e) => s + e.amount, 0) +
-      subscriptions.filter((e) => e._pending).reduce((s, e) => s + e.amount, 0);
-    // Saldo do salário considera APENAS saídas à vista (crédito é ignorado)
-    const periodBalance = totalIncome - totalExpenseAtVista;
+      debitSubs.filter((x) => x._pending).reduce((s, x) => s + x.amount, 0) +
+      expensesAtVista.filter((x) => x._pending).reduce((s, x) => s + x.amount, 0) +
+      invoicesDue.filter((x) => x._pending).reduce((s, x) => s + (x.statementAmount ?? x.totalTransactionsAmount), 0);
+
+    const periodBalance = totalIncome - totalCashOut;
     const runningBalance = prevRunning + periodBalance;
     const investSuggestion = runningBalance > 0 && periodBalance > 0 ? periodBalance * 0.2 : 0;
     acc.push({
       day, nextDay, incomeName: inc.name, incomes,
-      expensesAtVista, expensesCredito, subscriptions,
-      totalIncome, totalExpenseAtVista, totalExpenseCredito, pendingTotal,
+      expensesAtVista, debitSubs, invoicesDue,
+      totalIncome, totalCashOut, pendingTotal,
       periodBalance, runningBalance, investSuggestion,
     });
     return acc;
@@ -580,21 +655,19 @@ function SalaryPlannerSection({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg">Planner de Salário</CardTitle>
-            <CardDescription>Cada salário cobre as despesas até o próximo recebimento. Despesas que excedem o caixa são marcadas como PENDENTE.</CardDescription>
+            <CardDescription>3 camadas: despesas diretas, faturas de cartão (vencimento) e recorrências previstas.</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          {buckets.map(({ day, nextDay, incomes, expensesAtVista, expensesCredito, subscriptions, totalIncome, totalExpenseAtVista, totalExpenseCredito, pendingTotal, periodBalance, runningBalance, investSuggestion }) => (
+          {buckets.map(({ day, nextDay, incomes, expensesAtVista, debitSubs, invoicesDue, totalIncome, totalCashOut, pendingTotal, periodBalance, runningBalance, investSuggestion }) => (
             <div key={day} className={cn('rounded-2xl border p-4', runningBalance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
-              {/* Cabeçalho da linha */}
+              {/* Header */}
               <div className="flex flex-wrap items-center gap-4 mb-3">
                 <span className="text-sm font-semibold text-slate-700 w-24 shrink-0">
                   Dia {day}{nextDay < 32 ? `–${nextDay - 1}` : '+'}
                 </span>
-
-                {/* Entradas inline */}
                 {incomes.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">Entradas:</span>
@@ -605,14 +678,9 @@ function SalaryPlannerSection({
                     ))}
                   </div>
                 )}
-
-                {/* Totais e saldo à direita */}
                 <div className="ml-auto flex items-center gap-4 text-xs">
                   <span className="text-slate-500">Receitas <span className="text-emerald-600 font-semibold">{formatCurrency(totalIncome)}</span></span>
-                  <span className="text-slate-500">À vista <span className="text-rose-500 font-semibold">{formatCurrency(totalExpenseAtVista)}</span></span>
-                  {totalExpenseCredito > 0 && (
-                    <span className="text-slate-400">Crédito <span className="text-slate-500 font-semibold">{formatCurrency(totalExpenseCredito)}</span></span>
-                  )}
+                  <span className="text-slate-500">Saídas <span className="text-rose-500 font-semibold">{formatCurrency(totalCashOut)}</span></span>
                   <span className={cn('font-bold tabular-nums text-xs', periodBalance >= 0 ? 'text-emerald-600' : 'text-rose-500')}>
                     Período: {periodBalance >= 0 ? '+' : ''}{formatCurrency(periodBalance)}
                   </span>
@@ -627,47 +695,67 @@ function SalaryPlannerSection({
                 </div>
               </div>
 
-              {/* Saídas à Vista (debit/pix/etc) — afetam o saldo */}
-              {(expensesAtVista.length > 0 || subscriptions.length > 0) && (
+              {/* Layer 1 — Debit subscriptions + direct expenses */}
+              {(debitSubs.length > 0 || expensesAtVista.length > 0) && (
                 <div className="flex flex-col gap-1 mt-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas à vista:</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas diretas:</span>
+                  {debitSubs.map((item) => (
+                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border flex items-center gap-1', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
+                      {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
+                      <span className="ml-1 inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1 text-[10px] text-emerald-700"><Banknote className="h-2.5 w-2.5" />PIX</span>
+                    </span>
+                  ))}
                   {expensesAtVista.map((item) => (
                     <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
                       {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
                     </span>
                   ))}
-                  {subscriptions.map((item) => (
-                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border flex items-center gap-1', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
-                      {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
-                      {item.paymentType === 'credit'
-                        ? <span className="ml-1 inline-flex items-center gap-0.5 rounded bg-blue-100 px-1 text-[10px] text-blue-700"><CreditCardIcon className="h-2.5 w-2.5" />{item.creditCardName || 'Crédito'}</span>
-                        : <span className="ml-1 inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1 text-[10px] text-emerald-700"><Banknote className="h-2.5 w-2.5" />PIX</span>}
-                    </span>
-                  ))}
-                  {pendingTotal > 0 && (
-                    <span className="mt-1 text-[11px] text-amber-700">
-                      Total não coberto por este salário: <strong>{formatCurrency(pendingTotal)}</strong> — será paga vencida ou com o próximo salário.
-                    </span>
-                  )}
                 </div>
               )}
 
-              {/* Saídas a Crédito — apenas informativas, não afetam o saldo */}
-              {expensesCredito.length > 0 && (
-                <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-slate-200/70">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">💳 Saídas no crédito (não afetam o saldo):</span>
-                  {expensesCredito.map((item) => (
-                    <span key={item.id} className="rounded-md bg-slate-50 border border-slate-200 px-2 py-0.5 text-xs text-slate-500">
-                      {item.name}
-                      {item.creditCardName && <span className="text-slate-400"> · {item.creditCardName}</span>}
-                      <span className="font-medium"> {formatCurrency(item.amount)}</span>
-                    </span>
+              {/* Layer 2 — Invoice payments due this month */}
+              {invoicesDue.length > 0 && (
+                <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-slate-200/50">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-500">Faturas (vencimento):</span>
+                  {invoicesDue.map((inv) => (
+                    <InvoiceBucketRow key={inv.invoiceId} invoice={inv} />
                   ))}
                 </div>
+              )}
+
+              {pendingTotal > 0 && (
+                <span className="mt-1.5 block text-[11px] text-amber-700">
+                  Total não coberto: <strong>{formatCurrency(pendingTotal)}</strong> — será pago vencido ou com o próximo salário.
+                </span>
               )}
             </div>
           ))}
         </div>
+
+        {/* Layer 3 — CC subscription templates (planning reference) */}
+        {ccSubscriptions.length > 0 && (
+          <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <CreditCardIcon className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-semibold text-blue-700">Recorrências previstas em cartão</span>
+              <span className="text-xs text-blue-400">(fazem parte das faturas acima)</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {ccSubscriptions.map((item) => (
+                <div key={item.id} className="flex items-center gap-2 rounded-md bg-white border border-blue-100 px-2.5 py-1.5 text-xs">
+                  <span className="flex-1 text-slate-700">{item.name}</span>
+                  {item.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">variável</span>}
+                  {item.creditCardName && (
+                    <span className="inline-flex items-center gap-0.5 rounded bg-blue-100 px-1.5 text-[10px] text-blue-700">
+                      <CreditCardIcon className="h-2.5 w-2.5" />{item.creditCardName}
+                    </span>
+                  )}
+                  <span className="tabular-nums font-semibold text-slate-700">{formatCurrency(item.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
