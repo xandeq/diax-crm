@@ -268,11 +268,12 @@ public class PersonalFinanceControlServiceCopyRecurringTests
     }
 
     [Fact]
-    public async Task CopyRecurring_CreditCardTemplate_SkipsForV1()
+    public async Task CopyRecurring_CreditCardTemplate_NoCreditCardId_SkipsWithCreditCardSkipped()
     {
         var userId = Guid.NewGuid();
         var account = NewAccount(userId);
         var template = NewExpenseTemplate(userId, account.Id, 200m, 15, paymentMethod: PaymentMethod.CreditCard);
+        template.CreditCardId = null; // explicitly no card
 
         _recurringRepo.Setup(r => r.GetRecurringForMonthAsync(userId, 5, 2026))
             .ReturnsAsync(new List<RecurringTransaction> { template });
@@ -285,6 +286,78 @@ public class PersonalFinanceControlServiceCopyRecurringTests
         var skip = Assert.Single(result.Value.Skipped);
         Assert.Equal("CreditCardSkipped", skip.SkipReason);
         _txRepo.Verify(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CopyRecurring_CreditCardTemplate_NoInvoiceExists_SkipsWithNoInvoiceFound()
+    {
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId);
+        var template = NewExpenseTemplate(userId, account.Id, 44.90m, 15, paymentMethod: PaymentMethod.CreditCard);
+        // CreditCardId is set by NewExpenseTemplate; invoice repo returns null by default
+
+        _recurringRepo.Setup(r => r.GetRecurringForMonthAsync(userId, 5, 2026))
+            .ReturnsAsync(new List<RecurringTransaction> { template });
+        _txRepo.Setup(r => r.GetByRecurringTransactionForMonthAsync(template.Id, 2026, 5, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Transaction?)null);
+        _invoiceRepo.Setup(r => r.GetByCardAndPeriodAsync(template.CreditCardId!.Value, 5, 2026, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreditCardInvoice?)null);
+
+        var result = await BuildService().CopyRecurringForMonthAsync(2026, 5, userId);
+
+        Assert.True(result.IsSuccess);
+        var skip = Assert.Single(result.Value.Skipped);
+        Assert.Equal("NoInvoiceFound", skip.SkipReason);
+        _txRepo.Verify(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CopyRecurring_CreditCardTemplate_InvoiceExists_MaterialisesLinkedToInvoice()
+    {
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId);
+        var cardId = Guid.NewGuid();
+        var template = NewExpenseTemplate(userId, account.Id, 44.90m, 15, paymentMethod: PaymentMethod.CreditCard);
+        template.CreditCardId = cardId;
+        template.ItemKind = RecurringItemKind.Subscription;
+
+        var invoice = new CreditCardInvoice(
+            Guid.NewGuid(), 5, 2026,
+            new DateTime(2026, 5, 20), new DateTime(2026, 6, 10), userId);
+
+        _recurringRepo.Setup(r => r.GetRecurringForMonthAsync(userId, 5, 2026))
+            .ReturnsAsync(new List<RecurringTransaction> { template });
+        _txRepo.Setup(r => r.GetByRecurringTransactionForMonthAsync(template.Id, 2026, 5, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Transaction?)null);
+        _invoiceRepo.Setup(r => r.GetByCardAndPeriodAsync(cardId, 5, 2026, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(invoice);
+
+        Transaction? added = null;
+        _txRepo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
+            .Callback<Transaction, CancellationToken>((t, _) => added = t)
+            .ReturnsAsync((Transaction t, CancellationToken _) => t);
+
+        var result = await BuildService().CopyRecurringForMonthAsync(2026, 5, userId);
+
+        Assert.True(result.IsSuccess);
+        var item = Assert.Single(result.Value.Created);
+        Assert.Null(item.SkipReason);
+        Assert.NotNull(item.CreatedTransactionId);
+
+        Assert.NotNull(added);
+        Assert.Equal(Diax.Domain.Finance.TransactionType.Expense, added!.Type);
+        Assert.Equal(44.90m, added.Amount);
+        Assert.Equal(PaymentMethod.CreditCard, added.PaymentMethod);
+        Assert.Equal(cardId, added.CreditCardId);
+        Assert.Equal(invoice.Id, added.CreditCardInvoiceId);
+        Assert.Null(added.FinancialAccountId);
+        Assert.Equal(TransactionStatus.Pending, added.Status);
+        Assert.True(added.IsSubscription);
+        Assert.Equal(template.Id, added.RecurringTransactionId);
+
+        // CC expenses don't touch the account balance
+        Assert.Equal(1000m, account.Balance);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -394,7 +467,7 @@ public class PersonalFinanceControlServiceCopyRecurringTests
     public async Task CopyRecurring_MultipleTemplates_ProcessesEachIndependently()
     {
         // Realistic Maio/2026 scenario: 4 income templates + 1 expense template + 1 credit-card expense.
-        // Income x4 should materialize, expense materializes, credit-card skips.
+        // Income x4 should materialize, expense materializes, credit-card skips (no invoice for month).
         var userId = Guid.NewGuid();
         var account = NewAccount(userId, 0m);
 
@@ -410,6 +483,7 @@ public class PersonalFinanceControlServiceCopyRecurringTests
         aluguel.Description = "Aluguel";
         var spotify = NewExpenseTemplate(userId, account.Id, 21.90m, 10, paymentMethod: PaymentMethod.CreditCard);
         spotify.Description = "Spotify";
+        // No invoice setup → _invoiceRepo returns null by default → "NoInvoiceFound"
 
         _recurringRepo.Setup(r => r.GetRecurringForMonthAsync(userId, 5, 2026))
             .ReturnsAsync(new List<RecurringTransaction> { prosource, kpit, pantheon, vale, aluguel, spotify });
@@ -422,8 +496,8 @@ public class PersonalFinanceControlServiceCopyRecurringTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(5, result.Value.Created.Count); // 4 incomes + 1 expense
-        Assert.Single(result.Value.Skipped);          // credit-card spotify
-        Assert.Equal("CreditCardSkipped", result.Value.Skipped[0].SkipReason);
+        Assert.Single(result.Value.Skipped);          // credit-card spotify (no invoice)
+        Assert.Equal("NoInvoiceFound", result.Value.Skipped[0].SkipReason);
 
         // 0 + 15750 + 9000 + 20160 + 780 - 1500 = 44190
         Assert.Equal(44190m, account.Balance);

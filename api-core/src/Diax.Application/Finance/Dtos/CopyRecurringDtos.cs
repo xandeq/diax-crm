@@ -15,7 +15,8 @@ public record CopyRecurringMonthResult(
 /// <remarks>
 /// SkipReason values:
 /// - "AlreadyExists": a Transaction with this RecurringTransactionId already exists for the target month.
-/// - "CreditCardSkipped": template uses CreditCard payment; v1 doesn't auto-resolve invoices.
+/// - "CreditCardSkipped": template uses CreditCard payment but has no CreditCardId set.
+/// - "NoInvoiceFound": CreditCard template found but no invoice exists for the target month/group.
 /// - "MissingAccount": template has no FinancialAccountId (data integrity issue).
 /// - "InvalidAccount": account not found or inactive.
 /// - "UnsupportedType": template Type isn't Income or Expense.

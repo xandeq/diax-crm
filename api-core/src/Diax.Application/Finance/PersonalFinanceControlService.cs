@@ -230,7 +230,48 @@ public class PersonalFinanceControlService : IApplicationService
 
                 if (template.PaymentMethod == PaymentMethod.CreditCard)
                 {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "CreditCardSkipped", template.HasVariableAmount));
+                    if (!template.CreditCardId.HasValue)
+                    {
+                        skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "CreditCardSkipped", template.HasVariableAmount));
+                        continue;
+                    }
+
+                    var invoice = await _creditCardInvoiceRepository.GetByCardAndPeriodAsync(template.CreditCardId.Value, month, year, cancellationToken);
+                    if (invoice == null)
+                    {
+                        skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "NoInvoiceFound", template.HasVariableAmount));
+                        continue;
+                    }
+
+                    var ccSafeDay = Math.Min(template.DayOfMonth, DateTime.DaysInMonth(year, month));
+                    var ccTargetDate = new DateTime(year, month, ccSafeDay, 12, 0, 0, DateTimeKind.Utc);
+
+                    if (ccTargetDate.Date < template.StartDate.Date)
+                    {
+                        skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "BeforeStartDate", template.HasVariableAmount));
+                        continue;
+                    }
+
+                    var ccTx = Transaction.CreateExpense(
+                        description: template.Description,
+                        amount: template.Amount,
+                        date: ccTargetDate,
+                        paymentMethod: PaymentMethod.CreditCard,
+                        categoryId: template.CategoryId,
+                        isRecurring: true,
+                        userId: userId,
+                        creditCardId: template.CreditCardId,
+                        creditCardInvoiceId: invoice.Id,
+                        financialAccountId: null,
+                        status: TransactionStatus.Pending,
+                        details: template.Details,
+                        recurringTransactionId: template.Id,
+                        isSubscription: template.ItemKind == RecurringItemKind.Subscription,
+                        hasVariableAmount: template.HasVariableAmount);
+
+                    await _transactionRepository.AddAsync(ccTx, cancellationToken);
+                    created.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, ccTx.Id, null, template.HasVariableAmount));
+                    anyCreated = true;
                     continue;
                 }
 

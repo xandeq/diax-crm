@@ -157,7 +157,7 @@ export interface CopyRecurringItem {
   description: string;
   amount: number;
   createdTransactionId?: string;
-  skipReason?: 'AlreadyExists' | 'CreditCardSkipped' | 'MissingAccount' | 'InvalidAccount' | 'UnsupportedType' | 'BeforeStartDate' | string | null;
+  skipReason?: 'AlreadyExists' | 'CreditCardSkipped' | 'NoInvoiceFound' | 'MissingAccount' | 'InvalidAccount' | 'UnsupportedType' | 'BeforeStartDate' | string | null;
   hasVariableAmount?: boolean;
 }
 

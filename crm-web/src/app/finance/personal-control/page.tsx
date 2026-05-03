@@ -830,7 +830,7 @@ function Page() {
       const result = await personalControlService.copyRecurring(period.year, period.month);
       const createdCount = result.created.length;
       const skippedCount = result.skipped.length;
-      const cardSkipped = result.skipped.filter((s) => s.skipReason === 'CreditCardSkipped').length;
+      const cardSkipped = result.skipped.filter((s) => s.skipReason === 'CreditCardSkipped' || s.skipReason === 'NoInvoiceFound').length;
       const variableAmount = result.created.filter((c) => c.hasVariableAmount);
 
       if (createdCount === 0 && skippedCount === 0) {
