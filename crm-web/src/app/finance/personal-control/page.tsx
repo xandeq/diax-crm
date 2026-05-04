@@ -22,6 +22,8 @@ import {
   CreatePersonalControlIncomeRequest,
   CreatePersonalControlSubscriptionRequest,
   InvestIQPortfolioSummary,
+  InvoiceTransactionItem,
+  LinkedSubscriptionPreview,
   PersonalControlBillingFrequency,
   PersonalControlExpenseItem,
   PersonalControlIncomeItem,
@@ -497,6 +499,14 @@ function PatrimonioWidget({
   );
 }
 
+function matchSub(description: string, subs: LinkedSubscriptionPreview[]): LinkedSubscriptionPreview | null {
+  const lower = description.toLowerCase();
+  return subs.find((s) => {
+    const sl = s.description.toLowerCase();
+    return lower.includes(sl) || sl.includes(lower);
+  }) ?? null;
+}
+
 function InvoiceBucketRow({
   invoice,
 }: {
@@ -505,7 +515,19 @@ function InvoiceBucketRow({
   const [expanded, setExpanded] = useState(false);
   const displayAmount = invoice.statementAmount ?? invoice.totalTransactionsAmount;
   const dueDay = new Date(invoice.dueDate).getUTCDate();
+  const hasRealTxs = invoice.transactions.length > 0;
   const hasLinked = invoice.linkedSubscriptions.length > 0;
+  const canExpand = hasRealTxs || hasLinked;
+
+  // Conciliation: find which templates were not matched by any real transaction
+  const matchedTemplateIds = hasRealTxs
+    ? new Set(
+        invoice.transactions
+          .map((tx) => matchSub(tx.description, invoice.linkedSubscriptions)?.templateId)
+          .filter(Boolean) as string[]
+      )
+    : new Set<string>();
+  const unmatchedTemplates = invoice.linkedSubscriptions.filter((ls) => !matchedTemplateIds.has(ls.templateId));
 
   return (
     <div className={cn('rounded-md border text-xs', invoice._pending ? 'bg-amber-50 border-amber-300' : invoice.isPaid ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200')}>
@@ -523,7 +545,7 @@ function InvoiceBucketRow({
           <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">estimado</span>
         )}
         {invoice.isPaid && <span className="rounded bg-emerald-100 px-1 text-[9px] text-emerald-700">pago</span>}
-        {hasLinked && (
+        {canExpand && (
           <button
             onClick={() => setExpanded((v) => !v)}
             className="ml-1 text-slate-400 hover:text-slate-600"
@@ -533,16 +555,55 @@ function InvoiceBucketRow({
           </button>
         )}
       </div>
-      {expanded && hasLinked && (
-        <div className="border-t border-blue-100 px-3 py-1.5 flex flex-col gap-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-500 mb-0.5">Recorrências previstas:</span>
-          {invoice.linkedSubscriptions.map((ls) => (
-            <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-slate-600">
-              <span className="flex-1">{ls.description}</span>
-              {ls.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">variável</span>}
-              <span className="tabular-nums font-medium">{formatCurrency(ls.amount)}</span>
-            </div>
-          ))}
+
+      {expanded && canExpand && (
+        <div className="border-t border-blue-100 px-3 py-1.5 flex flex-col gap-1">
+          {hasRealTxs ? (
+            <>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-0.5">
+                Transações reais ({invoice.transactions.length})
+              </span>
+              {invoice.transactions.map((tx) => {
+                const matched = matchSub(tx.description, invoice.linkedSubscriptions);
+                return (
+                  <div key={tx.transactionId} className="flex items-center gap-1.5 text-[11px]">
+                    <span className="flex-1 text-slate-700">{tx.description}</span>
+                    {matched && (
+                      <span className="rounded bg-emerald-100 px-1 text-[9px] text-emerald-700">✓ conciliado</span>
+                    )}
+                    <span className="tabular-nums font-medium text-slate-700">{formatCurrency(tx.amount)}</span>
+                  </div>
+                );
+              })}
+              {unmatchedTemplates.length > 0 && (
+                <>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 mt-1">
+                    Esperado mas não encontrado:
+                  </span>
+                  {unmatchedTemplates.map((ls) => (
+                    <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-amber-700">
+                      <span className="flex-1">{ls.description}</span>
+                      {ls.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px]">variável</span>}
+                      <span className="tabular-nums font-medium">{formatCurrency(ls.amount)}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-400 mb-0.5">
+                Recorrências previstas (sem PDF):
+              </span>
+              {invoice.linkedSubscriptions.map((ls) => (
+                <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                  <span className="flex-1">{ls.description}</span>
+                  {ls.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">variável</span>}
+                  <span className="tabular-nums font-medium">{formatCurrency(ls.amount)}</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -569,9 +630,8 @@ function SalaryPlannerSection({
     getEffectivePayDay(inc.dayOfMonth, monthView.period.year, monthView.period.month).effectiveDay,
   );
 
-  // CC subscriptions are planning-only; they live inside the invoice, not in the cash walk.
+  // CC subscriptions live inside the invoice expand; only debit subscriptions affect the cash walk.
   const debitSubscriptions = monthView.subscriptions.filter((s) => s.paymentType !== 'credit');
-  const ccSubscriptions = monthView.subscriptions.filter((s) => s.paymentType === 'credit');
 
   const buckets = sortedIncomes.reduce<{
     day: number; nextDay: number; incomeName: string;
@@ -655,7 +715,7 @@ function SalaryPlannerSection({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg">Planner de Salário</CardTitle>
-            <CardDescription>3 camadas: despesas diretas, faturas de cartão (vencimento) e recorrências previstas.</CardDescription>
+            <CardDescription>Despesas diretas afetam o caixa; faturas de cartão entram pelo vencimento. Expand da fatura mostra transações reais ou recorrências previstas.</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -732,30 +792,6 @@ function SalaryPlannerSection({
           ))}
         </div>
 
-        {/* Layer 3 — CC subscription templates (planning reference) */}
-        {ccSubscriptions.length > 0 && (
-          <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <CreditCardIcon className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-semibold text-blue-700">Recorrências previstas em cartão</span>
-              <span className="text-xs text-blue-400">(fazem parte das faturas acima)</span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {ccSubscriptions.map((item) => (
-                <div key={item.id} className="flex items-center gap-2 rounded-md bg-white border border-blue-100 px-2.5 py-1.5 text-xs">
-                  <span className="flex-1 text-slate-700">{item.name}</span>
-                  {item.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">variável</span>}
-                  {item.creditCardName && (
-                    <span className="inline-flex items-center gap-0.5 rounded bg-blue-100 px-1.5 text-[10px] text-blue-700">
-                      <CreditCardIcon className="h-2.5 w-2.5" />{item.creditCardName}
-                    </span>
-                  )}
-                  <span className="tabular-nums font-semibold text-slate-700">{formatCurrency(item.amount)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

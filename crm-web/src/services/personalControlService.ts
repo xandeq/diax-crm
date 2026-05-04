@@ -153,6 +153,16 @@ export interface TogglePersonalControlStatusRequest {
   paymentDate?: string;
 }
 
+export interface InvoiceTransactionItem {
+  transactionId: string;
+  description: string;
+  amount: number;
+  date: string;
+  isPaid: boolean;
+  creditCardId?: string;
+  creditCardName?: string;
+}
+
 export interface LinkedSubscriptionPreview {
   templateId: string;
   description: string;
@@ -173,6 +183,7 @@ export interface PersonalControlInvoiceDueThisMonth {
   statementAmount?: number;
   isPaid: boolean;
   paymentDate?: string;
+  transactions: InvoiceTransactionItem[];
   linkedSubscriptions: LinkedSubscriptionPreview[];
 }
 

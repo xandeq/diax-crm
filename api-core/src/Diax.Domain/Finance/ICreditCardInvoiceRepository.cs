@@ -13,5 +13,7 @@ public interface ICreditCardInvoiceRepository
     Task UpdateAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default);
     Task DeleteAsync(CreditCardInvoice invoice, CancellationToken cancellationToken = default);
     Task<IEnumerable<CreditCardInvoice>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<List<CreditCardInvoice>> GetByReferencePeriodAsync(Guid userId, int month, int year, CancellationToken ct = default);
+    Task<List<CreditCardInvoice>> GetByDueDateRangeAsync(Guid userId, DateTime from, DateTime to, CancellationToken ct = default);
     Task<CreditCardInvoice?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default);
 }

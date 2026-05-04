@@ -118,7 +118,19 @@ public class InvoiceDueThisMonthResponse
     public decimal? StatementAmount { get; set; }
     public bool IsPaid { get; set; }
     public DateTime? PaymentDate { get; set; }
+    public List<InvoiceTransactionItem> Transactions { get; set; } = new();
     public List<LinkedSubscriptionPreview> LinkedSubscriptions { get; set; } = new();
+}
+
+public class InvoiceTransactionItem
+{
+    public Guid TransactionId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public DateTime Date { get; set; }
+    public bool IsPaid { get; set; }
+    public Guid? CreditCardId { get; set; }
+    public string? CreditCardName { get; set; }
 }
 
 public class LinkedSubscriptionPreview

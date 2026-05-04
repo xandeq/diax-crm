@@ -595,6 +595,16 @@ public class PersonalFinanceController : BaseApiController
                 statementAmount = inv.StatementAmount,
                 isPaid = inv.IsPaid,
                 paymentDate = inv.PaymentDate,
+                transactions = inv.Transactions.Select(tx => new
+                {
+                    transactionId = tx.TransactionId,
+                    description = tx.Description,
+                    amount = tx.Amount,
+                    date = tx.Date,
+                    isPaid = tx.IsPaid,
+                    creditCardId = tx.CreditCardId,
+                    creditCardName = tx.CreditCardName
+                }),
                 linkedSubscriptions = inv.LinkedSubscriptions.Select(ls => new
                 {
                     templateId = ls.TemplateId,

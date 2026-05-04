@@ -79,14 +79,8 @@ public class PersonalFinanceControlService : IApplicationService
 
             var recurringTemplates = await _recurringRepository.GetRecurringForMonthAsync(userId, targetMonth, targetYear);
             var cards = (await _creditCardRepository.GetAllByUserIdAsync(userId, cancellationToken)).ToList();
-            var allUserInvoices = (await _creditCardInvoiceRepository.GetAllByUserIdAsync(userId, cancellationToken)).ToList();
-            var invoices = allUserInvoices
-                .Where(i => i.ReferenceYear == targetYear && i.ReferenceMonth == targetMonth)
-                .ToList();
-            var invoicesDueInPeriod = allUserInvoices
-                .Where(i => i.DueDate.Date >= periodStart.Date && i.DueDate.Date <= periodEnd.Date)
-                .OrderBy(i => i.DueDate)
-                .ToList();
+            var invoices = await _creditCardInvoiceRepository.GetByReferencePeriodAsync(userId, targetMonth, targetYear, cancellationToken);
+            var invoicesDueInPeriod = await _creditCardInvoiceRepository.GetByDueDateRangeAsync(userId, periodStart, periodEnd, cancellationToken);
 
             var warnings = new List<string>();
             warnings.AddRange(DetectDuplicateTransactions(transactions));
@@ -193,6 +187,8 @@ public class PersonalFinanceControlService : IApplicationService
                     })
                     .ToList();
 
+                var invoiceTxs = transactions.Where(t => t.CreditCardInvoiceId == invoice.Id).OrderBy(t => t.Date).ToList();
+
                 return new InvoiceDueThisMonthResponse
                 {
                     InvoiceId = invoice.Id,
@@ -201,10 +197,20 @@ public class PersonalFinanceControlService : IApplicationService
                     DueDate = invoice.DueDate,
                     ReferenceMonth = invoice.ReferenceMonth,
                     ReferenceYear = invoice.ReferenceYear,
-                    TotalTransactionsAmount = transactions.Where(t => t.CreditCardInvoiceId == invoice.Id).Sum(t => t.Amount),
+                    TotalTransactionsAmount = invoiceTxs.Sum(t => t.Amount),
                     StatementAmount = invoice.StatementAmount,
                     IsPaid = invoice.IsPaid,
                     PaymentDate = invoice.PaymentDate,
+                    Transactions = invoiceTxs.Select(t => new InvoiceTransactionItem
+                    {
+                        TransactionId = t.Id,
+                        Description = t.Description,
+                        Amount = t.Amount,
+                        Date = t.Date,
+                        IsPaid = t.Status == TransactionStatus.Paid,
+                        CreditCardId = t.CreditCardId,
+                        CreditCardName = cards.FirstOrDefault(c => c.Id == t.CreditCardId)?.Name
+                    }).ToList(),
                     LinkedSubscriptions = linked
                 };
             }).ToList();
