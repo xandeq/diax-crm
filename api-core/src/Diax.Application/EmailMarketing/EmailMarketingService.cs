@@ -376,6 +376,7 @@ public class EmailMarketingService : IApplicationService
         var scheduledAt = NormalizeSchedule(request.ScheduledAt ?? campaign.ScheduledAt);
         var queuedItems = new List<EmailQueueItem>();
         var skipped = new List<string>();
+        var providerIndex = 0;
 
         foreach (var customer in recipients)
         {
@@ -384,6 +385,9 @@ public class EmailMarketingService : IApplicationService
                 skipped.Add($"{customer.Name} <{customer.Email}> (email inválido)");
                 continue;
             }
+
+            var provider = (Domain.EmailMarketing.Enums.EmailProvider)(providerIndex % 3);
+            providerIndex++;
 
             queuedItems.Add(new EmailQueueItem(
                 _currentUserService.UserId!.Value,
@@ -394,7 +398,8 @@ public class EmailMarketingService : IApplicationService
                 scheduledAt,
                 customer.Id,
                 attachmentsJsonResult.Value,
-                campaign.Id));
+                campaign.Id,
+                provider));
         }
 
         if (queuedItems.Count == 0)

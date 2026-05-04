@@ -13,4 +13,5 @@ public class EmailSettings
     public int DailyLimit { get; set; } = 250;
     public int HourlyLimit { get; set; } = 50;
     public int BatchSize { get; set; } = 50;
+    public int PerProviderBatchSize { get; set; } = 20;
 }

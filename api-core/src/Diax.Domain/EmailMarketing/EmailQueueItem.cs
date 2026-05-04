@@ -13,6 +13,7 @@ public class EmailQueueItem : AuditableEntity
     public string HtmlBody { get; private set; } = string.Empty;
     public string? AttachmentsJson { get; private set; }
     public EmailQueueStatus Status { get; private set; }
+    public EmailProvider AssignedProvider { get; private set; }
     public DateTime ScheduledAt { get; private set; }
     public DateTime? ProcessingStartedAt { get; private set; }
     public DateTime? SentAt { get; private set; }
@@ -37,7 +38,8 @@ public class EmailQueueItem : AuditableEntity
         DateTime scheduledAt,
         Guid? customerId = null,
         string? attachmentsJson = null,
-        Guid? campaignId = null)
+        Guid? campaignId = null,
+        EmailProvider assignedProvider = EmailProvider.Brevo)
     {
         UserId = userId;
         CustomerId = customerId;
@@ -48,6 +50,7 @@ public class EmailQueueItem : AuditableEntity
         ScheduledAt = scheduledAt;
         AttachmentsJson = attachmentsJson;
         CampaignId = campaignId;
+        AssignedProvider = assignedProvider;
         Status = EmailQueueStatus.Queued;
     }
 

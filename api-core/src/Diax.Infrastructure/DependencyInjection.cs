@@ -333,21 +333,26 @@ public static class DependencyInjection
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
         services.Configure<BrevoSettings>(configuration.GetSection("Brevo"));
+        services.Configure<MailjetSettings>(configuration.GetSection("Mailjet"));
+        services.Configure<ResendSettings>(configuration.GetSection("Resend"));
 
-        // Brevo como sender principal se configurado, SMTP como fallback
-        var brevoApiKey = configuration.GetSection("Brevo:ApiKey").Value;
-        if (!string.IsNullOrWhiteSpace(brevoApiKey))
-        {
-            services.AddHttpClient<BrevoEmailSender>();
-            services.AddScoped<IEmailSender, BrevoEmailSender>();
+        // Brevo
+        services.AddHttpClient<BrevoEmailSender>();
+        services.AddKeyedScoped<IEmailSender>("brevo", (sp, _) => sp.GetRequiredService<BrevoEmailSender>());
 
-            // Brevo Contact Stats Service (para analytics por contato)
-            services.AddHttpClient<IBrevoContactStatsService, BrevoContactStatsService>();
-        }
-        else
-        {
-            services.AddScoped<IEmailSender, SmtpEmailSender>();
-        }
+        // Mailjet
+        services.AddHttpClient<MailjetEmailSender>();
+        services.AddKeyedScoped<IEmailSender>("mailjet", (sp, _) => sp.GetRequiredService<MailjetEmailSender>());
+
+        // Resend
+        services.AddHttpClient<ResendEmailSender>();
+        services.AddKeyedScoped<IEmailSender>("resend", (sp, _) => sp.GetRequiredService<ResendEmailSender>());
+
+        // Fallback não-keyed para partes do sistema que usam IEmailSender diretamente (test email, etc.)
+        services.AddScoped<IEmailSender, BrevoEmailSender>();
+
+        // Brevo Contact Stats Service (para analytics por contato)
+        services.AddHttpClient<IBrevoContactStatsService, BrevoContactStatsService>();
 
         services.AddHostedService<EmailQueueProcessorWorker>();
 

@@ -28,6 +28,27 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<EmailQueueItem>> GetPendingBatchByProviderAsync(
+        EmailProvider provider,
+        DateTime utcNow,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        if (take <= 0)
+        {
+            return [];
+        }
+
+        return await DbSet
+            .Where(item => item.Status == EmailQueueStatus.Queued
+                        && item.ScheduledAt <= utcNow
+                        && item.AssignedProvider == provider)
+            .OrderBy(item => item.ScheduledAt)
+            .ThenBy(item => item.CreatedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddRangeAsync(IEnumerable<EmailQueueItem> items, CancellationToken cancellationToken = default)
     {
         await DbSet.AddRangeAsync(items, cancellationToken);

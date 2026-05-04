@@ -4,6 +4,7 @@ using Diax.Application.EmailMarketing.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.EmailMarketing;
+using Diax.Domain.EmailMarketing.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,13 @@ public class EmailQueueProcessorWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailQueueProcessorWorker> _logger;
+
+    private static readonly (EmailProvider Provider, string ServiceKey)[] ProviderMap =
+    [
+        (EmailProvider.Brevo, "brevo"),
+        (EmailProvider.Mailjet, "mailjet"),
+        (EmailProvider.Resend, "resend")
+    ];
 
     public EmailQueueProcessorWorker(
         IServiceScopeFactory scopeFactory,
@@ -55,108 +63,102 @@ public class EmailQueueProcessorWorker : BackgroundService
         var customerRepository = scope.ServiceProvider.GetRequiredService<ICustomerRepository>();
         var templateEngine = scope.ServiceProvider.GetRequiredService<IEmailTemplateEngine>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
         var now = DateTime.UtcNow;
-        var sentInLastHour = await repository.CountSentSinceAsync(now.AddHours(-1), cancellationToken);
-        var sentInLastDay = await repository.CountSentSinceAsync(now.AddDays(-1), cancellationToken);
+        var perProvider = _settings.PerProviderBatchSize <= 0 ? 20 : _settings.PerProviderBatchSize;
 
-        var hourlyLimit = _settings.HourlyLimit <= 0 ? 50 : _settings.HourlyLimit;
-        var dailyLimit = _settings.DailyLimit <= 0 ? 250 : _settings.DailyLimit;
+        var totalProcessed = 0;
 
-        var availableHour = Math.Max(0, hourlyLimit - sentInLastHour);
-        var availableDay = Math.Max(0, dailyLimit - sentInLastDay);
-        var allowedToSend = Math.Min(availableHour, availableDay);
-        var batchSize = _settings.BatchSize <= 0 ? 50 : _settings.BatchSize;
-        var take = Math.Min(batchSize, allowedToSend);
-
-        if (take <= 0)
+        foreach (var (provider, serviceKey) in ProviderMap)
         {
-            _logger.LogInformation(
-                "Limite de envio atingido. Última hora: {HourCount}/{HourLimit}, último dia: {DayCount}/{DayLimit}",
-                sentInLastHour,
-                hourlyLimit,
-                sentInLastDay,
-                dailyLimit);
-            return;
-        }
+            var pendingItems = await repository.GetPendingBatchByProviderAsync(provider, now, perProvider, cancellationToken);
 
-        var pendingItems = await repository.GetPendingBatchAsync(now, take, cancellationToken);
-
-        if (pendingItems.Count == 0)
-        {
-            return;
-        }
-
-        // Transition any Scheduled campaigns to Processing now that their items are being sent
-        var campaignIdsToStart = pendingItems
-            .Where(i => i.CampaignId.HasValue)
-            .Select(i => i.CampaignId!.Value)
-            .Distinct()
-            .ToList();
-
-        foreach (var campaignId in campaignIdsToStart)
-        {
-            var campaign = await campaignRepository.GetByIdAsync(campaignId, cancellationToken);
-            if (campaign is { Status: Domain.EmailMarketing.Enums.EmailCampaignStatus.Scheduled })
+            if (pendingItems.Count == 0)
             {
-                campaign.StartProcessing();
-                await campaignRepository.UpdateAsync(campaign, cancellationToken);
+                continue;
+            }
+
+            var emailSender = scope.ServiceProvider.GetRequiredKeyedService<IEmailSender>(serviceKey);
+
+            // Transition any Scheduled campaigns to Processing
+            var campaignIdsToStart = pendingItems
+                .Where(i => i.CampaignId.HasValue)
+                .Select(i => i.CampaignId!.Value)
+                .Distinct()
+                .ToList();
+
+            foreach (var campaignId in campaignIdsToStart)
+            {
+                var campaign = await campaignRepository.GetByIdAsync(campaignId, cancellationToken);
+                if (campaign is { Status: EmailCampaignStatus.Scheduled })
+                {
+                    campaign.StartProcessing();
+                    await campaignRepository.UpdateAsync(campaign, cancellationToken);
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Campaign {CampaignId} transitioned from Scheduled to Processing", campaignId);
+                }
+            }
+
+            foreach (var item in pendingItems)
+            {
+                item.MarkProcessing();
+                await repository.UpdateAsync(item, cancellationToken);
                 await unitOfWork.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation("Campaign {CampaignId} transitioned from Scheduled to Processing", campaignId);
+
+                Customer? customer = null;
+                if (item.CustomerId.HasValue)
+                {
+                    customer = await customerRepository.GetByIdAsync(item.CustomerId.Value, cancellationToken);
+                }
+
+                var variables = EmailMarketingService.BuildRecipientTemplateVariables(customer, item);
+                var renderedSubject = templateEngine.Render(item.Subject, variables);
+                var renderedHtmlBody = templateEngine.Render(item.HtmlBody, variables);
+
+                var message = new EmailSendMessage
+                {
+                    RecipientName = item.RecipientName,
+                    RecipientEmail = item.RecipientEmail,
+                    Subject = renderedSubject,
+                    HtmlBody = renderedHtmlBody,
+                    Attachments = ParseAttachments(item.AttachmentsJson),
+                    Tags = item.CampaignId.HasValue ? [item.CampaignId.Value.ToString()] : null
+                };
+
+                var sendResult = await emailSender.SendAsync(message, cancellationToken);
+
+                if (sendResult.Success)
+                {
+                    item.MarkSent(sendResult.ProviderMessageId);
+                    if (item.CampaignId.HasValue)
+                    {
+                        await campaignRepository.IncrementSentAsync(item.CampaignId.Value, cancellationToken);
+                    }
+                }
+                else
+                {
+                    item.MarkFailed(sendResult.ErrorMessage ?? "Falha desconhecida ao enviar e-mail.");
+                    if (item.CampaignId.HasValue)
+                    {
+                        await campaignRepository.IncrementFailedAsync(item.CampaignId.Value, cancellationToken);
+                    }
+                }
+
+                await repository.UpdateAsync(item, cancellationToken);
+                await unitOfWork.SaveChangesAsync(cancellationToken);
             }
+
+            totalProcessed += pendingItems.Count;
+            _logger.LogInformation(
+                "[{Provider}] {Count} emails processados neste ciclo.",
+                provider,
+                pendingItems.Count);
         }
 
-        foreach (var item in pendingItems)
+        if (totalProcessed > 0)
         {
-            item.MarkProcessing();
-            await repository.UpdateAsync(item, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-
-            Customer? customer = null;
-            if (item.CustomerId.HasValue)
-            {
-                customer = await customerRepository.GetByIdAsync(item.CustomerId.Value, cancellationToken);
-            }
-
-            var variables = EmailMarketingService.BuildRecipientTemplateVariables(customer, item);
-            var renderedSubject = templateEngine.Render(item.Subject, variables);
-            var renderedHtmlBody = templateEngine.Render(item.HtmlBody, variables);
-
-            var message = new EmailSendMessage
-            {
-                RecipientName = item.RecipientName,
-                RecipientEmail = item.RecipientEmail,
-                Subject = renderedSubject,
-                HtmlBody = renderedHtmlBody,
-                Attachments = ParseAttachments(item.AttachmentsJson),
-                Tags = item.CampaignId.HasValue ? [item.CampaignId.Value.ToString()] : null
-            };
-
-            var sendResult = await emailSender.SendAsync(message, cancellationToken);
-
-            if (sendResult.Success)
-            {
-                item.MarkSent(sendResult.ProviderMessageId);
-                if (item.CampaignId.HasValue)
-                {
-                    await campaignRepository.IncrementSentAsync(item.CampaignId.Value, cancellationToken);
-                }
-            }
-            else
-            {
-                item.MarkFailed(sendResult.ErrorMessage ?? "Falha desconhecida ao enviar e-mail.");
-                if (item.CampaignId.HasValue)
-                {
-                    await campaignRepository.IncrementFailedAsync(item.CampaignId.Value, cancellationToken);
-                }
-            }
-
-            await repository.UpdateAsync(item, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Ciclo concluído. Total processado: {Total} ({PerProvider}/provider)", totalProcessed, perProvider);
         }
-
-        _logger.LogInformation("Processamento de fila finalizado. Itens processados: {Count}", pendingItems.Count);
     }
 
     private static List<EmailSendAttachment> ParseAttachments(string? attachmentsJson)
