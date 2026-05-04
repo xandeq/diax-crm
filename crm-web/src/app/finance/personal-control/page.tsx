@@ -657,7 +657,7 @@ function SalaryPlannerSection({
     const debitSubsRaw = i === 0 ? debitSubscriptions : ([] as typeof debitSubscriptions);
 
     // Layer 2: invoices whose DueDate falls in this bucket
-    const invoicesDueRaw = monthView.invoicesDueThisMonth
+    const invoicesDueRaw = (monthView.invoicesDueThisMonth ?? [])
       .filter((inv) => {
         const dueDay = new Date(inv.dueDate).getUTCDate();
         return dueDay >= day && dueDay < nextDay;
