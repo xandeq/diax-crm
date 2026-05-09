@@ -2,6 +2,7 @@ using System.Net.Mail;
 using System.Text.Json;
 using Diax.Application.Common;
 using Diax.Application.EmailMarketing.Dtos;
+using Diax.Application.EmailMarketing.Pro.Dtos;
 using Diax.Domain.Auth;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
@@ -26,6 +27,7 @@ public class EmailMarketingService : IApplicationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserRepository _userRepository;
     private readonly IEmailSender _emailSender;
+    private readonly IEmailSuppressionRepository _suppressionRepository;
 
     public EmailMarketingService(
         IEmailQueueRepository emailQueueRepository,
@@ -36,7 +38,8 @@ public class EmailMarketingService : IApplicationService
         ICurrentUserService currentUserService,
         IUnitOfWork unitOfWork,
         IUserRepository userRepository,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        IEmailSuppressionRepository suppressionRepository)
     {
         _emailQueueRepository = emailQueueRepository;
         _emailCampaignRepository = emailCampaignRepository;
@@ -47,6 +50,7 @@ public class EmailMarketingService : IApplicationService
         _unitOfWork = unitOfWork;
         _userRepository = userRepository;
         _emailSender = emailSender;
+        _suppressionRepository = suppressionRepository;
     }
 
     public async Task<Result<PreviewCampaignResponse>> PreviewCampaignAsync(
@@ -383,6 +387,12 @@ public class EmailMarketingService : IApplicationService
             if (!IsValidEmail(customer.Email))
             {
                 skipped.Add($"{customer.Name} <{customer.Email}> (email inválido)");
+                continue;
+            }
+
+            if (await _suppressionRepository.IsSuppressedAsync(_currentUserService.UserId!.Value, customer.Email, cancellationToken))
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (suprimido)");
                 continue;
             }
 
@@ -899,6 +909,108 @@ public class EmailMarketingService : IApplicationService
             OverallStats = overallStats,
             RecentCampaigns = campaignStats,
             EngagementTrend = engagementTrend,
+        };
+    }
+
+    public async Task<Result<QueueCampaignRecipientsResponse>> QueueWithSmartAssignmentAsync(
+        Pro.Dtos.QueueWithAssignmentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (_currentUserService.UserId is null)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Unauthorized("Usuário não autenticado."));
+        }
+
+        if (request.Leads.Count == 0)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Validation("Leads", "Informe ao menos um lead para enfileirar."));
+        }
+
+        var campaignResult = await GetCampaignOwnedByCurrentUserAsync(request.CampaignId, cancellationToken);
+        if (campaignResult.IsFailure)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(campaignResult.Error);
+        }
+
+        var campaign = campaignResult.Value;
+        if (campaign.Status is EmailCampaignStatus.Completed or EmailCampaignStatus.Cancelled)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Validation("Status", "Campanhas concluídas/canceladas não podem receber novos envios."));
+        }
+
+        var templateResult = await ResolveCampaignTemplateSnapshotAsync(campaign, null, null, cancellationToken);
+        if (templateResult.IsFailure)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(templateResult.Error);
+        }
+
+        var customerIds = request.Leads.Select(l => l.CustomerId).ToList();
+        var customers = (await _customerRepository.FindAsync(
+            c => customerIds.Contains(c.Id), cancellationToken))
+            .ToDictionary(c => c.Id);
+
+        var scheduledAt = NormalizeSchedule(null);
+        var queuedItems = new List<EmailQueueItem>();
+        var skipped = new List<string>();
+
+        foreach (var leadDto in request.Leads)
+        {
+            if (!customers.TryGetValue(leadDto.CustomerId, out var customer))
+            {
+                skipped.Add($"{leadDto.CustomerId} (não encontrado)");
+                continue;
+            }
+
+            if (!IsValidEmail(customer.Email))
+            {
+                skipped.Add($"{customer.Name} (email inválido)");
+                continue;
+            }
+
+            var provider = leadDto.AssignedProvider?.ToLowerInvariant() switch
+            {
+                "mailjet" => EmailProvider.Mailjet,
+                "resend"  => EmailProvider.Resend,
+                _         => EmailProvider.Brevo,
+            };
+
+            queuedItems.Add(new EmailQueueItem(
+                _currentUserService.UserId.Value,
+                customer.Name,
+                customer.Email!,
+                campaign.Subject,
+                templateResult.Value.TemplateBody,
+                scheduledAt,
+                customer.Id,
+                null,
+                campaign.Id,
+                provider));
+        }
+
+        if (queuedItems.Count == 0)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Validation("Recipients", "Nenhum destinatário válido para enfileirar."));
+        }
+
+        campaign.SetTotalRecipients(queuedItems.Count);
+        campaign.StartProcessing();
+
+        await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+        await _emailQueueRepository.AddRangeAsync(queuedItems, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new QueueCampaignRecipientsResponse
+        {
+            CampaignId = campaign.Id,
+            RequestedCount = request.Leads.Count,
+            QueuedCount = queuedItems.Count,
+            SkippedCount = skipped.Count,
+            EffectiveScheduledAt = scheduledAt,
+            SkippedRecipients = skipped,
         };
     }
 }

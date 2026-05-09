@@ -91,4 +91,13 @@ public class EmailQueueItem : AuditableEntity
         ReadCount++;
         SetUpdated("system");
     }
+
+    public void Requeue(DateTime retryAt)
+    {
+        Status = EmailQueueStatus.Queued;
+        ScheduledAt = retryAt;
+        LastError = null;
+        ProcessingStartedAt = null;
+        SetUpdated("system");
+    }
 }

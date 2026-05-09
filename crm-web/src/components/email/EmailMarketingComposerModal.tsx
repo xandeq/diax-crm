@@ -149,6 +149,12 @@ export function EmailMarketingComposerModal({
           </DialogTitle>
         </DialogHeader>
 
+        {/* Deprecation notice */}
+        <div className="flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+          <span>Experimente o <strong>Email Marketing PRO</strong>: 3 providers, smart preselection e tracking completo.</span>
+          <a href="/email-marketing/pro" className="ml-3 shrink-0 font-semibold underline hover:text-blue-900">Abrir PRO →</a>
+        </div>
+
         <div className="space-y-4 py-2">
           {/* Subject */}
           <div className="space-y-2">

@@ -487,6 +487,22 @@ export default function EmailMarketingPage() {
         </div>
       </div>
 
+      {/* PRO banner */}
+      <div className="mb-5 flex items-center justify-between rounded-lg border border-blue-600 bg-blue-600 px-4 py-3 text-sm text-white">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 shrink-0" />
+          <span>
+            <strong>Novo:</strong> Smart Preselection, 3 providers (Brevo + Mailjet + Resend) e dashboard de saúde.
+          </span>
+        </div>
+        <Link
+          href="/email-marketing/pro"
+          className="ml-4 shrink-0 rounded-md bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+        >
+          Experimentar PRO →
+        </Link>
+      </div>
+
       {/* Remarketing banner */}
       {remarketingIds.length > 0 && (
         <div className="mb-5 flex items-start justify-between gap-2 rounded-lg border border-blue-300 bg-blue-100 px-4 py-3 text-sm text-blue-900">

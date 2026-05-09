@@ -359,6 +359,24 @@ public static class DependencyInjection
         // Email Image Storage Service (para imagens inline em emails)
         services.AddScoped<IEmailImageStorageService, EmailImageStorageService>();
 
+        // Name normalization (porta da lógica Python de limpeza de nomes)
+        services.AddSingleton<Diax.Application.EmailMarketing.Pro.INameNormalizationService,
+            Diax.Application.EmailMarketing.Pro.NameNormalizationService>();
+
+        // Provider health service
+        services.AddScoped<Diax.Application.EmailMarketing.Pro.IProviderHealthService,
+            Diax.Infrastructure.Email.ProviderHealthService>();
+
+        // Smart preselection service
+        services.AddScoped<Diax.Application.EmailMarketing.Pro.ISmartPreselectionService,
+            Diax.Application.EmailMarketing.Pro.SmartPreselectionService>();
+
+        // Suppression repository + service
+        services.AddScoped<IEmailSuppressionRepository,
+            Diax.Infrastructure.Data.Repositories.EmailSuppressionRepository>();
+        services.AddScoped<Diax.Application.EmailMarketing.Pro.ISuppressionService,
+            Diax.Application.EmailMarketing.Pro.SuppressionService>();
+
         // ===== WHATSAPP (EVOLUTION API) =====
         services.Configure<EvolutionApiSettings>(configuration.GetSection("EvolutionApi"));
         services.AddHttpClient<IWhatsAppSender, EvolutionApiClient>();

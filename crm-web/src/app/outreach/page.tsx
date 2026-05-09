@@ -2290,6 +2290,17 @@ export default function OutreachPage() {
         </div>
       </div>
 
+      {/* PRO banner */}
+      <div className="flex items-center justify-between rounded-lg border border-blue-600 bg-blue-600 px-4 py-3 text-sm text-white">
+        <span>O painel de Outreach foi integrado ao <strong>Email Marketing PRO</strong> com 3 providers, smart preselection e suppression list.</span>
+        <a
+          href="/email-marketing/pro?tab=outreach"
+          className="ml-4 shrink-0 rounded-md bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+        >
+          Ir para PRO →
+        </a>
+      </div>
+
       {/* Tab Navigation */}
       <TabBar active={activeTab} onChange={setActiveTab} />
 

@@ -105,6 +105,8 @@ public class DiaxDbContext : DbContext
     public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
     public DbSet<EmailQueueItem> EmailQueueItems => Set<EmailQueueItem>();
     public DbSet<EmailCampaign> EmailCampaigns => Set<EmailCampaign>();
+    public DbSet<EmailSuppression> EmailSuppressions => Set<EmailSuppression>();
+    public DbSet<EmailEvent> EmailEvents => Set<EmailEvent>();
 
     // Image Generation
     public DbSet<ImageTemplate> ImageTemplates => Set<ImageTemplate>();

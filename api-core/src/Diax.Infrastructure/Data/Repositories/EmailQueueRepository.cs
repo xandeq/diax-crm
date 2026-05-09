@@ -64,6 +64,32 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
                 cancellationToken);
     }
 
+    public async Task<int> CountSentByProviderSinceAsync(
+        EmailProvider provider,
+        DateTime fromUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .CountAsync(
+                item => item.AssignedProvider == provider
+                    && item.Status == EmailQueueStatus.Sent
+                    && item.SentAt.HasValue
+                    && item.SentAt.Value >= fromUtc,
+                cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EmailQueueItem>> GetFailedForRetryAsync(
+        int maxAttempts,
+        DateTime cutoffUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(item => item.Status == EmailQueueStatus.Failed
+                        && item.AttemptCount < maxAttempts
+                        && item.UpdatedAt >= cutoffUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByUserAsync(
         Guid userId,
         int page,

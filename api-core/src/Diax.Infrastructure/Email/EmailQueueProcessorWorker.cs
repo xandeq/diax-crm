@@ -18,6 +18,9 @@ public class EmailQueueProcessorWorker : BackgroundService
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailQueueProcessorWorker> _logger;
 
+    private const int MaxRetryAttempts = 3;
+    private const int RetryLookbackDays = 7;
+
     private static readonly (EmailProvider Provider, string ServiceKey)[] ProviderMap =
     [
         (EmailProvider.Brevo, "brevo"),
@@ -65,7 +68,37 @@ public class EmailQueueProcessorWorker : BackgroundService
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
         var now = DateTime.UtcNow;
-        var perProvider = _settings.PerProviderBatchSize <= 0 ? 20 : _settings.PerProviderBatchSize;
+        var configuredPerProvider = _settings.PerProviderBatchSize <= 0 ? 20 : _settings.PerProviderBatchSize;
+
+        // Enforce daily and hourly limits
+        var dailyLimit = _settings.DailyLimit > 0 ? _settings.DailyLimit : int.MaxValue;
+        var hourlyLimit = _settings.HourlyLimit > 0 ? _settings.HourlyLimit : int.MaxValue;
+        var startOfDay = now.Date;
+        var startOfHour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0, DateTimeKind.Utc);
+
+        var sentToday = await repository.CountSentSinceAsync(startOfDay, cancellationToken);
+        var sentThisHour = await repository.CountSentSinceAsync(startOfHour, cancellationToken);
+        var dailyRemaining = Math.Max(0, dailyLimit - sentToday);
+        var hourlyRemaining = Math.Max(0, hourlyLimit - sentThisHour);
+        var systemRemaining = Math.Min(dailyRemaining, hourlyRemaining);
+
+        if (systemRemaining == 0)
+        {
+            _logger.LogInformation(
+                "Limite atingido (hoje: {Today}/{Daily}, hora: {Hour}/{Hourly}). Saltando ciclo.",
+                sentToday, dailyLimit, sentThisHour, hourlyLimit);
+            await RequeuePendingRetriesAsync(repository, unitOfWork, now, cancellationToken);
+            return;
+        }
+
+        var numProviders = ProviderMap.Length;
+        var perProvider = Math.Min(
+            configuredPerProvider,
+            (int)Math.Ceiling((double)systemRemaining / numProviders));
+
+        _logger.LogInformation(
+            "Ciclo iniciado. perProvider={PerProvider} (hoje: {Today}/{Daily}, hora: {Hour}/{Hourly})",
+            perProvider, sentToday, dailyLimit, sentThisHour, hourlyLimit);
 
         var totalProcessed = 0;
 
@@ -149,16 +182,39 @@ public class EmailQueueProcessorWorker : BackgroundService
             }
 
             totalProcessed += pendingItems.Count;
-            _logger.LogInformation(
-                "[{Provider}] {Count} emails processados neste ciclo.",
-                provider,
-                pendingItems.Count);
+            _logger.LogInformation("[{Provider}] {Count} emails processados.", provider, pendingItems.Count);
         }
 
         if (totalProcessed > 0)
         {
-            _logger.LogInformation("Ciclo concluído. Total processado: {Total} ({PerProvider}/provider)", totalProcessed, perProvider);
+            _logger.LogInformation("Ciclo concluído. Total: {Total}", totalProcessed);
         }
+
+        await RequeuePendingRetriesAsync(repository, unitOfWork, now, cancellationToken);
+    }
+
+    private async Task RequeuePendingRetriesAsync(
+        IEmailQueueRepository repository,
+        IUnitOfWork unitOfWork,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var cutoff = now.AddDays(-RetryLookbackDays);
+        var failedItems = await repository.GetFailedForRetryAsync(MaxRetryAttempts, cutoff, cancellationToken);
+
+        if (failedItems.Count == 0) return;
+
+        foreach (var item in failedItems)
+        {
+            // Exponential backoff: 2^AttemptCount * 15 min
+            var delayMinutes = Math.Pow(2, item.AttemptCount) * 15;
+            var retryAt = now.AddMinutes(delayMinutes);
+            item.Requeue(retryAt);
+            await repository.UpdateAsync(item, cancellationToken);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Retry: {Count} item(s) reagendado(s).", failedItems.Count);
     }
 
     private static List<EmailSendAttachment> ParseAttachments(string? attachmentsJson)
