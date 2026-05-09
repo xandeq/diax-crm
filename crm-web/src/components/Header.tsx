@@ -76,6 +76,10 @@ export function Header() {
                 <Link href="/email-marketing" className={menuItemClass} role="menuitem">
                   Email Marketing
                 </Link>
+                <Link href="/email-marketing/pro" className={menuItemClass} role="menuitem">
+                  Email Marketing PRO
+                  <span className="ml-1.5 rounded bg-blue-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
+                </Link>
                 <Link href="/campanhas" className={menuItemClass} role="menuitem">
                   Campanhas
                 </Link>
@@ -181,6 +185,10 @@ export function Header() {
                 </Link>
                 <Link href="/tools/html-url-extractor" className={menuItemClass} role="menuitem">
                   Extrator HTML → Links
+                </Link>
+                <div className={separatorClass}></div>
+                <Link href="/tools/apps-inventory" className={menuItemClass} role="menuitem">
+                  Inventário de Apps
                 </Link>
               </div>
             </div>
