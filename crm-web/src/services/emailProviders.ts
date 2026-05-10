@@ -9,6 +9,8 @@ export interface ProviderHealthDto {
   sentThisHour: number
   hourlyLimit: number
   hourlyRemaining: number
+  queuedCount: number
+  failedToday: number
   health: 'ok' | 'degraded' | 'down'
 }
 

@@ -10,6 +10,8 @@ public interface IEmailQueueRepository : IRepository<EmailQueueItem>
     Task<IReadOnlyList<EmailQueueItem>> GetPendingBatchByProviderAsync(EmailProvider provider, DateTime utcNow, int take, CancellationToken cancellationToken = default);
     Task<int> CountSentSinceAsync(DateTime fromUtc, CancellationToken cancellationToken = default);
     Task<int> CountSentByProviderSinceAsync(EmailProvider provider, DateTime fromUtc, CancellationToken cancellationToken = default);
+    Task<int> CountQueuedByProviderAsync(EmailProvider provider, CancellationToken cancellationToken = default);
+    Task<int> CountFailedByProviderSinceAsync(EmailProvider provider, DateTime fromUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailQueueItem>> GetFailedForRetryAsync(int maxAttempts, DateTime cutoffUtc, CancellationToken cancellationToken = default);
     Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByUserAsync(
         Guid userId,

@@ -43,6 +43,8 @@ public class ProviderHealthService : IProviderHealthService
         {
             var sentToday    = await _repository.CountSentByProviderSinceAsync(provider, startOfDay,  cancellationToken);
             var sentThisHour = await _repository.CountSentByProviderSinceAsync(provider, startOfHour, cancellationToken);
+            var queuedCount  = await _repository.CountQueuedByProviderAsync(provider, cancellationToken);
+            var failedToday  = await _repository.CountFailedByProviderSinceAsync(provider, startOfDay, cancellationToken);
 
             var dailyRemaining  = Math.Max(0, perProviderDailyLimit  - sentToday);
             var hourlyRemaining = Math.Max(0, perProviderHourlyLimit - sentThisHour);
@@ -58,15 +60,17 @@ public class ProviderHealthService : IProviderHealthService
 
             result.Add(new ProviderHealthDto
             {
-                Provider       = name,
-                SentToday      = sentToday,
-                DailyLimit     = perProviderDailyLimit,
-                DailyRemaining = dailyRemaining,
+                Provider          = name,
+                SentToday         = sentToday,
+                DailyLimit        = perProviderDailyLimit,
+                DailyRemaining    = dailyRemaining,
                 DailyUsagePercent = dailyUsage,
-                SentThisHour   = sentThisHour,
-                HourlyLimit    = perProviderHourlyLimit,
-                HourlyRemaining = hourlyRemaining,
-                Health         = health,
+                SentThisHour      = sentThisHour,
+                HourlyLimit       = perProviderHourlyLimit,
+                HourlyRemaining   = hourlyRemaining,
+                QueuedCount       = queuedCount,
+                FailedToday       = failedToday,
+                Health            = health,
             });
         }
 

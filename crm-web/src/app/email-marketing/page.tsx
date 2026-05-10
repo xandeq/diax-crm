@@ -1,5 +1,6 @@
 'use client';
 
+import { BatchQuotaWidget } from '@/components/email/BatchQuotaWidget';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -474,6 +475,11 @@ export default function EmailMarketingPage() {
         <p className="text-muted-foreground mt-1">
           Selecione contatos, escreva o email e envie. Os disparos respeitam os limites da Brevo automaticamente.
         </p>
+      </div>
+
+      {/* Batch quota widget */}
+      <div className="mb-5">
+        <BatchQuotaWidget />
       </div>
 
       {/* Brevo info banner */}

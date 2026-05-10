@@ -10,5 +10,7 @@ public record ProviderHealthDto
     public int SentThisHour { get; init; }
     public int HourlyLimit { get; init; }
     public int HourlyRemaining { get; init; }
+    public int QueuedCount { get; init; }
+    public int FailedToday { get; init; }
     public string Health { get; init; } = "ok"; // ok | degraded | down
 }
