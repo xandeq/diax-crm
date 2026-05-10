@@ -22,6 +22,7 @@ using Diax.Application.Blog;
 using Diax.Application.Blog.Services;
 using Diax.Application.Customers.Services;
 using Diax.Application.EmailMarketing;
+using Diax.Application.EmailMarketing.Pro;
 using Diax.Application.Outreach;
 using Diax.Application.TaxDocuments;
 using FluentValidation;
@@ -79,6 +80,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomerInsightsService, CustomerInsightsService>();
         services.AddScoped<EmailMarketingService>();
         services.AddScoped<OutreachService>();
+        services.AddScoped<ILeadNormalizationService, LeadNormalizationService>();
         services.AddSingleton<IEmailTemplateEngine, EmailTemplateEngine>();
         services.AddScoped<SnippetService>();
         services.AddScoped<ISnippetService, SnippetService>();

@@ -145,6 +145,17 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.HasIndex(c => c.Name)
             .HasDatabaseName("IX_Customers_Name");
 
+        // ===== NORMALIZAÇÃO DE NOME =====
+        builder.Property(c => c.NormalizedName).HasMaxLength(200);
+        builder.Property(c => c.NormalizedBy).HasMaxLength(50);
+        builder.Property(c => c.NormalizationScore);
+        builder.Property(c => c.NormalizedAt);
+        builder.Property(c => c.NormalizationSource).HasConversion<int?>();
+
+        builder.HasIndex(c => c.NormalizedName)
+            .HasDatabaseName("IX_Customers_NormalizedName")
+            .HasFilter("[normalized_name] IS NOT NULL");
+
         // ===== WHATSAPP (Outreach) =====
         builder.Property(c => c.WhatsAppOptOut)
             .HasDefaultValue(false);

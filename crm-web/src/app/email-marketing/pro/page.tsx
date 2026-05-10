@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ProviderHealthCard } from '@/components/email/pro/ProviderHealthCard'
 import { CampaignWizard } from '@/components/email/pro/CampaignWizard'
 import { OutreachAutoTab } from '@/components/email/pro/OutreachAutoTab'
+import { LeadNormalizationTab } from '@/components/email/pro/LeadNormalizationTab'
 import { getProviderHealth, type ProviderHealthDto } from '@/services/emailProviders'
 import { getEmailCampaigns, type EmailCampaignResponse } from '@/services/emailMarketing'
 import { SuppressionListTable } from '@/components/email/pro/SuppressionListTable'
@@ -115,6 +116,7 @@ export default function EmailMarketingProPage() {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="campanha">Nova Campanha</TabsTrigger>
             <TabsTrigger value="outreach">Outreach Auto</TabsTrigger>
+            <TabsTrigger value="normalizacao">Normalização</TabsTrigger>
             <TabsTrigger value="supressao">Supressao</TabsTrigger>
             <TabsTrigger value="historico">Historico</TabsTrigger>
           </TabsList>
@@ -134,6 +136,16 @@ export default function EmailMarketingProPage() {
             <div className="bg-white rounded-lg border p-6">
               <h2 className="text-base font-semibold text-slate-800 mb-5">Outreach Automático</h2>
               <OutreachAutoTab />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="normalizacao">
+            <div className="bg-white rounded-lg border p-6">
+              <h2 className="text-base font-semibold text-slate-800 mb-1">Normalização de Nomes</h2>
+              <p className="text-sm text-slate-500 mb-5">
+                Pipeline determinístico que extrai o primeiro nome dos leads a partir do campo nome ou do prefixo do email. Gera score de confiança (0–100) e persiste no cadastro.
+              </p>
+              <LeadNormalizationTab />
             </div>
           </TabsContent>
 

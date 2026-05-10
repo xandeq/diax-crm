@@ -1337,6 +1337,28 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("whats_app_sent_count");
 
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<string>("NormalizedBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("normalized_by");
+
+                    b.Property<int?>("NormalizationScore")
+                        .HasColumnType("int")
+                        .HasColumnName("normalization_score");
+
+                    b.Property<DateTime?>("NormalizedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("normalized_at");
+
+                    b.Property<int?>("NormalizationSource")
+                        .HasColumnType("int")
+                        .HasColumnName("normalization_source");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Document")
@@ -1348,6 +1370,10 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_Customers_Name");
+
+                    b.HasIndex("NormalizedName")
+                        .HasDatabaseName("IX_Customers_NormalizedName")
+                        .HasFilter("[normalized_name] IS NOT NULL");
 
                     b.HasIndex("Source")
                         .HasDatabaseName("IX_Customers_Source");

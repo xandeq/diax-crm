@@ -159,6 +159,14 @@ public class Customer : AuditableEntity
     /// </summary>
     public bool IsEligibleForCampaigns { get; private set; }
 
+    // ===== NORMALIZAÇÃO DE NOME =====
+
+    public string? NormalizedName { get; private set; }
+    public string? NormalizedBy { get; private set; }
+    public int? NormalizationScore { get; private set; }
+    public DateTime? NormalizedAt { get; private set; }
+    public NormalizationSource? NormalizationSource { get; private set; }
+
     // ===== WHATSAPP (Outreach) =====
 
     /// <summary>
@@ -364,6 +372,15 @@ public class Customer : AuditableEntity
     public void OptInEmail()
     {
         EmailOptOut = false;
+    }
+
+    public void ApplyNormalization(string normalizedName, string normalizedBy, int score, NormalizationSource source)
+    {
+        NormalizedName = normalizedName;
+        NormalizedBy = normalizedBy;
+        NormalizationScore = score;
+        NormalizedAt = DateTime.UtcNow;
+        NormalizationSource = source;
     }
 
     // ===== MÉTODOS DE WHATSAPP =====
