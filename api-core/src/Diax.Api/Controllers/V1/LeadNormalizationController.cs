@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Diax.Api.Auth;
 using Diax.Application.EmailMarketing.Pro;
+using Diax.Application.EmailMarketing.Pro.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -44,6 +45,23 @@ public class LeadNormalizationController : BaseApiController
         CancellationToken ct = default)
     {
         var result = await _service.RunBatchAsync(forceReprocess, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/approve")]
+    public async Task<IActionResult> Approve(
+        Guid id,
+        [FromBody] ApproveNormalizationRequest request,
+        CancellationToken ct)
+    {
+        await _service.ApproveAsync(id, request.Name, ct);
+        return Ok();
+    }
+
+    [HttpPost("{id:guid}/ai-normalize")]
+    public async Task<IActionResult> AiNormalize(Guid id, CancellationToken ct)
+    {
+        var result = await _service.NormalizeWithAiAsync(id, ct);
         return Ok(result);
     }
 }

@@ -73,8 +73,9 @@ public class SmartPreselectionService : ISmartPreselectionService
             var providerIndex = i % ProviderNames.Length;
             providerCounts[providerIndex]++;
 
-            var firstName = _nameNormalizer.NormalizeName(lead.Name)
-                         ?? _nameNormalizer.NormalizeName(lead.CompanyName);
+            var firstName = !string.IsNullOrEmpty(lead.NormalizedName)
+                ? lead.NormalizedName.Split(' ')[0]
+                : _nameNormalizer.NormalizeName(lead.Name) ?? _nameNormalizer.NormalizeName(lead.CompanyName);
             if (string.IsNullOrEmpty(firstName))
                 firstName = lead.Name.Split(' ')[0];
 

@@ -768,7 +768,9 @@ public class EmailMarketingService : IApplicationService
 
     public static Dictionary<string, string?> BuildRecipientTemplateVariables(Customer? customer, EmailQueueItem queueItem)
     {
-        var firstName = ExtractFirstName(queueItem.RecipientName);
+        var firstName = !string.IsNullOrEmpty(customer?.NormalizedName)
+            ? customer!.NormalizedName.Split(' ')[0]
+            : ExtractFirstName(queueItem.RecipientName);
         var company = customer?.CompanyName;
         var leadStatus = customer?.Status.ToString() ?? CustomerStatus.Lead.ToString();
 
