@@ -54,11 +54,11 @@ export interface QueueWithAssignmentRequest {
 }
 
 export async function getProviderHealth(): Promise<ProviderHealthDto[]> {
-  return apiFetch<ProviderHealthDto[]>('/api/v1/email-providers/health')
+  return apiFetch<ProviderHealthDto[]>('/email-providers/health')
 }
 
 export async function smartPreselect(request: SmartPreselectRequest): Promise<SmartPreselectResponse> {
-  return apiFetch<SmartPreselectResponse>('/api/v1/email-providers/smart-preselect', {
+  return apiFetch<SmartPreselectResponse>('/email-providers/smart-preselect', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -66,7 +66,7 @@ export async function smartPreselect(request: SmartPreselectRequest): Promise<Sm
 }
 
 export async function queueWithAssignment(request: QueueWithAssignmentRequest): Promise<unknown> {
-  return apiFetch('/api/v1/email-providers/queue-with-assignment', {
+  return apiFetch('/email-providers/queue-with-assignment', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

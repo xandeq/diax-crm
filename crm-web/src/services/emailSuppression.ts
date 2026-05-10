@@ -10,11 +10,11 @@ export interface SuppressionDto {
 }
 
 export function getSuppressions(): Promise<SuppressionDto[]> {
-  return apiFetch<SuppressionDto[]>('/api/v1/email-suppressions')
+  return apiFetch<SuppressionDto[]>('/email-suppressions')
 }
 
 export function addEmailSuppression(email: string): Promise<void> {
-  return apiFetch<void>('/api/v1/email-suppressions', {
+  return apiFetch<void>('/email-suppressions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
@@ -22,7 +22,7 @@ export function addEmailSuppression(email: string): Promise<void> {
 }
 
 export function addDomainSuppression(domain: string): Promise<void> {
-  return apiFetch<void>('/api/v1/email-suppressions', {
+  return apiFetch<void>('/email-suppressions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ domain }),
@@ -30,5 +30,5 @@ export function addDomainSuppression(domain: string): Promise<void> {
 }
 
 export function removeSuppression(id: string): Promise<void> {
-  return apiFetch<void>(`/api/v1/email-suppressions/${id}`, { method: 'DELETE' })
+  return apiFetch<void>(`/email-suppressions/${id}`, { method: 'DELETE' })
 }
