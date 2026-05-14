@@ -17,10 +17,11 @@ export interface AppEntry {
   description: string;
 }
 
-export const APPS_LAST_UPDATED = '2026-05-09';
+export const APPS_LAST_UPDATED = '2026-05-13';
 
 export const appsInventory: AppEntry[] = [
   { folder: 'alecook', type: 'SaaS', stack: '.NET 8 + React/Vite', description: 'App de receitas culinárias. API + frontend. Deploy via GitHub Actions → SmarterASP' },
+  { folder: 'apartamentos-alugar-vv', type: 'Ferramenta', stack: 'Python', description: 'Buscador de apartamentos para aluguel em Vila Velha. Gera relatórios com opções filtradas' },
   { folder: 'automatic-applier', type: 'Bot/Automação', stack: 'Python', description: 'Candidatura automática a vagas. Versão mais antiga do easy-apply-bot' },
   { folder: 'bairronow', type: 'SaaS', stack: '.NET 8 + React + Mobile', description: '"Nextdoor brasileiro" — rede social de bairro com verificação de endereço, marketplace e síndicos' },
   { folder: 'blog-app', type: 'Projeto', stack: 'React CRA + API', description: 'App de blog genérico. Frontend + API separados' },
