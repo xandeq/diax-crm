@@ -17,7 +17,7 @@ export interface AppEntry {
   description: string;
 }
 
-export const APPS_LAST_UPDATED = '2026-05-13';
+export const APPS_LAST_UPDATED = '2026-05-14';
 
 export const appsInventory: AppEntry[] = [
   { folder: 'alecook', type: 'SaaS', stack: '.NET 8 + React/Vite', description: 'App de receitas culinárias. API + frontend. Deploy via GitHub Actions → SmarterASP' },
@@ -28,8 +28,8 @@ export const appsInventory: AppEntry[] = [
   { folder: 'carrosseis', type: 'Placeholder', stack: '—', description: 'Pasta vazia — possivelmente para assets de carrosséis do Instagram' },
   { folder: 'chat-app', type: 'Projeto', stack: 'React Native', description: 'Aplicativo de chat mobile. Em estágio inicial' },
   { folder: 'cleardesk', type: 'SaaS', stack: '.NET + Python + Playwright', description: 'SaaS de gestão de tarefas/projetos. Backend .NET + testes e2e + scripts de deploy FTP' },
-  { folder: 'content-engine', type: 'Pipeline', stack: 'Python', description: 'Motor de conteúdo universal multi-marca. Uma base de código para qualquer brand. Agents: trend hunter, competitor analyst, scripter, ideator' },
-  { folder: 'content-pipeline', type: 'Pipeline', stack: 'Python', description: 'Pipeline de conteúdo para AI Builder Agency. 6 agentes sequenciais: trend → competitor → strategy → script → produce → analytics' },
+  { folder: 'content-engine', type: 'Pipeline', stack: 'Python', description: 'PIPELINE UNIFICADO — IG + FB + LinkedIn + YouTube + TikTok. Multi-brand (YAML). 6 agentes: trend→competitor→ideator→scripter→generators→publishers. Vídeo: Kling/Veo3/Remotion. TTS ElevenLabs. Schedule 3×/dia.' },
+  { folder: 'content-pipeline', type: 'Pipeline', stack: 'Python', description: '[LEGADO — substituído pelo content-engine] Pipeline de conteúdo 6 agentes. Manter como referência.' },
   { folder: 'crm-trabalho', type: 'Projeto', stack: 'Angular 12', description: 'CRM simples para controle de trabalho. Versão legada, provavelmente obsoleta' },
   { folder: 'diax-crm', type: 'SaaS', stack: 'Next.js 14 + .NET 8 + n8n', description: 'Monorepo do DIAX CRM — CRM privado da Alexandre Queiroz Marketing Digital. Inclui n8n workflows e scraper Google Maps' },
   { folder: 'dotnet-crawler', type: 'Ferramenta', stack: '.NET Core', description: 'Framework de web crawling modular (Request, Processor, Pipeline, Scheduler). Baseado em projeto open-source' },
@@ -42,7 +42,7 @@ export const appsInventory: AppEntry[] = [
   { folder: 'feradoprompt', type: 'SaaS', stack: '.NET API + Next.js + Mobile + n8n', description: 'FeraPrompt — plataforma de prompt management. Full-stack com app mobile e automações n8n' },
   { folder: 'free-entertainment-dashboard', type: 'Ferramenta', stack: 'HTML puro', description: 'Dashboard HTML único para entretenimento gratuito (streaming, jogos, etc.)' },
   { folder: 'hit-digital', type: 'Projeto', stack: 'Angular 18', description: 'Frontend de agência digital HitDigital' },
-  { folder: 'instagram-alexandrequeirozmd', type: 'Pipeline', stack: 'Python', description: 'Pipeline de conteúdo Instagram para @alexandrequeirozmd. Agents, formats, generators, scripts' },
+  { folder: 'instagram-alexandrequeirozmd', type: 'Pipeline', stack: 'Python', description: '[LEGADO — substituído pelo content-engine] Pipeline IG @alexandrequeirozmd. Task Scheduler a migrar.' },
   { folder: 'instagram-bot', type: 'Bot/Automação', stack: 'Python + Selenium', description: 'Bot de automação do Instagram (likes, follows, etc.)' },
   { folder: 'investiq', type: 'SaaS', stack: 'Python + FastAPI + pgvector + Redis', description: 'Motor de decisão financeira para o mercado BR. Ingere notícias + B3 + BCB → AI score → REST API + MCP' },
   { folder: 'kronoos', type: 'Projeto', stack: 'React CRA + API', description: 'App web com módulo de tasks/API. Uso interno' },
@@ -62,7 +62,7 @@ export const appsInventory: AppEntry[] = [
   { folder: 'social-scripts', type: 'Scripts', stack: 'Python', description: 'Scripts de postagem em redes sociais. LinkedIn poster + post_all.py multi-plataforma' },
   { folder: 'tarefista', type: 'SaaS', stack: '.NET + React', description: 'Tarefista — app de gestão de tarefas. Domínio tarefista.com.br, web + mobile' },
   { folder: 'vaganagringa', type: 'SaaS', stack: '.NET (VagaNaGringa.sln) + React + Mobile', description: 'Plataforma VagaNaGringa principal. Full-stack com e2e, integração social (FB/LinkedIn)' },
-  { folder: 'vaganagringa-content-pipeline', type: 'Pipeline', stack: 'Python', description: 'Pipeline de conteúdo específico VagaNaGringa. Fork do content-pipeline com persona VNG' },
+  { folder: 'vaganagringa-content-pipeline', type: 'Pipeline', stack: 'Python', description: '[LEGADO — funcionalidades migradas para content-engine 2026-05-14] Pipeline VNG com Kling/Veo3/TTS/YouTube/TikTok.' },
   { folder: 'vaganagringa-git', type: 'Projeto', stack: '.NET + React + Mobile', description: 'Mirror/worktree alternativo do VagaNaGringa com AGENTS.md e ROADMAP' },
   { folder: 'waha-hub', type: 'Infraestrutura', stack: 'Docker + Traefik', description: 'Hub WAHA (WhatsApp HTTP API). Self-hosted WhatsApp API com roteador Traefik' },
   { folder: 'website-aq', type: 'Projeto', stack: 'PHP + Bootstrap/jQuery', description: 'Site pessoal de Alexandre Queiroz (alexandrequeiroz.com.br). PHP legado' },
