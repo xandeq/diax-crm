@@ -9,5 +9,5 @@ public class QueueWithAssignmentRequest
 public class AssignedLeadQueueDto
 {
     public Guid CustomerId { get; set; }
-    public string AssignedProvider { get; set; } = string.Empty; // Brevo | Mailjet | Resend
+    public string AssignedProvider { get; set; } = string.Empty; // Brevo | Mailjet | Resend | ElasticEmail | MailerSend | SendGrid
 }

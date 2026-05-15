@@ -396,7 +396,7 @@ public class EmailMarketingService : IApplicationService
                 continue;
             }
 
-            var provider = (Domain.EmailMarketing.Enums.EmailProvider)(providerIndex % 3);
+            var provider = (Domain.EmailMarketing.Enums.EmailProvider)(providerIndex % 6);
             providerIndex++;
 
             queuedItems.Add(new EmailQueueItem(
@@ -974,9 +974,12 @@ public class EmailMarketingService : IApplicationService
 
             var provider = leadDto.AssignedProvider?.ToLowerInvariant() switch
             {
-                "mailjet" => EmailProvider.Mailjet,
-                "resend"  => EmailProvider.Resend,
-                _         => EmailProvider.Brevo,
+                "mailjet"      => EmailProvider.Mailjet,
+                "resend"       => EmailProvider.Resend,
+                "elasticemail" => EmailProvider.ElasticEmail,
+                "mailersend"   => EmailProvider.MailerSend,
+                "sendgrid"     => EmailProvider.SendGrid,
+                _              => EmailProvider.Brevo,
             };
 
             queuedItems.Add(new EmailQueueItem(

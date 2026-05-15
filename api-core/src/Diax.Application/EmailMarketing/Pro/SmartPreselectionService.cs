@@ -10,7 +10,7 @@ public class SmartPreselectionService : ISmartPreselectionService
     private static readonly Regex EmailRegex =
         new(@"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
 
-    private static readonly string[] ProviderNames = ["Brevo", "Mailjet", "Resend"];
+    private static readonly string[] ProviderNames = ["Brevo", "Mailjet", "Resend", "ElasticEmail", "MailerSend", "SendGrid"];
 
     private readonly ICustomerRepository _customerRepository;
     private readonly INameNormalizationService _nameNormalizer;
@@ -111,12 +111,15 @@ public class SmartPreselectionService : ISmartPreselectionService
 
         return new SmartPreselectResponse
         {
-            Leads         = result,
-            TotalSelected = result.Count,
-            BrevoCount    = providerCounts[0],
-            MailjetCount  = providerCounts[1],
-            ResendCount   = providerCounts[2],
-            Warnings      = warnings,
+            Leads              = result,
+            TotalSelected      = result.Count,
+            BrevoCount         = providerCounts[0],
+            MailjetCount       = providerCounts[1],
+            ResendCount        = providerCounts[2],
+            ElasticEmailCount  = providerCounts.Length > 3 ? providerCounts[3] : 0,
+            MailerSendCount    = providerCounts.Length > 4 ? providerCounts[4] : 0,
+            SendGridCount      = providerCounts.Length > 5 ? providerCounts[5] : 0,
+            Warnings           = warnings,
         };
     }
 }

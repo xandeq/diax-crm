@@ -7,6 +7,9 @@ public class SmartPreselectResponse
     public int BrevoCount { get; set; }
     public int MailjetCount { get; set; }
     public int ResendCount { get; set; }
+    public int ElasticEmailCount { get; set; }
+    public int MailerSendCount { get; set; }
+    public int SendGridCount { get; set; }
     public List<string> Warnings { get; set; } = [];
 }
 
