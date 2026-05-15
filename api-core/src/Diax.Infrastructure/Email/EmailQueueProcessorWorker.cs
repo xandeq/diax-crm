@@ -23,9 +23,12 @@ public class EmailQueueProcessorWorker : BackgroundService
 
     private static readonly (EmailProvider Provider, string ServiceKey)[] ProviderMap =
     [
-        (EmailProvider.Brevo, "brevo"),
-        (EmailProvider.Mailjet, "mailjet"),
-        (EmailProvider.Resend, "resend")
+        (EmailProvider.Brevo,        "brevo"),
+        (EmailProvider.Mailjet,      "mailjet"),
+        (EmailProvider.Resend,       "resend"),
+        (EmailProvider.SendGrid,     "sendgrid"),
+        (EmailProvider.MailerSend,   "mailersend"),
+        (EmailProvider.ElasticEmail, "elasticemail"),
     ];
 
     public EmailQueueProcessorWorker(

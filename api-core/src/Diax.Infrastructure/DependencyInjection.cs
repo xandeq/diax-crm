@@ -335,6 +335,9 @@ public static class DependencyInjection
         services.Configure<BrevoSettings>(configuration.GetSection("Brevo"));
         services.Configure<MailjetSettings>(configuration.GetSection("Mailjet"));
         services.Configure<ResendSettings>(configuration.GetSection("Resend"));
+        services.Configure<SendGridSettings>(configuration.GetSection("SendGrid"));
+        services.Configure<MailerSendSettings>(configuration.GetSection("MailerSend"));
+        services.Configure<ElasticEmailSettings>(configuration.GetSection("ElasticEmail"));
 
         // Brevo
         services.AddHttpClient<BrevoEmailSender>();
@@ -347,6 +350,18 @@ public static class DependencyInjection
         // Resend
         services.AddHttpClient<ResendEmailSender>();
         services.AddKeyedScoped<IEmailSender>("resend", (sp, _) => sp.GetRequiredService<ResendEmailSender>());
+
+        // SendGrid
+        services.AddHttpClient<SendGridEmailSender>();
+        services.AddKeyedScoped<IEmailSender>("sendgrid", (sp, _) => sp.GetRequiredService<SendGridEmailSender>());
+
+        // MailerSend
+        services.AddHttpClient<MailerSendEmailSender>();
+        services.AddKeyedScoped<IEmailSender>("mailersend", (sp, _) => sp.GetRequiredService<MailerSendEmailSender>());
+
+        // Elastic Email
+        services.AddHttpClient<ElasticEmailSender>();
+        services.AddKeyedScoped<IEmailSender>("elasticemail", (sp, _) => sp.GetRequiredService<ElasticEmailSender>());
 
         // Fallback não-keyed para partes do sistema que usam IEmailSender diretamente (test email, etc.)
         services.AddScoped<IEmailSender, BrevoEmailSender>();
