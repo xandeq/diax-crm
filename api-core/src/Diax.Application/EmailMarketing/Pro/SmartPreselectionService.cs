@@ -10,7 +10,7 @@ public class SmartPreselectionService : ISmartPreselectionService
     private static readonly Regex EmailRegex =
         new(@"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
 
-    private static readonly string[] ProviderNames = ["Brevo", "Mailjet", "Resend"];
+    private static readonly string[] ProviderNames = ["Brevo", "Mailjet", "Resend", "SendGrid", "MailerSend", "ElasticEmail"];
 
     private readonly ICustomerRepository _customerRepository;
     private readonly INameNormalizationService _nameNormalizer;
@@ -64,14 +64,17 @@ public class SmartPreselectionService : ISmartPreselectionService
             warnings.Add($"Apenas {selectedLeads.Count} lead(s) disponíveis (meta: {totalTarget}).");
         }
 
-        var providerCounts = new int[ProviderNames.Length];
+        var providerCounts = new Dictionary<string, int>();
+        foreach (var name in ProviderNames)
+            providerCounts[name] = 0;
+
         var result = new List<PreselectedLeadDto>();
 
         for (var i = 0; i < selectedLeads.Count; i++)
         {
             var lead = selectedLeads[i];
-            var providerIndex = i % ProviderNames.Length;
-            providerCounts[providerIndex]++;
+            var providerName = ProviderNames[i % ProviderNames.Length];
+            providerCounts[providerName]++;
 
             var firstName = !string.IsNullOrEmpty(lead.NormalizedName)
                 ? lead.NormalizedName.Split(' ')[0]
@@ -100,7 +103,7 @@ public class SmartPreselectionService : ISmartPreselectionService
                 Name               = lead.Name,
                 FirstName          = firstName,
                 Email              = lead.Email!,
-                AssignedProvider   = ProviderNames[providerIndex],
+                AssignedProvider   = providerName,
                 Segment            = (int)(lead.Segment ?? LeadSegment.Cold),
                 SegmentLabel       = segLabel,
                 Score              = lead.LeadScore ?? 0,
@@ -111,12 +114,10 @@ public class SmartPreselectionService : ISmartPreselectionService
 
         return new SmartPreselectResponse
         {
-            Leads         = result,
-            TotalSelected = result.Count,
-            BrevoCount    = providerCounts[0],
-            MailjetCount  = providerCounts[1],
-            ResendCount   = providerCounts[2],
-            Warnings      = warnings,
+            Leads          = result,
+            TotalSelected  = result.Count,
+            ProviderCounts = providerCounts,
+            Warnings       = warnings,
         };
     }
 }

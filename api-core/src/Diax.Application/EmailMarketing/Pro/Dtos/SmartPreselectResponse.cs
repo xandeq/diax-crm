@@ -4,10 +4,16 @@ public class SmartPreselectResponse
 {
     public List<PreselectedLeadDto> Leads { get; set; } = [];
     public int TotalSelected { get; set; }
-    public int BrevoCount { get; set; }
-    public int MailjetCount { get; set; }
-    public int ResendCount { get; set; }
+    public Dictionary<string, int> ProviderCounts { get; set; } = [];
     public List<string> Warnings { get; set; } = [];
+
+    // Backwards compat
+    public int BrevoCount       => ProviderCounts.GetValueOrDefault("Brevo");
+    public int MailjetCount     => ProviderCounts.GetValueOrDefault("Mailjet");
+    public int ResendCount      => ProviderCounts.GetValueOrDefault("Resend");
+    public int SendGridCount    => ProviderCounts.GetValueOrDefault("SendGrid");
+    public int MailerSendCount  => ProviderCounts.GetValueOrDefault("MailerSend");
+    public int ElasticEmailCount => ProviderCounts.GetValueOrDefault("ElasticEmail");
 }
 
 public class PreselectedLeadDto

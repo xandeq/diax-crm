@@ -5,9 +5,12 @@ import { AlertTriangle, CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from 
 import { getProviderHealth, type ProviderHealthDto } from '@/services/emailProviders'
 
 const PROVIDER_ACCENT: Record<string, { bar: string; text: string; bg: string }> = {
-  Brevo:   { bar: 'bg-blue-500',   text: 'text-blue-700',   bg: 'bg-blue-50' },
-  Mailjet: { bar: 'bg-orange-500', text: 'text-orange-700', bg: 'bg-orange-50' },
-  Resend:  { bar: 'bg-violet-500', text: 'text-violet-700', bg: 'bg-violet-50' },
+  Brevo:        { bar: 'bg-blue-500',   text: 'text-blue-700',   bg: 'bg-blue-50' },
+  Mailjet:      { bar: 'bg-orange-500', text: 'text-orange-700', bg: 'bg-orange-50' },
+  Resend:       { bar: 'bg-violet-500', text: 'text-violet-700', bg: 'bg-violet-50' },
+  SendGrid:     { bar: 'bg-teal-500',   text: 'text-teal-700',   bg: 'bg-teal-50' },
+  MailerSend:   { bar: 'bg-green-500',  text: 'text-green-700',  bg: 'bg-green-50' },
+  ElasticEmail: { bar: 'bg-rose-500',   text: 'text-rose-700',   bg: 'bg-rose-50' },
 }
 
 function barColor(pct: number) {

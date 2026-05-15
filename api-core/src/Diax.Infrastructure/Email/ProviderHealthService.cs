@@ -13,9 +13,12 @@ public class ProviderHealthService : IProviderHealthService
 
     private static readonly (EmailProvider Provider, string Name)[] Providers =
     [
-        (EmailProvider.Brevo,   "Brevo"),
-        (EmailProvider.Mailjet, "Mailjet"),
-        (EmailProvider.Resend,  "Resend"),
+        (EmailProvider.Brevo,        "Brevo"),
+        (EmailProvider.Mailjet,      "Mailjet"),
+        (EmailProvider.Resend,       "Resend"),
+        (EmailProvider.SendGrid,     "SendGrid"),
+        (EmailProvider.MailerSend,   "MailerSend"),
+        (EmailProvider.ElasticEmail, "ElasticEmail"),
     ];
 
     public ProviderHealthService(IEmailQueueRepository repository, IOptions<EmailSettings> settings)
