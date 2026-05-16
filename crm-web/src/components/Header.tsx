@@ -105,6 +105,9 @@ export function Header() {
                 Finanças
               </button>
               <div role="menu" className={dropdownClass}>
+                <Link href="/finance/morning-briefing" className={menuItemClass} role="menuitem">
+                  Morning Briefing
+                </Link>
                 <Link href="/finance" className={menuItemClass} role="menuitem">
                   Dashboard Financeiro
                 </Link>

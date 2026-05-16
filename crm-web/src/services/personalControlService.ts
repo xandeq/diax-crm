@@ -86,6 +86,7 @@ export interface PersonalControlSubscriptionItem {
   creditCardId?: string;
   creditCardName?: string;
   hasVariableAmount?: boolean;
+  transactionId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -339,6 +340,59 @@ export const personalControlService = {
     return apiFetch<CopyRecurringMonthResult>(`${basePath}/copy-recurring/${year}/${month}`, {
       method: 'POST',
     });
+  },
+};
+
+// ─── Morning Briefing ────────────────────────────────────────────────────────
+
+export interface MorningBriefingAlertItem {
+  id: string;
+  description: string;
+  amount: number;
+  date?: string;
+  daysOverdue?: number;
+  paymentMethod?: string;
+}
+
+export interface MorningBriefingSubscription {
+  id?: string;
+  transactionId: string;
+  description: string;
+  amount: number;
+  paymentType: 'credit' | 'debit';
+}
+
+export interface MorningBriefingResponse {
+  generatedAt: string;
+  period: { year: number; month: number; label: string };
+  summary: {
+    totalIncome: number;
+    totalPaid: number;
+    totalPending: number;
+    remainingBalance: number;
+    availableToInvest: number;
+    paidCount: number;
+    unpaidCount: number;
+  };
+  alerts: {
+    hasUrgentItems: boolean;
+    overdueCount: number;
+    overdueAmount: number;
+    dueTodayCount: number;
+    dueTodayAmount: number;
+    dueThisWeekCount: number;
+    dueThisWeekAmount: number;
+    pendingSubscriptionsCount: number;
+    overdue: MorningBriefingAlertItem[];
+    dueToday: MorningBriefingAlertItem[];
+    dueThisWeek: MorningBriefingAlertItem[];
+    pendingSubscriptions: MorningBriefingSubscription[];
+  };
+}
+
+export const morningBriefingService = {
+  get: async (): Promise<MorningBriefingResponse> => {
+    return apiFetch<MorningBriefingResponse>(`${basePath}/morning-briefing`);
   },
 };
 

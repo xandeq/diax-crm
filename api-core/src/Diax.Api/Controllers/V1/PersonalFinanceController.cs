@@ -60,6 +60,85 @@ public class PersonalFinanceController : BaseApiController
         return Ok(response);
     }
 
+    [HttpGet("morning-briefing")]
+    public async Task<IActionResult> GetMorningBriefing(CancellationToken cancellationToken)
+    {
+        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        if (!userId.HasValue) return Unauthorized();
+
+        var now = DateTime.UtcNow;
+        var monthResult = await _monthService.GetMonthAsync(now.Year, now.Month, userId.Value, cancellationToken);
+        if (!monthResult.IsSuccess)
+            return BadRequest(monthResult.Error);
+
+        var month = monthResult.Value;
+        var today = now.Date;
+        var weekEnd = today.AddDays(7);
+
+        var pendingDebitExpenses = month.Expenses
+            .Where(e => e.Status == TransactionStatus.Pending && !e.IsSubscription)
+            .ToList();
+
+        var overdueList = pendingDebitExpenses
+            .Where(e => e.Date.Date < today)
+            .OrderBy(e => e.Date)
+            .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, date = e.Date, daysOverdue = (int)(today - e.Date.Date).TotalDays })
+            .ToList();
+
+        var dueTodayList = pendingDebitExpenses
+            .Where(e => e.Date.Date == today)
+            .OrderBy(e => e.Description)
+            .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, paymentMethod = e.PaymentMethod.ToString() })
+            .ToList();
+
+        var dueThisWeekList = pendingDebitExpenses
+            .Where(e => e.Date.Date > today && e.Date.Date <= weekEnd)
+            .OrderBy(e => e.Date)
+            .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, date = e.Date, paymentMethod = e.PaymentMethod.ToString() })
+            .ToList();
+
+        var pendingSubscriptionsList = month.Items
+            .Where(t => t.IsSubscription && t.Status == TransactionStatus.Pending)
+            .OrderBy(t => t.Description)
+            .Select(t => new { id = t.RecurringTransactionId, transactionId = t.Id, description = t.Description, amount = t.Amount, paymentType = t.PaymentMethod == PaymentMethod.CreditCard ? "credit" : "debit" })
+            .ToList();
+
+        var availableToInvest = month.Summary.TotalIncome
+            - month.Summary.TotalExpenses
+            - month.CreditCards.Sum(c => c.StatementAmount ?? 0m);
+
+        return Ok(new
+        {
+            generatedAt = now,
+            period = new { year = now.Year, month = now.Month, label = $"{now.Month:D2}/{now.Year}" },
+            summary = new
+            {
+                totalIncome = month.Summary.TotalIncome,
+                totalPaid = month.Summary.PaidExpenses,
+                totalPending = month.Summary.UnpaidExpenses,
+                remainingBalance = month.Summary.RemainingBalance,
+                availableToInvest,
+                paidCount = month.Summary.PaidCount,
+                unpaidCount = month.Summary.UnpaidCount
+            },
+            alerts = new
+            {
+                hasUrgentItems = overdueList.Count > 0 || dueTodayList.Count > 0,
+                overdueCount = overdueList.Count,
+                overdueAmount = overdueList.Sum(e => e.amount),
+                dueTodayCount = dueTodayList.Count,
+                dueTodayAmount = dueTodayList.Sum(e => e.amount),
+                dueThisWeekCount = dueThisWeekList.Count,
+                dueThisWeekAmount = dueThisWeekList.Sum(e => e.amount),
+                pendingSubscriptionsCount = pendingSubscriptionsList.Count,
+                overdue = overdueList,
+                dueToday = dueTodayList,
+                dueThisWeek = dueThisWeekList,
+                pendingSubscriptions = pendingSubscriptionsList
+            }
+        });
+    }
+
     [HttpPost("incomes")]
     public async Task<IActionResult> CreateIncome([FromBody] PersonalControlIncomeRequest request, CancellationToken cancellationToken)
     {
@@ -506,6 +585,7 @@ public class PersonalFinanceController : BaseApiController
                 creditCardId = subscription.CreditCardId,
                 creditCardName = source.CreditCards.FirstOrDefault(card => card.CreditCardId == subscription.CreditCardId)?.CreditCardName,
                 hasVariableAmount = subscription.HasVariableAmount,
+                transactionId = matchedTransaction?.Id,
                 createdAt = matchedTransaction?.CreatedAt,
                 updatedAt = matchedTransaction?.UpdatedAt
             };
