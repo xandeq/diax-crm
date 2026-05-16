@@ -1,7 +1,9 @@
+using Diax.Domain.Common;
 using Diax.Infrastructure.Data;
 using Diax.Shared.Results;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -14,7 +16,19 @@ namespace Diax.Api.Controllers;
 public abstract class BaseApiController : ControllerBase
 {
     /// <summary>
+    /// Retorna o ID do usuário autenticado usando ICurrentUserService.
+    /// Preferir este método sobre ResolveUserIdAsync nos novos endpoints —
+    /// não requer injeção de DiaxDbContext no controller.
+    /// </summary>
+    protected Guid? GetCurrentUserId()
+        => HttpContext.RequestServices
+            .GetService<ICurrentUserService>()
+            ?.UserId;
+
+    /// <summary>
     /// Resolve o ID do usuário logado a partir do token e do banco de dados.
+    /// Mantido para compatibilidade com controllers existentes.
+    /// Novos endpoints devem usar GetCurrentUserId().
     /// </summary>
     protected async Task<Guid?> ResolveUserIdAsync(DiaxDbContext db, CancellationToken ct = default)
     {

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getEffectivePayDay } from '@/lib/date-utils';
 import { cn, formatCurrency } from '@/lib/utils';
 import { financeService, type CreditCard, type FinancialAccount } from '@/services/finance';
 import {
@@ -190,26 +191,6 @@ function StatusBadge({ paid, onClick, loading }: { paid: boolean; onClick?: () =
       Pendente
     </Badge>
   );
-}
-
-/** Retorna o dia efetivo de pagamento (sexta anterior se cair em sábado/domingo) */
-function getEffectivePayDay(dayOfMonth: number, year: number, month: number): { effectiveDay: number; adjusted: boolean; label: string } {
-  const safeDay = Math.min(dayOfMonth, new Date(year, month, 0).getDate());
-  const date = new Date(year, month - 1, safeDay);
-  const dow = date.getDay(); // 0=Dom, 6=Sab
-  const shift = dow === 6 ? 1 : dow === 0 ? 2 : 0;
-  if (shift > 0) {
-    const fri = new Date(date);
-    fri.setDate(safeDay - shift);
-    // Se a antecipação cruzar para o mês anterior, manter o dia original
-    // (o pagamento real cai no mês anterior, mas no planner do mês atual
-    // a entrada deve aparecer no primeiro bucket, não no último).
-    if (fri.getMonth() !== date.getMonth()) {
-      return { effectiveDay: safeDay, adjusted: false, label: `Dia ${safeDay}` };
-    }
-    return { effectiveDay: fri.getDate(), adjusted: true, label: `Dia ${fri.getDate()} (sex, adj. do ${safeDay})` };
-  }
-  return { effectiveDay: safeDay, adjusted: false, label: `Dia ${safeDay}` };
 }
 
 function MetricCard({

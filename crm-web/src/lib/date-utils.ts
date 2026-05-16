@@ -46,6 +46,43 @@ export function dateToInputString(date: Date | string): string {
 }
 
 /**
+ * Retorna o dia efetivo de pagamento, antecipando para a sexta-feira anterior
+ * quando o dia original cai em sábado (shift=1) ou domingo (shift=2).
+ * Se a antecipação cruzar para o mês anterior, mantém o dia original —
+ * o pagamento real cai no mês anterior, mas no planner do mês atual
+ * a entrada aparece no primeiro bucket, não no último.
+ *
+ * @param dayOfMonth Dia nominal do pagamento (1-31)
+ * @param year       Ano do mês de referência
+ * @param month      Mês de referência (1=Jan, 12=Dez)
+ */
+export function getEffectivePayDay(
+  dayOfMonth: number,
+  year: number,
+  month: number
+): { effectiveDay: number; adjusted: boolean; label: string } {
+  const safeDay = Math.min(dayOfMonth, new Date(year, month, 0).getDate());
+  const date = new Date(year, month - 1, safeDay);
+  const dow = date.getDay(); // 0=Dom, 6=Sáb
+  const shift = dow === 6 ? 1 : dow === 0 ? 2 : 0;
+
+  if (shift > 0) {
+    const fri = new Date(date);
+    fri.setDate(safeDay - shift);
+    if (fri.getMonth() !== date.getMonth()) {
+      return { effectiveDay: safeDay, adjusted: false, label: `Dia ${safeDay}` };
+    }
+    return {
+      effectiveDay: fri.getDate(),
+      adjusted: true,
+      label: `Dia ${fri.getDate()} (sex, adj. do ${safeDay})`,
+    };
+  }
+
+  return { effectiveDay: safeDay, adjusted: false, label: `Dia ${safeDay}` };
+}
+
+/**
  * Obtém a data de hoje no formato yyyy-MM-dd (local)
  */
 export function getTodayInputString(): string {
