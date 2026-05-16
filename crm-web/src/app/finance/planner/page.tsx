@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -141,7 +142,7 @@ export default function PlannerDashboard() {
 
           {/* Quick Actions */}
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-blue-600" />
@@ -152,13 +153,13 @@ export default function PlannerDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">
-                  Ver Metas
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href="/finance/planner/goals">Ver Metas</Link>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-green-600" />
@@ -169,8 +170,8 @@ export default function PlannerDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" className="w-full">
-                  Gerenciar Recorrentes
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href="/finance/planner/recurring">Gerenciar Recorrentes</Link>
                 </Button>
               </CardContent>
             </Card>

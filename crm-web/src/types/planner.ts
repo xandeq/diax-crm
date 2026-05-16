@@ -93,11 +93,58 @@ export interface AddContributionRequest {
 
 // ===== RECURRING TRANSACTIONS =====
 
+export enum RecurringItemKind {
+  Standard = 1,
+  Subscription = 2
+}
+
 export interface RecurringTransaction {
   id: string;
   userId: string;
   type: TransactionType;
+  itemKind: RecurringItemKind;
   description: string;
+  details?: string;
+  amount: number;
+  categoryId: string;
+  frequencyType: FrequencyType;
+  dayOfMonth: number;
+  startDate: string;
+  endDate?: string;
+  paymentMethod: PaymentMethod;
+  creditCardId?: string;
+  financialAccountId?: string;
+  isActive: boolean;
+  isSubscription: boolean;
+  hasVariableAmount: boolean;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRecurringTransactionRequest {
+  type: TransactionType;
+  itemKind?: RecurringItemKind;
+  description: string;
+  details?: string;
+  amount: number;
+  categoryId: string;
+  frequencyType?: FrequencyType;
+  dayOfMonth: number;
+  startDate?: string;
+  endDate?: string;
+  paymentMethod: PaymentMethod;
+  creditCardId?: string;
+  financialAccountId?: string;
+  priority?: number;
+  hasVariableAmount?: boolean;
+}
+
+export interface UpdateRecurringTransactionRequest {
+  type: TransactionType;
+  itemKind: RecurringItemKind;
+  description: string;
+  details?: string;
   amount: number;
   categoryId: string;
   frequencyType: FrequencyType;
@@ -109,23 +156,7 @@ export interface RecurringTransaction {
   financialAccountId?: string;
   isActive: boolean;
   priority: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateRecurringTransactionRequest {
-  type: TransactionType;
-  description: string;
-  amount: number;
-  categoryId: string;
-  frequencyType?: FrequencyType;
-  dayOfMonth: number;
-  startDate?: string;
-  endDate?: string;
-  paymentMethod: PaymentMethod;
-  creditCardId?: string;
-  financialAccountId?: string;
-  priority?: number;
+  hasVariableAmount: boolean;
 }
 
 // ===== MONTHLY SIMULATIONS =====
@@ -193,4 +224,19 @@ export const FREQUENCY_TYPE_LABELS: Record<FrequencyType, string> = {
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   [TransactionType.Income]: 'Receita',
   [TransactionType.Expense]: 'Despesa'
+};
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  [PaymentMethod.Cash]: 'Dinheiro',
+  [PaymentMethod.DebitCard]: 'Débito',
+  [PaymentMethod.CreditCard]: 'Crédito',
+  [PaymentMethod.BankTransfer]: 'Transferência',
+  [PaymentMethod.Pix]: 'Pix',
+  [PaymentMethod.Check]: 'Cheque',
+  [PaymentMethod.Other]: 'Outro'
+};
+
+export const RECURRING_ITEM_KIND_LABELS: Record<RecurringItemKind, string> = {
+  [RecurringItemKind.Standard]: 'Padrão',
+  [RecurringItemKind.Subscription]: 'Assinatura'
 };

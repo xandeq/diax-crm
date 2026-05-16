@@ -6,6 +6,7 @@ import {
   AddContributionRequest,
   RecurringTransaction,
   CreateRecurringTransactionRequest,
+  UpdateRecurringTransactionRequest,
   MonthlySimulation
 } from '@/types/planner';
 
@@ -101,6 +102,16 @@ export const plannerService = {
   createRecurringTransaction: async (request: CreateRecurringTransactionRequest) => {
     return apiFetch<RecurringTransaction>('/planner/recurring', {
       method: 'POST',
+      body: JSON.stringify(request)
+    });
+  },
+
+  /**
+   * Atualiza uma transação recorrente
+   */
+  updateRecurringTransaction: async (id: string, request: UpdateRecurringTransactionRequest) => {
+    return apiFetch<RecurringTransaction>(`/planner/recurring/${id}`, {
+      method: 'PUT',
       body: JSON.stringify(request)
     });
   },
