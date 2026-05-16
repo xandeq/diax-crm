@@ -508,10 +508,12 @@ export interface Transaction {
     creditCardId?: string;
     creditCardName?: string;
     creditCardInvoiceId?: string;
+    hasVariableAmount?: boolean;
     status: TransactionStatus;
     paidDate?: string;
     transferGroupId?: string;
     accountTransferId?: string;
+    recurringTransactionId?: string;
     createdAt: string;
     updatedAt?: string;
 }

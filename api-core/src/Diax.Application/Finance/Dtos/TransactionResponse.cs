@@ -26,6 +26,7 @@ public record TransactionResponse(
     DateTime? PaidDate,
     Guid? TransferGroupId,
     Guid? AccountTransferId,
+    Guid? RecurringTransactionId,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

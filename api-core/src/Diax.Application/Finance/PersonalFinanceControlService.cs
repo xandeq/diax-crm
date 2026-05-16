@@ -693,6 +693,7 @@ public class PersonalFinanceControlService : IApplicationService
             transaction.PaidDate,
             transaction.TransferGroupId,
             transaction.AccountTransferId,
+            transaction.RecurringTransactionId,
             transaction.CreatedAt,
             transaction.UpdatedAt);
     }

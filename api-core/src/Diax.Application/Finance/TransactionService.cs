@@ -23,6 +23,7 @@ public class TransactionService : IApplicationService
     private readonly ITransactionCategoryRepository _categoryRepository;
     private readonly IFinancialAccountRepository _accountRepository;
     private readonly IImportedTransactionRepository _importedTransactionRepository;
+    private readonly ICreditCardInvoiceRepository _invoiceRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<TransactionService> _logger;
 
@@ -31,6 +32,7 @@ public class TransactionService : IApplicationService
         ITransactionCategoryRepository categoryRepository,
         IFinancialAccountRepository accountRepository,
         IImportedTransactionRepository importedTransactionRepository,
+        ICreditCardInvoiceRepository invoiceRepository,
         IUnitOfWork unitOfWork,
         ILogger<TransactionService> logger)
     {
@@ -38,6 +40,7 @@ public class TransactionService : IApplicationService
         _categoryRepository = categoryRepository;
         _accountRepository = accountRepository;
         _importedTransactionRepository = importedTransactionRepository;
+        _invoiceRepository = invoiceRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -148,11 +151,26 @@ public class TransactionService : IApplicationService
                 break;
 
             case TransactionType.Expense:
+                // Auto-link invoice: se é cartão de crédito sem invoice informada, busca a do período
+                var resolvedInvoiceId = request.CreditCardInvoiceId;
+                if (request.PaymentMethod == PaymentMethod.CreditCard
+                    && request.CreditCardId.HasValue
+                    && !resolvedInvoiceId.HasValue)
+                {
+                    var invoice = await _invoiceRepository.GetByCardAndPeriodAsync(
+                        request.CreditCardId.Value, request.Date.Month, request.Date.Year, ct);
+                    if (invoice != null)
+                        resolvedInvoiceId = invoice.Id;
+                    else
+                        _logger.LogWarning("Despesa de cartão {CardId} sem invoice em {Month}/{Year}",
+                            request.CreditCardId, request.Date.Month, request.Date.Year);
+                }
+
                 transaction = Transaction.CreateExpense(
                     request.Description, request.Amount, request.Date,
                     request.PaymentMethod, request.CategoryId,
                     request.IsRecurring, userId,
-                    request.CreditCardId, request.CreditCardInvoiceId,
+                    request.CreditCardId, resolvedInvoiceId,
                     request.FinancialAccountId, request.Status, request.PaidDate,
                     request.Details, null, request.IsSubscription,
                     request.HasVariableAmount);
@@ -488,6 +506,7 @@ public class TransactionService : IApplicationService
             tx.PaidDate,
             tx.TransferGroupId,
             tx.AccountTransferId,
+            tx.RecurringTransactionId,
             tx.CreatedAt,
             tx.UpdatedAt);
     }

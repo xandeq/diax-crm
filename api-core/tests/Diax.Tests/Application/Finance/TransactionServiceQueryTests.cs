@@ -19,6 +19,7 @@ public class TransactionServiceQueryTests
     private readonly Mock<ITransactionCategoryRepository> _categoryRepo = new();
     private readonly Mock<IFinancialAccountRepository> _accountRepo = new();
     private readonly Mock<IImportedTransactionRepository> _importedRepo = new();
+    private readonly Mock<ICreditCardInvoiceRepository> _invoiceRepo = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private TransactionService BuildService() => new(
@@ -26,6 +27,7 @@ public class TransactionServiceQueryTests
         _categoryRepo.Object,
         _accountRepo.Object,
         _importedRepo.Object,
+        _invoiceRepo.Object,
         _unitOfWork.Object,
         NullLogger<TransactionService>.Instance);
 

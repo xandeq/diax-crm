@@ -19,6 +19,7 @@ public class TransactionServiceCommandTests
     private readonly Mock<ITransactionCategoryRepository> _categoryRepo = new();
     private readonly Mock<IFinancialAccountRepository> _accountRepo = new();
     private readonly Mock<IImportedTransactionRepository> _importedRepo = new();
+    private readonly Mock<ICreditCardInvoiceRepository> _invoiceRepo = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private TransactionService BuildService() => new(
@@ -26,6 +27,7 @@ public class TransactionServiceCommandTests
         _categoryRepo.Object,
         _accountRepo.Object,
         _importedRepo.Object,
+        _invoiceRepo.Object,
         _unitOfWork.Object,
         NullLogger<TransactionService>.Instance);
 
@@ -103,15 +105,50 @@ public class TransactionServiceCommandTests
         var account = NewAccount(userId, 1000m);
         SetupAccount(account, userId);
 
+        var cardId = Guid.NewGuid();
+        _invoiceRepo.Setup(r => r.GetByCardAndPeriodAsync(cardId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreditCardInvoice?)null);
+
         var request = new CreateTransactionRequest(
             "Amazon", 350m, DateTime.UtcNow,
             TransactionType.Expense, PaymentMethod.CreditCard,
-            null, false, account.Id, CreditCardId: Guid.NewGuid());
+            null, false, account.Id, CreditCardId: cardId);
 
         var result = await BuildService().CreateAsync(request, userId);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1000m, account.Balance); // saldo não muda para cartão de crédito
+    }
+
+    [Fact]
+    public async Task CreateAsync_ExpenseCreditCard_AutoLinksInvoice_WhenFound()
+    {
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 1000m);
+        SetupAccount(account, userId);
+
+        var cardId = Guid.NewGuid();
+        var groupId = Guid.NewGuid();
+        var invoice = new CreditCardInvoice(groupId, 5, 2026, new DateTime(2026, 5, 31), new DateTime(2026, 6, 10), userId);
+
+        _invoiceRepo.Setup(r => r.GetByCardAndPeriodAsync(cardId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(invoice);
+
+        var request = new CreateTransactionRequest(
+            "Compra Cartão", 200m, new DateTime(2026, 5, 10),
+            TransactionType.Expense, PaymentMethod.CreditCard,
+            null, false, account.Id, CreditCardId: cardId);
+
+        Transaction? added = null;
+        _txRepo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
+            .Callback<Transaction, CancellationToken>((t, _) => added = t)
+            .ReturnsAsync((Transaction t, CancellationToken _) => t);
+
+        var result = await BuildService().CreateAsync(request, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(added);
+        Assert.Equal(invoice.Id, added!.CreditCardInvoiceId);
     }
 
     [Fact]
