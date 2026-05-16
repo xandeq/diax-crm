@@ -322,7 +322,8 @@ public class PersonalFinanceController : BaseApiController
                 request.PaymentDate,
                 request.Details,
                 true,
-                request.HasVariableAmount),
+                request.HasVariableAmount,
+                recurringResult.Value.Id),
             userId.Value,
             cancellationToken);
 
@@ -354,7 +355,8 @@ public class PersonalFinanceController : BaseApiController
             var occurrence = monthView.Value.Subscriptions.FirstOrDefault(x => x.SourceRecurringTransactionId == id);
             if (occurrence != null)
             {
-                var tx = monthView.Value.Items.FirstOrDefault(x =>
+                var tx = monthView.Value.Items.FirstOrDefault(x => x.IsSubscription && x.RecurringTransactionId == id)
+                    ?? monthView.Value.Items.FirstOrDefault(x =>
                         x.IsSubscription && x.Description == occurrence.Description
                         && x.Amount == occurrence.Amount && x.Date.Date == occurrence.Date.Date)
                     ?? monthView.Value.Items.FirstOrDefault(x =>
@@ -413,11 +415,13 @@ public class PersonalFinanceController : BaseApiController
         if (occurrence == null)
             return NotFound(new { message = "Assinatura não encontrada para o período informado." });
 
-        // Prefer exact match (Description, Amount, Date), fall back to (Description, Date).
-        // The fallback prevents silent duplicate Transactions when the user toggles status on
-        // a HasVariableAmount subscription whose template Amount was edited away from the
-        // Transaction's original amount. See MapMonthView for the same pattern.
+        // Tier 1: FK-based match (new transactions from CreateSubscription / ToggleSubscriptionStatus
+        // create path have RecurringTransactionId set). Tier 2: exact (Description, Amount, Date)
+        // for legacy transactions without the FK. Tier 3: fuzzy (Description, Date) for
+        // HasVariableAmount subscriptions where the template amount was edited after materialisation.
         var transaction = monthView.Value.Items.FirstOrDefault(x =>
+                x.IsSubscription && x.RecurringTransactionId == id)
+            ?? monthView.Value.Items.FirstOrDefault(x =>
                 x.IsSubscription
                 && x.Description == occurrence.Description
                 && x.Amount == occurrence.Amount
@@ -445,7 +449,8 @@ public class PersonalFinanceController : BaseApiController
                     request.PaymentDate,
                     occurrence.Details,
                     true,
-                    occurrence.HasVariableAmount),
+                    occurrence.HasVariableAmount,
+                    id),
                 userId.Value,
                 cancellationToken);
 
@@ -466,15 +471,14 @@ public class PersonalFinanceController : BaseApiController
     {
         var subscriptionItems = source.Subscriptions.Select(subscription =>
         {
-            // Prefer exact match on (Description, Amount, Date) so non-variable subscriptions
-            // and the rare case of two templates sharing description+date but with different
-            // amounts continue to work. Fall back to (Description, Date) for variable-amount
-            // subscriptions where the user edited the template (e.g. condomínio com taxa
-            // extra) — the Transaction.Amount still reflects the original materialisation.
-            // Without this fallback the row would show "Pendente" forever and the toggle
-            // endpoint would silently create duplicate Transactions on every click.
-            // Proper long-term fix: link via RecurringTransactionId (TODO).
+            // Tier 1: FK-based (transactions created after Sprint 4 carry RecurringTransactionId).
+            // Tier 2: exact (Description, Amount, Date) — legacy transactions without the FK.
+            // Tier 3: fuzzy (Description, Date) — HasVariableAmount where template amount was
+            // edited after materialisation; without this the row shows "Pendente" forever and
+            // the toggle endpoint silently creates duplicate Transactions on every click.
             var matchedTransaction = source.Items.FirstOrDefault(item =>
+                    item.IsSubscription && item.RecurringTransactionId == subscription.SourceRecurringTransactionId)
+                ?? source.Items.FirstOrDefault(item =>
                     item.IsSubscription
                     && item.Description == subscription.Description
                     && item.Amount == subscription.Amount

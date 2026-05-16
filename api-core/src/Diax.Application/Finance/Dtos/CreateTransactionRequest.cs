@@ -26,5 +26,6 @@ public record CreateTransactionRequest(
     DateTime? PaidDate = null,
     [property: StringLength(2000)] string? Details = null,
     bool IsSubscription = false,
-    bool HasVariableAmount = false
+    bool HasVariableAmount = false,
+    Guid? RecurringTransactionId = null
 );

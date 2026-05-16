@@ -152,6 +152,56 @@ public class TransactionServiceCommandTests
     }
 
     [Fact]
+    public async Task CreateAsync_Income_PassesRecurringTransactionId()
+    {
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 2000m);
+        var recurringId = Guid.NewGuid();
+        SetupAccount(account, userId);
+
+        var request = new CreateTransactionRequest(
+            "Salário", 2000m, DateTime.UtcNow,
+            TransactionType.Income, PaymentMethod.BankTransfer,
+            null, true, account.Id,
+            RecurringTransactionId: recurringId);
+
+        Transaction? added = null;
+        _txRepo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
+            .Callback<Transaction, CancellationToken>((t, _) => added = t)
+            .ReturnsAsync((Transaction t, CancellationToken _) => t);
+
+        var result = await BuildService().CreateAsync(request, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(recurringId, added!.RecurringTransactionId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Expense_PassesRecurringTransactionId()
+    {
+        var userId = Guid.NewGuid();
+        var account = NewAccount(userId, 1000m);
+        var recurringId = Guid.NewGuid();
+        SetupAccount(account, userId);
+
+        var request = new CreateTransactionRequest(
+            "Aluguel", 500m, DateTime.UtcNow,
+            TransactionType.Expense, PaymentMethod.BankTransfer,
+            null, true, account.Id,
+            RecurringTransactionId: recurringId);
+
+        Transaction? added = null;
+        _txRepo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
+            .Callback<Transaction, CancellationToken>((t, _) => added = t)
+            .ReturnsAsync((Transaction t, CancellationToken _) => t);
+
+        var result = await BuildService().CreateAsync(request, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(recurringId, added!.RecurringTransactionId);
+    }
+
+    [Fact]
     public async Task CreateAsync_InvalidType_ReturnsError()
     {
         var userId = Guid.NewGuid();

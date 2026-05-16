@@ -147,7 +147,7 @@ public class TransactionService : IApplicationService
                     request.Description, request.Amount, request.Date,
                     request.PaymentMethod, request.CategoryId,
                     request.IsRecurring, request.FinancialAccountId.Value, userId,
-                    request.Details, paidDate: request.PaidDate);
+                    request.Details, request.RecurringTransactionId, request.PaidDate);
                 break;
 
             case TransactionType.Expense:
@@ -172,7 +172,7 @@ public class TransactionService : IApplicationService
                     request.IsRecurring, userId,
                     request.CreditCardId, resolvedInvoiceId,
                     request.FinancialAccountId, request.Status, request.PaidDate,
-                    request.Details, null, request.IsSubscription,
+                    request.Details, request.RecurringTransactionId, request.IsSubscription,
                     request.HasVariableAmount);
                 break;
 
