@@ -23,6 +23,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: production
 
     steps:
       - name: Checkout
@@ -106,6 +107,12 @@ jobs:
             --arg shotstackKey "${{ secrets.SHOTSTACK_API_KEY }}" \
             --arg brevoApiKey "${{ secrets.BREVO_API_KEY }}" \
             --arg brevoWebhookSecret "${{ secrets.BREVO_WEBHOOK_SECRET }}" \
+            --arg mailjetApiKey "${{ secrets.MAILJET_API_KEY }}" \
+            --arg mailjetSecretKey "${{ secrets.MAILJET_API_SECRET }}" \
+            --arg resendApiKey "${{ secrets.RESEND_API_KEY }}" \
+            --arg sendgridApiKey "${{ secrets.SENDGRID_API_KEY }}" \
+            --arg mailersendApiToken "${{ secrets.MAILERSEND_API_TOKEN }}" \
+            --arg elasticemailApiKey "${{ secrets.ELASTICEMAIL_API_KEY }}" \
             --arg smtpHost "${{ secrets.SMTP_HOST }}" \
             --argjson smtpPort 465 \
             --arg smtpUsername "${{ secrets.SMTP_USERNAME }}" \
@@ -203,6 +210,35 @@ jobs:
                 "FromName": "Alexandre Queiroz Marketing Digital",
                 "ReplyTo": "contato@alexandrequeiroz.com.br",
                 "WebhookSecret": $brevoWebhookSecret
+              },
+              "Mailjet": {
+                "ApiKey": $mailjetApiKey,
+                "SecretKey": $mailjetSecretKey,
+                "FromEmail": "contato@alexandrequeiroz.com.br",
+                "FromName": "Alexandre Queiroz Marketing Digital"
+              },
+              "Resend": {
+                "ApiKey": $resendApiKey,
+                "FromEmail": "contato@alexandrequeiroz.com.br",
+                "FromName": "Alexandre Queiroz Marketing Digital"
+              },
+              "SendGrid": {
+                "ApiKey": $sendgridApiKey,
+                "FromEmail": "contato@alexandrequeiroz.com.br",
+                "FromName": "Alexandre Queiroz Marketing Digital",
+                "ReplyTo": "contato@alexandrequeiroz.com.br"
+              },
+              "MailerSend": {
+                "ApiToken": $mailersendApiToken,
+                "FromEmail": "contato@alexandrequeiroz.com.br",
+                "FromName": "Alexandre Queiroz Marketing Digital",
+                "ReplyTo": "contato@alexandrequeiroz.com.br"
+              },
+              "ElasticEmail": {
+                "ApiKey": $elasticemailApiKey,
+                "FromEmail": "contato@alexandrequeiroz.com.br",
+                "FromName": "Alexandre Queiroz Marketing Digital",
+                "ReplyTo": "contato@alexandrequeiroz.com.br"
               },
               "Email": {
                 "SmtpHost": $smtpHost,
