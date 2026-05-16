@@ -3,10 +3,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MorningBriefingResponse, morningBriefingService } from '@/services/personalControlService';
+import { MorningBriefingResponse, morningBriefingService, personalControlService } from '@/services/personalControlService';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, CheckCircle2, Clock, Loader2, RefreshCw, TrendingUp, Wallet } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CheckSquare, Clock, Loader2, RefreshCw, TrendingUp, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 const BRL = (v: number) =>
@@ -19,6 +19,7 @@ export default function MorningBriefingClient() {
     const [data, setData] = useState<MorningBriefingResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [paying, setPaying] = useState<Record<string, boolean>>({});
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -34,6 +35,22 @@ export default function MorningBriefingClient() {
     }, []);
 
     useEffect(() => { load(); }, [load]);
+
+    const markPaid = useCallback(async (id: string) => {
+        if (!id) return;
+        setPaying(prev => ({ ...prev, [id]: true }));
+        try {
+            await personalControlService.toggleExpenseStatus(id, {
+                isPaid: true,
+                paymentDate: new Date().toISOString().split('T')[0],
+            });
+            await load();
+        } catch {
+            // silent — briefing will stay stale; user can refresh manually
+        } finally {
+            setPaying(prev => { const n = { ...prev }; delete n[id]; return n; });
+        }
+    }, [load]);
 
     if (loading) {
         return (
@@ -134,7 +151,7 @@ export default function MorningBriefingClient() {
                 </Card>
             </div>
 
-            {/* Overdue */}
+            {/* Overdue — with pay buttons */}
             {alerts.overdueCount > 0 && (
                 <AlertSection
                     title="Em atraso"
@@ -142,22 +159,33 @@ export default function MorningBriefingClient() {
                     badgeVariant="destructive"
                     total={alerts.overdueAmount}
                     items={alerts.overdue.map(e => ({
+                        id: e.id,
                         label: e.description,
                         amount: e.amount,
                         meta: e.daysOverdue != null ? `${e.daysOverdue} dia${e.daysOverdue !== 1 ? 's' : ''} em atraso` : undefined,
                         metaClass: 'text-destructive',
+                        canPay: true,
                     }))}
+                    paying={paying}
+                    onPay={markPaid}
                 />
             )}
 
-            {/* Due today */}
+            {/* Due today — with pay buttons */}
             {alerts.dueTodayCount > 0 && (
                 <AlertSection
                     title="Vence hoje"
                     badge={alerts.dueTodayCount}
                     badgeVariant="destructive"
                     total={alerts.dueTodayAmount}
-                    items={alerts.dueToday.map(e => ({ label: e.description, amount: e.amount }))}
+                    items={alerts.dueToday.map(e => ({
+                        id: e.id,
+                        label: e.description,
+                        amount: e.amount,
+                        canPay: true,
+                    }))}
+                    paying={paying}
+                    onPay={markPaid}
                 />
             )}
 
@@ -169,10 +197,13 @@ export default function MorningBriefingClient() {
                     badgeVariant="secondary"
                     total={alerts.dueThisWeekAmount}
                     items={alerts.dueThisWeek.map(e => ({
+                        id: e.id,
                         label: e.description,
                         amount: e.amount,
                         meta: e.date ? format(parseISO(e.date), 'dd/MM', { locale: ptBR }) : undefined,
                     }))}
+                    paying={paying}
+                    onPay={markPaid}
                 />
             )}
 
@@ -183,10 +214,14 @@ export default function MorningBriefingClient() {
                     badge={alerts.pendingSubscriptionsCount}
                     badgeVariant="secondary"
                     items={alerts.pendingSubscriptions.map(s => ({
+                        id: s.transactionId,
                         label: s.description,
                         amount: s.amount,
                         meta: s.paymentType === 'credit' ? 'Cartão' : 'Débito',
+                        canPay: true,
                     }))}
+                    paying={paying}
+                    onPay={markPaid}
                 />
             )}
 
@@ -202,16 +237,25 @@ export default function MorningBriefingClient() {
     );
 }
 
-interface AlertItem { label: string; amount: number; meta?: string; metaClass?: string; }
+interface AlertItem {
+    id?: string;
+    label: string;
+    amount: number;
+    meta?: string;
+    metaClass?: string;
+    canPay?: boolean;
+}
 
 function AlertSection({
-    title, badge, badgeVariant = 'secondary', total, items,
+    title, badge, badgeVariant = 'secondary', total, items, paying, onPay,
 }: {
     title: string;
     badge: number;
     badgeVariant?: 'destructive' | 'secondary' | 'outline';
     total?: number;
     items: AlertItem[];
+    paying: Record<string, boolean>;
+    onPay: (id: string) => void;
 }) {
     return (
         <Card>
@@ -227,13 +271,27 @@ function AlertSection({
             <CardContent className="px-4 pb-4">
                 <ul className="space-y-2">
                     {items.map((item, i) => (
-                        <li key={i} className="flex items-center justify-between text-sm">
-                            <span className="truncate mr-3">{item.label}</span>
-                            <span className="flex items-center gap-3 flex-shrink-0">
+                        <li key={i} className="flex items-center justify-between text-sm gap-2">
+                            <span className="truncate mr-2 min-w-0">{item.label}</span>
+                            <span className="flex items-center gap-2 flex-shrink-0">
                                 {item.meta && (
                                     <span className={`text-xs text-muted-foreground ${item.metaClass ?? ''}`}>{item.meta}</span>
                                 )}
                                 <span className="font-medium">{BRL(item.amount)}</span>
+                                {item.canPay && item.id && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                                        disabled={!!paying[item.id]}
+                                        onClick={() => onPay(item.id!)}
+                                        title="Marcar como pago"
+                                    >
+                                        {paying[item.id]
+                                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                                            : <CheckSquare className="h-3 w-3" />}
+                                    </Button>
+                                )}
                             </span>
                         </li>
                     ))}
