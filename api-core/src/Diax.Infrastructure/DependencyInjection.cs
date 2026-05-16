@@ -25,6 +25,7 @@ using Diax.Domain.Blog;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.ImageGeneration;
 using Diax.Domain.Outreach;
+using Diax.Domain.Tasks;
 using Diax.Application.EmailMarketing;
 using Diax.Application.WhatsApp;
 using Diax.Infrastructure.Email;
@@ -208,6 +209,7 @@ public static class DependencyInjection
         services.AddScoped<IUserPromptRepository, UserPromptRepository>();
         services.AddScoped<IChecklistCategoryRepository, ChecklistCategoryRepository>();
         services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
+        services.AddScoped<ITaskRepository, TaskRepository>();
         services.AddScoped<IAiProviderRepository, AiProviderRepository>();
         services.AddScoped<IAiModelRepository, AiModelRepository>();
         services.AddScoped<IAiProviderCredentialRepository, AiProviderCredentialRepository>();

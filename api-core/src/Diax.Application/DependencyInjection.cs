@@ -25,6 +25,7 @@ using Diax.Application.EmailMarketing;
 using Diax.Application.EmailMarketing.Pro;
 using Diax.Application.Outreach;
 using Diax.Application.TaxDocuments;
+using Diax.Application.Tasks;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -67,6 +68,8 @@ public static class DependencyInjection
         // ===== TRANSACTION (UNIFIED) SERVICES =====
         services.AddScoped<TransactionService>();
         services.AddScoped<TransactionCategoryService>();
+
+        services.AddScoped<ITaskService, TaskService>();
 
         services.AddScoped<AppLogService>();
         services.AddScoped<IAppLogService, AppLogService>();

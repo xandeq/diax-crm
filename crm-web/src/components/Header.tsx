@@ -173,6 +173,9 @@ export function Header() {
                 <Link href="/agenda" className={menuItemClass} role="menuitem">
                   Agenda
                 </Link>
+                <Link href="/tasks" className={menuItemClass} role="menuitem">
+                  Tarefas
+                </Link>
                 <Link href="/household/checklists" className={menuItemClass} role="menuitem">
                   Listas e Compras
                 </Link>
