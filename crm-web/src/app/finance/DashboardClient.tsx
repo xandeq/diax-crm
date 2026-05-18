@@ -1,318 +1,396 @@
 'use client';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn, formatCurrency } from '@/lib/utils';
-import { financeService, FinancialSummary } from '@/services/finance';
+import { useFinancialSummary, useRecurringTransactions } from '@/hooks/finance';
+import { formatCurrency } from '@/lib/utils';
+import { FinancialFilters } from '@/services/finance';
+import { RecurringTransaction, RecurringItemKind, TransactionType } from '@/types/planner';
 import { motion } from 'framer-motion';
 import {
     ArrowRight,
-    Banknote,
+    ArrowUpRight,
+    BadgeDollarSign,
+    BookOpen,
     Building2,
     Calendar,
     CreditCard,
-    FolderOpen,
-    Search,
-    Settings,
+    FileInput,
+    LayoutDashboard,
+    ReceiptText,
+    Repeat2,
+    Sun,
     TrendingDown,
     TrendingUp,
-    Wallet
+    Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
+
+// ── Period helpers ─────────────────────────────────────────────────────────────
+
+type PeriodKey = 'current' | 'last_month' | 'year';
+
+const PERIOD_LABELS: Record<PeriodKey, string> = {
+    current: 'Este Mês',
+    last_month: 'Mês Passado',
+    year: 'Este Ano',
+};
+
+function getPeriodFilters(period: PeriodKey): FinancialFilters {
+    const now = new Date();
+    if (period === 'last_month') {
+        return {
+            startDate: new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString(),
+            endDate: new Date(now.getFullYear(), now.getMonth(), 0).toISOString(),
+        };
+    }
+    if (period === 'year') {
+        return {
+            startDate: new Date(now.getFullYear(), 0, 1).toISOString(),
+            endDate: new Date(now.getFullYear(), 11, 31).toISOString(),
+        };
+    }
+    return {
+        startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+        endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString(),
+    };
+}
+
+// ── Upcoming recurring ─────────────────────────────────────────────────────────
+
+function sortUpcoming(items: RecurringTransaction[], limit = 6): RecurringTransaction[] {
+    const today = new Date().getDate();
+    return [...items]
+        .filter(r => r.isActive)
+        .sort((a, b) => {
+            const offset = (d: number) => d >= today ? d : d + 31;
+            return offset(a.dayOfMonth) - offset(b.dayOfMonth);
+        })
+        .slice(0, limit);
+}
+
+// ── Isolated primitives ────────────────────────────────────────────────────────
+
+function SkeletonBlock({ className }: { className?: string }) {
+    return <div className={`animate-pulse bg-slate-200/70 rounded ${className}`} />;
+}
+
+function AnimatedBar({ pct, color }: { pct: number; color: string }) {
+    return (
+        <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+            <motion.div
+                className={`h-full rounded-full ${color}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(pct, 100)}%` }}
+                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            />
+        </div>
+    );
+}
+
+// ── Quick links data ───────────────────────────────────────────────────────────
+
+const QUICK_LINKS = [
+    { href: '/finance/morning-briefing', label: 'Morning Briefing', Icon: Sun, bg: 'bg-amber-50', fg: 'text-amber-600' },
+    { href: '/finance/personal-control', label: 'Planilha Financeira', Icon: BookOpen, bg: 'bg-emerald-50', fg: 'text-emerald-600' },
+    { href: '/finance/transactions', label: 'Transações', Icon: ReceiptText, bg: 'bg-blue-50', fg: 'text-blue-600' },
+    { href: '/finance/planner', label: 'Planner', Icon: LayoutDashboard, bg: 'bg-slate-100', fg: 'text-slate-600' },
+    { href: '/finance/credit-cards', label: 'Cartões', Icon: CreditCard, bg: 'bg-rose-50', fg: 'text-rose-600' },
+    { href: '/finance/accounts', label: 'Contas', Icon: Building2, bg: 'bg-sky-50', fg: 'text-sky-600' },
+    { href: '/finance/planner/recurring', label: 'Recorrentes', Icon: Repeat2, bg: 'bg-violet-50', fg: 'text-violet-600' },
+    { href: '/finance/imports', label: 'Importar Extrato', Icon: FileInput, bg: 'bg-orange-50', fg: 'text-orange-600' },
+] as const;
+
+// ── Fade-up animation factory ──────────────────────────────────────────────────
+
+const fadeUp = (delay = 0) => ({
+    initial: { opacity: 0, y: 14 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.42, delay, ease: [0.16, 1, 0.3, 1] as const },
+});
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export function DashboardClient() {
-    const [summary, setSummary] = useState<FinancialSummary | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState('current');
+    const [period, setPeriod] = useState<PeriodKey>('current');
+    const filters = useMemo(() => getPeriodFilters(period), [period]);
 
-    useEffect(() => {
-        loadSummary();
-    }, [period]);
+    const { data: summary, isLoading } = useFinancialSummary(filters);
+    const { data: recurring = [] } = useRecurringTransactions();
 
-    const loadSummary = async () => {
-        setLoading(true);
-        try {
-            // Calculate dates based on period
-            const now = new Date();
-            let startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-            let endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+    const upcoming = useMemo(() => sortUpcoming(recurring), [recurring]);
 
-            if (period === 'last_month') {
-                startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-                endDate = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
-            } else if (period === 'year') {
-                startDate = new Date(now.getFullYear(), 0, 1).toISOString();
-                endDate = new Date(now.getFullYear(), 11, 31).toISOString();
-            }
-
-            const data = await financeService.getFinancialSummary({ startDate, endDate });
-            setSummary(data);
-        } catch (error) {
-            console.error('Failed to load financial summary:', error);
-            // Fallback mock data for visual development if API fails/is inconsistent during dev
-            // remove in production if stable
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const container = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
-    };
-
-    const item = {
-        hidden: { y: 20, opacity: 0 },
-        show: { y: 0, opacity: 1 }
-    };
+    const income       = summary?.totalIncome ?? 0;
+    const expenses     = summary?.totalExpenses ?? 0;
+    const paidExp      = summary?.totalPaidExpenses ?? 0;
+    const pendingExp   = summary?.totalPendingExpenses ?? 0;
+    const netFlow      = summary?.netCashFlow ?? 0;
+    const projFlow     = summary?.projectedCashFlow ?? 0;
+    const pendingIn    = summary?.pendingCash ?? 0;
+    const maxVal       = Math.max(income, expenses, 1);
+    const isPositive   = netFlow >= 0;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Visão Geral</h1>
-                    <p className="text-gray-500 mt-1">Acompanhe o desempenho financeiro da sua empresa.</p>
-                </div>
+        <div className="min-h-screen bg-[#f8f9fb]">
+            <div className="px-5 md:px-8 py-8 max-w-[1400px] mx-auto space-y-6">
 
-                <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
-                    <Select value={period} onValueChange={setPeriod}>
-                        <SelectTrigger className="w-[180px] border-0 focus:ring-0">
-                            <Calendar className="mr-2 h-4 w-4 text-gray-500" />
-                            <SelectValue placeholder="Selecione o período" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="current">Este Mês</SelectItem>
-                            <SelectItem value="last_month">Mês Passado</SelectItem>
-                            <SelectItem value="year">Este Ano</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
+                {/* ── Header ── */}
+                <motion.div {...fadeUp(0)} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-[1.65rem] font-bold text-zinc-900 tracking-tight leading-none">Visão Geral</h1>
+                        <p className="text-sm text-zinc-400 mt-1.5">Controle financeiro pessoal</p>
+                    </div>
 
-            <motion.div
-                variants={container}
-                initial="hidden"
-                animate="show"
-                className="space-y-8"
-            >
-                {/* Main Action Cards - Single Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <motion.div variants={item}>
-                        <Link href="/finance/incomes" className="group block h-full">
-                            <div className="h-full bg-gradient-to-br from-white to-green-50/50 p-6 rounded-2xl shadow-sm border border-green-100 hover:shadow-md transition-all hover:-translate-y-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-green-100 rounded-xl text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
-                                        <TrendingUp className="h-6 w-6" />
-                                    </div>
-                                    <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full">+ Entradas</span>
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-1">Receitas</h3>
-                                <p className="text-sm text-gray-500 mb-4">Gerenciar e lançar novas receitas.</p>
-                                <div className="flex items-center text-sm font-medium text-green-600 group-hover:text-green-700">
-                                    Acessar <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </div>
-                        </Link>
-                    </motion.div>
-
-                    <motion.div variants={item}>
-                        <Link href="/finance/expenses" className="group block h-full">
-                            <div className="h-full bg-gradient-to-br from-white to-red-50/50 p-6 rounded-2xl shadow-sm border border-red-100 hover:shadow-md transition-all hover:-translate-y-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-red-100 rounded-xl text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors">
-                                        <TrendingDown className="h-6 w-6" />
-                                    </div>
-                                    <span className="text-xs font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full">- Saídas</span>
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-1">Despesas</h3>
-                                <p className="text-sm text-gray-500 mb-4">Gerenciar pagamentos e custos.</p>
-                                <div className="flex items-center text-sm font-medium text-red-600 group-hover:text-red-700">
-                                    Acessar <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </div>
-                        </Link>
-                    </motion.div>
-
-                    <motion.div variants={item}>
-                        <Link href="/finance/credit-cards" className="group block h-full">
-                            <div className="h-full bg-gradient-to-br from-white to-blue-50/50 p-6 rounded-2xl shadow-sm border border-blue-100 hover:shadow-md transition-all hover:-translate-y-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-blue-100 rounded-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                        <CreditCard className="h-6 w-6" />
-                                    </div>
-                                    <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">Crédito</span>
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-1">Cartões</h3>
-                                <p className="text-sm text-gray-500 mb-4">Faturas, limites e conciliação.</p>
-                                <div className="flex items-center text-sm font-medium text-blue-600 group-hover:text-blue-700">
-                                    Acessar <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </div>
-                        </Link>
-                    </motion.div>
-
-                    <motion.div variants={item}>
-                        <Link href="/finance/imports" className="group block h-full">
-                            <div className="h-full bg-gradient-to-br from-white to-amber-50/50 p-6 rounded-2xl shadow-sm border border-amber-100 hover:shadow-md transition-all hover:-translate-y-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-amber-100 rounded-xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                                        <FolderOpen className="h-6 w-6" />
-                                    </div>
-                                    <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">Arquivos</span>
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-1">Importação</h3>
-                                <p className="text-sm text-gray-500 mb-4">Processar extratos via IA.</p>
-                                <div className="flex items-center text-sm font-medium text-amber-600 group-hover:text-amber-700">
-                                    Acessar <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </div>
-                        </Link>
-                    </motion.div>
-                </div>
-
-                {/* Financial Summary Stats */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Cash Flow Card */}
-                    <motion.div variants={item} className="lg:col-span-2">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                    <Wallet className="h-5 w-5 text-gray-500" />
-                                    Fluxo de Caixa
-                                </h2>
-                                {!loading && summary && (
-                                    <span className={cn(
-                                        "text-sm font-medium px-2 py-1 rounded-full",
-                                        summary.netCashFlow >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                                    )}>
-                                        {summary.netCashFlow >= 0 ? 'Positivo' : 'Negativo'}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div className="space-y-2">
-                                    <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Entradas</p>
-                                    <p className="text-3xl font-bold text-gray-900">
-                                        {loading ? <span className="animate-pulse bg-gray-200 h-8 w-24 rounded block"></span> : formatCurrency(summary?.totalIncome || 0)}
-                                    </p>
-                                    <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: "100%" }}
-                                            transition={{ duration: 1, ease: "easeOut" }}
-                                            className="h-full bg-green-500 rounded-full"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Saídas Totais</p>
-                                    <p className="text-3xl font-bold text-gray-900">
-                                        {loading ? <span className="animate-pulse bg-gray-200 h-8 w-24 rounded block"></span> : formatCurrency(summary?.totalExpenses || 0)}
-                                    </p>
-                                    <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: summary ? `${Math.min((summary.totalExpenses / (summary.totalIncome || 1)) * 100, 100)}%` : 0 }}
-                                            transition={{ duration: 1, ease: "easeOut" }}
-                                            className="h-full bg-red-500 rounded-full"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-gray-400">
-                                        Pagos: {formatCurrency(summary?.totalPaidExpenses || 0)}
-                                    </p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Saldo Líquido</p>
-                                    <p className={cn(
-                                        "text-3xl font-bold",
-                                        (summary?.netCashFlow || 0) >= 0 ? "text-green-600" : "text-red-600"
-                                    )}>
-                                        {loading ? <span className="animate-pulse bg-gray-200 h-8 w-24 rounded block"></span> : formatCurrency(summary?.netCashFlow || 0)}
-                                    </p>
-                                    <div className="bg-gray-50 px-2 py-1 rounded text-xs text-center text-gray-500">
-                                        Resultante do período
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Projections Card */}
-                    <motion.div variants={item}>
-                        <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl shadow-lg p-6 text-white h-full relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-3 opacity-10">
-                                <TrendingUp className="h-32 w-32" />
-                            </div>
-
-                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2 relative z-10">
-                                <Search className="h-5 w-5 text-indigo-200" />
-                                Projeção
-                            </h2>
-
-                            <div className="space-y-6 relative z-10">
-                                <div>
-                                    <p className="text-indigo-200 text-sm mb-1">A Receber (Pendente)</p>
-                                    <p className="text-2xl font-bold">{loading ? '...' : formatCurrency(summary?.pendingCash || 0)}</p>
-                                </div>
-
-                                <div>
-                                    <p className="text-indigo-200 text-sm mb-1">A Pagar (Pendente)</p>
-                                    <p className="text-2xl font-bold">{loading ? '...' : formatCurrency(summary?.totalPendingExpenses || 0)}</p>
-                                </div>
-
-                                <div className="pt-4 border-t border-indigo-500/30">
-                                    <p className="text-indigo-200 text-sm mb-1">Saldo Projetado</p>
-                                    <p className="text-3xl font-bold">{loading ? '...' : formatCurrency(summary?.projectedCashFlow || 0)}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-
-                {/* Quick Management Links */}
-                <motion.div variants={item}>
-                    <h2 className="text-lg font-semibold mb-4 text-gray-700 flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        Gerenciamento Rápido
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <Link href="/finance/accounts" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all">
-                            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                                <Building2 className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-medium text-gray-900">Contas Bancárias</h3>
-                            </div>
-                        </Link>
-
-                        <Link href="/finance/categories/income" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-green-200 hover:shadow-md transition-all">
-                            <div className="p-2 bg-green-50 rounded-lg text-green-600">
-                                <FolderOpen className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-medium text-gray-900">Categorias (Entrada)</h3>
-                            </div>
-                        </Link>
-
-                        <Link href="/finance/categories/expense" className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-red-200 hover:shadow-md transition-all">
-                            <div className="p-2 bg-red-50 rounded-lg text-red-600">
-                                <Banknote className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-medium text-gray-900">Categorias (Saída)</h3>
-                            </div>
-                        </Link>
+                    {/* Segmented period selector */}
+                    <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
+                        {(['current', 'last_month', 'year'] as PeriodKey[]).map(p => (
+                            <button
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                                    period === p
+                                        ? 'bg-zinc-900 text-white shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-800'
+                                }`}
+                            >
+                                {PERIOD_LABELS[p]}
+                            </button>
+                        ))}
                     </div>
                 </motion.div>
-            </motion.div>
+
+                {/* ── KPI strip: 2fr hero | 1fr income | 1fr expenses ── */}
+                <motion.div
+                    {...fadeUp(0.06)}
+                    className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-4"
+                >
+                    {/* Net Cash Flow — dark hero card */}
+                    <div className={`rounded-2xl p-7 flex flex-col justify-between min-h-[180px] ${
+                        isPositive
+                            ? 'bg-zinc-900'
+                            : 'bg-rose-950'
+                    }`}>
+                        <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                                Saldo Líquido
+                            </p>
+                            <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                isPositive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-400/15 text-rose-300'
+                            }`}>
+                                {isPositive
+                                    ? <TrendingUp className="h-3 w-3" />
+                                    : <TrendingDown className="h-3 w-3" />
+                                }
+                                {isPositive ? 'Positivo' : 'Negativo'}
+                            </div>
+                        </div>
+
+                        {isLoading ? (
+                            <SkeletonBlock className="h-11 w-48 bg-white/10" />
+                        ) : (
+                            <p className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+                                {formatCurrency(netFlow)}
+                            </p>
+                        )}
+
+                        <div className="flex items-center gap-3 text-xs text-white/30">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>{PERIOD_LABELS[period]}</span>
+                        </div>
+                    </div>
+
+                    {/* Income */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Entradas</p>
+                            <div className="p-1.5 bg-emerald-50 rounded-lg">
+                                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                            </div>
+                        </div>
+
+                        {isLoading ? (
+                            <div className="space-y-3">
+                                <SkeletonBlock className="h-7 w-32" />
+                                <SkeletonBlock className="h-1 w-full" />
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <p className="text-2xl font-bold text-zinc-900 tracking-tight">{formatCurrency(income)}</p>
+                                <AnimatedBar pct={(income / maxVal) * 100} color="bg-emerald-500" />
+                                <p className="text-xs text-slate-400">receitas do período</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Expenses */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Saídas</p>
+                            <div className="p-1.5 bg-rose-50 rounded-lg">
+                                <TrendingDown className="h-3.5 w-3.5 text-rose-600" />
+                            </div>
+                        </div>
+
+                        {isLoading ? (
+                            <div className="space-y-3">
+                                <SkeletonBlock className="h-7 w-32" />
+                                <SkeletonBlock className="h-1 w-full" />
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <p className="text-2xl font-bold text-zinc-900 tracking-tight">{formatCurrency(expenses)}</p>
+                                <AnimatedBar pct={(expenses / maxVal) * 100} color="bg-rose-500" />
+                                <div className="flex gap-3 text-xs">
+                                    <span className="text-emerald-600 font-medium">Pago {formatCurrency(paidExp)}</span>
+                                    <span className="text-amber-600 font-medium">Pendente {formatCurrency(pendingExp)}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* ── Secondary row: Upcoming recurring (3fr) + Projections (2fr) ── */}
+                <motion.div
+                    {...fadeUp(0.12)}
+                    className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4"
+                >
+                    {/* Upcoming recurring payments */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Repeat2 className="h-4 w-4 text-slate-400" />
+                                <h2 className="text-sm font-semibold text-zinc-800">Próximos Recorrentes</h2>
+                            </div>
+                            <Link
+                                href="/finance/planner/recurring"
+                                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors"
+                            >
+                                Ver todos <ArrowRight className="h-3 w-3" />
+                            </Link>
+                        </div>
+
+                        {upcoming.length === 0 ? (
+                            <div className="py-14 flex flex-col items-center gap-3">
+                                <div className="p-3 bg-slate-50 rounded-2xl">
+                                    <Repeat2 className="h-6 w-6 text-slate-300" />
+                                </div>
+                                <p className="text-sm text-slate-400">Nenhum item recorrente ativo</p>
+                                <Link
+                                    href="/finance/planner/recurring"
+                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                >
+                                    Cadastrar <ArrowUpRight className="h-3 w-3" />
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-slate-100">
+                                {upcoming.map((r, i) => {
+                                    const isIncome = r.type === TransactionType.Income;
+                                    return (
+                                        <motion.div
+                                            key={r.id}
+                                            initial={{ opacity: 0, x: -8 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.18 + i * 0.05, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                                            className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/60 transition-colors"
+                                        >
+                                            {/* Day badge */}
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                                isIncome ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                            }`}>
+                                                {r.dayOfMonth}
+                                            </div>
+
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-zinc-800 truncate">{r.description}</p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                                        r.itemKind === RecurringItemKind.Subscription
+                                                            ? 'bg-violet-50 text-violet-600'
+                                                            : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                        {r.itemKind === RecurringItemKind.Subscription ? 'Assinatura' : 'Padrão'}
+                                                    </span>
+                                                    {r.hasVariableAmount && (
+                                                        <span className="text-[10px] text-amber-600 font-medium">Valor variável</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col items-end flex-shrink-0">
+                                                <span className={`text-sm font-bold ${isIncome ? 'text-emerald-600' : 'text-zinc-800'}`}>
+                                                    {isIncome ? '+' : '-'}{formatCurrency(r.amount)}
+                                                </span>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Projections panel — dark */}
+                    <div className="bg-zinc-950 rounded-2xl p-7 flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center gap-2 mb-8">
+                                <Wallet className="h-4 w-4 text-zinc-500" />
+                                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Projeção</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">A Receber</p>
+                                    {isLoading
+                                        ? <SkeletonBlock className="h-7 w-36 bg-white/5" />
+                                        : <p className="text-xl font-bold text-white">{formatCurrency(pendingIn)}</p>
+                                    }
+                                </div>
+
+                                <div>
+                                    <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">A Pagar</p>
+                                    {isLoading
+                                        ? <SkeletonBlock className="h-7 w-36 bg-white/5" />
+                                        : <p className="text-xl font-bold text-white">{formatCurrency(pendingExp)}</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-6 border-t border-zinc-800/60 mt-6">
+                            <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">Saldo Projetado</p>
+                            {isLoading ? (
+                                <SkeletonBlock className="h-10 w-44 bg-white/5" />
+                            ) : (
+                                <p className={`text-3xl font-bold tracking-tight ${
+                                    projFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                }`}>
+                                    {formatCurrency(projFlow)}
+                                </p>
+                            )}
+                            <p className="text-[11px] text-zinc-600 mt-1.5">após todos os pagamentos</p>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* ── Quick access: horizontal scroll strip ── */}
+                <motion.div {...fadeUp(0.18)}>
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-3">Acesso Rápido</p>
+                    <div className="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {QUICK_LINKS.map(({ href, label, Icon, bg, fg }) => (
+                            <Link
+                                key={href}
+                                href={href}
+                                className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-sm active:scale-[0.98] transition-all duration-150"
+                            >
+                                <div className={`p-1.5 rounded-lg ${bg}`}>
+                                    <Icon className={`h-3.5 w-3.5 ${fg}`} />
+                                </div>
+                                <span className="text-sm font-medium text-zinc-700 whitespace-nowrap">{label}</span>
+                            </Link>
+                        ))}
+                    </div>
+                </motion.div>
+
+            </div>
         </div>
     );
 }
