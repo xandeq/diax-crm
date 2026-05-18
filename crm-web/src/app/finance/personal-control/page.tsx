@@ -19,6 +19,15 @@ import { getEffectivePayDay } from '@/lib/date-utils';
 import { cn, formatCurrency } from '@/lib/utils';
 import { financeService, type CreditCard, type FinancialAccount } from '@/services/finance';
 import {
+  usePersonalControlMonth,
+  useInvestiqSummary,
+  useCreditCards,
+  useFinancialAccounts,
+  personalControlKeys,
+  financeKeys,
+} from '@/hooks/finance';
+import { useQueryClient } from '@tanstack/react-query';
+import {
   CreatePersonalControlExpenseRequest,
   CreatePersonalControlIncomeRequest,
   CreatePersonalControlSubscriptionRequest,
@@ -33,7 +42,6 @@ import {
   PersonalControlPaymentType,
   PersonalControlSubscriptionItem,
   TogglePersonalControlStatusRequest,
-  investiqService,
   personalControlService,
 } from '@/services/personalControlService';
 import {
@@ -62,7 +70,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { toast } from 'sonner';
 
@@ -781,12 +789,6 @@ function SalaryPlannerSection({
 function Page() {
   const [period, setPeriod] = useState(currentPeriod);
   const [isPending, startTransition] = useTransition();
-  const [loading, setLoading] = useState(true);
-  const [monthView, setMonthView] = useState<PersonalControlMonthView | null>(null);
-  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
-  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  const [investiq, setInvestiq] = useState<InvestIQPortfolioSummary | null>(null);
-  const [investiqLoading, setInvestiqLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [incomeForm, setIncomeForm] = useState(incomeFormReset);
   const [expenseForm, setExpenseForm] = useState(expenseFormReset);
@@ -812,37 +814,15 @@ function Page() {
   const [pdfParsing, setPdfParsing] = useState(false);
   const [pdfImporting, setPdfImporting] = useState(false);
 
-  const loadMonth = async (year: number, month: number) => {
-    setLoading(true);
-    try {
-      const [view, cards, accts] = await Promise.all([
-        personalControlService.getMonthView(year, month),
-        financeService.getCreditCards(),
-        financeService.getFinancialAccounts(),
-      ]);
-      setMonthView(view);
-      setCreditCards(cards);
-      setAccounts(accts);
-    } catch (error) {
-      console.error('Erro ao carregar controle mensal', error);
-      setMonthView(null);
-      toast.error('Não foi possível carregar o controle mensal.');
-    } finally {
-      setLoading(false);
-    }
+  const qc = useQueryClient();
+  const { data: monthView = null, isLoading: loading } = usePersonalControlMonth(period.year, period.month);
+  const { data: creditCards = [] } = useCreditCards();
+  const { data: accounts = [] } = useFinancialAccounts();
+  const { data: investiq = null, isLoading: investiqLoading } = useInvestiqSummary();
+
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: personalControlKeys.monthView(period.year, period.month) });
   };
-
-  useEffect(() => {
-    setInvestiqLoading(true);
-    void investiqService.getPortfolioSummary().then((data) => {
-      setInvestiq(data);
-      setInvestiqLoading(false);
-    });
-  }, []);
-
-  useEffect(() => {
-    void loadMonth(period.year, period.month);
-  }, [period.year, period.month]);
 
   const changeMonth = (delta: number) => {
     startTransition(() => {
@@ -855,10 +835,6 @@ function Page() {
 
   const resetToCurrentMonth = () => {
     startTransition(() => setPeriod(currentPeriod()));
-  };
-
-  const refresh = async () => {
-    await loadMonth(period.year, period.month);
   };
 
   const saveStatus = async (
@@ -882,7 +858,7 @@ function Page() {
       } else {
         await personalControlService.toggleSubscriptionStatus(id, payload);
       }
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao atualizar status.');
@@ -906,7 +882,7 @@ function Page() {
       }
       toast.success('Registro excluído.');
       setDeleteDialog(null);
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao excluir registro.');
@@ -920,7 +896,7 @@ function Page() {
     try {
       const result = await personalControlService.importFromSheet(period.year, period.month);
       toast.success(`Importado: ${result.matchedCards} cartões correspondidos, ${result.unmatchedCards} sem correspondência.`);
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao importar da planilha.');
@@ -957,7 +933,7 @@ function Page() {
           );
         }
       }
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao copiar recorrências.');
@@ -1009,7 +985,7 @@ function Page() {
         ok++;
       } catch { fail++; }
     }
-    await loadMonth(period.year, period.month);
+    refresh();
     setPdfImportCard(null);
     setParsedTxList([]);
     if (fail === 0) toast.success(`${ok} despesa${ok !== 1 ? 's' : ''} importada${ok !== 1 ? 's' : ''} com sucesso.`);
@@ -1028,7 +1004,7 @@ function Page() {
       await personalControlService.setCardStatementAmount(invoiceId, amount);
       toast.success('Valor da fatura atualizado.');
       setEditingStatementId(null);
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao atualizar valor da fatura.');
@@ -1043,7 +1019,7 @@ function Page() {
       await personalControlService.payCardInvoice(invoiceId, paymentDate);
       toast.success('Fatura marcada como paga.');
       setPayingInvoiceId(null);
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao marcar fatura como paga.');
@@ -1077,7 +1053,7 @@ function Page() {
       }
       setIncomeForm(incomeFormReset());
       setIncomeDialogOpen(false);
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao salvar receita.');
@@ -1112,7 +1088,7 @@ function Page() {
       }
       setExpenseForm(expenseFormReset());
       setExpenseDialogOpen(false);
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao salvar despesa.');
@@ -1147,7 +1123,7 @@ function Page() {
       }
       setSubscriptionForm(subscriptionFormReset());
       setSubscriptionDialogOpen(false);
-      await refresh();
+      refresh();
     } catch (error) {
       console.error(error);
       toast.error('Falha ao salvar assinatura.');
@@ -1227,7 +1203,8 @@ function Page() {
   const updateAccountBalance = async (id: string, balance: number) => {
     await financeService.updateAccountBalance(id, balance);
     toast.success('Saldo atualizado.');
-    await refresh();
+    refresh();
+    void qc.invalidateQueries({ queryKey: financeKeys.accounts() });
   };
 
   // FASE 2C — quick expense
@@ -1262,7 +1239,7 @@ function Page() {
       toast.success('Despesa criada.');
       setQuickExpenseOpen(false);
       setQuickExpense({ name: '', amount: '', date: new Date().toISOString().slice(0, 10), paymentKind: 'pix', creditCardId: '' });
-      await refresh();
+      refresh();
     } catch (err) {
       console.error(err);
       toast.error('Falha ao criar despesa.');

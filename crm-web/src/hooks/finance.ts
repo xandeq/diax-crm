@@ -6,7 +6,7 @@ import {
     TransactionFilters,
 } from '@/services/finance';
 import { plannerService } from '@/services/plannerService';
-import { morningBriefingService, personalControlService } from '@/services/personalControlService';
+import { investiqService, morningBriefingService, personalControlService } from '@/services/personalControlService';
 import {
     AddContributionRequest,
     CreateFinancialGoalRequest,
@@ -36,6 +36,12 @@ export const plannerKeys = {
     goals: () => [...plannerKeys.all, 'goals'] as const,
     simulation: (year: number, month: number) => [...plannerKeys.all, 'simulation', year, month] as const,
     morningBriefing: () => [...plannerKeys.all, 'morning-briefing'] as const,
+} as const;
+
+export const personalControlKeys = {
+    all: ['personal-control'] as const,
+    monthView: (year: number, month: number) => [...personalControlKeys.all, 'month-view', year, month] as const,
+    investiq: () => [...personalControlKeys.all, 'investiq'] as const,
 } as const;
 
 // ─── Read hooks ────────────────────────────────────────────────────────────────
@@ -252,5 +258,24 @@ export function useMarkExpensePaid() {
         mutationFn: ({ id, paymentDate }: { id: string; paymentDate: string }) =>
             personalControlService.toggleExpenseStatus(id, { isPaid: true, paymentDate }),
         onSuccess: () => qc.invalidateQueries({ queryKey: plannerKeys.morningBriefing() }),
+    });
+}
+
+// ─── Personal Control hooks ────────────────────────────────────────────────────
+
+export function usePersonalControlMonth(year: number, month: number) {
+    return useQuery({
+        queryKey: personalControlKeys.monthView(year, month),
+        queryFn: () => personalControlService.getMonthView(year, month),
+        staleTime: 0,
+    });
+}
+
+export function useInvestiqSummary() {
+    return useQuery({
+        queryKey: personalControlKeys.investiq(),
+        queryFn: () => investiqService.getPortfolioSummary(),
+        staleTime: 5 * 60 * 1000,
+        retry: false,
     });
 }
