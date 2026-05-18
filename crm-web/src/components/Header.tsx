@@ -72,6 +72,8 @@ export function Header() {
                   <Link href="/leads/" className={menuItemClass} role="menuitem">Leads</Link>
                   <div className={separatorClass}></div>
                   <Link href="/leads/import" className={menuItemClass} role="menuitem">Importar Leads</Link>
+                  <div className={separatorClass}></div>
+                  <Link href="/helpdesk" className={menuItemClass} role="menuitem">Helpdesk</Link>
                 </div>
               </div>
 
@@ -213,6 +215,7 @@ export function Header() {
               <Link href="/customers/" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Clientes</Link>
               <Link href="/leads/" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Leads</Link>
               <Link href="/leads/import" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Importar Leads</Link>
+              <Link href="/helpdesk" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Helpdesk</Link>
             </MobileSection>
 
             <MobileSection label="Marketing">

@@ -3,6 +3,7 @@ using Diax.Domain.Audit;
 using Diax.Domain.Calendar;
 using Diax.Domain.Common;
 using Diax.Domain.Auth;
+using Diax.Domain.Helpdesk;
 using Diax.Domain.Tasks;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
@@ -129,6 +130,9 @@ public class DiaxDbContext : DbContext
     // Tasks
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
 
+    // Helpdesk
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+
     // Financial Planner
     public DbSet<FinancialGoal> FinancialGoals => Set<FinancialGoal>();
     public DbSet<RecurringTransaction> RecurringTransactions => Set<RecurringTransaction>();
@@ -215,6 +219,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<AppointmentLabel>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<TaxDocument>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<TaskItem>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<SupportTicket>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.
