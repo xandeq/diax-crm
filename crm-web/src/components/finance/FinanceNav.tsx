@@ -2,9 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import {
-    ArrowDownCircle,
     ArrowRightLeft,
-    ArrowUpCircle,
     Calendar,
     CreditCard,
     FileInput,
@@ -12,7 +10,6 @@ import {
     LayoutDashboard,
     List,
     Wallet,
-    Tags
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -40,16 +37,6 @@ const navItems = [
     icon: List
   },
   {
-    name: 'Receitas',
-    href: '/finance/incomes',
-    icon: ArrowUpCircle
-  },
-  {
-    name: 'Despesas',
-    href: '/finance/expenses',
-    icon: ArrowDownCircle
-  },
-  {
     name: 'Cartões',
     href: '/finance/credit-cards',
     icon: CreditCard
@@ -58,11 +45,6 @@ const navItems = [
     name: 'Contas',
     href: '/finance/accounts',
     icon: Landmark
-  },
-  {
-    name: 'Categorias',
-    href: '/finance/categories',
-    icon: Tags
   },
   {
     name: 'Importações',

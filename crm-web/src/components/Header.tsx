@@ -114,6 +114,10 @@ export function Header() {
                 <Link href="/finance/personal-control" className={menuItemClass} role="menuitem">
                   Planilha Financeira
                 </Link>
+                <div className={separatorClass}></div>
+                <Link href="/finance/transactions" className={menuItemClass} role="menuitem">
+                  Transações
+                </Link>
                 <Link href="/finance/planner" className={menuItemClass} role="menuitem">
                   Planejador Financeiro
                 </Link>
