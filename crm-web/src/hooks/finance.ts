@@ -34,6 +34,7 @@ export const financeKeys = {
 export const plannerKeys = {
     all: ['planner'] as const,
     goals: () => [...plannerKeys.all, 'goals'] as const,
+    simulation: (year: number, month: number) => [...plannerKeys.all, 'simulation', year, month] as const,
     morningBriefing: () => [...plannerKeys.all, 'morning-briefing'] as const,
 } as const;
 
@@ -170,6 +171,25 @@ export function useDeleteRecurringTransaction() {
     return useMutation({
         mutationFn: (id: string) => plannerService.deleteRecurringTransaction(id),
         onSuccess: () => qc.invalidateQueries({ queryKey: financeKeys.recurringTransactions() }),
+    });
+}
+
+// ─── Monthly Simulation hooks ──────────────────────────────────────────────────
+
+export function useMonthlySimulation(year: number, month: number) {
+    return useQuery({
+        queryKey: plannerKeys.simulation(year, month),
+        queryFn: () => plannerService.getOrGenerateSimulation(year, month),
+    });
+}
+
+export function useRegenerateSimulation() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ year, month }: { year: number; month: number }) =>
+            plannerService.regenerateSimulation(year, month),
+        onSuccess: (data, { year, month }) =>
+            qc.setQueryData(plannerKeys.simulation(year, month), data),
     });
 }
 

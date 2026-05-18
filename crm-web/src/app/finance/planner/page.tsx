@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RefreshCcw, TrendingUp, Target, Calendar } from 'lucide-react';
+import { AlertCircle, RefreshCcw, TrendingUp, Target, Calendar } from 'lucide-react';
 import { SimulationSummaryCard } from '@/components/finance/planner/SimulationSummaryCard';
 import { RecommendationsList } from '@/components/finance/planner/RecommendationsList';
-import { plannerService } from '@/services/plannerService';
-import { MonthlySimulation } from '@/types/planner';
+import { useMonthlySimulation, useRegenerateSimulation } from '@/hooks/finance';
 import { toast } from 'sonner';
 
 const MONTHS = [
@@ -31,31 +30,22 @@ export default function PlannerDashboard() {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
-  const [simulation, setSimulation] = useState<MonthlySimulation | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const loadSimulation = async (regenerate = false) => {
-    try {
-      setIsLoading(true);
-      const data = regenerate
-        ? await plannerService.regenerateSimulation(selectedYear, selectedMonth)
-        : await plannerService.getOrGenerateSimulation(selectedYear, selectedMonth);
+  const { data: simulation, isLoading, isFetching, error } = useMonthlySimulation(selectedYear, selectedMonth);
+  const regenerateMutation = useRegenerateSimulation();
 
-      setSimulation(data);
-      toast.success(regenerate ? 'Simulação regenerada com sucesso!' : 'Simulação carregada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao carregar simulação:', error);
-      toast.error('Erro ao carregar simulação. Tente novamente.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRegenerate = () => {
+    regenerateMutation.mutate(
+      { year: selectedYear, month: selectedMonth },
+      {
+        onSuccess: () => toast.success('Simulação regenerada com sucesso!'),
+        onError: () => toast.error('Erro ao regenerar simulação. Tente novamente.'),
+      },
+    );
   };
 
-  useEffect(() => {
-    loadSimulation();
-  }, [selectedMonth, selectedYear]);
-
   const years = Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() + i);
+  const isRegenerating = regenerateMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -67,13 +57,14 @@ export default function PlannerDashboard() {
             Simulação mensal de fluxo de caixa e recomendações inteligentes
           </p>
         </div>
-
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => loadSimulation(true)} disabled={isLoading}>
-            <RefreshCcw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Regenerar
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={handleRegenerate}
+          disabled={isRegenerating || isFetching}
+        >
+          <RefreshCcw className={`mr-2 h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+          Regenerar
+        </Button>
       </div>
 
       {/* Filters */}
@@ -121,6 +112,27 @@ export default function PlannerDashboard() {
         </CardContent>
       </Card>
 
+      {/* Error state */}
+      {error && !isLoading && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 py-4 mt-0">
+            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-destructive text-sm">Erro ao carregar simulação</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Verifique sua conexão e tente novamente.</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+            >
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -134,13 +146,9 @@ export default function PlannerDashboard() {
       {/* Simulation Content */}
       {!isLoading && simulation && (
         <div className="space-y-6">
-          {/* Summary Cards */}
           <SimulationSummaryCard simulation={simulation} />
-
-          {/* Recommendations */}
           <RecommendationsList recommendations={simulation.recommendations} />
 
-          {/* Quick Actions */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
@@ -180,7 +188,7 @@ export default function PlannerDashboard() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !simulation && (
+      {!isLoading && !simulation && !error && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />

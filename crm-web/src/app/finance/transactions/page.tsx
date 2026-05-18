@@ -23,6 +23,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { ArrowDownCircle, ArrowRightLeft, ArrowUpCircle, ArrowUpDown, Edit, EyeOff, Plus, Receipt, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 
 const typeLabels: Record<TransactionType, string> = {
@@ -138,10 +139,12 @@ export default function TransactionsPage() {
         setRowSelection({});
         setIsBulkDeleting(false);
         if (response.failedCount > 0) {
-          alert(`${response.deletedCount} transação(ões) excluída(s). ${response.failedCount} não encontrada(s).`);
+          toast.warning(`${response.deletedCount} transação(ões) excluída(s). ${response.failedCount} não encontrada(s).`);
+        } else {
+          toast.success(`${response.deletedCount} transação(ões) excluída(s).`);
         }
       } catch {
-        alert('Erro ao excluir transações em massa.');
+        toast.error('Erro ao excluir transações em massa.');
       }
       return;
     }
@@ -149,8 +152,9 @@ export default function TransactionsPage() {
     if (!deleteId) return;
     try {
       await deleteMutation.mutateAsync(deleteId);
+      toast.success('Transação excluída.');
     } catch (err: any) {
-      alert(err?.status === 404
+      toast.error(err?.status === 404
         ? 'Transação não encontrada. A lista será atualizada.'
         : 'Erro ao excluir transação.');
     } finally {
