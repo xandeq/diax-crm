@@ -45,7 +45,7 @@ public abstract class BaseAiController : BaseApiController
         Func<Guid, Task<IActionResult>> action,
         Func<Exception, IActionResult?>? customExceptionHandler = null)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null)
         {
             _logger.LogWarning("[BaseAiController] Failed to resolve user ID from JWT");

@@ -2,7 +2,6 @@ using Asp.Versioning;
 using Diax.Api.Auth;
 using Diax.Application.ApiKeys;
 using Diax.Application.ApiKeys.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -61,12 +60,11 @@ public class ApiKeysController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create(
         [FromBody] CreateApiKeyRequest request,
-        [FromServices] DiaxDbContext db,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Criando API Key: {Name}", request.Name);
 
-        var userId = await ResolveUserIdAsync(db, cancellationToken);
+        var userId = GetCurrentUserId();
         var userIdString = userId?.ToString() ?? "system";
 
         var result = await _apiKeyService.CreateAsync(request, userIdString, cancellationToken);

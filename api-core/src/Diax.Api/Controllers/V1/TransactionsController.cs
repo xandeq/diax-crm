@@ -2,7 +2,6 @@ using Asp.Versioning;
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
 using Diax.Domain.Finance;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,13 +19,11 @@ namespace Diax.Api.Controllers.V1;
 public class TransactionsController : BaseApiController
 {
     private readonly TransactionService _service;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<TransactionsController> _logger;
 
-    public TransactionsController(TransactionService service, DiaxDbContext db, ILogger<TransactionsController> logger)
+    public TransactionsController(TransactionService service, ILogger<TransactionsController> logger)
     {
         _service = service;
-        _db = db;
         _logger = logger;
     }
 
@@ -37,7 +34,7 @@ public class TransactionsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] TransactionPagedRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetPagedAsync(request, userId.Value, ct);
@@ -47,7 +44,7 @@ public class TransactionsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByIdAsync(id, userId.Value, ct);
@@ -57,7 +54,7 @@ public class TransactionsController : BaseApiController
     [HttpGet("type/{type}")]
     public async Task<IActionResult> GetByType(TransactionType type, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByTypeAsync(type, userId.Value, ct);
@@ -67,7 +64,7 @@ public class TransactionsController : BaseApiController
     [HttpGet("month/{year}/{month}")]
     public async Task<IActionResult> GetByMonth(int year, int month, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByMonthAsync(year, month, userId.Value, ct);
@@ -77,7 +74,7 @@ public class TransactionsController : BaseApiController
     [HttpGet("status/{status}")]
     public async Task<IActionResult> GetByStatus(TransactionStatus status, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByStatusAsync(status, userId.Value, ct);
@@ -87,7 +84,7 @@ public class TransactionsController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTransactionRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.CreateAsync(request, userId.Value, ct);
@@ -99,7 +96,7 @@ public class TransactionsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTransactionRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.UpdateAsync(id, request, userId.Value, ct);
@@ -109,7 +106,7 @@ public class TransactionsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteAsync(id, userId.Value, ct);
@@ -128,7 +125,7 @@ public class TransactionsController : BaseApiController
         if (invalidIds.Any())
             return BadRequest(new { error = "General.InvalidIds", message = $"{invalidIds.Count} IDs inválidos (vazios) foram enviados" });
 
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteRangeAsync(request, userId.Value, ct);
@@ -149,7 +146,7 @@ public class TransactionsController : BaseApiController
     [HttpPost("{id}/reclassify")]
     public async Task<IActionResult> Reclassify(Guid id, [FromBody] ReclassifyTransactionRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.ReclassifyAsync(id, request, userId.Value, ct);
@@ -163,7 +160,7 @@ public class TransactionsController : BaseApiController
     [HttpPost("{id}/mark-paid")]
     public async Task<IActionResult> MarkAsPaid(Guid id, [FromBody] MarkPaidRequest? request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.MarkAsPaidAsync(id, userId.Value, request?.PaidDate, ct);
@@ -177,7 +174,7 @@ public class TransactionsController : BaseApiController
     [HttpPost("{id}/mark-pending")]
     public async Task<IActionResult> MarkAsPending(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.MarkAsPendingAsync(id, userId.Value, ct);

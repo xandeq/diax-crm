@@ -1,6 +1,5 @@
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,18 +11,16 @@ namespace Diax.Api.Controllers.V1;
 public class CreditCardGroupsController : BaseApiController
 {
     private readonly CreditCardGroupService _service;
-    private readonly DiaxDbContext _db;
 
-    public CreditCardGroupsController(CreditCardGroupService service, DiaxDbContext db)
+    public CreditCardGroupsController(CreditCardGroupService service)
     {
         _service = service;
-        _db = db;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CreditCardGroupResponse>>> GetAll(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var groups = await _service.GetAllAsync(userId.Value);
@@ -33,7 +30,7 @@ public class CreditCardGroupsController : BaseApiController
     [HttpGet("active")]
     public async Task<ActionResult<IEnumerable<CreditCardGroupResponse>>> GetActive(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var groups = await _service.GetActiveGroupsAsync(userId.Value);
@@ -43,7 +40,7 @@ public class CreditCardGroupsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<ActionResult<CreditCardGroupResponse>> GetById(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var group = await _service.GetByIdAsync(id, userId.Value);
@@ -56,7 +53,7 @@ public class CreditCardGroupsController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<CreditCardGroupResponse>> Create(CreateCreditCardGroupRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var group = await _service.CreateAsync(request, userId.Value);
@@ -66,7 +63,7 @@ public class CreditCardGroupsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<ActionResult<CreditCardGroupResponse>> Update(Guid id, UpdateCreditCardGroupRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var group = await _service.UpdateAsync(id, request, userId.Value);
@@ -79,7 +76,7 @@ public class CreditCardGroupsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteAsync(id, userId.Value);

@@ -2,7 +2,6 @@ using Asp.Versioning;
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
 using Diax.Domain.Finance;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,13 +19,11 @@ namespace Diax.Api.Controllers.V1;
 public class TransactionCategoriesController : BaseApiController
 {
     private readonly TransactionCategoryService _service;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<TransactionCategoriesController> _logger;
 
-    public TransactionCategoriesController(TransactionCategoryService service, DiaxDbContext db, ILogger<TransactionCategoriesController> logger)
+    public TransactionCategoriesController(TransactionCategoryService service, ILogger<TransactionCategoriesController> logger)
     {
         _service = service;
-        _db = db;
         _logger = logger;
     }
 
@@ -36,7 +33,7 @@ public class TransactionCategoriesController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetActive(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetActiveAsync(userId.Value, ct);
@@ -49,7 +46,7 @@ public class TransactionCategoriesController : BaseApiController
     [HttpGet("all")]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetAllAsync(userId.Value, ct);
@@ -63,7 +60,7 @@ public class TransactionCategoriesController : BaseApiController
     [HttpGet("by-type/{applicableTo}")]
     public async Task<IActionResult> GetByApplicableTo(CategoryApplicableTo applicableTo, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByApplicableToAsync(applicableTo, userId.Value, ct);
@@ -73,7 +70,7 @@ public class TransactionCategoriesController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByIdAsync(id, userId.Value, ct);
@@ -83,7 +80,7 @@ public class TransactionCategoriesController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTransactionCategoryRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.CreateAsync(request, userId.Value, ct);
@@ -93,7 +90,7 @@ public class TransactionCategoriesController : BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTransactionCategoryRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.UpdateAsync(id, request, userId.Value, ct);
@@ -106,7 +103,7 @@ public class TransactionCategoriesController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeactivateAsync(id, userId.Value, ct);

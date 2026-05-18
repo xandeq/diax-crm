@@ -1,7 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.Finance.Planner;
 using Diax.Application.Finance.Planner.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,16 +14,13 @@ namespace Diax.Api.Controllers.V1;
 public class FinancialGoalsController : BaseApiController
 {
     private readonly FinancialGoalService _service;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<FinancialGoalsController> _logger;
 
     public FinancialGoalsController(
         FinancialGoalService service,
-        DiaxDbContext db,
         ILogger<FinancialGoalsController> logger)
     {
         _service = service;
-        _db = db;
         _logger = logger;
     }
 
@@ -34,7 +30,7 @@ public class FinancialGoalsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetAllAsync(userId.Value);
@@ -47,7 +43,7 @@ public class FinancialGoalsController : BaseApiController
     [HttpGet("active")]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetActiveGoalsAsync(userId.Value);
@@ -60,7 +56,7 @@ public class FinancialGoalsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByIdAsync(id, userId.Value);
@@ -73,7 +69,7 @@ public class FinancialGoalsController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFinancialGoalRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.CreateAsync(request, userId.Value);
@@ -88,7 +84,7 @@ public class FinancialGoalsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFinancialGoalRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.UpdateAsync(id, request, userId.Value);
@@ -101,7 +97,7 @@ public class FinancialGoalsController : BaseApiController
     [HttpPost("{id}/contribute")]
     public async Task<IActionResult> AddContribution(Guid id, [FromBody] AddContributionRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.AddContributionAsync(id, request.Amount, userId.Value);
@@ -114,7 +110,7 @@ public class FinancialGoalsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteAsync(id, userId.Value);

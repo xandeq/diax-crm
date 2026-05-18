@@ -33,7 +33,7 @@ public class AiInsightsController : BaseApiController
     [HttpGet("daily")]
     public async Task<IActionResult> GetDailyInsights(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue)
         {
             return Unauthorized();

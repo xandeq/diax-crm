@@ -2,7 +2,6 @@ using Asp.Versioning;
 using Diax.Application.PromptGenerator;
 using Diax.Application.PromptGenerator.Dtos;
 using Diax.Application.AI;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Diax.Api.Controllers.V1;
@@ -14,18 +13,15 @@ public class PromptGeneratorController : BaseApiController
 {
     private readonly IPromptGeneratorService _promptGeneratorService;
     private readonly ILogger<PromptGeneratorController> _logger;
-    private readonly DiaxDbContext _db;
     private readonly IAiCatalogService _aiCatalogService;
 
     public PromptGeneratorController(
         IPromptGeneratorService promptGeneratorService,
         ILogger<PromptGeneratorController> logger,
-        DiaxDbContext db,
         IAiCatalogService aiCatalogService)
     {
         _promptGeneratorService = promptGeneratorService;
         _logger = logger;
-        _db = db;
         _aiCatalogService = aiCatalogService;
     }
 
@@ -49,7 +45,7 @@ public class PromptGeneratorController : BaseApiController
             });
         }
 
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (userId == null)
             return Unauthorized(new { error = "Usuário não autenticado." });
 
@@ -141,7 +137,7 @@ public class PromptGeneratorController : BaseApiController
         [FromQuery] int limit = 50,
         CancellationToken cancellationToken = default)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (userId == null)
             return Unauthorized(new { error = "User not found" });
 
@@ -159,7 +155,7 @@ public class PromptGeneratorController : BaseApiController
         Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (userId == null)
             return Unauthorized(new { error = "User not found" });
 

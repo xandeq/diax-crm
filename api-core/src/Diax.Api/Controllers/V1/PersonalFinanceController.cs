@@ -6,7 +6,6 @@ using Diax.Application.Finance.Planner;
 using Diax.Application.Finance.Planner.Dtos;
 using Diax.Domain.Finance;
 using Diax.Domain.Finance.Planner;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Diax.Infrastructure.Finance.Parsers;
@@ -26,7 +25,6 @@ public class PersonalFinanceController : BaseApiController
     private readonly IFinancialAccountRepository _financialAccountRepository;
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly PdfFileParser _pdfParser;
-    private readonly DiaxDbContext _db;
 
     public PersonalFinanceController(
         PersonalFinanceControlService monthService,
@@ -34,8 +32,7 @@ public class PersonalFinanceController : BaseApiController
         RecurringTransactionService recurringService,
         IFinancialAccountRepository financialAccountRepository,
         ICreditCardRepository creditCardRepository,
-        PdfFileParser pdfParser,
-        DiaxDbContext db)
+        PdfFileParser pdfParser)
     {
         _monthService = monthService;
         _transactionService = transactionService;
@@ -43,13 +40,12 @@ public class PersonalFinanceController : BaseApiController
         _financialAccountRepository = financialAccountRepository;
         _creditCardRepository = creditCardRepository;
         _pdfParser = pdfParser;
-        _db = db;
     }
 
     [HttpGet("months/{year:int}/{month:int}")]
     public async Task<IActionResult> GetMonth(int year, int month, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _monthService.GetMonthAsync(year, month, userId.Value, cancellationToken);
@@ -63,7 +59,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpGet("morning-briefing")]
     public async Task<IActionResult> GetMorningBriefing(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var now = DateTime.UtcNow;
@@ -142,7 +138,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("incomes")]
     public async Task<IActionResult> CreateIncome([FromBody] PersonalControlIncomeRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var date = CreateDate(request.Year, request.Month, request.DayOfMonth);
@@ -175,7 +171,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPut("incomes/{id:guid}")]
     public async Task<IActionResult> UpdateIncome(Guid id, [FromBody] PersonalControlIncomeRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var existing = await _transactionService.GetByIdAsync(id, userId.Value, cancellationToken);
@@ -212,7 +208,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpDelete("incomes/{id:guid}")]
     public async Task<IActionResult> DeleteIncome(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _transactionService.DeleteAsync(id, userId.Value, cancellationToken);
@@ -223,7 +219,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("incomes/{id:guid}/status")]
     public async Task<IActionResult> ToggleIncomeStatus(Guid id, [FromBody] TogglePersonalControlStatusRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = request.IsPaid
@@ -236,7 +232,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("expenses")]
     public async Task<IActionResult> CreateExpense([FromBody] PersonalControlExpenseRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var date = CreateDate(request.Year, request.Month, request.DueDay);
@@ -288,7 +284,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPut("expenses/{id:guid}")]
     public async Task<IActionResult> UpdateExpense(Guid id, [FromBody] PersonalControlExpenseRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var date = CreateDate(request.Year, request.Month, request.DueDay);
@@ -340,7 +336,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpDelete("expenses/{id:guid}")]
     public async Task<IActionResult> DeleteExpense(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _transactionService.DeleteAsync(id, userId.Value, cancellationToken);
@@ -351,7 +347,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("expenses/{id:guid}/status")]
     public async Task<IActionResult> ToggleExpenseStatus(Guid id, [FromBody] TogglePersonalControlStatusRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = request.IsPaid
@@ -364,7 +360,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("import-sheet/{year:int}/{month:int}")]
     public async Task<IActionResult> ImportFromSheet(int year, int month, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _monthService.ImportFromSheetAsync(year, month, userId.Value, cancellationToken);
@@ -374,7 +370,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("subscriptions")]
     public async Task<IActionResult> CreateSubscription([FromBody] PersonalControlSubscriptionRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var recurringRequest = await BuildSubscriptionTemplateRequestAsync(request, userId.Value, cancellationToken);
@@ -412,7 +408,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPut("subscriptions/{id:guid}")]
     public async Task<IActionResult> UpdateSubscription(Guid id, [FromBody] PersonalControlSubscriptionRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var recurringRequest = await BuildSubscriptionTemplateUpdateRequestAsync(request, userId.Value, cancellationToken);
@@ -472,7 +468,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpDelete("subscriptions/{id:guid}")]
     public async Task<IActionResult> DeleteSubscription(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _recurringService.DeleteAsync(id, userId.Value);
@@ -483,7 +479,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("subscriptions/{id:guid}/status")]
     public async Task<IActionResult> ToggleSubscriptionStatus(Guid id, [FromBody] TogglePersonalControlSubscriptionStatusRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var monthView = await _monthService.GetMonthAsync(request.Year, request.Month, userId.Value, cancellationToken);
@@ -705,7 +701,7 @@ public class PersonalFinanceController : BaseApiController
     [HttpPost("copy-recurring/{year:int}/{month:int}")]
     public async Task<IActionResult> CopyRecurring(int year, int month, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _monthService.CopyRecurringForMonthAsync(year, month, userId.Value, cancellationToken);
@@ -719,7 +715,7 @@ public class PersonalFinanceController : BaseApiController
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> ParseStatement(IFormFile file, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         if (file == null || file.Length == 0)

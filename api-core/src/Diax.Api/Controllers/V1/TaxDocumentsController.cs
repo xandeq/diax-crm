@@ -1,7 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.TaxDocuments;
 using Diax.Application.TaxDocuments.DTOs;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,13 +25,11 @@ public class TaxDocumentsController : BaseApiController
     private const long MaxFileSizeBytes = 20 * 1024 * 1024; // 20 MB
 
     private readonly ITaxDocumentService _service;
-    private readonly DiaxDbContext _db;
     private readonly IWebHostEnvironment _env;
 
-    public TaxDocumentsController(ITaxDocumentService service, DiaxDbContext db, IWebHostEnvironment env)
+    public TaxDocumentsController(ITaxDocumentService service, IWebHostEnvironment env)
     {
         _service = service;
-        _db = db;
         _env = env;
     }
 
@@ -43,7 +40,7 @@ public class TaxDocumentsController : BaseApiController
         [FromQuery] string? search,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var request = new TaxDocumentListRequest(
@@ -58,7 +55,7 @@ public class TaxDocumentsController : BaseApiController
     [HttpGet("fiscal-years")]
     public async Task<IActionResult> GetFiscalYears(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetFiscalYearsAsync(userId.Value, ct);
@@ -73,7 +70,7 @@ public class TaxDocumentsController : BaseApiController
         IFormFile file,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         if (file == null || file.Length == 0)
@@ -116,7 +113,7 @@ public class TaxDocumentsController : BaseApiController
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaxDocumentRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.UpdateAsync(userId.Value, id, request, ct);
@@ -126,7 +123,7 @@ public class TaxDocumentsController : BaseApiController
     [HttpGet("{id:guid}/download")]
     public async Task<IActionResult> Download(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetDownloadInfoAsync(userId.Value, id, ct);
@@ -146,7 +143,7 @@ public class TaxDocumentsController : BaseApiController
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteAsync(userId.Value, id, ct);

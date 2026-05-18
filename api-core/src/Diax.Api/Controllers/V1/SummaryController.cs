@@ -1,6 +1,5 @@
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,12 +11,10 @@ namespace Diax.Api.Controllers.V1;
 public class SummaryController : BaseApiController
 {
     private readonly FinancialSummaryService _service;
-    private readonly DiaxDbContext _db;
 
-    public SummaryController(FinancialSummaryService service, DiaxDbContext db)
+    public SummaryController(FinancialSummaryService service)
     {
         _service = service;
-        _db = db;
     }
 
     [HttpGet]
@@ -26,7 +23,7 @@ public class SummaryController : BaseApiController
         [FromQuery] DateTime? endDate,
         CancellationToken cancellationToken = default)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var request = new FinancialSummaryRequest

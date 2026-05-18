@@ -1,7 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,20 +15,18 @@ namespace Diax.Api.Controllers.V1;
 public class FinancialAccountsController : BaseApiController
 {
     private readonly FinancialAccountService _service;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<FinancialAccountsController> _logger;
 
-    public FinancialAccountsController(FinancialAccountService service, DiaxDbContext db, ILogger<FinancialAccountsController> logger)
+    public FinancialAccountsController(FinancialAccountService service, ILogger<FinancialAccountsController> logger)
     {
         _service = service;
-        _db = db;
         _logger = logger;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         _logger.LogInformation("GET /api/v1/financialaccounts - Request received");
@@ -51,7 +48,7 @@ public class FinancialAccountsController : BaseApiController
     [HttpGet("active")]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         _logger.LogInformation("GET /api/v1/financialaccounts/active - Request received");
@@ -73,7 +70,7 @@ public class FinancialAccountsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         _logger.LogInformation("GET /api/v1/financialaccounts/{Id} - Request received", id);
@@ -95,7 +92,7 @@ public class FinancialAccountsController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFinancialAccountRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         _logger.LogInformation("POST /api/v1/financialaccounts - Request received");
@@ -117,7 +114,7 @@ public class FinancialAccountsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFinancialAccountRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         _logger.LogInformation("PUT /api/v1/financialaccounts/{Id} - Request received", id);
@@ -140,7 +137,7 @@ public class FinancialAccountsController : BaseApiController
     [HttpPatch("{id}/balance")]
     public async Task<IActionResult> UpdateBalance(Guid id, [FromBody] UpdateBalanceRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.UpdateBalanceAsync(id, request.Balance, userId.Value, cancellationToken);
@@ -152,7 +149,7 @@ public class FinancialAccountsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         _logger.LogInformation("DELETE /api/v1/financialaccounts/{Id} - Request received", id);

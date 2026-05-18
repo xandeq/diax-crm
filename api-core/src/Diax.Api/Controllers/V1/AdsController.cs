@@ -1,7 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.Ads;
 using Diax.Application.Ads.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,16 +17,13 @@ namespace Diax.Api.Controllers.V1;
 public class AdsController : BaseApiController
 {
     private readonly IFacebookAdsService _adsService;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<AdsController> _logger;
 
     public AdsController(
         IFacebookAdsService adsService,
-        DiaxDbContext db,
         ILogger<AdsController> logger)
     {
         _adsService = adsService;
-        _db = db;
         _logger = logger;
     }
 
@@ -43,7 +39,7 @@ public class AdsController : BaseApiController
         [FromBody] ConnectAdAccountRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} connecting Facebook Ad Account {AdAccountId}", userId, request.AdAccountId);
@@ -60,7 +56,7 @@ public class AdsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAccount(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var result = await _adsService.GetConnectedAccountAsync(userId.Value, ct);
@@ -75,7 +71,7 @@ public class AdsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SyncAccount(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var result = await _adsService.SyncAccountInfoAsync(userId.Value, ct);
@@ -90,7 +86,7 @@ public class AdsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Disconnect(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} disconnecting Facebook Ad Account", userId);
@@ -109,7 +105,7 @@ public class AdsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSummary(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var result = await _adsService.GetAccountSummaryAsync(userId.Value, ct);
@@ -126,7 +122,7 @@ public class AdsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCampaigns(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var result = await _adsService.GetCampaignsAsync(userId.Value, ct);
@@ -145,7 +141,7 @@ public class AdsController : BaseApiController
         [FromQuery] string? campaignId,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var result = await _adsService.GetAdSetsAsync(userId.Value, campaignId, ct);
@@ -164,7 +160,7 @@ public class AdsController : BaseApiController
         [FromQuery] string? adSetId,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var result = await _adsService.GetAdsAsync(userId.Value, adSetId, ct);
@@ -186,7 +182,7 @@ public class AdsController : BaseApiController
         [FromQuery] string level = "campaign",
         CancellationToken ct = default)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var request = new InsightsRequest(datePreset ?? "last_30d", since, until, level);
@@ -207,7 +203,7 @@ public class AdsController : BaseApiController
         [FromBody] CreateCampaignRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} creating campaign {Name}", userId, request.Name);
@@ -228,7 +224,7 @@ public class AdsController : BaseApiController
         [FromBody] UpdateCampaignStatusRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} updating campaign {CampaignId} status to {Status}", userId, campaignId, request.Status);
@@ -249,7 +245,7 @@ public class AdsController : BaseApiController
         [FromBody] UpdateCampaignBudgetRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} updating campaign {CampaignId} budget", userId, campaignId);
@@ -271,7 +267,7 @@ public class AdsController : BaseApiController
         [FromBody] CreateAdSetRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} creating ad set {Name}", userId, request.Name);
@@ -292,7 +288,7 @@ public class AdsController : BaseApiController
         [FromBody] UpdateAdSetStatusRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} updating ad set {AdSetId} status to {Status}", userId, adSetId, request.Status);
@@ -313,7 +309,7 @@ public class AdsController : BaseApiController
         [FromBody] UpdateAdSetBudgetRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} updating ad set {AdSetId} budget", userId, adSetId);
@@ -335,7 +331,7 @@ public class AdsController : BaseApiController
         [FromBody] CreateAdRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} creating ad {Name}", userId, request.Name);
@@ -356,7 +352,7 @@ public class AdsController : BaseApiController
         [FromBody] UpdateAdStatusRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} updating ad {AdId} status to {Status}", userId, adId, request.Status);
@@ -375,7 +371,7 @@ public class AdsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCreatives(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         var result = await _adsService.GetCreativesAsync(userId.Value, ct);
@@ -393,7 +389,7 @@ public class AdsController : BaseApiController
         [FromBody] CreateAdCreativeRequest request,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized();
 
         _logger.LogInformation("User {UserId} creating creative {Name}", userId, request.Name);

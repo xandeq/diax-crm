@@ -1,6 +1,5 @@
 using Asp.Versioning;
 using Diax.Application.Finance.Planner;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,16 +13,13 @@ namespace Diax.Api.Controllers.V1;
 public class MonthlySimulationsController : BaseApiController
 {
     private readonly MonthlySimulationService _service;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<MonthlySimulationsController> _logger;
 
     public MonthlySimulationsController(
         MonthlySimulationService service,
-        DiaxDbContext db,
         ILogger<MonthlySimulationsController> logger)
     {
         _service = service;
-        _db = db;
         _logger = logger;
     }
 
@@ -33,7 +29,7 @@ public class MonthlySimulationsController : BaseApiController
     [HttpGet("{year}/{month}")]
     public async Task<IActionResult> GetOrGenerate(int year, int month, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         if (month < 1 || month > 12)
@@ -49,7 +45,7 @@ public class MonthlySimulationsController : BaseApiController
     [HttpPost("{year}/{month}/regenerate")]
     public async Task<IActionResult> Regenerate(int year, int month, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         if (month < 1 || month > 12)

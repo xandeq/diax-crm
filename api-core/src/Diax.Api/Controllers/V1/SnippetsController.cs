@@ -1,12 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Asp.Versioning;
 using Diax.Application.Snippets;
 using Diax.Application.Snippets.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Diax.Api.Controllers.V1;
 
@@ -18,13 +14,11 @@ namespace Diax.Api.Controllers.V1;
 public class SnippetsController : BaseApiController
 {
     private readonly ISnippetService _service;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<SnippetsController> _logger;
 
-    public SnippetsController(ISnippetService service, DiaxDbContext db, ILogger<SnippetsController> logger)
+    public SnippetsController(ISnippetService service, ILogger<SnippetsController> logger)
     {
         _service = service;
-        _db = db;
         _logger = logger;
     }
 
@@ -33,7 +27,7 @@ public class SnippetsController : BaseApiController
         [FromBody] CreateSnippetRequestDto dto,
         CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue)
             return Unauthorized();
 
@@ -52,7 +46,7 @@ public class SnippetsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue)
             return Unauthorized();
 
@@ -63,7 +57,7 @@ public class SnippetsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue)
             return Unauthorized();
 
@@ -78,7 +72,7 @@ public class SnippetsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue)
             return Unauthorized();
 
@@ -107,21 +101,5 @@ public class SnippetsController : BaseApiController
             return NotFound();
 
         return Ok(result);
-    }
-
-    private async Task<Guid?> ResolveUserIdAsync(CancellationToken cancellationToken)
-    {
-        var email = User.FindFirstValue(ClaimTypes.Email)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Email)
-            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-
-        if (string.IsNullOrWhiteSpace(email))
-            return null;
-
-        var user = await _db.Users
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Email == email, cancellationToken);
-
-        return user?.Id;
     }
 }

@@ -2,7 +2,6 @@ using Asp.Versioning;
 using Diax.Api.Auth;
 using Diax.Application.Blog;
 using Diax.Application.Blog.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -118,12 +117,11 @@ public class BlogController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreatePost(
         [FromBody] CreateBlogPostRequest request,
-        [FromServices] DiaxDbContext db,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Criando novo post: {Title}", request.Title);
 
-        var userId = await ResolveUserIdAsync(db, cancellationToken);
+        var userId = GetCurrentUserId();
         var userIdString = userId?.ToString() ?? "system";
 
         var result = await _blogPostService.CreateAsync(request, userIdString, cancellationToken);
@@ -148,12 +146,11 @@ public class BlogController : BaseApiController
     public async Task<IActionResult> UpdatePost(
         Guid id,
         [FromBody] UpdateBlogPostRequest request,
-        [FromServices] DiaxDbContext db,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Atualizando post: {Id}", id);
 
-        var userId = await ResolveUserIdAsync(db, cancellationToken);
+        var userId = GetCurrentUserId();
         var userIdString = userId?.ToString() ?? "system";
 
         var result = await _blogPostService.UpdateAsync(id, request, userIdString, cancellationToken);
@@ -170,12 +167,11 @@ public class BlogController : BaseApiController
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> PublishPost(
         Guid id,
-        [FromServices] DiaxDbContext db,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Publicando post: {Id}", id);
 
-        var userId = await ResolveUserIdAsync(db, cancellationToken);
+        var userId = GetCurrentUserId();
         var userIdString = userId?.ToString() ?? "system";
 
         var result = await _blogPostService.PublishAsync(id, userIdString, cancellationToken);
@@ -192,12 +188,11 @@ public class BlogController : BaseApiController
     [ProducesResponseType(typeof(BlogPostResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ArchivePost(
         Guid id,
-        [FromServices] DiaxDbContext db,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Arquivando post: {Id}", id);
 
-        var userId = await ResolveUserIdAsync(db, cancellationToken);
+        var userId = GetCurrentUserId();
         var userIdString = userId?.ToString() ?? "system";
 
         var result = await _blogPostService.ArchiveAsync(id, userIdString, cancellationToken);

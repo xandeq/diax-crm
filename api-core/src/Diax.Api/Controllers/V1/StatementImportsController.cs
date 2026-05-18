@@ -1,7 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,18 +12,16 @@ namespace Diax.Api.Controllers.V1;
 public class StatementImportsController : BaseApiController
 {
     private readonly StatementImportService _service;
-    private readonly DiaxDbContext _db;
 
-    public StatementImportsController(StatementImportService service, DiaxDbContext db)
+    public StatementImportsController(StatementImportService service)
     {
         _service = service;
-        _db = db;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetAllAsync(userId.Value, ct);
@@ -38,7 +35,7 @@ public class StatementImportsController : BaseApiController
         IFormFile file,
         CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         if (file == null || file.Length == 0)
@@ -62,7 +59,7 @@ public class StatementImportsController : BaseApiController
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetDetailAsync(id, userId.Value, ct);
@@ -72,7 +69,7 @@ public class StatementImportsController : BaseApiController
     [HttpGet("{id:guid}/preview-post")]
     public async Task<IActionResult> PreviewPost(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.PreviewPostAsync(id, userId.Value, ct);
@@ -82,7 +79,7 @@ public class StatementImportsController : BaseApiController
     [HttpPost("{id:guid}/post")]
     public async Task<IActionResult> Post(Guid id, [FromBody] StatementImportPostRequest request, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.PostAsync(id, request, userId.Value, ct);
@@ -92,7 +89,7 @@ public class StatementImportsController : BaseApiController
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var userId = await ResolveUserIdAsync(_db, ct);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteAsync(id, userId.Value, ct);

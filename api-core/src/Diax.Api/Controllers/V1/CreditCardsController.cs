@@ -1,7 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.Finance;
 using Diax.Application.Finance.Dtos;
-using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,20 +15,18 @@ namespace Diax.Api.Controllers.V1;
 public class CreditCardsController : BaseApiController
 {
     private readonly CreditCardService _service;
-    private readonly DiaxDbContext _db;
     private readonly ILogger<CreditCardsController> _logger;
 
-    public CreditCardsController(CreditCardService service, DiaxDbContext db, ILogger<CreditCardsController> logger)
+    public CreditCardsController(CreditCardService service, ILogger<CreditCardsController> logger)
     {
         _service = service;
-        _db = db;
         _logger = logger;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetAllAsync(userId.Value, cancellationToken);
@@ -39,7 +36,7 @@ public class CreditCardsController : BaseApiController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.GetByIdAsync(id, userId.Value, cancellationToken);
@@ -49,7 +46,7 @@ public class CreditCardsController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCreditCardRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.CreateAsync(request, userId.Value, cancellationToken);
@@ -59,7 +56,7 @@ public class CreditCardsController : BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCreditCardRequest request, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.UpdateAsync(id, request, userId.Value, cancellationToken);
@@ -69,7 +66,7 @@ public class CreditCardsController : BaseApiController
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var userId = await ResolveUserIdAsync(_db, cancellationToken);
+        var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
         var result = await _service.DeleteAsync(id, userId.Value, cancellationToken);
