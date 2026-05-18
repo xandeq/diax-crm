@@ -66,6 +66,8 @@ import {
     Download,
     Edit2,
     Filter,
+    Kanban,
+    LayoutList,
     Loader2,
     Mail,
     MessageCircle,
@@ -76,6 +78,7 @@ import {
     Wand2,
     X,
 } from 'lucide-react';
+import { LeadKanban } from '@/components/leads/LeadKanban';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -157,6 +160,11 @@ export default function LeadsPage() {
   // Timeline panel
   const [timelineLead, setTimelineLead] = useState<Lead | null>(null);
 
+  // View mode
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [kanbanLeads, setKanbanLeads] = useState<Lead[]>([]);
+  const [kanbanLoading, setKanbanLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -208,6 +216,23 @@ export default function LeadsPage() {
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, statusFilter, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter, neverEmailedFilter, createdAfterFilter]);
+
+  // Kanban: fetch all leads when switching to kanban view
+  useEffect(() => {
+    if (viewMode !== 'kanban') return;
+    const fetchAll = async () => {
+      setKanbanLoading(true);
+      try {
+        const data = await getLeads({ page: 1, pageSize: 500, sortBy: 'createdAt', sortDescending: true });
+        setKanbanLeads(data.items);
+      } catch {
+        toast.error('Erro ao carregar leads para o Kanban');
+      } finally {
+        setKanbanLoading(false);
+      }
+    };
+    fetchAll();
+  }, [viewMode]);
 
   // Clear selection on page change
   useEffect(() => {
@@ -705,6 +730,32 @@ export default function LeadsPage() {
     []
   );
 
+  // ── Kanban handler ───────────────────────────────────────────────────────
+
+  const handleKanbanStatusChange = async (leadId: string, newStatus: CustomerStatus) => {
+    const lead = kanbanLeads.find(l => l.id === leadId);
+    if (!lead) return;
+    setKanbanLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+    try {
+      await updateLead(leadId, {
+        name: lead.name,
+        email: lead.email,
+        personType: lead.personType,
+        companyName: lead.companyName,
+        phone: lead.phone,
+        whatsApp: lead.whatsApp,
+        website: lead.website,
+        notes: lead.notes,
+        tags: lead.tags,
+        source: lead.source,
+        status: newStatus,
+      });
+    } catch {
+      setKanbanLeads(prev => prev.map(l => l.id === leadId ? lead : l));
+      toast.error('Erro ao atualizar status do lead');
+    }
+  };
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -718,6 +769,32 @@ export default function LeadsPage() {
           <p className="text-slate-500">Gerencie seus potenciais clientes.</p>
         </div>
         <div className="flex gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors ${
+                viewMode === 'table'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+              title="Visualização em tabela"
+            >
+              <LayoutList className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors border-l border-slate-200 ${
+                viewMode === 'kanban'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+              title="Visualização Kanban"
+            >
+              <Kanban className="h-4 w-4" />
+            </button>
+          </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -987,8 +1064,19 @@ export default function LeadsPage() {
         }
       />
 
-      {/* Grid */}
-      <PerfectGrid
+      {/* Kanban View */}
+      {viewMode === 'kanban' && (
+        kanbanLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+          </div>
+        ) : (
+          <LeadKanban leads={kanbanLeads} onStatusChange={handleKanbanStatusChange} />
+        )
+      )}
+
+      {/* Table View */}
+      {viewMode === 'table' && <PerfectGrid
         columns={columns}
         data={leads}
         loading={loading}
@@ -1012,7 +1100,7 @@ export default function LeadsPage() {
         itemLabel="leads"
         emptyTitle="Nenhum lead encontrado"
         emptyDescription="Tente limpar os filtros, buscar por outro termo ou importar novos leads."
-      />
+      />}
 
       {/* Lead Form Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
