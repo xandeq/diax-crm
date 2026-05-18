@@ -1,32 +1,13 @@
 'use client';
 
-import { CreditCard, financeService } from '@/services/finance';
+import { useCreditCards } from '@/hooks/finance';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
 export default function CreditCardsPage() {
-  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: creditCards = [], isLoading, isError } = useCreditCards();
 
-  useEffect(() => {
-    loadCreditCards();
-  }, []);
-
-  const loadCreditCards = async () => {
-    try {
-      const data = await financeService.getCreditCards();
-      setCreditCards(data);
-    } catch (err) {
-      setError('Erro ao carregar cartões de crédito');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) return <div className="p-8">Carregando...</div>;
-  if (error) return <div className="p-8 text-red-600">{error}</div>;
+  if (isLoading) return <div className="p-8">Carregando...</div>;
+  if (isError) return <div className="p-8 text-red-600">Erro ao carregar cartões de crédito</div>;
 
   return (
     <div className="p-8">

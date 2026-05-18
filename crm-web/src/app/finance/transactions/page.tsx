@@ -7,11 +7,14 @@ import { Button } from '@/components/ui/button';
 import { formatDisplayDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import {
-    financeService,
-    FinancialAccount,
-    PagedResponse,
+    useDeleteTransaction,
+    useDeleteTransactionsBulk,
+    useFinancialAccounts,
+    useTransactionCategories,
+    useTransactions,
+} from '@/hooks/finance';
+import {
     Transaction,
-    TransactionCategory,
     TransactionFilters,
     TransactionStatus,
     TransactionType
@@ -20,6 +23,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { ArrowDownCircle, ArrowRightLeft, ArrowUpCircle, ArrowUpDown, Edit, EyeOff, Plus, Receipt, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+
 
 const typeLabels: Record<TransactionType, string> = {
   [TransactionType.Income]: 'Receita',
@@ -103,85 +107,58 @@ function TypeFilterTabs({ activeType, onChange }: { activeType: TransactionType 
 }
 
 export default function TransactionsPage() {
-  const [data, setData] = useState<PagedResponse<Transaction> | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>({
     page: 1,
     pageSize: 15,
     sortBy: 'date',
     sortDescending: true,
   });
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<TransactionCategory[]>([]);
-  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const { data, isLoading: loading } = useTransactions(filters);
+  const { data: categories = [] } = useTransactionCategories();
+  const { data: accounts = [] } = useFinancialAccounts();
+  const deleteMutation = useDeleteTransaction();
+  const bulkDeleteMutation = useDeleteTransactionsBulk();
 
   const selectedIds = useMemo(() => {
     return Object.keys(rowSelection).filter(key => rowSelection[key]);
   }, [rowSelection]);
 
   useEffect(() => {
-    Promise.all([
-      financeService.getAllTransactionCategories(),
-      financeService.getFinancialAccounts(),
-    ]).then(([cats, accs]) => {
-      setCategories(cats);
-      setAccounts(accs);
-    }).catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    loadTransactions();
     setRowSelection({});
   }, [filters]);
 
-  const loadTransactions = async () => {
-    setLoading(true);
-    try {
-      const response = await financeService.getTransactions(filters);
-      setData(response);
-    } catch (err) {
-      console.error('Erro ao carregar transações:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (selectedIds.length > 0) {
-      setIsDeleting(true);
       try {
-        const response = await financeService.deleteTransactionsBulk(selectedIds);
+        const response = await bulkDeleteMutation.mutateAsync(selectedIds);
         setRowSelection({});
         setIsBulkDeleting(false);
         if (response.failedCount > 0) {
           alert(`${response.deletedCount} transação(ões) excluída(s). ${response.failedCount} não encontrada(s).`);
         }
-      } catch (err: any) {
+      } catch {
         alert('Erro ao excluir transações em massa.');
-      } finally {
-        setIsDeleting(false);
-        loadTransactions();
       }
       return;
     }
 
     if (!deleteId) return;
-    setIsDeleting(true);
     try {
-      await financeService.deleteTransaction(deleteId);
+      await deleteMutation.mutateAsync(deleteId);
     } catch (err: any) {
       alert(err?.status === 404
         ? 'Transação não encontrada. A lista será atualizada.'
         : 'Erro ao excluir transação.');
     } finally {
       setDeleteId(null);
-      setIsDeleting(false);
-      loadTransactions();
     }
   };
+
+  const isDeleting = deleteMutation.isPending || bulkDeleteMutation.isPending;
 
   const columns = useMemo<ColumnDef<Transaction>[]>(() => [
     {
@@ -312,11 +289,6 @@ export default function TransactionsPage() {
     },
   ], [filters]);
 
-  // Map categories to the format expected by FinancialToolbar
-  const toolbarCategories = useMemo(() => {
-    return categories.map(c => ({ id: c.id, name: c.name, isActive: c.isActive }));
-  }, [categories]);
-
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-8">
       <DeleteModal
@@ -370,7 +342,7 @@ export default function TransactionsPage() {
       <FinancialToolbar
         filters={filters}
         onFilterChange={setFilters}
-        categories={toolbarCategories}
+        categories={categories}
         accounts={accounts}
       />
 

@@ -2,46 +2,24 @@
 
 import { WidgetCard } from "@/components/dashboard/WidgetCard";
 import { Button } from "@/components/ui/button";
+import { useFinancialSummary } from "@/hooks/finance";
 import { formatCurrency } from "@/lib/utils";
-import { FinancialSummary, financeService } from "@/services/finance";
 import { ArrowRight, DollarSign, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export function FinanceSummaryWidget() {
-  const [data, setData] = useState<FinancialSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-
-        const result = await financeService.getFinancialSummary({
-          startDate: start,
-          endDate: end
-        });
-        setData(result);
-      } catch (err) {
-        setError("Erro ao carregar dados financeiros.");
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchData();
-  }, []);
+  const { data, isLoading, isError } = useFinancialSummary({ startDate: start, endDate: end });
 
   return (
     <WidgetCard
       title="Resumo Financeiro (Mês Atual)"
       icon={<DollarSign className="h-4 w-4" />}
       isLoading={isLoading}
-      error={error}
+      error={isError ? "Erro ao carregar dados financeiros." : null}
       className="col-span-2"
       action={
         <Button asChild variant="default" size="sm" className="gap-2">

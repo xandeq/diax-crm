@@ -1,5 +1,6 @@
 import { AuthGuard } from '@/components/AuthGuard';
 import { Header } from '@/components/Header';
+import { QueryProvider } from '@/components/QueryProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Calistoga, Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from 'sonner';
@@ -42,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground min-h-screen flex flex-col">
+        <QueryProvider>
         <AuthProvider>
           <AuthGuard>
             <div className="w-full max-w-[1400px] mx-auto px-6 flex-1 flex flex-col">
@@ -53,6 +55,7 @@ export default function RootLayout({
             </div>
           </AuthGuard>
         </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );
