@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { financeService, IncomeCategory, ExpenseCategory } from '@/services/finance';
+import { CategoryApplicableTo, financeService, TransactionCategory } from '@/services/finance';
 import { plannerService } from '@/services/plannerService';
 import {
   CreateRecurringTransactionRequest,
@@ -70,20 +70,17 @@ export default function RecurringTransactionsPage() {
   const [createForm, setCreateForm] = useState<CreateRecurringTransactionRequest>(EMPTY_CREATE);
   const [editForm, setEditForm] = useState<UpdateRecurringTransactionRequest | null>(null);
 
-  const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [categories, setCategories] = useState<TransactionCategory[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txs, incomeCats, expenseCats] = await Promise.all([
+      const [txs, cats] = await Promise.all([
         plannerService.getRecurringTransactions(),
-        financeService.incomeCategories.getAll(),
-        financeService.expenseCategories.getAll(),
+        financeService.getAllTransactionCategories(),
       ]);
       setItems(txs);
-      setIncomeCategories(incomeCats);
-      setExpenseCategories(expenseCats);
+      setCategories(cats);
     } catch {
       // keep previous state on error
     } finally {
@@ -93,8 +90,10 @@ export default function RecurringTransactionsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const categoriesForType = (type: TransactionType) =>
-    type === TransactionType.Income ? incomeCategories : expenseCategories;
+  const categoriesForType = (type: TransactionType) => {
+    const applicableTo = type === TransactionType.Income ? CategoryApplicableTo.Income : CategoryApplicableTo.Expense;
+    return categories.filter(c => c.applicableTo === applicableTo || c.applicableTo === CategoryApplicableTo.Both);
+  };
 
   const filtered = items.filter(item => {
     if (filterType === 'income' && item.type !== TransactionType.Income) return false;
@@ -326,8 +325,6 @@ export default function RecurringTransactionsPage() {
           <RecurringForm
             form={createForm}
             onChange={p => setCreateForm(prev => ({ ...prev, ...p }))}
-            incomeCategories={incomeCategories}
-            expenseCategories={expenseCategories}
             categoriesForType={categoriesForType}
           />
           <DialogFooter>
@@ -350,8 +347,6 @@ export default function RecurringTransactionsPage() {
               <RecurringForm
                 form={editForm}
                 onChange={p => setEditForm(prev => prev ? { ...prev, ...p } : prev)}
-                incomeCategories={incomeCategories}
-                expenseCategories={expenseCategories}
                 categoriesForType={categoriesForType}
                 showIsActive
               />
@@ -400,16 +395,12 @@ type FormShape = Partial<CreateRecurringTransactionRequest> & Partial<UpdateRecu
 function RecurringForm({
   form,
   onChange,
-  incomeCategories,
-  expenseCategories,
   categoriesForType,
   showIsActive = false,
 }: {
   form: FormShape;
   onChange: (patch: Partial<FormShape>) => void;
-  incomeCategories: IncomeCategory[];
-  expenseCategories: ExpenseCategory[];
-  categoriesForType: (type: TransactionType) => IncomeCategory[] | ExpenseCategory[];
+  categoriesForType: (type: TransactionType) => TransactionCategory[];
   showIsActive?: boolean;
 }) {
   const cats = categoriesForType(form.type ?? TransactionType.Expense);

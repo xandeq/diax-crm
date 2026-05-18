@@ -3,10 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-    ExpenseCategory,
     FinancialAccount,
     FinancialFilters,
-    IncomeCategory
+    TransactionCategory
 } from "@/services/finance";
 import {
     Calendar as CalendarIcon,
@@ -18,7 +17,7 @@ import { useEffect, useState } from "react";
 interface FinancialToolbarProps {
   filters: FinancialFilters;
   onFilterChange: (filters: FinancialFilters) => void;
-  categories: (IncomeCategory | ExpenseCategory)[];
+  categories: TransactionCategory[];
   accounts: FinancialAccount[];
 }
 

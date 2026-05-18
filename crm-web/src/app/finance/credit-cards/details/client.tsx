@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { formatDisplayDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
-import { CreditCard, CreditCardInvoice, Expense, financeService, PagedResponse } from '@/services/finance';
+import { CreditCard, CreditCardInvoice, financeService, PagedResponse, Transaction } from '@/services/finance';
 import { ColumnDef } from '@tanstack/react-table';
 import { ArrowLeft, CreditCard as CreditCardIcon, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -26,7 +26,7 @@ export function CreditCardDetailsClient() {
     const [card, setCard] = useState<CreditCard | null>(null);
     const [invoices, setInvoices] = useState<CreditCardInvoice[]>([]);
     const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('current');
-    const [expenses, setExpenses] = useState<PagedResponse<Expense> | null>(null);
+    const [transactions, setTransactions] = useState<PagedResponse<Transaction> | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingExpenses, setLoadingExpenses] = useState(false);
 
@@ -74,14 +74,14 @@ export function CreditCardDetailsClient() {
     const loadExpenses = async (invoiceId: string) => {
         setLoadingExpenses(true);
         try {
-            const response = await financeService.getExpenses({
+            const response = await financeService.getTransactions({
                 creditCardInvoiceId: invoiceId,
                 page: 1,
                 pageSize: 100
             });
-            setExpenses(response);
+            setTransactions(response);
         } catch (error) {
-            console.error('Erro ao carregar despesas da fatura:', error);
+            console.error('Erro ao carregar lançamentos da fatura:', error);
         } finally {
             setLoadingExpenses(false);
         }
@@ -91,7 +91,7 @@ export function CreditCardDetailsClient() {
         invoices.find(i => i.id === selectedInvoiceId),
     [invoices, selectedInvoiceId]);
 
-    const columns = useMemo<ColumnDef<Expense>[]>(() => [
+    const columns = useMemo<ColumnDef<Transaction>[]>(() => [
         {
             accessorKey: 'date',
             header: 'Data',
@@ -103,7 +103,7 @@ export function CreditCardDetailsClient() {
             cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-semibold text-gray-900">{row.original.description}</span>
-                    <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">{row.original.expenseCategoryName}</span>
+                    <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">{row.original.categoryName}</span>
                 </div>
             ),
         },
@@ -197,13 +197,13 @@ export function CreditCardDetailsClient() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                             <h2 className="text-lg font-semibold">Lançamentos</h2>
-                            <span className="text-sm text-gray-500">{expenses?.totalCount || 0} despesas</span>
+                            <span className="text-sm text-gray-500">{transactions?.totalCount || 0} lançamentos</span>
                         </div>
 
                         <FinancialGrid
                             columns={columns}
-                            data={expenses?.items || []}
-                            pageCount={expenses?.totalPages || 0}
+                            data={transactions?.items || []}
+                            pageCount={transactions?.totalPages || 0}
                             page={1}
                             pageSize={100}
                             onPageChange={() => {}}
