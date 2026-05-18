@@ -1,6 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,16 +9,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     CreateTicketRequest,
-    SupportTicket,
     TicketCategory,
     TicketPriority,
     TicketStatus,
-    helpdeskService,
 } from '@/services/helpdesk';
+import {
+    useCustomerTickets,
+    useCreateTicket,
+    useResolveTicket,
+    useReopenTicket,
+    useCloseTicket,
+} from '@/hooks/helpdesk';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Check, CheckCircle2, Clock, Loader2, Plus, RotateCcw, Ticket, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const STATUS_LABELS: Record<TicketStatus, string> = {
@@ -68,7 +72,7 @@ interface Props {
 interface QuickCreateFormProps {
     customerId: string;
     customerName: string;
-    onSaved: (ticket: SupportTicket) => void;
+    onSaved: () => void;
     onClose: () => void;
 }
 
@@ -77,30 +81,28 @@ function QuickCreateForm({ customerId, customerName, onSaved, onClose }: QuickCr
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<TicketPriority>('Medium');
     const [category, setCategory] = useState<TicketCategory>('Other');
-    const [isSaving, setIsSaving] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const createMutation = useCreateTicket();
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!subject.trim()) { toast.error('O assunto é obrigatório.'); return; }
-        setIsSaving(true);
-        try {
-            const req: CreateTicketRequest = {
-                subject: subject.trim(),
-                description: description.trim() || undefined,
-                priority,
-                category,
-                customerId,
-                customerName,
-            };
-            const result = await helpdeskService.create(req);
-            onSaved(result);
-            toast.success('Ticket criado.');
-        } catch {
-            toast.error('Erro ao criar ticket.');
-        } finally {
-            setIsSaving(false);
-        }
+
+        const req: CreateTicketRequest = {
+            subject: subject.trim(),
+            description: description.trim() || undefined,
+            priority,
+            category,
+            customerId,
+            customerName,
+        };
+        createMutation.mutate(req, {
+            onSuccess: () => { toast.success('Ticket criado.'); onSaved(); },
+            onError: () => toast.error('Erro ao criar ticket.'),
+        });
     };
+
+    const isSaving = createMutation.isPending;
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,51 +161,39 @@ function QuickCreateForm({ customerId, customerName, onSaved, onClose }: QuickCr
 }
 
 export function CustomerTicketsPanel({ customerId, customerName }: Props) {
-    const [tickets, setTickets] = useState<SupportTicket[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-    useEffect(() => {
-        let cancelled = false;
-        setLoading(true);
-        helpdeskService.getAll({ customerId })
-            .then(data => { if (!cancelled) setTickets(data); })
-            .catch(() => toast.error('Erro ao carregar tickets.'))
-            .finally(() => { if (!cancelled) setLoading(false); });
-        return () => { cancelled = true; };
-    }, [customerId]);
+    const { data: tickets = [], isLoading } = useCustomerTickets(customerId);
+    const resolveMutation = useResolveTicket();
+    const reopenMutation = useReopenTicket();
+    const closeMutation = useCloseTicket();
 
-    const handleResolve = async (id: string) => {
-        setActionLoading(id);
-        try {
-            const updated = await helpdeskService.resolve(id);
-            setTickets(prev => prev.map(t => t.id === id ? updated : t));
-        } catch { toast.error('Erro ao resolver ticket.'); }
-        finally { setActionLoading(null); }
+    const actionLoadingId: string | null =
+        (resolveMutation.isPending ? resolveMutation.variables ?? null : null) ??
+        (reopenMutation.isPending ? reopenMutation.variables ?? null : null) ??
+        (closeMutation.isPending ? closeMutation.variables ?? null : null);
+
+    const handleResolve = (id: string) => {
+        resolveMutation.mutate(id, {
+            onError: () => toast.error('Erro ao resolver ticket.'),
+        });
     };
 
-    const handleReopen = async (id: string) => {
-        setActionLoading(id);
-        try {
-            const updated = await helpdeskService.reopen(id);
-            setTickets(prev => prev.map(t => t.id === id ? updated : t));
-        } catch { toast.error('Erro ao reabrir ticket.'); }
-        finally { setActionLoading(null); }
+    const handleReopen = (id: string) => {
+        reopenMutation.mutate(id, {
+            onError: () => toast.error('Erro ao reabrir ticket.'),
+        });
     };
 
-    const handleClose = async (id: string) => {
-        setActionLoading(id);
-        try {
-            const updated = await helpdeskService.close(id);
-            setTickets(prev => prev.map(t => t.id === id ? updated : t));
-        } catch { toast.error('Erro ao fechar ticket.'); }
-        finally { setActionLoading(null); }
+    const handleClose = (id: string) => {
+        closeMutation.mutate(id, {
+            onError: () => toast.error('Erro ao fechar ticket.'),
+        });
     };
 
     const openCount = tickets.filter(t => t.status === 'Open' || t.status === 'InProgress').length;
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="space-y-3">
                 <Skeleton className="h-16 rounded-xl" />
@@ -244,7 +234,7 @@ export function CustomerTicketsPanel({ customerId, customerName }: Props) {
             ) : (
                 <div className="space-y-2">
                     {tickets.map(ticket => {
-                        const isLoading = actionLoading === ticket.id;
+                        const isLoading = actionLoadingId === ticket.id;
                         const isResolved = ticket.status === 'Resolved' || ticket.status === 'Closed';
                         return (
                             <div
@@ -314,10 +304,7 @@ export function CustomerTicketsPanel({ customerId, customerName }: Props) {
                     <QuickCreateForm
                         customerId={customerId}
                         customerName={customerName}
-                        onSaved={(ticket) => {
-                            setTickets(prev => [ticket, ...prev]);
-                            setIsCreateOpen(false);
-                        }}
+                        onSaved={() => setIsCreateOpen(false)}
                         onClose={() => setIsCreateOpen(false)}
                     />
                 </DialogContent>

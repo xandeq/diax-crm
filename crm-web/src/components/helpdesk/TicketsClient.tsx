@@ -1,6 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -8,19 +7,26 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    CreateTicketRequest,
     SupportTicket,
     TicketCategory,
     TicketPriority,
     TicketStatus,
-    TicketsQuery,
     UpdateTicketRequest,
-    helpdeskService,
+    CreateTicketRequest,
 } from '@/services/helpdesk';
+import {
+    useTickets,
+    useCreateTicket,
+    useUpdateTicket,
+    useDeleteTicket,
+    useResolveTicket,
+    useReopenTicket,
+    useCloseTicket,
+} from '@/hooks/helpdesk';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertCircle, Check, CheckCircle2, Clock, Loader2, Plus, RotateCcw, Ticket, Trash2, X, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Check, CheckCircle2, Clock, Loader2, Plus, RotateCcw, Ticket, Trash2, X, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 // ───────────── Labels & colors ─────────────
@@ -91,11 +97,42 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
     { key: 'Closed', label: 'Fechados' },
 ];
 
+// ───────────── Delete confirm modal ─────────────
+
+interface DeleteConfirmProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    loading: boolean;
+}
+
+function DeleteConfirmModal({ isOpen, onClose, onConfirm, loading }: DeleteConfirmProps) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmar Exclusão</h3>
+                <p className="text-gray-600 mb-8">
+                    Tem certeza que deseja excluir este ticket? Esta ação não pode ser desfeita.
+                </p>
+                <div className="flex justify-end gap-3">
+                    <Button variant="ghost" onClick={onClose} disabled={loading} className="px-6 rounded-xl">
+                        Cancelar
+                    </Button>
+                    <Button onClick={onConfirm} disabled={loading} variant="destructive" className="px-6 rounded-xl">
+                        {loading ? 'Excluindo...' : 'Sim, Excluir'}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ───────────── Form component ─────────────
 
 interface TicketFormProps {
     ticket?: SupportTicket;
-    onSave: (ticket: SupportTicket) => void;
+    onSave: () => void;
     onClose: () => void;
 }
 
@@ -107,44 +144,43 @@ function TicketForm({ ticket, onSave, onClose }: TicketFormProps) {
     const [category, setCategory] = useState<TicketCategory>(ticket?.category ?? 'Other');
     const [status, setStatus] = useState<TicketStatus>(ticket?.status ?? 'Open');
     const [customerName, setCustomerName] = useState(ticket?.customerName ?? '');
-    const [isSaving, setIsSaving] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const createMutation = useCreateTicket();
+    const updateMutation = useUpdateTicket();
+    const isSaving = createMutation.isPending || updateMutation.isPending;
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!subject.trim()) {
             toast.error('O assunto é obrigatório.');
             return;
         }
 
-        setIsSaving(true);
-        try {
-            let result: SupportTicket;
-            if (isEditing) {
-                const req: UpdateTicketRequest = {
-                    subject: subject.trim(),
-                    description: description.trim() || undefined,
-                    status,
-                    priority,
-                    category,
-                    customerName: customerName.trim() || undefined,
-                };
-                result = await helpdeskService.update(ticket.id, req);
-            } else {
-                const req: CreateTicketRequest = {
-                    subject: subject.trim(),
-                    description: description.trim() || undefined,
-                    priority,
-                    category,
-                    customerName: customerName.trim() || undefined,
-                };
-                result = await helpdeskService.create(req);
-            }
-            onSave(result);
-            toast.success(isEditing ? 'Ticket atualizado.' : 'Ticket criado.');
-        } catch {
-            toast.error('Erro ao salvar ticket.');
-        } finally {
-            setIsSaving(false);
+        if (isEditing) {
+            const req: UpdateTicketRequest = {
+                subject: subject.trim(),
+                description: description.trim() || undefined,
+                status,
+                priority,
+                category,
+                customerName: customerName.trim() || undefined,
+            };
+            updateMutation.mutate({ id: ticket.id, req }, {
+                onSuccess: () => { toast.success('Ticket atualizado.'); onSave(); },
+                onError: () => toast.error('Erro ao salvar ticket.'),
+            });
+        } else {
+            const req: CreateTicketRequest = {
+                subject: subject.trim(),
+                description: description.trim() || undefined,
+                priority,
+                category,
+                customerName: customerName.trim() || undefined,
+            };
+            createMutation.mutate(req, {
+                onSuccess: () => { toast.success('Ticket criado.'); onSave(); },
+                onError: () => toast.error('Erro ao criar ticket.'),
+            });
         }
     };
 
@@ -245,15 +281,15 @@ function TicketForm({ ticket, onSave, onClose }: TicketFormProps) {
 interface TicketCardProps {
     ticket: SupportTicket;
     onEdit: (t: SupportTicket) => void;
-    onDelete: (id: string) => void;
+    onDeleteRequest: (id: string) => void;
     onResolve: (id: string) => void;
     onReopen: (id: string) => void;
     onClose: (id: string) => void;
-    actionLoading: string | null;
+    actionLoadingId: string | null;
 }
 
-function TicketCard({ ticket, onEdit, onDelete, onResolve, onReopen, onClose, actionLoading }: TicketCardProps) {
-    const isLoading = actionLoading === ticket.id;
+function TicketCard({ ticket, onEdit, onDeleteRequest, onResolve, onReopen, onClose, actionLoadingId }: TicketCardProps) {
+    const isLoading = actionLoadingId === ticket.id;
     const isResolved = ticket.status === 'Resolved' || ticket.status === 'Closed';
 
     return (
@@ -318,7 +354,7 @@ function TicketCard({ ticket, onEdit, onDelete, onResolve, onReopen, onClose, ac
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg"
+                                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
                                 title="Fechar"
                                 onClick={() => onClose(ticket.id)}
                             >
@@ -339,18 +375,18 @@ function TicketCard({ ticket, onEdit, onDelete, onResolve, onReopen, onClose, ac
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg"
+                            className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"
                             title="Editar"
                             onClick={() => onEdit(ticket)}
                         >
-                            <AlertCircle className="h-4 w-4" />
+                            <X className="h-4 w-4" />
                         </Button>
                         <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                             title="Excluir"
-                            onClick={() => onDelete(ticket.id)}
+                            onClick={() => onDeleteRequest(ticket.id)}
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -364,94 +400,70 @@ function TicketCard({ ticket, onEdit, onDelete, onResolve, onReopen, onClose, ac
 // ───────────── Main component ─────────────
 
 export function TicketsClient() {
-    const [tickets, setTickets] = useState<SupportTicket[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<FilterTab>('All');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTicket, setEditingTicket] = useState<SupportTicket | undefined>();
-    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-    const loadTickets = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const query: TicketsQuery = filter !== 'All' ? { status: filter } : {};
-            setTickets(await helpdeskService.getAll(query));
-        } catch {
-            toast.error('Erro ao carregar tickets.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [filter]);
+    const { data: allTickets = [], isLoading } = useTickets();
+    const deleteMutation = useDeleteTicket();
+    const resolveMutation = useResolveTicket();
+    const reopenMutation = useReopenTicket();
+    const closeMutation = useCloseTicket();
 
-    useEffect(() => { loadTickets(); }, [loadTickets]);
+    const filteredTickets = useMemo(
+        () => filter === 'All' ? allTickets : allTickets.filter(t => t.status === filter),
+        [allTickets, filter],
+    );
 
-    const handleSave = (saved: SupportTicket) => {
-        setTickets(prev =>
-            prev.some(t => t.id === saved.id)
-                ? prev.map(t => t.id === saved.id ? saved : t)
-                : [saved, ...prev]
-        );
-        setIsFormOpen(false);
-        setEditingTicket(undefined);
+    const actionLoadingId: string | null =
+        (resolveMutation.isPending ? resolveMutation.variables ?? null : null) ??
+        (reopenMutation.isPending ? reopenMutation.variables ?? null : null) ??
+        (closeMutation.isPending ? closeMutation.variables ?? null : null) ??
+        (deleteMutation.isPending ? deleteMutation.variables ?? null : null);
+
+    const handleDeleteConfirm = () => {
+        if (!deleteConfirmId) return;
+        deleteMutation.mutate(deleteConfirmId, {
+            onSuccess: () => { toast.success('Ticket excluído.'); setDeleteConfirmId(null); },
+            onError: () => { toast.error('Erro ao excluir ticket.'); setDeleteConfirmId(null); },
+        });
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Tem certeza que deseja excluir este ticket?')) return;
-        setActionLoading(id);
-        try {
-            await helpdeskService.delete(id);
-            setTickets(prev => prev.filter(t => t.id !== id));
-            toast.success('Ticket excluído.');
-        } catch {
-            toast.error('Erro ao excluir ticket.');
-        } finally {
-            setActionLoading(null);
-        }
+    const handleResolve = (id: string) => {
+        resolveMutation.mutate(id, {
+            onSuccess: () => toast.success('Ticket resolvido.'),
+            onError: () => toast.error('Erro ao resolver ticket.'),
+        });
     };
 
-    const handleResolve = async (id: string) => {
-        setActionLoading(id);
-        try {
-            const updated = await helpdeskService.resolve(id);
-            setTickets(prev => prev.map(t => t.id === id ? updated : t));
-            toast.success('Ticket resolvido.');
-        } catch {
-            toast.error('Erro ao resolver ticket.');
-        } finally {
-            setActionLoading(null);
-        }
+    const handleReopen = (id: string) => {
+        reopenMutation.mutate(id, {
+            onSuccess: () => toast.success('Ticket reaberto.'),
+            onError: () => toast.error('Erro ao reabrir ticket.'),
+        });
     };
 
-    const handleReopen = async (id: string) => {
-        setActionLoading(id);
-        try {
-            const updated = await helpdeskService.reopen(id);
-            setTickets(prev => prev.map(t => t.id === id ? updated : t));
-            toast.success('Ticket reaberto.');
-        } catch {
-            toast.error('Erro ao reabrir ticket.');
-        } finally {
-            setActionLoading(null);
-        }
+    const handleClose = (id: string) => {
+        closeMutation.mutate(id, {
+            onSuccess: () => toast.success('Ticket fechado.'),
+            onError: () => toast.error('Erro ao fechar ticket.'),
+        });
     };
 
-    const handleClose = async (id: string) => {
-        setActionLoading(id);
-        try {
-            const updated = await helpdeskService.close(id);
-            setTickets(prev => prev.map(t => t.id === id ? updated : t));
-            toast.success('Ticket fechado.');
-        } catch {
-            toast.error('Erro ao fechar ticket.');
-        } finally {
-            setActionLoading(null);
-        }
-    };
+    const closeForm = () => { setIsFormOpen(false); setEditingTicket(undefined); };
 
-    const openCounts = tickets.filter(t => t.status === 'Open' || t.status === 'InProgress').length;
+    const openCounts = allTickets.filter(t => t.status === 'Open' || t.status === 'InProgress').length;
 
     return (
         <div className="p-8 max-w-[1200px] mx-auto space-y-8">
+            <DeleteConfirmModal
+                isOpen={!!deleteConfirmId}
+                onClose={() => setDeleteConfirmId(null)}
+                onConfirm={handleDeleteConfirm}
+                loading={deleteMutation.isPending}
+            />
+
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -482,8 +494,8 @@ export function TicketsClient() {
                 {FILTER_TABS.map(tab => {
                     const isActive = filter === tab.key;
                     const count = tab.key === 'All'
-                        ? tickets.length
-                        : tickets.filter(t => t.status === tab.key).length;
+                        ? allTickets.length
+                        : allTickets.filter(t => t.status === tab.key).length;
                     return (
                         <button
                             key={tab.key}
@@ -512,7 +524,7 @@ export function TicketsClient() {
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
                 </div>
-            ) : tickets.length === 0 ? (
+            ) : filteredTickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                     <div className="bg-slate-100 p-4 rounded-full mb-4">
                         <Ticket className="h-10 w-10 text-slate-400" />
@@ -524,31 +536,31 @@ export function TicketsClient() {
                 </div>
             ) : (
                 <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
-                    {tickets.map(ticket => (
+                    {filteredTickets.map(ticket => (
                         <TicketCard
                             key={ticket.id}
                             ticket={ticket}
                             onEdit={t => { setEditingTicket(t); setIsFormOpen(true); }}
-                            onDelete={handleDelete}
+                            onDeleteRequest={setDeleteConfirmId}
                             onResolve={handleResolve}
                             onReopen={handleReopen}
                             onClose={handleClose}
-                            actionLoading={actionLoading}
+                            actionLoadingId={actionLoadingId}
                         />
                     ))}
                 </div>
             )}
 
             {/* Create / Edit dialog */}
-            <Dialog open={isFormOpen} onOpenChange={open => { if (!open) { setIsFormOpen(false); setEditingTicket(undefined); } }}>
+            <Dialog open={isFormOpen} onOpenChange={open => { if (!open) closeForm(); }}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>{editingTicket ? 'Editar Ticket' : 'Novo Ticket'}</DialogTitle>
                     </DialogHeader>
                     <TicketForm
                         ticket={editingTicket}
-                        onSave={handleSave}
-                        onClose={() => { setIsFormOpen(false); setEditingTicket(undefined); }}
+                        onSave={closeForm}
+                        onClose={closeForm}
                     />
                 </DialogContent>
             </Dialog>

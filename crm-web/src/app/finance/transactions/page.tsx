@@ -56,7 +56,15 @@ const TypeIcon = ({ type }: { type: TransactionType }) => {
   }
 };
 
-function DeleteModal({ isOpen, onClose, onConfirm, loading, count }: any) {
+interface DeleteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  loading: boolean;
+  count: number;
+}
+
+function DeleteModal({ isOpen, onClose, onConfirm, loading, count }: DeleteModalProps) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
