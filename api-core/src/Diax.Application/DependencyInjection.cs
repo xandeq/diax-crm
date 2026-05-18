@@ -53,10 +53,6 @@ public static class DependencyInjection
         services.AddScoped<CustomerService>();
         services.AddScoped<CustomerImportService>();
         services.AddScoped<ILeadSanitizationService, LeadSanitizationService>();
-        services.AddScoped<IncomeService>();
-        services.AddScoped<IncomeCategoryService>();
-        services.AddScoped<ExpenseService>();
-        services.AddScoped<ExpenseCategoryService>();
         services.AddScoped<CreditCardService>();
         services.AddScoped<CreditCardGroupService>();
         services.AddScoped<FinancialAccountService>();
