@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,8 +9,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CategoryApplicableTo, financeService, TransactionCategory } from '@/services/finance';
-import { plannerService } from '@/services/plannerService';
+import { CategoryApplicableTo, TransactionCategory } from '@/services/finance';
+import {
+  useCreateRecurringTransaction,
+  useDeleteRecurringTransaction,
+  useRecurringTransactions,
+  useTransactionCategories,
+  useUpdateRecurringTransaction,
+} from '@/hooks/finance';
 import {
   CreateRecurringTransactionRequest,
   FrequencyType,
@@ -29,7 +35,6 @@ import {
   Loader2,
   Pencil,
   Plus,
-  RefreshCw,
   RepeatIcon,
   Trash2,
   TrendingDown,
@@ -57,9 +62,6 @@ type FilterType = 'all' | 'income' | 'expense';
 type FilterStatus = 'all' | 'active' | 'inactive';
 
 export default function RecurringTransactionsPage() {
-  const [items, setItems] = useState<RecurringTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('active');
 
@@ -70,27 +72,13 @@ export default function RecurringTransactionsPage() {
   const [createForm, setCreateForm] = useState<CreateRecurringTransactionRequest>(EMPTY_CREATE);
   const [editForm, setEditForm] = useState<UpdateRecurringTransactionRequest | null>(null);
 
-  const [categories, setCategories] = useState<TransactionCategory[]>([]);
+  const { data: items = [], isLoading: loading } = useRecurringTransactions();
+  const { data: categories = [] } = useTransactionCategories();
+  const createMutation = useCreateRecurringTransaction();
+  const updateMutation = useUpdateRecurringTransaction();
+  const deleteMutation = useDeleteRecurringTransaction();
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [txs, cats] = await Promise.all([
-        plannerService.getRecurringTransactions(),
-        financeService.getAllTransactionCategories(),
-      ]);
-      setItems(txs);
-      setCategories(cats);
-    } catch {
-      // keep previous state on error
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadData(); }, [loadData]);
-
-  const categoriesForType = (type: TransactionType) => {
+  const categoriesForType = (type: TransactionType): TransactionCategory[] => {
     const applicableTo = type === TransactionType.Income ? CategoryApplicableTo.Income : CategoryApplicableTo.Expense;
     return categories.filter(c => c.applicableTo === applicableTo || c.applicableTo === CategoryApplicableTo.Both);
   };
@@ -112,17 +100,9 @@ export default function RecurringTransactionsPage() {
 
   async function handleCreate() {
     if (!createForm.description || !createForm.categoryId || createForm.amount <= 0) return;
-    setSaving(true);
-    try {
-      await plannerService.createRecurringTransaction(createForm);
-      setShowCreate(false);
-      setCreateForm(EMPTY_CREATE);
-      await loadData();
-    } catch {
-      // silent
-    } finally {
-      setSaving(false);
-    }
+    await createMutation.mutateAsync(createForm);
+    setShowCreate(false);
+    setCreateForm(EMPTY_CREATE);
   }
 
   function openEdit(item: RecurringTransaction) {
@@ -149,32 +129,18 @@ export default function RecurringTransactionsPage() {
 
   async function handleEdit() {
     if (!editItem || !editForm) return;
-    setSaving(true);
-    try {
-      await plannerService.updateRecurringTransaction(editItem.id, editForm);
-      setEditItem(null);
-      setEditForm(null);
-      await loadData();
-    } catch {
-      // silent
-    } finally {
-      setSaving(false);
-    }
+    await updateMutation.mutateAsync({ id: editItem.id, req: editForm });
+    setEditItem(null);
+    setEditForm(null);
   }
 
   async function handleDelete() {
     if (!deleteItem) return;
-    setSaving(true);
-    try {
-      await plannerService.deleteRecurringTransaction(deleteItem.id);
-      setDeleteItem(null);
-      await loadData();
-    } catch {
-      // silent
-    } finally {
-      setSaving(false);
-    }
+    await deleteMutation.mutateAsync(deleteItem.id);
+    setDeleteItem(null);
   }
+
+  const saving = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -184,15 +150,10 @@ export default function RecurringTransactionsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Transações Recorrentes</h1>
           <p className="text-muted-foreground text-sm">Receitas e despesas fixas mensais</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="icon" onClick={loadData} title="Atualizar">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button onClick={() => { setCreateForm(EMPTY_CREATE); setShowCreate(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Recorrente
-          </Button>
-        </div>
+        <Button onClick={() => { setCreateForm(EMPTY_CREATE); setShowCreate(true); }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Recorrente
+        </Button>
       </div>
 
       {/* Summary */}

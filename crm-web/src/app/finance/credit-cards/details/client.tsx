@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/select";
 import { formatDisplayDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
-import { CreditCard, CreditCardInvoice, financeService, PagedResponse, Transaction } from '@/services/finance';
+import { useCreditCardDetail, useCreditCardInvoices, useInvoiceTransactions } from '@/hooks/finance';
+import { Transaction } from '@/services/finance';
 import { ColumnDef } from '@tanstack/react-table';
 import { ArrowLeft, CreditCard as CreditCardIcon, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -23,69 +24,17 @@ export function CreditCardDetailsClient() {
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
 
-    const [card, setCard] = useState<CreditCard | null>(null);
-    const [invoices, setInvoices] = useState<CreditCardInvoice[]>([]);
-    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('current');
-    const [transactions, setTransactions] = useState<PagedResponse<Transaction> | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [loadingExpenses, setLoadingExpenses] = useState(false);
+    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+
+    const { data: card, isLoading: loadingCard } = useCreditCardDetail(id);
+    const { data: invoices = [], isLoading: loadingInvoices } = useCreditCardInvoices(id);
+    const { data: transactions, isLoading: loadingExpenses } = useInvoiceTransactions(selectedInvoiceId);
 
     useEffect(() => {
-        if (id) {
-            loadData(id);
+        if (invoices.length > 0 && !selectedInvoiceId) {
+            setSelectedInvoiceId(invoices[0].id);
         }
-    }, [id]);
-
-    useEffect(() => {
-        if (selectedInvoiceId && selectedInvoiceId !== 'current') {
-            loadExpenses(selectedInvoiceId);
-        } else if (invoices.length > 0) {
-            const openInvoice = invoices.find(i => !i.isPaid) || invoices[0];
-            if (openInvoice && openInvoice.id !== selectedInvoiceId) {
-                setSelectedInvoiceId(openInvoice.id);
-            }
-        }
-    }, [selectedInvoiceId, invoices]);
-
-    const loadData = async (cardId: string) => {
-        setLoading(true);
-        try {
-            const [cardData, invoicesData] = await Promise.all([
-                financeService.getCreditCardById(cardId),
-                financeService.getInvoicesByCreditCard(cardId)
-            ]);
-            setCard(cardData);
-            const sortedInvoices = invoicesData.sort((a, b) => {
-                if (a.referenceYear !== b.referenceYear) return b.referenceYear - a.referenceYear;
-                return b.referenceMonth - a.referenceMonth;
-            });
-            setInvoices(sortedInvoices);
-
-            if (sortedInvoices.length > 0) {
-                setSelectedInvoiceId(sortedInvoices[0].id);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar dados do cartão:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadExpenses = async (invoiceId: string) => {
-        setLoadingExpenses(true);
-        try {
-            const response = await financeService.getTransactions({
-                creditCardInvoiceId: invoiceId,
-                page: 1,
-                pageSize: 100
-            });
-            setTransactions(response);
-        } catch (error) {
-            console.error('Erro ao carregar lançamentos da fatura:', error);
-        } finally {
-            setLoadingExpenses(false);
-        }
-    };
+    }, [invoices, selectedInvoiceId]);
 
     const selectedInvoice = useMemo(() =>
         invoices.find(i => i.id === selectedInvoiceId),
@@ -114,7 +63,7 @@ export function CreditCardDetailsClient() {
         },
     ], []);
 
-    if (loading) return <div className="p-8 flex justify-center"><div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div></div>;
+    if (loadingCard || loadingInvoices) return <div className="p-8 flex justify-center"><div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div></div>;
     if (!id) return <div className="p-8 text-red-600">ID do cartão não fornecido</div>;
     if (!card) return <div className="p-8 text-red-600">Cartão não encontrado</div>;
 
@@ -146,7 +95,7 @@ export function CreditCardDetailsClient() {
                         <div className="space-y-4">
                             <div>
                                 <label className="text-sm font-medium text-gray-700 mb-1 block">Selecione o Mês</label>
-                                <Select value={selectedInvoiceId} onValueChange={setSelectedInvoiceId}>
+                                <Select value={selectedInvoiceId ?? ''} onValueChange={setSelectedInvoiceId}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione uma fatura" />
                                     </SelectTrigger>
