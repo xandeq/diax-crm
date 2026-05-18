@@ -2,6 +2,7 @@
 
 import { LeadTimeline } from '@/components/customers/LeadTimeline';
 import { ContactProfilePanel } from '@/components/customers/ContactProfilePanel';
+import { CustomerTicketsPanel } from '@/components/helpdesk/CustomerTicketsPanel';
 import {
     Avatar,
     ChannelIcons,
@@ -1250,10 +1251,11 @@ export default function LeadsPage() {
           </SheetHeader>
           {timelineLead && (
             <Tabs defaultValue="profile" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="profile">Perfil</TabsTrigger>
                 <TabsTrigger value="activities">Atividades</TabsTrigger>
-                <TabsTrigger value="emails">Histórico de Emails</TabsTrigger>
+                <TabsTrigger value="emails">Emails</TabsTrigger>
+                <TabsTrigger value="tickets">Suporte</TabsTrigger>
               </TabsList>
               <TabsContent value="profile" className="mt-4">
                 <ContactProfilePanel
@@ -1288,6 +1290,9 @@ export default function LeadsPage() {
               </TabsContent>
               <TabsContent value="emails" className="mt-4">
                 <EmailTimeline customerId={timelineLead.id} days={90} />
+              </TabsContent>
+              <TabsContent value="tickets" className="mt-4">
+                <CustomerTicketsPanel customerId={timelineLead.id} customerName={timelineLead.name} />
               </TabsContent>
             </Tabs>
           )}
