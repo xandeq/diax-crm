@@ -9,14 +9,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/lib/utils';
-import { plannerService } from '@/services/plannerService';
 import {
-    CreateFinancialGoalRequest, FinancialGoal, GoalCategory,
-    GOAL_CATEGORY_LABELS, UpdateFinancialGoalRequest
+    useAddContribution,
+    useCreateFinancialGoal,
+    useDeleteFinancialGoal,
+    useFinancialGoals,
+    useUpdateFinancialGoal,
+} from '@/hooks/finance';
+import { formatCurrency } from '@/lib/utils';
+import {
+    CreateFinancialGoalRequest,
+    FinancialGoal,
+    GoalCategory,
+    GOAL_CATEGORY_LABELS,
+    UpdateFinancialGoalRequest,
 } from '@/types/planner';
 import { Loader2, Pencil, PiggyBank, Plus, Target, Trash2, TrendingUp } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const EMPTY_CREATE: CreateFinancialGoalRequest = {
@@ -31,9 +40,15 @@ function toIsoDate(d?: string) {
 }
 
 export default function GoalsPage() {
-    const [goals, setGoals] = useState<FinancialGoal[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const { data: goals = [], isLoading } = useFinancialGoals();
+
+    const createMutation   = useCreateFinancialGoal();
+    const updateMutation   = useUpdateFinancialGoal();
+    const contributeMutation = useAddContribution();
+    const deleteMutation   = useDeleteFinancialGoal();
+
+    const saving = createMutation.isPending || updateMutation.isPending
+        || contributeMutation.isPending || deleteMutation.isPending;
 
     // modals
     const [showCreate, setShowCreate] = useState(false);
@@ -46,40 +61,23 @@ export default function GoalsPage() {
     const [editForm, setEditForm] = useState<UpdateFinancialGoalRequest | null>(null);
     const [contributeAmount, setContributeAmount] = useState('');
 
-    const loadGoals = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            setGoals(await plannerService.getFinancialGoals());
-        } catch {
-            toast.error('Erro ao carregar metas financeiras');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { loadGoals(); }, [loadGoals]);
-
     // ── Create ──────────────────────────────────────────────────────
-    const handleCreate = async () => {
+    const handleCreate = () => {
         if (!createForm.name.trim() || createForm.targetAmount <= 0) {
             toast.error('Preencha nome e valor da meta');
             return;
         }
-        setSaving(true);
-        try {
-            await plannerService.createFinancialGoal({
-                ...createForm,
-                targetDate: toIsoDate(createForm.targetDate),
-            });
-            toast.success('Meta criada com sucesso');
-            setShowCreate(false);
-            setCreateForm(EMPTY_CREATE);
-            await loadGoals();
-        } catch {
-            toast.error('Erro ao criar meta');
-        } finally {
-            setSaving(false);
-        }
+        createMutation.mutate(
+            { ...createForm, targetDate: toIsoDate(createForm.targetDate) },
+            {
+                onSuccess: () => {
+                    toast.success('Meta criada com sucesso');
+                    setShowCreate(false);
+                    setCreateForm(EMPTY_CREATE);
+                },
+                onError: () => toast.error('Erro ao criar meta'),
+            },
+        );
     };
 
     // ── Edit ────────────────────────────────────────────────────────
@@ -96,64 +94,55 @@ export default function GoalsPage() {
         });
     };
 
-    const handleEdit = async () => {
+    const handleEdit = () => {
         if (!editGoal || !editForm) return;
         if (!editForm.name.trim() || editForm.targetAmount <= 0) {
             toast.error('Preencha nome e valor da meta');
             return;
         }
-        setSaving(true);
-        try {
-            await plannerService.updateFinancialGoal(editGoal.id, {
-                ...editForm,
-                targetDate: toIsoDate(editForm.targetDate),
-            });
-            toast.success('Meta atualizada');
-            setEditGoal(null);
-            await loadGoals();
-        } catch {
-            toast.error('Erro ao atualizar meta');
-        } finally {
-            setSaving(false);
-        }
+        updateMutation.mutate(
+            { id: editGoal.id, req: { ...editForm, targetDate: toIsoDate(editForm.targetDate) } },
+            {
+                onSuccess: () => {
+                    toast.success('Meta atualizada');
+                    setEditGoal(null);
+                },
+                onError: () => toast.error('Erro ao atualizar meta'),
+            },
+        );
     };
 
     // ── Contribute ──────────────────────────────────────────────────
-    const handleContribute = async () => {
+    const handleContribute = () => {
         if (!contributeGoal) return;
         const amount = parseFloat(contributeAmount.replace(',', '.'));
         if (isNaN(amount) || amount <= 0) {
             toast.error('Informe um valor válido');
             return;
         }
-        setSaving(true);
-        try {
-            await plannerService.addContribution(contributeGoal.id, { amount });
-            toast.success(`${formatCurrency(amount)} adicionado à meta`);
-            setContributeGoal(null);
-            setContributeAmount('');
-            await loadGoals();
-        } catch {
-            toast.error('Erro ao registrar contribuição');
-        } finally {
-            setSaving(false);
-        }
+        contributeMutation.mutate(
+            { id: contributeGoal.id, req: { amount } },
+            {
+                onSuccess: () => {
+                    toast.success(`${formatCurrency(amount)} adicionado à meta`);
+                    setContributeGoal(null);
+                    setContributeAmount('');
+                },
+                onError: () => toast.error('Erro ao registrar contribuição'),
+            },
+        );
     };
 
     // ── Delete ──────────────────────────────────────────────────────
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!deleteGoal) return;
-        setSaving(true);
-        try {
-            await plannerService.deleteFinancialGoal(deleteGoal.id);
-            toast.success('Meta excluída');
-            setDeleteGoal(null);
-            await loadGoals();
-        } catch {
-            toast.error('Erro ao excluir meta');
-        } finally {
-            setSaving(false);
-        }
+        deleteMutation.mutate(deleteGoal.id, {
+            onSuccess: () => {
+                toast.success('Meta excluída');
+                setDeleteGoal(null);
+            },
+            onError: () => toast.error('Erro ao excluir meta'),
+        });
     };
 
     const getProgressColor = (progress: number) => {
@@ -243,7 +232,7 @@ export default function GoalsPage() {
                                         <CardDescription>{GOAL_CATEGORY_LABELS[goal.category]}</CardDescription>
                                     </div>
                                     <div className="flex flex-col gap-1 items-end">
-                                        {goal.isCompleted && <Badge className="bg-green-600">✓ Concluída</Badge>}
+                                        {goal.isCompleted && <Badge className="bg-green-600">Concluída</Badge>}
                                         {!goal.isActive && <Badge variant="secondary">Inativa</Badge>}
                                         {goal.autoAllocateSurplus && <Badge variant="outline" className="text-xs">Auto-alocação</Badge>}
                                     </div>
@@ -400,7 +389,8 @@ export default function GoalsPage() {
     );
 }
 
-// ── Shared form ─────────────────────────────────────────────────────────────
+// ── Shared GoalForm ──────────────────────────────────────────────────────────
+
 interface GoalFormProps {
     name: string;
     targetAmount: string;

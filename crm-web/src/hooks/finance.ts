@@ -6,7 +6,14 @@ import {
     TransactionFilters,
 } from '@/services/finance';
 import { plannerService } from '@/services/plannerService';
-import { CreateRecurringTransactionRequest, UpdateRecurringTransactionRequest } from '@/types/planner';
+import { morningBriefingService, personalControlService } from '@/services/personalControlService';
+import {
+    AddContributionRequest,
+    CreateFinancialGoalRequest,
+    CreateRecurringTransactionRequest,
+    UpdateFinancialGoalRequest,
+    UpdateRecurringTransactionRequest,
+} from '@/types/planner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
@@ -22,6 +29,12 @@ export const financeKeys = {
     transactions: (filters?: TransactionFilters) => [...financeKeys.all, 'transactions', filters] as const,
     summary: (filters?: FinancialFilters) => [...financeKeys.all, 'summary', filters] as const,
     recurringTransactions: () => [...financeKeys.all, 'recurring-transactions'] as const,
+} as const;
+
+export const plannerKeys = {
+    all: ['planner'] as const,
+    goals: () => [...plannerKeys.all, 'goals'] as const,
+    morningBriefing: () => [...plannerKeys.all, 'morning-briefing'] as const,
 } as const;
 
 // ─── Read hooks ────────────────────────────────────────────────────────────────
@@ -157,5 +170,67 @@ export function useDeleteRecurringTransaction() {
     return useMutation({
         mutationFn: (id: string) => plannerService.deleteRecurringTransaction(id),
         onSuccess: () => qc.invalidateQueries({ queryKey: financeKeys.recurringTransactions() }),
+    });
+}
+
+// ─── Financial Goals hooks ─────────────────────────────────────────────────────
+
+export function useFinancialGoals() {
+    return useQuery({
+        queryKey: plannerKeys.goals(),
+        queryFn: () => plannerService.getFinancialGoals(),
+    });
+}
+
+export function useCreateFinancialGoal() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (req: CreateFinancialGoalRequest) => plannerService.createFinancialGoal(req),
+        onSuccess: () => qc.invalidateQueries({ queryKey: plannerKeys.goals() }),
+    });
+}
+
+export function useUpdateFinancialGoal() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, req }: { id: string; req: UpdateFinancialGoalRequest }) =>
+            plannerService.updateFinancialGoal(id, req),
+        onSuccess: () => qc.invalidateQueries({ queryKey: plannerKeys.goals() }),
+    });
+}
+
+export function useAddContribution() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, req }: { id: string; req: AddContributionRequest }) =>
+            plannerService.addContribution(id, req),
+        onSuccess: () => qc.invalidateQueries({ queryKey: plannerKeys.goals() }),
+    });
+}
+
+export function useDeleteFinancialGoal() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => plannerService.deleteFinancialGoal(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: plannerKeys.goals() }),
+    });
+}
+
+// ─── Morning Briefing hooks ────────────────────────────────────────────────────
+
+export function useMorningBriefing() {
+    return useQuery({
+        queryKey: plannerKeys.morningBriefing(),
+        queryFn: () => morningBriefingService.get(),
+        staleTime: 2 * 60 * 1000,
+    });
+}
+
+export function useMarkExpensePaid() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, paymentDate }: { id: string; paymentDate: string }) =>
+            personalControlService.toggleExpenseStatus(id, { isPaid: true, paymentDate }),
+        onSuccess: () => qc.invalidateQueries({ queryKey: plannerKeys.morningBriefing() }),
     });
 }
