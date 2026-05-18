@@ -8,7 +8,7 @@ namespace Diax.Api.Controllers.V1;
 
 [Authorize]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/statement-imports")]
 public class StatementImportsController : BaseApiController
 {
     private readonly StatementImportService _service;

@@ -921,75 +921,75 @@ export const financeService = {
 
     // Credit Cards
     getCreditCards: async () => {
-        return apiFetch<CreditCard[]>('/creditcards');
+        return apiFetch<CreditCard[]>('/credit-cards');
     },
     getCreditCardById: async (id: string) => {
-        return apiFetch<CreditCard>(`/creditcards/${id}`);
+        return apiFetch<CreditCard>(`/credit-cards/${id}`);
     },
     createCreditCard: async (data: CreateCreditCardRequest) => {
-        return apiFetch<string>('/creditcards', {
+        return apiFetch<string>('/credit-cards', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
     updateCreditCard: async (id: string, data: UpdateCreditCardRequest) => {
-        return apiFetch<void>(`/creditcards/${id}`, {
+        return apiFetch<void>(`/credit-cards/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         });
     },
     deleteCreditCard: async (id: string) => {
-        return apiFetch<void>(`/creditcards/${id}`, {
+        return apiFetch<void>(`/credit-cards/${id}`, {
             method: 'DELETE',
         });
     },
 
     // Credit Card Groups
     getCreditCardGroups: async () => {
-        return apiFetch<CreditCardGroup[]>('/creditcardgroups');
+        return apiFetch<CreditCardGroup[]>('/credit-card-groups');
     },
     getActiveCreditCardGroups: async () => {
-        return apiFetch<CreditCardGroup[]>('/creditcardgroups/active');
+        return apiFetch<CreditCardGroup[]>('/credit-card-groups/active');
     },
     getCreditCardGroupById: async (id: string) => {
-        return apiFetch<CreditCardGroup>(`/creditcardgroups/${id}`);
+        return apiFetch<CreditCardGroup>(`/credit-card-groups/${id}`);
     },
     createCreditCardGroup: async (data: CreateCreditCardGroupRequest) => {
-        return apiFetch<string>('/creditcardgroups', {
+        return apiFetch<string>('/credit-card-groups', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
     updateCreditCardGroup: async (id: string, data: UpdateCreditCardGroupRequest) => {
-        return apiFetch<void>(`/creditcardgroups/${id}`, {
+        return apiFetch<void>(`/credit-card-groups/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         });
     },
     deleteCreditCardGroup: async (id: string) => {
-        return apiFetch<void>(`/creditcardgroups/${id}`, {
+        return apiFetch<void>(`/credit-card-groups/${id}`, {
             method: 'DELETE',
         });
     },
 
     // Financial Accounts
     getFinancialAccounts: async () => {
-        return apiFetch<FinancialAccount[]>('/financialaccounts');
+        return apiFetch<FinancialAccount[]>('/financial-accounts');
     },
     getActiveFinancialAccounts: async () => {
-        return apiFetch<FinancialAccount[]>('/financialaccounts/active');
+        return apiFetch<FinancialAccount[]>('/financial-accounts/active');
     },
     getFinancialAccountById: async (id: string) => {
-        return apiFetch<FinancialAccount>(`/financialaccounts/${id}`);
+        return apiFetch<FinancialAccount>(`/financial-accounts/${id}`);
     },
     createFinancialAccount: async (data: CreateFinancialAccountRequest) => {
-        return apiFetch<string>('/financialaccounts', {
+        return apiFetch<string>('/financial-accounts', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
     updateFinancialAccount: async (id: string, data: UpdateFinancialAccountRequest) => {
-        return apiFetch<void>(`/financialaccounts/${id}`, {
+        return apiFetch<void>(`/financial-accounts/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         });
@@ -1001,43 +1001,43 @@ export const financeService = {
         });
     },
     deleteFinancialAccount: async (id: string) => {
-        return apiFetch<void>(`/financialaccounts/${id}`, {
+        return apiFetch<void>(`/financial-accounts/${id}`, {
             method: 'DELETE',
         });
     },
 
     // Credit Card Invoices
     getCreditCardInvoices: async () => {
-        return apiFetch<CreditCardInvoice[]>('/creditcardinvoices');
+        return apiFetch<CreditCardInvoice[]>('/credit-card-invoices');
     },
     getUnpaidInvoices: async () => {
-        return apiFetch<CreditCardInvoice[]>('/creditcardinvoices/unpaid');
+        return apiFetch<CreditCardInvoice[]>('/credit-card-invoices/unpaid');
     },
     getInvoicesByCreditCard: async (creditCardId: string) => {
-        return apiFetch<CreditCardInvoice[]>(`/creditcardinvoices/creditcard/${creditCardId}`);
+        return apiFetch<CreditCardInvoice[]>(`/credit-card-invoices/creditcard/${creditCardId}`);
     },
     getInvoiceById: async (id: string) => {
-        return apiFetch<CreditCardInvoice>(`/creditcardinvoices/${id}`);
+        return apiFetch<CreditCardInvoice>(`/credit-card-invoices/${id}`);
     },
     createOrGetInvoice: async (data: CreateCreditCardInvoiceRequest) => {
-        return apiFetch<string>('/creditcardinvoices', {
+        return apiFetch<string>('/credit-card-invoices', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
     payInvoice: async (id: string, data: PayCreditCardInvoiceRequest) => {
-        return apiFetch<void>(`/creditcardinvoices/${id}/pay`, {
+        return apiFetch<void>(`/credit-card-invoices/${id}/pay`, {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
     unpayInvoice: async (id: string) => {
-        return apiFetch<void>(`/creditcardinvoices/${id}/unpay`, {
+        return apiFetch<void>(`/credit-card-invoices/${id}/unpay`, {
             method: 'POST',
         });
     },
     deleteInvoice: async (id: string) => {
-        return apiFetch<void>(`/creditcardinvoices/${id}`, {
+        return apiFetch<void>(`/credit-card-invoices/${id}`, {
             method: 'DELETE',
         });
     },
@@ -1053,41 +1053,41 @@ export const financeService = {
 
     // Account Transfers
     getAccountTransfers: async () => {
-        return apiFetch<AccountTransfer[]>('/accounttransfers');
+        return apiFetch<AccountTransfer[]>('/account-transfers');
     },
     getAccountTransferById: async (id: string) => {
-        return apiFetch<AccountTransfer>(`/accounttransfers/${id}`);
+        return apiFetch<AccountTransfer>(`/account-transfers/${id}`);
     },
     getAccountTransfersByAccountId: async (accountId: string) => {
-        return apiFetch<AccountTransfer[]>(`/accounttransfers/account/${accountId}`);
+        return apiFetch<AccountTransfer[]>(`/account-transfers/account/${accountId}`);
     },
     getAccountTransfersByDateRange: async (startDate: string, endDate: string) => {
-        return apiFetch<AccountTransfer[]>(`/accounttransfers/daterange?startDate=${startDate}&endDate=${endDate}`);
+        return apiFetch<AccountTransfer[]>(`/account-transfers/daterange?startDate=${startDate}&endDate=${endDate}`);
     },
     createAccountTransfer: async (data: CreateAccountTransferRequest) => {
-        return apiFetch<string>('/accounttransfers', {
+        return apiFetch<string>('/account-transfers', {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
     updateAccountTransfer: async (id: string, data: UpdateAccountTransferRequest) => {
-        return apiFetch<void>(`/accounttransfers/${id}`, {
+        return apiFetch<void>(`/account-transfers/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         });
     },
     deleteAccountTransfer: async (id: string) => {
-        return apiFetch<void>(`/accounttransfers/${id}`, {
+        return apiFetch<void>(`/account-transfers/${id}`, {
             method: 'DELETE',
         });
     },
 
     // Statement Imports
     getStatementImports: async () => {
-        return apiFetch<StatementImport[]>('/StatementImports');
+        return apiFetch<StatementImport[]>('/statement-imports');
     },
     getStatementImportById: async (id: string) => {
-        return apiFetch<StatementImportDetail>(`/StatementImports/${id}`);
+        return apiFetch<StatementImportDetail>(`/statement-imports/${id}`);
     },
     uploadStatement: async (data: UploadStatementRequest, file: File) => {
         const formData = new FormData();
@@ -1097,22 +1097,22 @@ export const financeService = {
         if (data.creditCardGroupId) formData.append('CreditCardGroupId', data.creditCardGroupId);
         if (data.creditCardId) formData.append('CreditCardId', data.creditCardId);
 
-        return apiFetch<void>('/StatementImports/upload', {
+        return apiFetch<void>('/statement-imports/upload', {
             method: 'POST',
             body: formData,
         });
     },
     previewStatementImportPost: async (id: string) => {
-        return apiFetch<StatementImportPostPreview>(`/StatementImports/${id}/preview-post`);
+        return apiFetch<StatementImportPostPreview>(`/statement-imports/${id}/preview-post`);
     },
     postStatementImport: async (id: string, data: { force: boolean }) => {
-        return apiFetch<StatementImportPostResponse>(`/StatementImports/${id}/post`, {
+        return apiFetch<StatementImportPostResponse>(`/statement-imports/${id}/post`, {
             method: 'POST',
             body: JSON.stringify(data),
         });
     },
     deleteStatementImport: async (id: string) => {
-        return apiFetch<void>(`/StatementImports/${id}`, {
+        return apiFetch<void>(`/statement-imports/${id}`, {
             method: 'DELETE',
         });
     },

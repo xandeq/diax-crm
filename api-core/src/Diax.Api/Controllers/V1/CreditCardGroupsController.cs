@@ -7,7 +7,7 @@ namespace Diax.Api.Controllers.V1;
 
 [Authorize]
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/credit-card-groups")]
 public class CreditCardGroupsController : BaseApiController
 {
     private readonly CreditCardGroupService _service;

@@ -9,7 +9,6 @@ namespace Diax.Api.Controllers.V1;
 [Authorize]
 [ApiController]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/[controller]")]
 [Route("api/v{version:apiVersion}/credit-card-invoices")]
 [Produces("application/json")]
 public class CreditCardInvoicesController : BaseApiController
