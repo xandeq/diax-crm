@@ -27,8 +27,9 @@ import {
   Plus,
   RefreshCw,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -89,31 +90,17 @@ function TableSkeleton() {
 const PAGE_SIZE = 20;
 
 export default function CampanhasPage() {
-  const [campaigns, setCampaigns] = useState<EmailCampaignResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
 
+  const { data, isLoading: loading, isError, error, refetch } = useQuery({
+    queryKey: ['campaigns', page],
+    queryFn: () => getEmailCampaigns(page, PAGE_SIZE),
+  });
+
+  const campaigns: EmailCampaignResponse[] = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  const load = useCallback(async (p: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getEmailCampaigns(p, PAGE_SIZE);
-      setCampaigns(data.items);
-      setTotalCount(data.totalCount);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erro ao carregar campanhas.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load(page);
-  }, [load, page]);
+  const errorMessage = isError ? (error instanceof Error ? error.message : 'Erro ao carregar campanhas.') : null;
 
   const handlePrev = () => setPage((p) => Math.max(1, p - 1));
   const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
@@ -135,7 +122,7 @@ export default function CampanhasPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => load(page)}
+            onClick={() => refetch()}
             disabled={loading}
             title="Recarregar"
           >
@@ -155,14 +142,14 @@ export default function CampanhasPage() {
       </div>
 
       {/* Error state */}
-      {error && (
+      {errorMessage && (
         <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-5 w-5 shrink-0" />
-          <span className="flex-1">{error}</span>
+          <span className="flex-1">{errorMessage}</span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => load(page)}
+            onClick={() => refetch()}
             className="border-red-300 text-red-700 hover:bg-red-100"
           >
             Tentar novamente
@@ -202,7 +189,7 @@ export default function CampanhasPage() {
               <TableBody>
                 {loading ? (
                   <TableSkeleton />
-                ) : campaigns.length === 0 && !error ? (
+                ) : campaigns.length === 0 && !errorMessage ? (
                   <TableRow>
                     <TableCell colSpan={9} className="py-16 text-center">
                       <div className="flex flex-col items-center gap-3 text-slate-400">

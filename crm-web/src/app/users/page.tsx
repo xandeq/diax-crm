@@ -11,18 +11,13 @@ import { adminGroupsService, UserGroup } from '@/services/adminGroups';
 import { userService } from '@/services/users';
 import { UpdateUserRequest, UserResponse } from '@/types/users';
 import { AlertCircle, Loader2, Plus, RefreshCw, Shield, Trash2, User, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserResponse[]>([]);
-  const [groups, setGroups] = useState<UserGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Form state
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,27 +27,57 @@ export default function UsersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data: users = [], isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => userService.getAll(),
+  });
 
-  async function loadData() {
-    try {
-      setLoading(true);
-      setError(null);
-      const [usersData, groupsData] = await Promise.all([
-        userService.getAll(),
-        adminGroupsService.getAll()
-      ]);
-      setUsers(usersData);
-      setGroups(groupsData);
-    } catch (err: unknown) {
-      setError('Erro ao carregar dados. Verifique se você tem permissão.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: groups = [] } = useQuery({
+    queryKey: ['userGroups'],
+    queryFn: () => adminGroupsService.getAll(),
+  });
+
+  const loading = isLoading;
+  const errorMessage = isError ? (error instanceof Error ? error.message : 'Erro ao carregar dados. Verifique se você tem permissão.') : null;
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof formData & { id: string | null }) => {
+      if (data.id) {
+        const updateData: UpdateUserRequest = {
+          isActive: data.isActive,
+          groupKeys: data.groupKeys,
+        };
+        if (data.password.trim()) updateData.password = data.password;
+        return userService.update(data.id, updateData);
+      }
+      return userService.create({
+        email: data.email,
+        password: data.password,
+        groupKeys: data.groupKeys.length > 0 ? data.groupKeys : undefined,
+      });
+    },
+    onSuccess: (_, variables) => {
+      toast.success(variables.id ? 'Usuário atualizado com sucesso.' : 'Usuário criado com sucesso.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      resetForm();
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar usuário.';
+      toast.error(msg);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => userService.delete(id),
+    onSuccess: () => {
+      toast.success('Usuário deletado.');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Erro ao deletar usuário.';
+      toast.error(msg);
+    },
+  });
 
   const resetForm = () => {
     setFormData({ email: '', password: '', groupKeys: [], isActive: true });
@@ -80,52 +105,14 @@ export default function UsersPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      if (editingId) {
-        const updateData: UpdateUserRequest = {
-          isActive: formData.isActive,
-          groupKeys: formData.groupKeys
-        };
-        if (formData.password && formData.password.trim() !== '') {
-          updateData.password = formData.password;
-        }
-        await userService.update(editingId, updateData);
-        toast.success('Usuário atualizado com sucesso.');
-      } else {
-        await userService.create({
-          email: formData.email,
-          password: formData.password,
-          groupKeys: formData.groupKeys.length > 0 ? formData.groupKeys : undefined
-        });
-        toast.success('Usuário criado com sucesso.');
-      }
-      loadData();
-      resetForm();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao salvar usuário.';
-      setError(msg);
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
+    saveMutation.mutate({ ...formData, id: editingId });
   };
 
   const handleDelete = (user: UserResponse) => {
-    showConfirm(`Tem certeza que deseja deletar o usuário ${user.email}?`, async () => {
-      try {
-        await userService.delete(user.id);
-        toast.success('Usuário deletado.');
-        loadData();
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Erro ao deletar usuário.';
-        setError(msg);
-        toast.error(msg);
-      }
+    showConfirm(`Tem certeza que deseja deletar o usuário ${user.email}?`, () => {
+      deleteMutation.mutate(user.id);
     });
   };
 
@@ -145,7 +132,7 @@ export default function UsersPage() {
             <p className="text-gray-500 mt-1">Administre contas, grupos e permissões do sistema</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={loadData} variant="outline" disabled={loading}>
+            <Button onClick={() => refetch()} variant="outline" disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
@@ -156,11 +143,10 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {error && (
+        {errorMessage && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-            <p className="text-sm text-red-600 flex-1">{error}</p>
-            <Button variant="ghost" size="sm" onClick={() => setError(null)}>✕</Button>
+            <p className="text-sm text-red-600 flex-1">{errorMessage}</p>
           </div>
         )}
 
@@ -180,7 +166,7 @@ export default function UsersPage() {
                     autoComplete="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    disabled={!!editingId || submitting}
+                    disabled={!!editingId || saveMutation.isPending}
                     required
                     placeholder="usuario@email.com"
                   />
@@ -196,7 +182,7 @@ export default function UsersPage() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required={!editingId}
-                    disabled={submitting}
+                    disabled={saveMutation.isPending}
                     placeholder={editingId ? '••••••••' : 'Senha segura'}
                   />
                 </div>
@@ -229,7 +215,7 @@ export default function UsersPage() {
                               id={`group-${group.id}`}
                               checked={isChecked}
                               onCheckedChange={(checked) => toggleGroup(groupKey, checked === true)}
-                              disabled={submitting}
+                              disabled={saveMutation.isPending}
                             />
                             <div className="flex-1">
                               <Label
@@ -256,17 +242,17 @@ export default function UsersPage() {
                   id="isActive"
                   checked={formData.isActive}
                   onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked === true })}
-                  disabled={submitting}
+                  disabled={saveMutation.isPending}
                 />
                 <Label htmlFor="isActive" className="cursor-pointer">Usuário Ativo</Label>
               </div>
 
               <div className="flex gap-2 justify-end pt-2 border-t">
-                <Button type="button" variant="ghost" onClick={resetForm} disabled={submitting}>
+                <Button type="button" variant="ghost" onClick={resetForm} disabled={saveMutation.isPending}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={submitting} className="bg-indigo-600 hover:bg-indigo-700">
-                  {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                <Button type="submit" disabled={saveMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700">
+                  {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {editingId ? 'Salvar Alterações' : 'Criar Usuário'}
                 </Button>
               </div>
