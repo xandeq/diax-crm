@@ -41,8 +41,8 @@ export default function LogsPage() {
       setError(null);
       const result = await logsService.getFilteredLogs(filters);
       setData(result);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar logs');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar logs');
       console.error(err);
     } finally {
       setLoading(false);
@@ -80,8 +80,8 @@ export default function LogsPage() {
       setShowDeleteConfirm(false);
       loadLogs();
       loadStats();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao excluir logs');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao excluir logs');
     } finally {
       setDeleting(false);
     }

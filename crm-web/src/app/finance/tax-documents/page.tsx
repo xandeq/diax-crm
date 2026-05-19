@@ -92,8 +92,8 @@ function UploadDialog({ open, onClose, onSuccess }: UploadDialogProps) {
       toast.success("Documento adicionado com sucesso.");
       reset();
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao fazer upload do documento.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao fazer upload do documento.");
     } finally {
       setIsLoading(false);
     }
@@ -248,8 +248,8 @@ function EditDialog({ doc, onClose, onSuccess }: EditDialogProps) {
       });
       toast.success("Documento atualizado.");
       onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao atualizar documento.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar documento.");
     } finally {
       setIsLoading(false);
     }
@@ -359,8 +359,8 @@ export default function TaxDocumentsPage() {
       ]);
       setDocs(docsData);
       setFiscalYears(yearsData.sort((a, b) => b - a));
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao carregar documentos.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao carregar documentos.");
     } finally {
       setIsLoading(false);
     }
@@ -377,8 +377,8 @@ export default function TaxDocumentsPage() {
         await deleteTaxDocument(doc.id);
         toast.success("Documento excluído.");
         load();
-      } catch (err: any) {
-        toast.error(err.message || "Erro ao excluir documento.");
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Erro ao excluir documento.");
       } finally {
         setDeletingId(null);
       }
@@ -389,8 +389,8 @@ export default function TaxDocumentsPage() {
     setDownloadingId(doc.id);
     try {
       await downloadTaxDocument(doc.id, doc.fileName);
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao baixar documento.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao baixar documento.");
     } finally {
       setDownloadingId(null);
     }

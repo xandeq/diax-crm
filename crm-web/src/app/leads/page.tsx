@@ -285,8 +285,8 @@ export default function LeadsPage() {
         await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
         toast.success(`${lead.name} convertido para cliente com sucesso!`);
         fetchLeads();
-      } catch (err: any) {
-        toast.error(`Erro ao converter: ${err.message}`);
+      } catch (err: unknown) {
+        toast.error(`Erro ao converter: ${err instanceof Error ? err.message : 'Erro inesperado'}`);
       }
     });
   };
@@ -1068,7 +1068,7 @@ export default function LeadsPage() {
               </TabsList>
               <TabsContent value="profile" className="mt-4">
                 <ContactProfilePanel
-                  customer={timelineLead as any}
+                  customer={timelineLead}
                   onEdit={() => {
                     setEditingLead(timelineLead);
                     setTimelineLead(null);

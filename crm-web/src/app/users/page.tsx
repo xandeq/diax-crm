@@ -46,7 +46,7 @@ export default function UsersPage() {
       ]);
       setUsers(usersData);
       setGroups(groupsData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Erro ao carregar dados. Verifique se você tem permissão.');
       console.error(err);
     } finally {
@@ -106,8 +106,8 @@ export default function UsersPage() {
       }
       loadData();
       resetForm();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Erro ao salvar usuário.';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar usuário.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -121,8 +121,8 @@ export default function UsersPage() {
         await userService.delete(user.id);
         toast.success('Usuário deletado.');
         loadData();
-      } catch (err: any) {
-        const msg = err.response?.data?.message || err.message || 'Erro ao deletar usuário.';
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Erro ao deletar usuário.';
         setError(msg);
         toast.error(msg);
       }

@@ -134,9 +134,9 @@ function EditAiProviderContent() {
     });
   };
 
-  const processBatch = async (
-    items: any[],
-    action: (item: any) => Promise<any>,
+  const processBatch = async <T,>(
+    items: T[],
+    action: (item: T) => Promise<unknown>,
     actionName: string
   ) => {
     if (items.length === 0) return;
@@ -230,9 +230,9 @@ function EditAiProviderContent() {
         toast.error(response.error || 'Erro ao carregar modelos');
         setShowModelsDialog(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error discovering models:', error);
-      toast.error(error?.message || 'Falha ao carregar modelos disponíveis');
+      toast.error(error instanceof Error ? error.message : 'Falha ao carregar modelos disponíveis');
       setShowModelsDialog(false);
     } finally {
       setLoadingDiscovery(false);
@@ -260,8 +260,8 @@ function EditAiProviderContent() {
       } else {
         toast.error('Erro ao salvar modelos');
       }
-    } catch (error: any) {
-      toast.error(error?.message || 'Erro ao salvar modelos');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar modelos');
     } finally {
       setSavingBatch(false);
     }

@@ -34,8 +34,8 @@ export function StatementImportTable({ imports, isLoading, onDeleteSuccess }: St
       try {
         await financeService.deleteStatementImport(id);
         if (onDeleteSuccess) onDeleteSuccess();
-      } catch (error: any) {
-        toast.error(error.message || "Erro ao excluir importação.");
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : "Erro ao excluir importação.");
       }
     });
   };

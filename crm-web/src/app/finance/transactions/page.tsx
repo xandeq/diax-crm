@@ -161,10 +161,8 @@ export default function TransactionsPage() {
     try {
       await deleteMutation.mutateAsync(deleteId);
       toast.success('Transação excluída.');
-    } catch (err: any) {
-      toast.error(err?.status === 404
-        ? 'Transação não encontrada. A lista será atualizada.'
-        : 'Erro ao excluir transação.');
+    } catch {
+      toast.error('Erro ao excluir transação.');
     } finally {
       setDeleteId(null);
     }

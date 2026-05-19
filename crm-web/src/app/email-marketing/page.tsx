@@ -399,8 +399,8 @@ export default function EmailMarketingPage() {
           );
         }
       }
-    } catch (error: any) {
-      toast.error(`Erro ao fazer upload da imagem: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Erro ao fazer upload da imagem: ${error instanceof Error ? error.message : 'Erro inesperado'}`);
     } finally {
       setUploading(false);
       // Limpa o input para permitir reenviar o mesmo arquivo

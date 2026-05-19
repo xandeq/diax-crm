@@ -15,6 +15,7 @@ export interface Lead {
   name: string;
   email: string;
   phone?: string;
+  secondaryEmail?: string;
   whatsApp?: string;
   companyName?: string;
   website?: string;

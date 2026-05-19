@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EngagementStatsCard } from '@/components/EngagementStatsCard';
 import { Customer } from '@/services/customers';
+import { Lead } from '@/services/leads';
 import { formatRelativeTime, formatDate } from '@/lib/date-utils';
 import { navigateToWhatsAppSend } from '@/lib/whatsapp-navigation';
 import {
@@ -60,7 +61,7 @@ const SEGMENT_COLORS: Record<number, string> = {
 const SEGMENT_EMOJIS: Record<number, string> = { 0: '🧊', 1: '☀️', 2: '🔥' };
 
 interface ContactProfilePanelProps {
-  customer: Customer;
+  customer: Customer | Lead;
   onEdit: () => void;
   onSendEmail: () => void;
   onStatusChange: (status: number) => void;

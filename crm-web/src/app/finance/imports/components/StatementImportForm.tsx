@@ -92,8 +92,8 @@ export function StatementImportForm({ onSuccess }: StatementImportFormProps) {
       if (fileInput) fileInput.value = '';
 
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "Erro ao realizar upload do extrato.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao realizar upload do extrato.");
     } finally {
       setIsLoading(false);
     }

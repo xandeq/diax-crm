@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { blogService } from '@/services/blogService';
-import { BlogPostForm } from '@/components/admin/blog/BlogPostForm';
+import { BlogPostForm, BlogPostFormValues } from '@/components/admin/blog/BlogPostForm';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -33,14 +33,14 @@ function EditBlogPostContent() {
     }
   };
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: BlogPostFormValues) => {
     if (!id) return;
     try {
       await blogService.update(id, data);
       toast.success('Post atualizado com sucesso!');
       router.push('/admin/blog');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao atualizar post');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao atualizar post');
       throw error;
     }
   };

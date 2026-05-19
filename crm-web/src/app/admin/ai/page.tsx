@@ -117,9 +117,9 @@ export default function AiAdminPage() {
         toast.error(response.error || 'Erro ao carregar modelos');
         setShowModelsDialog(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error discovering models:', error);
-      toast.error(error?.message || 'Falha ao carregar modelos disponíveis');
+      toast.error(error instanceof Error ? error.message : 'Falha ao carregar modelos disponíveis');
       setShowModelsDialog(false);
     } finally {
       setLoadingModels(false);
@@ -146,8 +146,8 @@ export default function AiAdminPage() {
       } else {
         toast.error('Erro ao salvar modelos');
       }
-    } catch (error: any) {
-      toast.error(error?.message || 'Erro ao salvar modelos');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar modelos');
     } finally {
       setSavingBatch(false);
     }
@@ -162,9 +162,9 @@ export default function AiAdminPage() {
           await adminAiProvidersService.delete(provider.id);
           toast.success(`Provider "${provider.name}" deleted successfully`);
           setProviders(providers.filter(p => p.id !== provider.id));
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Error deleting provider:', error);
-          toast.error(error?.response?.data?.message || 'Failed to delete provider');
+          toast.error(error instanceof Error ? error.message : 'Failed to delete provider');
         } finally {
           setDeleting(null);
         }

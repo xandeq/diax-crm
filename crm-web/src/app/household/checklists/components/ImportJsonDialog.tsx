@@ -53,8 +53,8 @@ export function ImportJsonDialog({ isOpen, onClose, onImportSuccess }: ImportJso
         setSuccess(null);
       }, 1500);
 
-    } catch (err: any) {
-      setError(err.message || 'Erro ao importar itens.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao importar itens.');
     } finally {
       setIsLoading(false);
     }

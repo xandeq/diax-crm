@@ -25,16 +25,16 @@ const schema = z.object({
   publishImmediately: z.boolean().optional()
 });
 
-type FormValues = z.infer<typeof schema>;
+export type BlogPostFormValues = z.infer<typeof schema>;
 
 interface BlogPostFormProps {
   initialData?: BlogPost;
-  onSubmit: (data: FormValues) => Promise<void>;
+  onSubmit: (data: BlogPostFormValues) => Promise<void>;
   submitLabel?: string;
 }
 
 export function BlogPostForm({ initialData, onSubmit, submitLabel = 'Salvar' }: BlogPostFormProps) {
-  const form = useForm<FormValues>({
+  const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: initialData?.title || '',

@@ -58,6 +58,17 @@ interface ApifyGoogleMapsItem {
 
 type ImportMode = 'csv' | 'text' | 'apify' | 'apify-url' | 'extrator';
 
+interface ExtractorLead {
+  id: number;
+  contact_name?: string;
+  company_name?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  crm_status?: string;
+  tags?: string;
+}
+
 export default function LeadsImportPage() {
   const router = useRouter();
   const [importMode, setImportMode] = useState<ImportMode>('csv');
@@ -79,7 +90,7 @@ export default function LeadsImportPage() {
     tag: '',
     city: '',
   });
-  const [extractorLeads, setExtractorLeads] = useState<any[]>([]);
+  const [extractorLeads, setExtractorLeads] = useState<ExtractorLead[]>([]);
   const [extractorLoading, setExtractorLoading] = useState(false);
   const [extractorSelectedIds, setExtractorSelectedIds] = useState<Set<number>>(new Set());
 
@@ -95,8 +106,8 @@ export default function LeadsImportPage() {
         setExtractorUrl(response.url);
         // ✅ Token stays server-side for security - not sent to frontend
         setExtractorConfigError('');
-      } catch (error: any) {
-        setExtractorConfigError(error.message || 'Falha ao carregar configuração do Extrator');
+      } catch (error: unknown) {
+        setExtractorConfigError(error instanceof Error ? error.message : 'Falha ao carregar configuração do Extrator');
         console.error('Erro ao carregar config do Extrator:', error);
       } finally {
         setExtractorConfigLoading(false);
@@ -311,8 +322,8 @@ export default function LeadsImportPage() {
           router.push('/leads');
         }, 3500);
       }
-    } catch (error: any) {
-      toast.error(`Erro ao importar: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Erro ao importar: ${error instanceof Error ? error.message : 'Erro inesperado'}`);
     } finally {
       setLoading(false);
     }
@@ -336,7 +347,7 @@ export default function LeadsImportPage() {
       const url = `/leads/extrator-leads${queryString ? `?${queryString}` : ''}`;
 
       const response = await apiFetch<{
-        leads: any[];
+        leads: ExtractorLead[];
         total?: number;
         page?: number;
         perPage?: number;
@@ -349,8 +360,8 @@ export default function LeadsImportPage() {
       if (!response.leads || response.leads.length === 0) {
         toast.warning('Nenhum lead encontrado com os filtros aplicados');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao buscar leads do Extrator');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao buscar leads do Extrator');
       console.error('Erro ao buscar leads:', error);
     } finally {
       setExtractorLoading(false);
@@ -371,7 +382,7 @@ export default function LeadsImportPage() {
     if (extractorSelectedIds.size === extractorLeads.length) {
       setExtractorSelectedIds(new Set());
     } else {
-      setExtractorSelectedIds(new Set(extractorLeads.map((l: any) => l.id)));
+      setExtractorSelectedIds(new Set(extractorLeads.map((l) => l.id)));
     }
   };
 
@@ -384,8 +395,8 @@ export default function LeadsImportPage() {
     setLoading(true);
     try {
       const customersToImport: ImportCustomerRow[] = extractorLeads
-        .filter((lead: any) => extractorSelectedIds.has(lead.id))
-        .map((lead: any) => ({
+        .filter((lead) => extractorSelectedIds.has(lead.id))
+        .map((lead) => ({
           name: lead.contact_name || lead.company_name || 'Lead sem nome',
           email: lead.email || '',
           phone: lead.phone,
@@ -411,8 +422,8 @@ export default function LeadsImportPage() {
           router.push('/leads');
         }, 3500);
       }
-    } catch (error: any) {
-      toast.error(`Erro ao importar: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Erro ao importar: ${error instanceof Error ? error.message : 'Erro inesperado'}`);
     } finally {
       setLoading(false);
     }

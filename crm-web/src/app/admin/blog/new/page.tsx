@@ -2,20 +2,20 @@
 
 import { useRouter } from 'next/navigation';
 import { blogService } from '@/services/blogService';
-import { BlogPostForm } from '@/components/admin/blog/BlogPostForm';
+import { BlogPostForm, BlogPostFormValues } from '@/components/admin/blog/BlogPostForm';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 export default function NewBlogPostPage() {
   const router = useRouter();
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: BlogPostFormValues) => {
     try {
       await blogService.create(data);
       toast.success('Post criado com sucesso!');
       router.push('/admin/blog');
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao criar post');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao criar post');
       throw error;
     }
   };
