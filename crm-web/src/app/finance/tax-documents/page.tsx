@@ -19,7 +19,7 @@ import {
   uploadTaxDocument,
   updateTaxDocument,
 } from "@/services/taxDocuments";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Download, Edit2, FileText, Loader2, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -344,7 +344,7 @@ export default function TaxDocumentsPage() {
   const [editDoc, setEditDoc] = useState<TaxDocumentDto | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -371,21 +371,17 @@ export default function TaxDocumentsPage() {
   }, [load]);
 
   const handleDelete = (doc: TaxDocumentDto) => {
-    setConfirmDialog({
-      message: `Excluir "${doc.fileName}" (${doc.institutionName} — ${doc.fiscalYear})?`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        setDeletingId(doc.id);
-        try {
-          await deleteTaxDocument(doc.id);
-          toast.success("Documento excluído.");
-          load();
-        } catch (err: any) {
-          toast.error(err.message || "Erro ao excluir documento.");
-        } finally {
-          setDeletingId(null);
-        }
-      },
+    showConfirm(`Excluir "${doc.fileName}" (${doc.institutionName} — ${doc.fiscalYear})?`, async () => {
+      setDeletingId(doc.id);
+      try {
+        await deleteTaxDocument(doc.id);
+        toast.success("Documento excluído.");
+        load();
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao excluir documento.");
+      } finally {
+        setDeletingId(null);
+      }
     });
   };
 
@@ -608,14 +604,7 @@ export default function TaxDocumentsPage() {
         }}
       />
 
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
     </div>
   );
 }

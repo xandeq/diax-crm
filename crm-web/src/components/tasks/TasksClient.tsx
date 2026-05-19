@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,7 +52,7 @@ export function TasksClient() {
     const [filter, setFilter] = useState<FilterStatus>('All');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<TaskItem | undefined>();
-    const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+    const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
     // Form state
     const [formTitle, setFormTitle] = useState('');
@@ -161,18 +161,14 @@ export function TasksClient() {
     }
 
     function handleDelete(task: TaskItem) {
-        setConfirmDialog({
-            message: `Excluir "${task.title}"?`,
-            onConfirm: async () => {
-                setConfirmDialog(null);
-                try {
-                    await tasksService.delete(task.id);
-                    setTasks(prev => prev.filter(t => t.id !== task.id));
-                    toast.success('Tarefa excluída');
-                } catch {
-                    toast.error('Erro ao excluir tarefa');
-                }
-            },
+        showConfirm(`Excluir "${task.title}"?`, async () => {
+            try {
+                await tasksService.delete(task.id);
+                setTasks(prev => prev.filter(t => t.id !== task.id));
+                toast.success('Tarefa excluída');
+            } catch {
+                toast.error('Erro ao excluir tarefa');
+            }
         });
     }
 
@@ -186,14 +182,7 @@ export function TasksClient() {
 
     return (
         <div className="space-y-6">
-            {confirmDialog && (
-                <ConfirmDialog
-                    open
-                    description={confirmDialog.message}
-                    onConfirm={confirmDialog.onConfirm}
-                    onClose={() => setConfirmDialog(null)}
-                />
-            )}
+            {confirmDialogNode}
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>

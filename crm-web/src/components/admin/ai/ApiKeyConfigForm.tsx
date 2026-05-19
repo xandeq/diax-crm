@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,7 @@ export function ApiKeyConfigForm({ providerId, providerName, onSaved }: ApiKeyCo
   const [testResult, setTestResult] = useState<TestConnectionResultDto | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   // Load credential status on mount
   useEffect(() => {
@@ -59,12 +59,8 @@ export function ApiKeyConfigForm({ providerId, providerName, onSaved }: ApiKeyCo
 
     // Confirm if overwriting existing key
     if (status?.isConfigured) {
-      setConfirmDialog({
-        message: `This will overwrite the existing API key for ${providerName}. Continue?`,
-        onConfirm: async () => {
-          setConfirmDialog(null);
-          await doSaveApiKey();
-        },
+      showConfirm(`This will overwrite the existing API key for ${providerName}. Continue?`, async () => {
+        await doSaveApiKey();
       });
       return;
     }
@@ -136,14 +132,7 @@ export function ApiKeyConfigForm({ providerId, providerName, onSaved }: ApiKeyCo
 
   return (
     <div className="space-y-4">
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
       {/* Status Badge */}
       <div className="flex items-center gap-2">
         <Label>Status:</Label>

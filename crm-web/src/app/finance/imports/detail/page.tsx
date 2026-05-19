@@ -4,7 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { financeService, ImportStatus, StatementImportDetail, StatementImportPostPreview, StatementImportType } from "@/services/finance";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { ArrowLeft, Calendar, CheckCircle2, CreditCard, FileText, Info, Landmark, Loader2, Play } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -35,7 +35,7 @@ function ImportDetailContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isPostingLoading, setIsPostingLoading] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
   const [preview, setPreview] = useState<StatementImportPostPreview | null>(null);
   const [postResult, setPostResult] = useState<{ createdExpenses: number, createdIncomes: number, createdTransactions: number, skipped: number, failed: number } | null>(null);
 
@@ -74,22 +74,18 @@ function ImportDetailContent() {
 
   const handlePost = () => {
     if (!id) return;
-    setConfirmDialog({
-      message: "Deseja realmente postar todos os lançamentos desse extrato?",
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        setIsPostingLoading(true);
-        try {
-          const result = await financeService.postStatementImport(id, { force: false });
-          setPostResult(result);
-          setPreview(null);
-          await loadDetail();
-        } catch (error) {
-          console.error("Erro ao postar extrato:", error);
-        } finally {
-          setIsPostingLoading(false);
-        }
-      },
+    showConfirm("Deseja realmente postar todos os lançamentos desse extrato?", async () => {
+      setIsPostingLoading(true);
+      try {
+        const result = await financeService.postStatementImport(id, { force: false });
+        setPostResult(result);
+        setPreview(null);
+        await loadDetail();
+      } catch (error) {
+        console.error("Erro ao postar extrato:", error);
+      } finally {
+        setIsPostingLoading(false);
+      }
     });
   };
 
@@ -114,14 +110,7 @@ function ImportDetailContent() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" asChild>
           <Link href="/finance/imports">

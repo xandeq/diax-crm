@@ -63,7 +63,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -136,7 +136,7 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   // Timeline panel
   const [timelineCustomer, setTimelineCustomer] = useState<Customer | null>(null);
@@ -282,35 +282,27 @@ export default function CustomersPage() {
   };
 
   const handleDelete = (id: string) => {
-    setConfirmDialog({
-      message: 'Tem certeza que deseja excluir este cliente?',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await deleteCustomer(id);
-          fetchCustomers();
-        } catch {
-          toast.error('Erro ao excluir cliente.');
-        }
-      },
+    showConfirm('Tem certeza que deseja excluir este cliente?', async () => {
+      try {
+        await deleteCustomer(id);
+        fetchCustomers();
+      } catch {
+        toast.error('Erro ao excluir cliente.');
+      }
     });
   };
 
   const handleBulkDelete = () => {
-    setConfirmDialog({
-      message: `Deletar ${selectedRows.length} cliente(s)?`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          for (const customer of selectedRows) {
-            await deleteCustomer(customer.id);
-          }
-          fetchCustomers();
-          setSelectedRows([]);
-        } catch {
-          toast.error('Erro ao deletar clientes.');
+    showConfirm(`Deletar ${selectedRows.length} cliente(s)?`, async () => {
+      try {
+        for (const customer of selectedRows) {
+          await deleteCustomer(customer.id);
         }
-      },
+        fetchCustomers();
+        setSelectedRows([]);
+      } catch {
+        toast.error('Erro ao deletar clientes.');
+      }
     });
   };
 
@@ -1037,14 +1029,7 @@ export default function CustomersPage() {
         </SheetContent>
       </Sheet>
 
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
     </div>
   );
 }

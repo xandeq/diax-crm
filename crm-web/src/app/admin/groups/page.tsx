@@ -22,7 +22,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { adminGroupsService, UserGroup } from '@/services/adminGroups';
 import { Loader2, Plus, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -34,7 +34,7 @@ export default function UserGroupsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({ name: '', description: '' });
   const [creating, setCreating] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   const loadGroups = async () => {
     try {
@@ -71,31 +71,20 @@ export default function UserGroupsPage() {
   };
 
   const handleDelete = (id: string) => {
-    setConfirmDialog({
-      message: 'Are you sure you want to delete this group?',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await adminGroupsService.delete(id);
-          setGroups(groups.filter(g => g.id !== id));
-          toast.success('Group deleted.');
-        } catch (error) {
-          toast.error('Failed to delete group.');
-        }
-      },
+    showConfirm('Are you sure you want to delete this group?', async () => {
+      try {
+        await adminGroupsService.delete(id);
+        setGroups(groups.filter(g => g.id !== id));
+        toast.success('Group deleted.');
+      } catch (error) {
+        toast.error('Failed to delete group.');
+      }
     });
   };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">User Groups</h1>

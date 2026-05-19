@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useDeleteFinancialAccount, useFinancialAccounts } from '@/hooks/finance';
 import { AccountType } from '@/services/finance';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -23,19 +23,15 @@ export default function FinancialAccountsPage() {
   const router = useRouter();
   const { data: accounts = [], isLoading, isError } = useFinancialAccounts();
   const deleteMutation = useDeleteFinancialAccount();
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   function handleDelete(id: string) {
-    setConfirmDialog({
-      message: 'Tem certeza que deseja excluir esta conta? Esta ação não pode ser desfeita se houver transações vinculadas.',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await deleteMutation.mutateAsync(id);
-        } catch {
-          toast.error('Erro ao excluir conta. Verifique se não há transações vinculadas.');
-        }
-      },
+    showConfirm('Tem certeza que deseja excluir esta conta? Esta ação não pode ser desfeita se houver transações vinculadas.', async () => {
+      try {
+        await deleteMutation.mutateAsync(id);
+      } catch {
+        toast.error('Erro ao excluir conta. Verifique se não há transações vinculadas.');
+      }
     });
   }
 
@@ -49,14 +45,7 @@ export default function FinancialAccountsPage() {
 
   return (
     <div className="p-8">
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Contas Financeiras</h1>

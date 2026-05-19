@@ -2,7 +2,7 @@
 
 import { RoleGuard } from '@/components/RoleGuard';
 import { Badge } from '@/components/ui/badge';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ export default function UsersPage() {
     isActive: true
   });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   useEffect(() => {
     loadData();
@@ -116,20 +116,16 @@ export default function UsersPage() {
   };
 
   const handleDelete = (user: UserResponse) => {
-    setConfirmDialog({
-      message: `Tem certeza que deseja deletar o usuário ${user.email}?`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await userService.delete(user.id);
-          toast.success('Usuário deletado.');
-          loadData();
-        } catch (err: any) {
-          const msg = err.response?.data?.message || err.message || 'Erro ao deletar usuário.';
-          setError(msg);
-          toast.error(msg);
-        }
-      },
+    showConfirm(`Tem certeza que deseja deletar o usuário ${user.email}?`, async () => {
+      try {
+        await userService.delete(user.id);
+        toast.success('Usuário deletado.');
+        loadData();
+      } catch (err: any) {
+        const msg = err.response?.data?.message || err.message || 'Erro ao deletar usuário.';
+        setError(msg);
+        toast.error(msg);
+      }
     });
   };
 
@@ -141,14 +137,7 @@ export default function UsersPage() {
 
   return (
     <RoleGuard allowedRoles={['Admin']}>
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>

@@ -79,7 +79,7 @@ import {
     Wand2,
     X,
 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { LeadKanban } from '@/components/leads/LeadKanban';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -158,7 +158,7 @@ export default function LeadsPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   // Timeline panel
   const [timelineLead, setTimelineLead] = useState<Lead | null>(null);
@@ -308,76 +308,60 @@ export default function LeadsPage() {
   };
 
   const handleDelete = (id: string) => {
-    setConfirmDialog({
-      message: 'Tem certeza que deseja excluir este lead?',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await deleteLead(id);
-          fetchLeads();
-        } catch {
-          toast.error('Erro ao excluir lead.');
-        }
-      },
+    showConfirm('Tem certeza que deseja excluir este lead?', async () => {
+      try {
+        await deleteLead(id);
+        fetchLeads();
+      } catch {
+        toast.error('Erro ao excluir lead.');
+      }
     });
   };
 
   const handleBulkDelete = () => {
-    setConfirmDialog({
-      message: `Deletar ${selectedRows.length} lead(s)? Esta ação não pode ser desfeita.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const ids = selectedRows.map((l) => l.id);
-          const result = await bulkDeleteLeads(ids);
-          toast.success(`${result.deletedCount} lead(s) excluído(s) com sucesso.`);
-          fetchLeads();
-          setSelectedRows([]);
-        } catch {
-          toast.error('Erro ao deletar leads.');
-        }
-      },
+    showConfirm(`Deletar ${selectedRows.length} lead(s)? Esta ação não pode ser desfeita.`, async () => {
+      try {
+        const ids = selectedRows.map((l) => l.id);
+        const result = await bulkDeleteLeads(ids);
+        toast.success(`${result.deletedCount} lead(s) excluído(s) com sucesso.`);
+        fetchLeads();
+        setSelectedRows([]);
+      } catch {
+        toast.error('Erro ao deletar leads.');
+      }
     });
   };
 
   const handleConvert = (lead: Lead) => {
-    setConfirmDialog({
-      message: `Converter "${lead.name}" para Cliente?`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
-          toast.success(`${lead.name} convertido para cliente com sucesso!`);
-          fetchLeads();
-        } catch (err: any) {
-          toast.error(`Erro ao converter: ${err.message}`);
-        }
-      },
+    showConfirm(`Converter "${lead.name}" para Cliente?`, async () => {
+      try {
+        await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
+        toast.success(`${lead.name} convertido para cliente com sucesso!`);
+        fetchLeads();
+      } catch (err: any) {
+        toast.error(`Erro ao converter: ${err.message}`);
+      }
     });
   };
 
   const handleBulkConvert = () => {
-    setConfirmDialog({
-      message: `Converter ${selectedRows.length} lead(s) para Cliente?`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          let converted = 0;
-          for (const lead of selectedRows) {
-            try {
-              await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
-              converted++;
-            } catch {
-              // skip individual errors
-            }
+    showConfirm(`Converter ${selectedRows.length} lead(s) para Cliente?`, async () => {
+      try {
+        let converted = 0;
+        for (const lead of selectedRows) {
+          try {
+            await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
+            converted++;
+          } catch {
+            // skip individual errors
           }
-          toast.success(`${converted} de ${selectedRows.length} leads convertidos com sucesso!`);
-          fetchLeads();
-          setSelectedRows([]);
-        } catch {
-          toast.error('Erro ao converter leads.');
         }
-      },
+        toast.success(`${converted} de ${selectedRows.length} leads convertidos com sucesso!`);
+        fetchLeads();
+        setSelectedRows([]);
+      } catch {
+        toast.error('Erro ao converter leads.');
+      }
     });
   };
 
@@ -387,28 +371,23 @@ export default function LeadsPage() {
       ? `Executar sanitização e deduplicação nos ${selectedRows.length} leads selecionados?`
       : 'Executar sanitização em toda a base de leads? Isso buscará e unificará informações duplicadas demorando alguns segundos.';
 
-    setConfirmDialog({
-      message: msg,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        setSubmitting(true);
-        toast.loading('Iniciando sanitização...', { id: 'sanitize-base' });
-        try {
-          const ids = isFiltered ? selectedRows.map((l) => l.id) : undefined;
-          const result = await sanitizeLeadBase(ids);
-
-          toast.success(
-            `Sanitização: ${result.analyzedLeads} analisados, ${result.correctedLeads} corrigidos, ${result.duplicatesConsolidated} duplicatas mescladas. Válidos: ${result.validLeadsRemaining}`,
-            { id: 'sanitize-base' }
-          );
-          fetchLeads();
-          setSelectedRows([]);
-        } catch {
-          toast.error('Erro ao executar sanitização da base.', { id: 'sanitize-base' });
-        } finally {
-          setSubmitting(false);
-        }
-      },
+    showConfirm(msg, async () => {
+      setSubmitting(true);
+      toast.loading('Iniciando sanitização...', { id: 'sanitize-base' });
+      try {
+        const ids = isFiltered ? selectedRows.map((l) => l.id) : undefined;
+        const result = await sanitizeLeadBase(ids);
+        toast.success(
+          `Sanitização: ${result.analyzedLeads} analisados, ${result.correctedLeads} corrigidos, ${result.duplicatesConsolidated} duplicatas mescladas. Válidos: ${result.validLeadsRemaining}`,
+          { id: 'sanitize-base' }
+        );
+        fetchLeads();
+        setSelectedRows([]);
+      } catch {
+        toast.error('Erro ao executar sanitização da base.', { id: 'sanitize-base' });
+      } finally {
+        setSubmitting(false);
+      }
     });
   };
 
@@ -1317,14 +1296,7 @@ export default function LeadsPage() {
         </SheetContent>
       </Sheet>
 
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
     </div>
   );
 }

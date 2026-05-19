@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { checklistService } from '@/services/checklistService';
 import { ChecklistCategory, CreateChecklistCategoryRequest } from '@/types/household';
 import { Plus, Trash2 } from 'lucide-react';
@@ -31,7 +31,7 @@ export function CategoryManager({ isOpen, onClose, onRefresh }: CategoryManagerP
     displayOrder: 0
   });
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   useEffect(() => {
     if (isOpen) loadCategories();
@@ -62,31 +62,20 @@ export function CategoryManager({ isOpen, onClose, onRefresh }: CategoryManagerP
   };
 
   const handleDelete = (id: string) => {
-    setConfirmDialog({
-      message: 'Excluir esta categoria? Itens nela podem ficar sem categoria.',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await checklistService.deleteCategory(id);
-          loadCategories();
-          onRefresh();
-        } catch (error) {
-          toast.error('Erro ao excluir categoria');
-        }
-      },
+    showConfirm('Excluir esta categoria? Itens nela podem ficar sem categoria.', async () => {
+      try {
+        await checklistService.deleteCategory(id);
+        loadCategories();
+        onRefresh();
+      } catch (error) {
+        toast.error('Erro ao excluir categoria');
+      }
     });
   };
 
   return (
     <>
-    {confirmDialog && (
-      <ConfirmDialog
-        open
-        description={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onClose={() => setConfirmDialog(null)}
-      />
-    )}
+    {confirmDialogNode}
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

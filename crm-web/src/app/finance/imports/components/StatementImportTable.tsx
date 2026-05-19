@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { financeService, ImportStatus, StatementImport, StatementImportType } from "@/services/finance";
 import { ExternalLink, FileText, Trash2 } from "lucide-react";
@@ -27,20 +27,16 @@ const formatDate = (dateString: string) => {
 };
 
 export function StatementImportTable({ imports, isLoading, onDeleteSuccess }: StatementImportTableProps) {
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   const handleDelete = (id: string, fileName: string) => {
-    setConfirmDialog({
-      message: `Deseja realmente excluir a importação "${fileName}"?`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await financeService.deleteStatementImport(id);
-          if (onDeleteSuccess) onDeleteSuccess();
-        } catch (error: any) {
-          toast.error(error.message || "Erro ao excluir importação.");
-        }
-      },
+    showConfirm(`Deseja realmente excluir a importação "${fileName}"?`, async () => {
+      try {
+        await financeService.deleteStatementImport(id);
+        if (onDeleteSuccess) onDeleteSuccess();
+      } catch (error: any) {
+        toast.error(error.message || "Erro ao excluir importação.");
+      }
     });
   };
 
@@ -62,14 +58,7 @@ export function StatementImportTable({ imports, isLoading, onDeleteSuccess }: St
 
   return (
     <>
-    {confirmDialog && (
-      <ConfirmDialog
-        open
-        description={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onClose={() => setConfirmDialog(null)}
-      />
-    )}
+    {confirmDialogNode}
     <div className="border rounded-md">
       <Table>
         <TableHeader>

@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiModel, AiProvider } from '@/services/aiCatalog';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { ArrowLeft, Eye, Key, Loader2, Save, Search, Settings, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -51,7 +51,7 @@ function EditAiProviderContent() {
   // Bulk actions state
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState('');
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
   // Computes which models should be shown based on search term
   const visibleModels = discoveredModels.filter(m =>
     !searchTerm ||
@@ -120,21 +120,17 @@ function EditAiProviderContent() {
   };
 
   const handleDeleteModel = (modelId: string) => {
-    setConfirmDialog({
-      message: 'Are you sure you want to delete this model?',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          setSavingId(modelId);
-          await adminAiProvidersService.deleteModel(modelId);
-          toast.success('Modelo removido com sucesso');
-          await fetchData(true);
-        } catch (error) {
-          toast.error('Erro ao remover modelo');
-        } finally {
-          setSavingId(null);
-        }
-      },
+    showConfirm('Are you sure you want to delete this model?', async () => {
+      try {
+        setSavingId(modelId);
+        await adminAiProvidersService.deleteModel(modelId);
+        toast.success('Modelo removido com sucesso');
+        await fetchData(true);
+      } catch (error) {
+        toast.error('Erro ao remover modelo');
+      } finally {
+        setSavingId(null);
+      }
     });
   };
 
@@ -580,14 +576,7 @@ function EditAiProviderContent() {
         </DialogContent>
       </Dialog>
 
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
     </div>
   );
 }

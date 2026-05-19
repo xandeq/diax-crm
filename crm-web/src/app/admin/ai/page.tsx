@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiProvider } from '@/services/aiCatalog';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Layers, Loader2, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -42,7 +42,7 @@ export default function AiAdminPage() {
   const [selectedProviderKey, setSelectedProviderKey] = useState<string>('');
   const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   const loadProviders = async () => {
     try {
@@ -154,10 +154,9 @@ export default function AiAdminPage() {
   };
 
   const handleDeleteProvider = (provider: AiProvider) => {
-    setConfirmDialog({
-      message: `Are you sure you want to delete "${provider.name}"? This will also delete all associated models, API key credentials, and group access permissions. This action cannot be undone.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
+    showConfirm(
+      `Are you sure you want to delete "${provider.name}"? This will also delete all associated models, API key credentials, and group access permissions. This action cannot be undone.`,
+      async () => {
         try {
           setDeleting(provider.id);
           await adminAiProvidersService.delete(provider.id);
@@ -169,8 +168,8 @@ export default function AiAdminPage() {
         } finally {
           setDeleting(null);
         }
-      },
-    });
+      }
+    );
   };
 
   return (
@@ -389,14 +388,7 @@ export default function AiAdminPage() {
         </DialogContent>
       </Dialog>
 
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
     </div>
   );
 }

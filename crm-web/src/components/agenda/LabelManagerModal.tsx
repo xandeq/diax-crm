@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +29,7 @@ export function LabelManagerModal({ isOpen, onOpenChange, onLabelsChanged }: Lab
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<CreateAppointmentLabelDto>({ name: '', color: '#3B82F6', order: 0 });
     const [isSaving, setIsSaving] = useState(false);
-    const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+    const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
     const fetchLabels = async () => {
         setIsLoading(true);
@@ -79,32 +79,21 @@ export function LabelManagerModal({ isOpen, onOpenChange, onLabelsChanged }: Lab
     };
 
     const handleDelete = (id: string) => {
-        setConfirmDialog({
-            message: 'Excluir este label? Os compromissos perderão a associação.',
-            onConfirm: async () => {
-                setConfirmDialog(null);
-                try {
-                    await appointmentLabelsService.delete(id);
-                    toast.success('Label excluído.');
-                    await fetchLabels();
-                    onLabelsChanged();
-                } catch {
-                    toast.error('Erro ao excluir label.');
-                }
-            },
+        showConfirm('Excluir este label? Os compromissos perderão a associação.', async () => {
+            try {
+                await appointmentLabelsService.delete(id);
+                toast.success('Label excluído.');
+                await fetchLabels();
+                onLabelsChanged();
+            } catch {
+                toast.error('Erro ao excluir label.');
+            }
         });
     };
 
     return (
         <>
-        {confirmDialog && (
-            <ConfirmDialog
-                open
-                description={confirmDialog.message}
-                onConfirm={confirmDialog.onConfirm}
-                onClose={() => setConfirmDialog(null)}
-            />
-        )}
+        {confirmDialogNode}
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[480px]">
                 <DialogHeader>

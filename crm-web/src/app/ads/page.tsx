@@ -47,7 +47,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -822,7 +822,7 @@ export default function AdsPage() {
   const [adSetCampaignFilter, setAdSetCampaignFilter] = useState('');
   const [editBudgetAdSet, setEditBudgetAdSet] = useState<FacebookAdSet | null>(null);
   const [togglingAdSetIds, setTogglingAdSetIds] = useState<Set<string>>(new Set());
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -913,22 +913,18 @@ export default function AdsPage() {
   };
 
   const handleDisconnect = () => {
-    setConfirmDialog({
-      message: 'Tem certeza que deseja desconectar sua conta de anúncios?',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await disconnectAdAccount();
-          toast.success('Conta desconectada.');
-          setNotConnected(true);
-          setSummary(null);
-          setCampaigns([]);
-          setInsights([]);
-          setAdSets([]);
-        } catch {
-          toast.error('Erro ao desconectar conta');
-        }
-      },
+    showConfirm('Tem certeza que deseja desconectar sua conta de anúncios?', async () => {
+      try {
+        await disconnectAdAccount();
+        toast.success('Conta desconectada.');
+        setNotConnected(true);
+        setSummary(null);
+        setCampaigns([]);
+        setInsights([]);
+        setAdSets([]);
+      } catch {
+        toast.error('Erro ao desconectar conta');
+      }
     });
   };
 
@@ -1331,14 +1327,7 @@ export default function AdsPage() {
         </div>
       )}
 
-      {confirmDialog && (
-        <ConfirmDialog
-          open
-          description={confirmDialog.message}
-          onConfirm={confirmDialog.onConfirm}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
+      {confirmDialogNode}
     </div>
   );
 }
