@@ -79,6 +79,7 @@ import {
     Wand2,
     X,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { LeadKanban } from '@/components/leads/LeadKanban';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -157,6 +158,7 @@ export default function LeadsPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   // Timeline panel
   const [timelineLead, setTimelineLead] = useState<Lead | null>(null);
@@ -305,98 +307,114 @@ export default function LeadsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este lead?')) return;
-    try {
-      await deleteLead(id);
-      fetchLeads();
-    } catch {
-      alert('Erro ao excluir lead.');
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este lead?',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await deleteLead(id);
+          fetchLeads();
+        } catch {
+          toast.error('Erro ao excluir lead.');
+        }
+      },
+    });
   };
 
-  const handleBulkDelete = async () => {
-    if (!confirm(`Deletar ${selectedRows.length} lead(s)? Esta ação não pode ser desfeita.`)) return;
-    try {
-      const ids = selectedRows.map((l) => l.id);
-      const result = await bulkDeleteLeads(ids);
-      fetchLeads();
-      setSelectedRows([]);
-      alert(`${result.deletedCount} lead(s) excluído(s) com sucesso.`);
-    } catch {
-      alert('Erro ao deletar leads.');
-    }
+  const handleBulkDelete = () => {
+    setConfirmDialog({
+      message: `Deletar ${selectedRows.length} lead(s)? Esta ação não pode ser desfeita.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const ids = selectedRows.map((l) => l.id);
+          const result = await bulkDeleteLeads(ids);
+          toast.success(`${result.deletedCount} lead(s) excluído(s) com sucesso.`);
+          fetchLeads();
+          setSelectedRows([]);
+        } catch {
+          toast.error('Erro ao deletar leads.');
+        }
+      },
+    });
   };
 
-  const handleConvert = async (lead: Lead) => {
-    if (!confirm(`Converter "${lead.name}" para Cliente?`)) return;
-    try {
-      await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
-      alert(`${lead.name} convertido para cliente com sucesso!`);
-      fetchLeads();
-    } catch (err: any) {
-      alert(`Erro ao converter: ${err.message}`);
-    }
-  };
-
-  const handleBulkConvert = async () => {
-    if (!confirm(`Converter ${selectedRows.length} lead(s) para Cliente?`)) return;
-    try {
-      let converted = 0;
-      for (const lead of selectedRows) {
+  const handleConvert = (lead: Lead) => {
+    setConfirmDialog({
+      message: `Converter "${lead.name}" para Cliente?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
         try {
           await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
-          converted++;
-        } catch {
-          // skip individual errors
+          toast.success(`${lead.name} convertido para cliente com sucesso!`);
+          fetchLeads();
+        } catch (err: any) {
+          toast.error(`Erro ao converter: ${err.message}`);
         }
-      }
-      alert(`${converted} de ${selectedRows.length} leads convertidos com sucesso!`);
-      fetchLeads();
-      setSelectedRows([]);
-    } catch {
-      alert('Erro ao converter leads.');
-    }
+      },
+    });
   };
 
-  const handleBulkSanitize = async () => {
+  const handleBulkConvert = () => {
+    setConfirmDialog({
+      message: `Converter ${selectedRows.length} lead(s) para Cliente?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          let converted = 0;
+          for (const lead of selectedRows) {
+            try {
+              await apiFetch(`/customers/${lead.id}/convert`, { method: 'POST' });
+              converted++;
+            } catch {
+              // skip individual errors
+            }
+          }
+          toast.success(`${converted} de ${selectedRows.length} leads convertidos com sucesso!`);
+          fetchLeads();
+          setSelectedRows([]);
+        } catch {
+          toast.error('Erro ao converter leads.');
+        }
+      },
+    });
+  };
+
+  const handleBulkSanitize = () => {
     const isFiltered = selectedRows.length > 0;
     const msg = isFiltered
       ? `Executar sanitização e deduplicação nos ${selectedRows.length} leads selecionados?`
       : 'Executar sanitização em toda a base de leads? Isso buscará e unificará informações duplicadas demorando alguns segundos.';
 
-    if (!confirm(msg)) return;
+    setConfirmDialog({
+      message: msg,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setSubmitting(true);
+        toast.loading('Iniciando sanitização...', { id: 'sanitize-base' });
+        try {
+          const ids = isFiltered ? selectedRows.map((l) => l.id) : undefined;
+          const result = await sanitizeLeadBase(ids);
 
-    setSubmitting(true);
-    toast.loading('Iniciando sanitização...', { id: 'sanitize-base' });
-    try {
-      const ids = isFiltered ? selectedRows.map((l) => l.id) : undefined;
-      const result = await sanitizeLeadBase(ids);
-
-      toast.success('Sanitização concluída!', { id: 'sanitize-base' });
-      alert(`Resultados da Limpeza:\n\n` +
-            `Leads Analisados: ${result.analyzedLeads}\n` +
-            `Leads Corrigidos: ${result.correctedLeads}\n` +
-            `Removidos por Email Invalido: ${result.removedByInvalidEmail}\n` +
-            `Removidos por Dominio Suspeito: ${result.removedBySuspiciousDomain}\n` +
-            `Removidos por Dominio Estrangeiro: ${result.removedByForeignDomain}\n` +
-            `Removidos como Genericos/Diretorio: ${result.removedByDirectoryOrGeneric}\n` +
-            `Removidos como Frase de Busca: ${result.removedBySearchPhrase}\n` +
-            `Duplicatas Mescladas: ${result.duplicatesConsolidated}\n\n` +
-            `Leads Validos Restantes: ${result.validLeadsRemaining}`);
-
-      fetchLeads();
-      setSelectedRows([]);
-    } catch {
-      toast.error('Erro ao executar sanitização da base.', { id: 'sanitize-base' });
-    } finally {
-      setSubmitting(false);
-    }
+          toast.success(
+            `Sanitização: ${result.analyzedLeads} analisados, ${result.correctedLeads} corrigidos, ${result.duplicatesConsolidated} duplicatas mescladas. Válidos: ${result.validLeadsRemaining}`,
+            { id: 'sanitize-base' }
+          );
+          fetchLeads();
+          setSelectedRows([]);
+        } catch {
+          toast.error('Erro ao executar sanitização da base.', { id: 'sanitize-base' });
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const handleWhatsApp = (lead: Lead) => {
     if (!lead.phone && !lead.whatsApp) {
-      alert('Este lead nao possui numero de telefone/WhatsApp cadastrado.');
+      toast.warning('Este lead não possui número de telefone/WhatsApp cadastrado.');
       return;
     }
     navigateToWhatsAppSend(router, {
@@ -1218,7 +1236,7 @@ export default function LeadsPage() {
         recipients={composerRecipients}
         title="Composer Profissional - Leads"
         onQueued={(count) => {
-          alert(`Campanha enfileirada com sucesso para ${count} lead(s).`);
+          toast.success(`Campanha enfileirada com sucesso para ${count} lead(s).`);
           setSelectedRows([]);
         }}
       />
@@ -1280,7 +1298,7 @@ export default function LeadsPage() {
                       setTimelineLead({ ...timelineLead, status: newStatus });
                       fetchLeads();
                     } catch (error) {
-                      alert('Erro ao atualizar status');
+                      toast.error('Erro ao atualizar status');
                     }
                   }}
                 />
@@ -1298,6 +1316,15 @@ export default function LeadsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {confirmDialog && (
+        <ConfirmDialog
+          open
+          description={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   );
 }

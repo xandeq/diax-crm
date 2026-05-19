@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table';
 import { adminAiProvidersService, DiscoveredModel } from '@/services/adminAiProviders';
 import { AiProvider } from '@/services/aiCatalog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Layers, Loader2, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -41,6 +42,7 @@ export default function AiAdminPage() {
   const [selectedProviderKey, setSelectedProviderKey] = useState<string>('');
   const [selectedModelKeys, setSelectedModelKeys] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const loadProviders = async () => {
     try {
@@ -151,25 +153,24 @@ export default function AiAdminPage() {
     }
   };
 
-  const handleDeleteProvider = async (provider: AiProvider) => {
-    const confirmMessage = `Are you sure you want to delete "${provider.name}"?\n\nThis will also delete:\n- All associated models\n- API key credentials\n- Group access permissions\n\nThis action cannot be undone.`;
-
-    if (!confirm(confirmMessage)) return;
-
-    try {
-      setDeleting(provider.id);
-      await adminAiProvidersService.delete(provider.id);
-
-      toast.success(`Provider "${provider.name}" deleted successfully`);
-
-      // Remove from local state
-      setProviders(providers.filter(p => p.id !== provider.id));
-    } catch (error: any) {
-      console.error('Error deleting provider:', error);
-      toast.error(error?.response?.data?.message || 'Failed to delete provider');
-    } finally {
-      setDeleting(null);
-    }
+  const handleDeleteProvider = (provider: AiProvider) => {
+    setConfirmDialog({
+      message: `Are you sure you want to delete "${provider.name}"? This will also delete all associated models, API key credentials, and group access permissions. This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          setDeleting(provider.id);
+          await adminAiProvidersService.delete(provider.id);
+          toast.success(`Provider "${provider.name}" deleted successfully`);
+          setProviders(providers.filter(p => p.id !== provider.id));
+        } catch (error: any) {
+          console.error('Error deleting provider:', error);
+          toast.error(error?.response?.data?.message || 'Failed to delete provider');
+        } finally {
+          setDeleting(null);
+        }
+      },
+    });
   };
 
   return (
@@ -387,6 +388,15 @@ export default function AiAdminPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {confirmDialog && (
+        <ConfirmDialog
+          open
+          description={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   );
 }

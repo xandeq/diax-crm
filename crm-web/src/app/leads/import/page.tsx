@@ -10,6 +10,7 @@ import { ArrowLeft, Code2, FileText, Loader2, Upload, Search, Cloud, Check, Aler
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface ImportCustomerRow {
   name: string;
@@ -268,7 +269,7 @@ export default function LeadsImportPage() {
       }
 
       if (customers.length === 0) {
-        alert('Nenhum contato válido encontrado para importar.');
+        toast.warning('Nenhum contato válido encontrado para importar.');
         return;
       }
 
@@ -290,7 +291,7 @@ export default function LeadsImportPage() {
           errors: []
         });
 
-        alert("Comando de importação do Apify enviado com sucesso! Os leads serão processados em background.");
+        toast.success("Comando de importação do Apify enviado com sucesso! Os leads serão processados em background.");
         setTimeout(() => {
           router.push('/leads');
         }, 1500);
@@ -311,7 +312,7 @@ export default function LeadsImportPage() {
         }, 3500);
       }
     } catch (error: any) {
-      alert(`Erro ao importar: ${error.message}`);
+      toast.error(`Erro ao importar: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -346,10 +347,10 @@ export default function LeadsImportPage() {
       setExtractorLeads(response.leads || []);
 
       if (!response.leads || response.leads.length === 0) {
-        alert('Nenhum lead encontrado com os filtros aplicados');
+        toast.warning('Nenhum lead encontrado com os filtros aplicados');
       }
     } catch (error: any) {
-      alert(error.message || 'Erro ao buscar leads do Extrator');
+      toast.error(error.message || 'Erro ao buscar leads do Extrator');
       console.error('Erro ao buscar leads:', error);
     } finally {
       setExtractorLoading(false);
@@ -376,7 +377,7 @@ export default function LeadsImportPage() {
 
   const importFromExtrator = async () => {
     if (extractorSelectedIds.size === 0) {
-      alert('Selecione ao menos um lead');
+      toast.warning('Selecione ao menos um lead');
       return;
     }
 
@@ -411,7 +412,7 @@ export default function LeadsImportPage() {
         }, 3500);
       }
     } catch (error: any) {
-      alert(`Erro ao importar: ${error.message}`);
+      toast.error(`Erro ao importar: ${error.message}`);
     } finally {
       setLoading(false);
     }

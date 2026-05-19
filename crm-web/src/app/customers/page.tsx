@@ -63,9 +63,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import * as z from 'zod';
 
 // ── Schema ───────────────────────────────────────────────────────────────────
@@ -134,6 +136,7 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   // Timeline panel
   const [timelineCustomer, setTimelineCustomer] = useState<Customer | null>(null);
@@ -278,32 +281,42 @@ export default function CustomersPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
-    try {
-      await deleteCustomer(id);
-      fetchCustomers();
-    } catch {
-      alert('Erro ao excluir cliente.');
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este cliente?',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await deleteCustomer(id);
+          fetchCustomers();
+        } catch {
+          toast.error('Erro ao excluir cliente.');
+        }
+      },
+    });
   };
 
-  const handleBulkDelete = async () => {
-    if (!confirm(`Deletar ${selectedRows.length} cliente(s)?`)) return;
-    try {
-      for (const customer of selectedRows) {
-        await deleteCustomer(customer.id);
-      }
-      fetchCustomers();
-      setSelectedRows([]);
-    } catch {
-      alert('Erro ao deletar clientes.');
-    }
+  const handleBulkDelete = () => {
+    setConfirmDialog({
+      message: `Deletar ${selectedRows.length} cliente(s)?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          for (const customer of selectedRows) {
+            await deleteCustomer(customer.id);
+          }
+          fetchCustomers();
+          setSelectedRows([]);
+        } catch {
+          toast.error('Erro ao deletar clientes.');
+        }
+      },
+    });
   };
 
   const handleWhatsApp = (customer: Customer) => {
     if (!customer.phone && !customer.whatsApp) {
-      alert('Este cliente nao possui numero de telefone/WhatsApp cadastrado.');
+      toast.warning('Este cliente não possui número de telefone/WhatsApp cadastrado.');
       return;
     }
     navigateToWhatsAppSend(router, {
@@ -945,7 +958,7 @@ export default function CustomersPage() {
         recipients={composerRecipients}
         title="Composer Profissional - Clientes"
         onQueued={(count) => {
-          alert(`Campanha enfileirada com sucesso para ${count} cliente(s).`);
+          toast.success(`Campanha enfileirada com sucesso para ${count} cliente(s).`);
           setSelectedRows([]);
         }}
       />
@@ -1005,7 +1018,7 @@ export default function CustomersPage() {
                       setTimelineCustomer({ ...timelineCustomer, status: newStatus });
                       fetchCustomers();
                     } catch (error) {
-                      alert('Erro ao atualizar status');
+                      toast.error('Erro ao atualizar status');
                     }
                   }}
                 />
@@ -1023,6 +1036,15 @@ export default function CustomersPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {confirmDialog && (
+        <ConfirmDialog
+          open
+          description={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   );
 }

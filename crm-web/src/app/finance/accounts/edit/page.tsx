@@ -4,6 +4,7 @@ import { AccountType, financeService } from '@/services/finance';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -59,7 +60,7 @@ function EditAccountContent() {
       setCurrentBalance(account.balance);
     } catch (err) {
       console.error(err);
-      alert('Erro ao carregar conta financeira');
+      toast.error('Erro ao carregar conta financeira');
       router.push('/finance/accounts');
     } finally {
       setLoading(false);
@@ -73,7 +74,7 @@ function EditAccountContent() {
       router.push('/finance/accounts');
     } catch (err) {
       console.error(err);
-      alert('Erro ao atualizar conta financeira');
+      toast.error('Erro ao atualizar conta financeira');
     }
   };
 
