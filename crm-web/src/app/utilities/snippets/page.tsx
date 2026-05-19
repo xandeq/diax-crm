@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { snippetService, type SnippetResponse } from '@/services/snippetService';
 import { AlertCircle, Copy, ExternalLink, Loader2, Trash2 } from 'lucide-react';
@@ -39,6 +40,7 @@ export default function SnippetsPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pageReady, setPageReady] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -118,16 +120,19 @@ export default function SnippetsPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    const confirmed = window.confirm('Deseja remover este snippet?');
-    if (!confirmed) return;
-
-    try {
-      await snippetService.deleteSnippet(id);
-      setSnippets((current) => current.filter((item) => item.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao deletar snippet');
-    }
+  function handleDelete(id: string) {
+    setConfirmDialog({
+      message: 'Deseja remover este snippet?',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await snippetService.deleteSnippet(id);
+          setSnippets((current) => current.filter((item) => item.id !== id));
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Erro ao deletar snippet');
+        }
+      },
+    });
   }
 
   if (authLoading || !pageReady) {
@@ -140,6 +145,14 @@ export default function SnippetsPage() {
 
   return (
     <div className="space-y-8">
+      {confirmDialog && (
+        <ConfirmDialog
+          open
+          description={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
       <div className="space-y-1">
         <Badge variant="section">Utilitários</Badge>
         <h2 className="text-3xl font-serif tracking-tight">Snippets</h2>

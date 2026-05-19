@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ export function ApiKeyConfigForm({ providerId, providerName, onSaved }: ApiKeyCo
   const [testResult, setTestResult] = useState<TestConnectionResultDto | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   // Load credential status on mount
   useEffect(() => {
@@ -57,28 +59,27 @@ export function ApiKeyConfigForm({ providerId, providerName, onSaved }: ApiKeyCo
 
     // Confirm if overwriting existing key
     if (status?.isConfigured) {
-      const confirmed = window.confirm(
-        `This will overwrite the existing API key for ${providerName}. Continue?`
-      );
-      if (!confirmed) return;
+      setConfirmDialog({
+        message: `This will overwrite the existing API key for ${providerName}. Continue?`,
+        onConfirm: async () => {
+          setConfirmDialog(null);
+          await doSaveApiKey();
+        },
+      });
+      return;
     }
+    await doSaveApiKey();
+  };
 
+  const doSaveApiKey = async () => {
     try {
       setSaving(true);
-      setTestResult(null); // Clear previous test result
-
+      setTestResult(null);
       await adminAiProvidersService.saveApiKey(providerId, apiKey);
-
       toast.success('API key saved successfully');
-
-      // Reload status to show updated last 4 digits
       await loadCredentialStatus();
-
-      // Clear input
       setApiKey('');
       setShowApiKey(false);
-
-      // Notify parent
       onSaved?.();
     } catch (error: any) {
       console.error('Error saving API key:', error);
@@ -135,6 +136,14 @@ export function ApiKeyConfigForm({ providerId, providerName, onSaved }: ApiKeyCo
 
   return (
     <div className="space-y-4">
+      {confirmDialog && (
+        <ConfirmDialog
+          open
+          description={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
       {/* Status Badge */}
       <div className="flex items-center gap-2">
         <Label>Status:</Label>

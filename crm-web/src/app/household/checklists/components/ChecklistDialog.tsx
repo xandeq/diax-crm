@@ -28,6 +28,7 @@ import {
     UpdateChecklistItemRequest
 } from '@/types/household';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface ChecklistDialogProps {
   isOpen: boolean;
@@ -112,7 +113,7 @@ export function ChecklistDialog({
       }
       onSave();
     } catch (error) {
-      alert('Erro ao salvar item.');
+      toast.error('Erro ao salvar item.');
     } finally {
       setLoading(false);
     }

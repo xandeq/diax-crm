@@ -7,6 +7,7 @@ import { BlogPostTable } from '@/components/admin/blog/BlogPostTable';
 import { BlogPostFilters } from '@/components/admin/blog/BlogPostFilters';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { BlogPost, BlogFilters } from '@/types/blog';
@@ -15,6 +16,7 @@ export default function BlogListPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
   const [filters, setFilters] = useState<BlogFilters>({
     page: 1,
     pageSize: 10,
@@ -71,22 +73,32 @@ export default function BlogListPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.')) {
-      return;
-    }
-
-    try {
-      await blogService.delete(id);
-      toast.success('Post excluído com sucesso!');
-      loadPosts();
-    } catch (error) {
-      toast.error('Erro ao excluir post');
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await blogService.delete(id);
+          toast.success('Post excluído com sucesso!');
+          loadPosts();
+        } catch (error) {
+          toast.error('Erro ao excluir post');
+        }
+      },
+    });
   };
 
   return (
     <div className="container mx-auto py-8">
+      {confirmDialog && (
+        <ConfirmDialog
+          open
+          description={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Blog Posts</CardTitle>

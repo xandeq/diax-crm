@@ -55,6 +55,7 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { ChecklistDialog } from './ChecklistDialog';
 
 interface ChecklistTableProps {
@@ -143,7 +144,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
       }
       onRefresh();
     } catch (error) {
-      alert('Erro ao atualizar status');
+      toast.error('Erro ao atualizar status');
     }
   };
 
@@ -158,7 +159,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
       setSelectedIds([]);
       onRefresh();
     } catch (error) {
-      alert('Erro ao executar ação em massa');
+      toast.error('Erro ao executar ação em massa');
     }
   };
 

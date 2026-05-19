@@ -9,10 +9,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { checklistService } from '@/services/checklistService';
 import { ChecklistCategory, CreateChecklistCategoryRequest } from '@/types/household';
 import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface CategoryManagerProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ export function CategoryManager({ isOpen, onClose, onRefresh }: CategoryManagerP
     displayOrder: 0
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     if (isOpen) loadCategories();
@@ -52,24 +55,38 @@ export function CategoryManager({ isOpen, onClose, onRefresh }: CategoryManagerP
       loadCategories();
       onRefresh();
     } catch (error) {
-      alert('Erro ao adicionar categoria');
+      toast.error('Erro ao adicionar categoria');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Excluir esta categoria? Itens nela podem ficar sem categoria.')) return;
-    try {
-      await checklistService.deleteCategory(id);
-      loadCategories();
-      onRefresh();
-    } catch (error) {
-      alert('Erro ao excluir categoria');
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      message: 'Excluir esta categoria? Itens nela podem ficar sem categoria.',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await checklistService.deleteCategory(id);
+          loadCategories();
+          onRefresh();
+        } catch (error) {
+          toast.error('Erro ao excluir categoria');
+        }
+      },
+    });
   };
 
   return (
+    <>
+    {confirmDialog && (
+      <ConfirmDialog
+        open
+        description={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog(null)}
+      />
+    )}
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -134,5 +151,6 @@ export function CategoryManager({ isOpen, onClose, onRefresh }: CategoryManagerP
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

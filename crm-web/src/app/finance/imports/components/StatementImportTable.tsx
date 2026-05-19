@@ -1,10 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { financeService, ImportStatus, StatementImport, StatementImportType } from "@/services/finance";
 import { ExternalLink, FileText, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { ImportStatusBadge } from "./ImportStatusBadge";
 
 interface StatementImportTableProps {
@@ -24,15 +27,21 @@ const formatDate = (dateString: string) => {
 };
 
 export function StatementImportTable({ imports, isLoading, onDeleteSuccess }: StatementImportTableProps) {
-  const handleDelete = async (id: string, fileName: string) => {
-    if (!confirm(`Deseja realmente excluir a importação "${fileName}"?`)) return;
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
-    try {
-      await financeService.deleteStatementImport(id);
-      if (onDeleteSuccess) onDeleteSuccess();
-    } catch (error: any) {
-      alert(error.message || "Erro ao excluir importação.");
-    }
+  const handleDelete = (id: string, fileName: string) => {
+    setConfirmDialog({
+      message: `Deseja realmente excluir a importação "${fileName}"?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await financeService.deleteStatementImport(id);
+          if (onDeleteSuccess) onDeleteSuccess();
+        } catch (error: any) {
+          toast.error(error.message || "Erro ao excluir importação.");
+        }
+      },
+    });
   };
 
   if (isLoading) {
@@ -52,6 +61,15 @@ export function StatementImportTable({ imports, isLoading, onDeleteSuccess }: St
   }
 
   return (
+    <>
+    {confirmDialog && (
+      <ConfirmDialog
+        open
+        description={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog(null)}
+      />
+    )}
     <div className="border rounded-md">
       <Table>
         <TableHeader>
@@ -112,5 +130,6 @@ export function StatementImportTable({ imports, isLoading, onDeleteSuccess }: St
         </TableBody>
       </Table>
     </div>
+    </>
   );
 }
