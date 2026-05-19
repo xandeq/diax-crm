@@ -6,8 +6,9 @@ import { LogsTable } from '@/components/logs/LogsTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AppLogFilterRequest, AppLogPagedResponse, AppLogStatsResponse, LogLevel, logLevelLabels, logsService } from '@/services/logs';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 const levelColorClasses: Record<LogLevel, string> = {
@@ -19,73 +20,46 @@ const levelColorClasses: Record<LogLevel, string> = {
 };
 
 export default function LogsPage() {
-  const [data, setData] = useState<AppLogPagedResponse | null>(null);
-  const [stats, setStats] = useState<AppLogStatsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<AppLogFilterRequest>({
-    pageNumber: 1,
-    pageSize: 50
-  });
+  const queryClient = useQueryClient();
+  const [filters, setFilters] = useState<AppLogFilterRequest>({ pageNumber: 1, pageSize: 50 });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    loadLogs();
-    loadStats();
-  }, []);
+  const { data, isLoading: loading, isError, error, refetch: refetchLogs } = useQuery({
+    queryKey: ['logs', filters],
+    queryFn: () => logsService.getFilteredLogs(filters),
+  });
 
-  async function loadLogs() {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await logsService.getFilteredLogs(filters);
-      setData(result);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar logs');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: stats, refetch: refetchStats } = useQuery({
+    queryKey: ['logStats'],
+    queryFn: () => logsService.getStats(),
+  });
 
-  async function loadStats() {
-    try {
-      const statsData = await logsService.getStats();
-      setStats(statsData);
-    } catch (err) {
-      console.error('Error loading stats:', err);
-    }
-  }
+  const errorMessage = isError ? (error instanceof Error ? error.message : 'Erro ao carregar logs') : null;
+
+  const deleteMutation = useMutation({
+    mutationFn: () => logsService.deleteAll(),
+    onSuccess: (result) => {
+      toast.success(`${result.deletedCount.toLocaleString('pt-BR')} logs excluídos com sucesso`);
+      setShowDeleteConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ['logs'] });
+      queryClient.invalidateQueries({ queryKey: ['logStats'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Erro ao excluir logs');
+    },
+  });
 
   const handleFilterChange = (newFilters: AppLogFilterRequest) => {
     setFilters(newFilters);
   };
 
   const handleApplyFilters = () => {
-    setFilters({ ...filters, pageNumber: 1 });
-    loadLogs();
+    setFilters((f) => ({ ...f, pageNumber: 1 }));
   };
 
   const handlePageChange = (page: number) => {
-    setFilters({ ...filters, pageNumber: page });
-    setTimeout(() => loadLogs(), 0);
+    setFilters((f) => ({ ...f, pageNumber: page }));
   };
-
-  async function handleDeleteAll() {
-    try {
-      setDeleting(true);
-      const result = await logsService.deleteAll();
-      toast.success(`${result.deletedCount.toLocaleString('pt-BR')} logs excluídos com sucesso`);
-      setShowDeleteConfirm(false);
-      loadLogs();
-      loadStats();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao excluir logs');
-    } finally {
-      setDeleting(false);
-    }
-  }
 
   return (
     <RoleGuard allowedRoles={['Admin']}>
@@ -100,12 +74,12 @@ export default function LogsPage() {
               variant="outline"
               className="text-red-600 border-red-200 hover:bg-red-50"
               onClick={() => setShowDeleteConfirm(true)}
-              disabled={deleting || loading}
+              disabled={deleteMutation.isPending || loading}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Excluir Todos
             </Button>
-            <Button onClick={() => { loadLogs(); loadStats(); }} variant="outline" disabled={loading}>
+            <Button onClick={() => { refetchLogs(); refetchStats(); }} variant="outline" disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
@@ -156,14 +130,14 @@ export default function LogsPage() {
         />
 
         {/* Error State */}
-        {error && (
+        {errorMessage && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-red-500" />
             <div>
               <p className="font-medium text-red-800">Erro ao carregar logs</p>
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-600">{errorMessage}</p>
             </div>
-            <Button variant="outline" size="sm" className="ml-auto" onClick={() => { loadLogs(); loadStats(); }}>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={() => { refetchLogs(); refetchStats(); }}>
               Tentar novamente
             </Button>
           </div>
@@ -223,15 +197,15 @@ export default function LogsPage() {
                 Esta ação é irreversível e não pode ser desfeita.
               </p>
               <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={deleteMutation.isPending}>
                   Cancelar
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={handleDeleteAll}
-                  disabled={deleting}
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
                 >
-                  {deleting ? (
+                  {deleteMutation.isPending ? (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                       Excluindo...
