@@ -1,3 +1,15 @@
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+export function formatDateShort(dateStr: string | null): string {
+  if (!dateStr) return '–';
+  try {
+    return format(parseISO(dateStr), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  } catch {
+    return dateStr;
+  }
+}
+
 /**
  * Formata uma string de data ISO para exibição local sem deslocamento de fuso horário.
  * @param dateString String de data (ex: 2026-01-02T00:00:00Z)

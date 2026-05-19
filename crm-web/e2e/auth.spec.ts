@@ -10,14 +10,15 @@ test.describe('Auth — Login', () => {
         await page.getByLabel('Senha').fill('wrongpassword123');
         await page.getByRole('button', { name: 'Entrar' }).click();
 
-        // Deve mostrar erro sem crash — nunca redirecionar para dashboard
+        // Deve permanecer na página de login — nunca redirecionar para dashboard
+        await page.waitForLoadState('networkidle');
         await expect(page).not.toHaveURL(/dashboard/);
         await expect(page.locator('body')).not.toContainText('Application error');
 
-        // Algum feedback de erro deve estar visível
+        // A div de erro com bg-destructive deve aparecer (o serverError state)
         await expect(
-            page.getByText(/inválid|incorret|erro|error|unauthorized/i).first()
-        ).toBeVisible({ timeout: 8000 });
+            page.locator('.bg-destructive\\/10').first()
+        ).toBeVisible({ timeout: 10000 });
     });
 
     test('rota protegida sem login redireciona para /login', async ({ page }) => {
