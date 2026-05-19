@@ -1,5 +1,6 @@
 'use client';
 
+import { CustomerFormDialog } from '@/components/customers/CustomerFormDialog';
 import { EmailCampaignComposerModal } from '@/components/email/EmailCampaignComposerModal';
 import { EmailTimeline } from '@/components/EmailTimeline';
 import { EngagementBadge } from '@/components/EngagementBadge';
@@ -21,16 +22,8 @@ import {
 import { TableActions } from '@/components/data-table/TableActions';
 import { LeadTimeline } from '@/components/customers/LeadTimeline';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Sheet,
   SheetContent,
@@ -40,14 +33,12 @@ import {
 import { exportToCSV } from '@/lib/export';
 import { navigateToWhatsAppSend, normalizePhoneBR } from '@/lib/whatsapp-navigation';
 import {
-  createCustomer,
   Customer,
   CustomerStatus,
   deleteCustomer,
   getCustomers,
   updateCustomer,
 } from '@/services/customers';
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Activity,
   ChevronDown,
@@ -66,26 +57,7 @@ import {
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import * as z from 'zod';
-
-// ── Schema ───────────────────────────────────────────────────────────────────
-
-const customerSchema = z.object({
-  name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  email: z.string().email('Email inválido'),
-  phone: z.string().optional(),
-  companyName: z.string().optional(),
-  personType: z.any(),
-  document: z.string().optional(),
-  whatsApp: z.string().optional(),
-  website: z.string().optional(),
-  notes: z.string().optional(),
-  tags: z.string().optional(),
-});
-
-type CustomerFormValues = z.infer<typeof customerSchema>;
 
 // ── Status Chips Config ──────────────────────────────────────────────────────
 
@@ -134,37 +106,10 @@ export default function CustomersPage() {
     Array<{ id: string; name: string; email: string }>
   >([]);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const { showConfirm, confirmDialogNode } = useConfirmDialog();
 
   // Timeline panel
   const [timelineCustomer, setTimelineCustomer] = useState<Customer | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<CustomerFormValues>({
-    resolver: zodResolver(customerSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      companyName: '',
-      personType: 0,
-      document: '',
-      whatsApp: '',
-      website: '',
-      notes: '',
-      tags: '',
-    },
-  });
-
-  const personTypeWatch = watch('personType');
 
   // ── Data Fetching ────────────────────────────────────────────────────────
 
@@ -249,35 +194,11 @@ export default function CustomersPage() {
 
   const handleOpenCreate = () => {
     setEditingCustomer(null);
-    reset({
-      name: '',
-      email: '',
-      phone: '',
-      companyName: '',
-      personType: 0,
-      document: '',
-      whatsApp: '',
-      website: '',
-      notes: '',
-      tags: '',
-    });
-    setFormError(null);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (customer: Customer) => {
     setEditingCustomer(customer);
-    setValue('name', customer.name);
-    setValue('email', customer.email || '');
-    setValue('phone', customer.phone || '');
-    setValue('companyName', customer.companyName || '');
-    setValue('personType', customer.personType);
-    setValue('document', customer.document || '');
-    setValue('whatsApp', customer.whatsApp || '');
-    setValue('website', customer.website || '');
-    setValue('notes', customer.notes || '');
-    setValue('tags', customer.tags || '');
-    setFormError(null);
     setIsModalOpen(true);
   };
 
@@ -351,29 +272,6 @@ export default function CustomersPage() {
       })),
       `clientes-${new Date().toISOString().split('T')[0]}`
     );
-  };
-
-  const onSubmit = async (data: CustomerFormValues) => {
-    setSubmitting(true);
-    setFormError(null);
-    try {
-      const payload = { ...data, personType: Number(data.personType) };
-      if (editingCustomer) {
-        await updateCustomer(editingCustomer.id, payload);
-      } else {
-        await createCustomer(payload);
-      }
-      setIsModalOpen(false);
-      fetchCustomers();
-    } catch (err) {
-      if (err instanceof Error) {
-        setFormError(err.message);
-      } else {
-        setFormError('Erro ao salvar cliente. Verifique os dados.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   // ── Column Definitions ───────────────────────────────────────────────────
@@ -789,159 +687,12 @@ export default function CustomersPage() {
       />
 
       {/* Customer Form Dialog */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Tipo de Pessoa */}
-              <div className="sm:col-span-2">
-                <Label className="mb-2 block">Tipo de Pessoa</Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      value="0"
-                      {...register('personType')}
-                      className="text-slate-900 focus:ring-slate-900"
-                    />
-                    <span className="text-sm text-slate-700">Pessoa Física</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      value="1"
-                      {...register('personType')}
-                      className="text-slate-900 focus:ring-slate-900"
-                    />
-                    <span className="text-sm text-slate-700">Pessoa Jurídica</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo *</Label>
-                <Input
-                  id="name"
-                  {...register('name')}
-                  placeholder="Nome do cliente"
-                />
-                {errors.name && (
-                  <span className="text-xs text-red-500">{errors.name.message}</span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  {...register('email')}
-                  placeholder="email@exemplo.com"
-                />
-                {errors.email && (
-                  <span className="text-xs text-red-500">{errors.email.message}</span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="document">
-                  {Number(personTypeWatch) === 1 ? 'CNPJ' : 'CPF'}
-                </Label>
-                <Input
-                  id="document"
-                  {...register('document')}
-                  placeholder={
-                    Number(personTypeWatch) === 1
-                      ? '00.000.000/0000-00'
-                      : '000.000.000-00'
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Empresa</Label>
-                <Input
-                  id="companyName"
-                  {...register('companyName')}
-                  placeholder="Nome da empresa"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  {...register('phone')}
-                  placeholder="(00) 0000-0000"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="whatsApp">WhatsApp</Label>
-                <Input
-                  id="whatsApp"
-                  {...register('whatsApp')}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  {...register('website')}
-                  placeholder="https://www.exemplo.com"
-                />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
-                <Input
-                  id="tags"
-                  {...register('tags')}
-                  placeholder="vip, recorrente, indicação"
-                />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="notes">Observações</Label>
-                <textarea
-                  id="notes"
-                  {...register('notes')}
-                  className="flex min-h-[80px] w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
-                  placeholder="Observações gerais sobre o cliente..."
-                />
-              </div>
-            </div>
-
-            {formError && (
-              <div className="p-3 rounded-md bg-red-50 text-red-600 text-sm">
-                {formError}
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsModalOpen(false)}
-                disabled={submitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {editingCustomer ? 'Salvar' : 'Criar Cliente'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CustomerFormDialog
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchCustomers}
+        editingCustomer={editingCustomer}
+      />
 
       {/* Email Composer */}
       <EmailCampaignComposerModal
