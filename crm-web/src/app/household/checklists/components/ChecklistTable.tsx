@@ -148,7 +148,7 @@ export function ChecklistTable({ categoryId, refreshTrigger, onRefresh, categori
     }
   };
 
-  const handleBulkAction = async (action: any, extraData?: any) => {
+  const handleBulkAction = async (action: 'markbought' | 'markcanceled' | 'archive' | 'unarchive' | 'reactivate' | 'delete' | 'changecategory' | 'changestatus', extraData?: Record<string, unknown>) => {
     if (selectedIds.length === 0) return;
     try {
       await checklistService.bulkAction({

@@ -161,8 +161,8 @@ export default function EmailMarketingPage() {
       setContacts(applyQualityFilters(data.items));
       setTotalCount(data.totalCount);
       setTotalPages(data.totalPages);
-    } catch (e: any) {
-      toast.error('Erro ao carregar contatos: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Erro ao carregar contatos: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
     } finally {
       setLoading(false);
     }
@@ -190,8 +190,8 @@ export default function EmailMarketingPage() {
 
       setSelectedIds(new Set(allIds));
       toast.success(`${allIds.length} contato(s) selecionado(s).`);
-    } catch (e: any) {
-      toast.error('Erro ao selecionar todos: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Erro ao selecionar todos: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
     } finally {
       setSelectingAll(false);
     }
@@ -292,8 +292,8 @@ export default function EmailMarketingPage() {
       }
       await sendTestEmail(campaignId, { subjectOverride: subject, bodyHtmlOverride: htmlBody });
       toast.success('E-mail de teste enviado para seu e-mail!');
-    } catch (e: any) {
-      toast.error('Erro ao enviar teste: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Erro ao enviar teste: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
     } finally {
       setSendingTest(false);
     }
@@ -448,8 +448,8 @@ export default function EmailMarketingPage() {
 
       // Recarrega campanhas para atualizar dropdown
       getEmailCampaigns(1, 20).then(data => setSavedCampaigns(data.items));
-    } catch (e: any) {
-      toast.error('Erro ao enviar: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Erro ao enviar: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
     } finally {
       setSending(false);
     }

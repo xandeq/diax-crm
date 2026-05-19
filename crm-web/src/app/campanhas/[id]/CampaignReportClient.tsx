@@ -134,8 +134,8 @@ function RecipientTable({
       setRecipients(data.items);
       setTotalPages(data.totalPages);
       setTotalCount(data.totalCount);
-    } catch (e: any) {
-      setError(e?.message ?? 'Erro ao carregar destinatários.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar destinatários.');
     } finally {
       setLoading(false);
     }
@@ -164,8 +164,8 @@ function RecipientTable({
       sessionStorage.setItem('remarketing_customer_ids', JSON.stringify(data.customerIds));
       sessionStorage.setItem('remarketing_label', filterLabel);
       router.push('/email-marketing');
-    } catch (e: any) {
-      toast.error('Erro ao obter IDs: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Erro ao obter IDs: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
     } finally {
       setCreatingRemarketing(false);
     }
@@ -326,8 +326,8 @@ export default function CampaignReportClient({ params }: { params: { id: string 
     try {
       const data = await getCampaignById(id);
       setCampaign(data);
-    } catch (e: any) {
-      setError(e?.message ?? 'Erro ao carregar campanha.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar campanha.');
     } finally {
       setLoading(false);
     }

@@ -214,8 +214,8 @@ export default function LeadsImportPage() {
     try {
       data = JSON.parse(jsonText);
       if (!Array.isArray(data)) throw new Error('JSON deve ser um array.');
-    } catch (e: any) {
-      throw new Error('JSON inválido: ' + e.message);
+    } catch (e: unknown) {
+      throw new Error('JSON inválido: ' + (e instanceof Error ? e.message : String(e)));
     }
 
     return data.map((item): ImportCustomerRow => {
@@ -779,7 +779,7 @@ export default function LeadsImportPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {extractorLeads.map((lead: any) => (
+                        {extractorLeads.map((lead) => (
                           <div
                             key={lead.id}
                             className="flex items-center p-3 border rounded hover:bg-slate-50 cursor-pointer transition"

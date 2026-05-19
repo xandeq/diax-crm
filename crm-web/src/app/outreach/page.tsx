@@ -2105,8 +2105,8 @@ export default function OutreachPage() {
     try {
       const data = await getOutreachDashboard();
       setDashboard(data);
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao carregar o dashboard de outreach.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao carregar o dashboard de outreach.');
     } finally {
       setDashboardLoading(false);
     }
@@ -2117,8 +2117,8 @@ export default function OutreachPage() {
     try {
       const data = await getOutreachConfig();
       setConfig(data);
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao carregar as configurações de outreach.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao carregar as configurações de outreach.');
     } finally {
       setConfigLoading(false);
     }
@@ -2129,8 +2129,8 @@ export default function OutreachPage() {
     try {
       const data = await getReadyLeads(50);
       setLeads(data);
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao carregar leads prontos.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao carregar leads prontos.');
     } finally {
       setLeadsLoading(false);
     }
@@ -2145,8 +2145,8 @@ export default function OutreachPage() {
       ]);
       setWhatsAppStatus(status);
       setWhatsAppLeads(readyLeads);
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao carregar dados do WhatsApp.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao carregar dados do WhatsApp.');
     } finally {
       setWhatsAppLoading(false);
     }
@@ -2191,8 +2191,8 @@ export default function OutreachPage() {
         `Segmentação concluída: ${result.totalProcessed} leads processados — ${result.hotCount} quentes, ${result.warmCount} mornos, ${result.coldCount} frios.`
       );
       await loadDashboard();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao executar a segmentação.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao executar a segmentação.');
     } finally {
       setSegmenting(false);
     }
@@ -2206,8 +2206,8 @@ export default function OutreachPage() {
         `Campanha enfileirada: ${result.queuedCount} emails agendados, ${result.skippedCount} ignorados.`
       );
       await loadDashboard();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao disparar a campanha de outreach.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao disparar a campanha de outreach.');
     } finally {
       setSending(false);
     }
@@ -2219,8 +2219,8 @@ export default function OutreachPage() {
       const updated = await updateOutreachConfig(data);
       setConfig(updated);
       toast.success('Configurações salvas com sucesso.');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao salvar as configurações.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar as configurações.');
     } finally {
       setSavingConfig(false);
     }
@@ -2235,8 +2235,8 @@ export default function OutreachPage() {
       } else {
         toast.error(result.error ?? 'Erro ao enviar mensagem WhatsApp.');
       }
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao enviar mensagem WhatsApp.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar mensagem WhatsApp.');
     } finally {
       setSendingManualWhatsApp(false);
     }
@@ -2251,8 +2251,8 @@ export default function OutreachPage() {
       );
       await loadDashboard();
       await loadWhatsAppData();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao enviar campanha WhatsApp.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar campanha WhatsApp.');
     } finally {
       setSendingWhatsAppCampaign(false);
     }
@@ -2267,8 +2267,8 @@ export default function OutreachPage() {
       );
       await loadDashboard();
       await loadWhatsAppData();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Erro ao enviar follow-up WhatsApp.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar follow-up WhatsApp.');
     } finally {
       setSendingWhatsAppFollowUp(false);
     }

@@ -104,8 +104,8 @@ export default function CampanhasPage() {
       const data = await getEmailCampaigns(p, PAGE_SIZE);
       setCampaigns(data.items);
       setTotalCount(data.totalCount);
-    } catch (e: any) {
-      setError(e?.message ?? 'Erro ao carregar campanhas.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Erro ao carregar campanhas.');
     } finally {
       setLoading(false);
     }

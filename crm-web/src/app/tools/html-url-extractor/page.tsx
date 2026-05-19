@@ -13,7 +13,7 @@ function extractUrlsFromJson(jsonText: string): string[] {
     const data = JSON.parse(jsonText);
     const urls = new Set<string>();
 
-    function traverse(obj: any) {
+    function traverse(obj: unknown) {
       if (typeof obj === 'string') {
         const trimmed = obj.trim();
         // Extrai todas as URLs do valor string
