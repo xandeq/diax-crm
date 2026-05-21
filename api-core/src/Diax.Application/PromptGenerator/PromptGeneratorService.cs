@@ -306,7 +306,11 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'.");
         }
 
-        var endpoint = $"{settings.BaseUrl.TrimEnd('/')}/messages";
+        // Normalize base URL: ensure /v1 is present before /messages
+        var baseUrl = settings.BaseUrl.TrimEnd('/');
+        if (!baseUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+            baseUrl += "/v1";
+        var endpoint = $"{baseUrl}/messages";
 
         var payload = new
         {
