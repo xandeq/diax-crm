@@ -237,6 +237,20 @@ public static class AiDataSeeder
             }),
 
         new ProviderSeed(
+            Key: "anthropic",
+            Name: "Anthropic",
+            BaseUrl: "https://api.anthropic.com/v1",
+            SupportsListModels: false,
+            Models: new()
+            {
+                new ModelSeed("claude-3-5-haiku-20241022",  "Claude 3.5 Haiku"),
+                new ModelSeed("claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet"),
+                new ModelSeed("claude-3-haiku-20240307",    "Claude 3 Haiku"),
+                new ModelSeed("claude-3-sonnet-20240229",   "Claude 3 Sonnet"),
+                new ModelSeed("claude-3-opus-20240229",     "Claude 3 Opus"),
+            }),
+
+        new ProviderSeed(
             Key: "openrouter",
             Name: "OpenRouter",
             BaseUrl: "https://openrouter.ai/api/v1",
