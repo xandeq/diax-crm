@@ -13,6 +13,7 @@ using Diax.Domain.Logs;
 using Diax.Domain.Snippets;
 using Diax.Domain.PromptGenerator;
 using Diax.Domain.AI;
+using Diax.Domain.AiChat;
 using Diax.Domain.UserGroups;
 using Diax.Domain.ApiKeys;
 using Diax.Domain.Blog;
@@ -87,6 +88,11 @@ public class DiaxDbContext : DbContext
     // Calendar
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<AppointmentLabel> AppointmentLabels => Set<AppointmentLabel>();
+
+    // AI Chat (página /ai-chat — proxy para Anthropic Messages API com histórico em DB)
+    public DbSet<AiConversation> AiConversations => Set<AiConversation>();
+    public DbSet<AiChatMessage> AiChatMessages => Set<AiChatMessage>();
+    public DbSet<AiChatAttachment> AiChatAttachments => Set<AiChatAttachment>();
 
     // AI & RBAC
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
@@ -220,6 +226,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<TaxDocument>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<TaskItem>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<SupportTicket>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<AiConversation>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.

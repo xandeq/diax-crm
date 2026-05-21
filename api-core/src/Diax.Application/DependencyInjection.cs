@@ -9,6 +9,7 @@ using Diax.Application.Household;
 using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using Diax.Application.AI;
+using Diax.Application.AiChat;
 using Diax.Application.AI.EmailOptimization;
 using Diax.Application.AI.LeadPersona;
 using Diax.Application.AI.OutreachAbTest;
@@ -101,6 +102,9 @@ public static class DependencyInjection
 
         // AI Usage Tracking Service
         services.AddScoped<IAiUsageTrackingService, AiUsageTrackingService>();
+
+        // ===== AI CHAT (página /ai-chat) =====
+        services.AddScoped<IAiChatService, AiChatService>();
 
         // AI Image Generation Service
         services.AddScoped<IImageGenerationService, ImageGenerationService>();

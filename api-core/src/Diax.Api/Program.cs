@@ -227,7 +227,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// Rate Limiting — proteção contra brute force no login
+// Rate Limiting — proteção contra brute force no login + throttling do /ai-chat
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("login", limiterOptions =>
@@ -237,8 +237,47 @@ builder.Services.AddRateLimiter(options =>
         limiterOptions.QueueLimit = 0;
         limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
     });
+
+    // /ai-chat: 60 req/min por usuário (CRUD + listagem)
+    options.AddPolicy("ai-chat", httpContext =>
+    {
+        var partitionKey = ResolveAiChatPartitionKey(httpContext);
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 60,
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            });
+    });
+
+    // /ai-chat/stream: máximo 3 streams simultâneos por usuário
+    options.AddPolicy("ai-chat-stream", httpContext =>
+    {
+        var partitionKey = ResolveAiChatPartitionKey(httpContext);
+        return RateLimitPartition.GetConcurrencyLimiter(
+            partitionKey,
+            _ => new ConcurrencyLimiterOptions
+            {
+                PermitLimit = 3,
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            });
+    });
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
+
+static string ResolveAiChatPartitionKey(HttpContext ctx)
+{
+    var userId = ctx.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+              ?? ctx.User?.FindFirst("sub")?.Value
+              ?? ctx.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+    if (!string.IsNullOrWhiteSpace(userId)) return $"user:{userId}";
+    return $"ip:{ctx.Connection.RemoteIpAddress}";
+}
 
 // Health Checks
 builder.Services.AddHealthChecks()

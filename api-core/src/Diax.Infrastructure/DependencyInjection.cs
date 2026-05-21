@@ -33,6 +33,9 @@ using Diax.Infrastructure.Email;
 using Diax.Infrastructure.EmailImages;
 using Diax.Infrastructure.WhatsApp;
 using Diax.Application.AI;
+using Diax.Application.AiChat;
+using Diax.Domain.AiChat;
+using Diax.Infrastructure.AiChat;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -275,6 +278,12 @@ public static class DependencyInjection
 
         // Register AnthropicClient as typed HttpClient
         services.AddHttpClient<IAnthropicClient, AnthropicClient>();
+
+        // Register AnthropicChatClient (raw streaming SSE for /ai-chat page)
+        services.AddHttpClient<IAnthropicChatClient, AnthropicChatClient>();
+
+        // AI Chat repository
+        services.AddScoped<IAiChatRepository, AiChatRepository>();
 
         // Register AnthropicTextTransformClient
         services.AddHttpClient<AnthropicTextTransformClient>();
