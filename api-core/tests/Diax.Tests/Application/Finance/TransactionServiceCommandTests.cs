@@ -102,30 +102,26 @@ public class TransactionServiceCommandTests
     public async Task CreateAsync_ExpenseCreditCard_DoesNotDebitAccount()
     {
         var userId = Guid.NewGuid();
-        var account = NewAccount(userId, 1000m);
-        SetupAccount(account, userId);
 
         var cardId = Guid.NewGuid();
         _invoiceRepo.Setup(r => r.GetByCardAndPeriodAsync(cardId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((CreditCardInvoice?)null);
 
+        // Credit card expenses must NOT have FinancialAccountId — they are tracked via invoice
         var request = new CreateTransactionRequest(
             "Amazon", 350m, DateTime.UtcNow,
             TransactionType.Expense, PaymentMethod.CreditCard,
-            null, false, account.Id, CreditCardId: cardId);
+            null, false, FinancialAccountId: null, CreditCardId: cardId);
 
         var result = await BuildService().CreateAsync(request, userId);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(1000m, account.Balance); // saldo não muda para cartão de crédito
     }
 
     [Fact]
     public async Task CreateAsync_ExpenseCreditCard_AutoLinksInvoice_WhenFound()
     {
         var userId = Guid.NewGuid();
-        var account = NewAccount(userId, 1000m);
-        SetupAccount(account, userId);
 
         var cardId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
@@ -134,10 +130,11 @@ public class TransactionServiceCommandTests
         _invoiceRepo.Setup(r => r.GetByCardAndPeriodAsync(cardId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(invoice);
 
+        // Credit card expenses must NOT have FinancialAccountId
         var request = new CreateTransactionRequest(
             "Compra Cartão", 200m, new DateTime(2026, 5, 10),
             TransactionType.Expense, PaymentMethod.CreditCard,
-            null, false, account.Id, CreditCardId: cardId);
+            null, false, FinancialAccountId: null, CreditCardId: cardId);
 
         Transaction? added = null;
         _txRepo.Setup(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
@@ -330,9 +327,10 @@ public class TransactionServiceCommandTests
     public async Task MarkAsPendingAsync_ClearsPaidDate()
     {
         var userId = Guid.NewGuid();
+        // BankTransfer expenses require a FinancialAccountId (domain constraint)
         var tx = Transaction.CreateExpense("Conta Luz", 200m, DateTime.UtcNow,
             PaymentMethod.BankTransfer, null, false, userId,
-            null, null, null, TransactionStatus.Paid, DateTime.UtcNow, null, null, false, false);
+            null, null, Guid.NewGuid(), TransactionStatus.Paid, DateTime.UtcNow, null, null, false, false);
 
         _txRepo.Setup(r => r.GetByIdAndUserAsync(tx.Id, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(tx);

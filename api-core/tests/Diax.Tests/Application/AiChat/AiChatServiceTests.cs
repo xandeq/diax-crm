@@ -99,10 +99,9 @@ public class AiChatServiceStreamTests : AiChatServiceTestBase
         // AddAsync deve ter sido chamado 1x (nova conversa)
         Repo.Verify(r => r.AddAsync(It.IsAny<AiConversation>(), It.IsAny<CancellationToken>()), Times.Once);
 
-        // UpdateAsync deve ter sido chamado para persistir resposta final
-        Repo.Verify(r => r.UpdateAsync(It.IsAny<AiConversation>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-
-        // SaveChangesAsync deve ter sido chamado múltiplas vezes (msg user, placeholder, final, título)
+        // A implementação usa EF change tracking + SaveChangesAsync diretamente
+        // (sem chamar UpdateAsync para conv — evita DbUpdateConcurrencyException).
+        // Verificamos que SaveChangesAsync foi chamado: msg_user, placeholder, final, título
         Uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeast(3));
     }
 }

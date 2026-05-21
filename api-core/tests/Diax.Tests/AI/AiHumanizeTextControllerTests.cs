@@ -3,11 +3,13 @@ using Diax.Api.Controllers.V1;
 using Diax.Application.Ai.HumanizeText;
 using Diax.Application.AI;
 using Diax.Domain.Auth;
+using Diax.Domain.Common;
 using Diax.Infrastructure.Data;
 using Diax.Shared.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -23,7 +25,7 @@ public class AiHumanizeTextControllerTests
         var catalogService = new Mock<IAiCatalogService>(MockBehavior.Strict);
         var service = new Mock<IHumanizeTextService>(MockBehavior.Strict);
 
-        var controller = CreateController(service.Object, catalogService.Object, db, user.Email);
+        var controller = CreateController(service.Object, catalogService.Object, db, user.Email, user.Id);
 
         var result = await controller.Humanize(
             new HumanizeTextRequestDto("openai", null, "friendly", "texto"),
@@ -45,7 +47,7 @@ public class AiHumanizeTextControllerTests
             .Setup(x => x.ValidateUserAccessAsync(user.Id, "openai", "gpt-4o-mini", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var controller = CreateController(service.Object, catalogService.Object, db, user.Email);
+        var controller = CreateController(service.Object, catalogService.Object, db, user.Email, user.Id);
 
         var result = await controller.Humanize(
             new HumanizeTextRequestDto("openai", "gpt-4o-mini", "friendly", "texto"),
@@ -72,7 +74,7 @@ public class AiHumanizeTextControllerTests
             .Setup(x => x.HumanizeAsync(It.IsAny<HumanizeTextRequestDto>(), user.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ArgumentException("payload inválido"));
 
-        var controller = CreateController(service.Object, catalogService.Object, db, user.Email);
+        var controller = CreateController(service.Object, catalogService.Object, db, user.Email, user.Id);
 
         var result = await controller.Humanize(
             new HumanizeTextRequestDto("openai", "gpt-4o-mini", "friendly", "texto"),
@@ -86,8 +88,18 @@ public class AiHumanizeTextControllerTests
         IHumanizeTextService service,
         IAiCatalogService catalogService,
         DiaxDbContext db,
-        string email)
+        string email,
+        Guid userId = default)
     {
+        // GetCurrentUserId() uses HttpContext.RequestServices.GetService<ICurrentUserService>().
+        // DefaultHttpContext.RequestServices is null by default → ArgumentNullException.
+        // Register a mock ICurrentUserService so the controller can resolve the user ID.
+        var mockCurrentUser = new Mock<ICurrentUserService>();
+        mockCurrentUser.Setup(x => x.UserId).Returns(userId == default ? Guid.NewGuid() : userId);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(mockCurrentUser.Object);
+
         var controller = new AiHumanizeTextController(
             service,
             catalogService,
@@ -101,7 +113,8 @@ public class AiHumanizeTextControllerTests
                 User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                         new[] { new Claim(ClaimTypes.Email, email) },
-                        authenticationType: "TestAuth"))
+                        authenticationType: "TestAuth")),
+                RequestServices = services.BuildServiceProvider()
             }
         };
 

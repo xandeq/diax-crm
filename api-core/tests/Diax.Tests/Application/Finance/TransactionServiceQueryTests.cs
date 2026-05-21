@@ -37,9 +37,18 @@ public class TransactionServiceQueryTests
             Guid.NewGuid(), userId, null, null);
 
     private static Transaction MakeExpense(Guid userId, decimal amount = 200m, PaymentMethod pm = PaymentMethod.DebitCard)
-        => Transaction.CreateExpense("Mercado", amount, DateTime.UtcNow,
+    {
+        // CreditCard expenses require CreditCardId and no FinancialAccountId;
+        // all other payment methods require FinancialAccountId and no CreditCardId.
+        if (pm == PaymentMethod.CreditCard)
+            return Transaction.CreateExpense("Mercado", amount, DateTime.UtcNow,
+                pm, null, false, userId,
+                Guid.NewGuid(), null, null, TransactionStatus.Pending, null, null, null, false, false);
+
+        return Transaction.CreateExpense("Mercado", amount, DateTime.UtcNow,
             pm, null, false, userId,
             null, null, Guid.NewGuid(), TransactionStatus.Pending, null, null, null, false, false);
+    }
 
     // ── GetAllAsync ─────────────────────────────────────────────
 
