@@ -37,10 +37,7 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
   const [loadingConversations, setLoadingConversations] = useState(true);
 
   // ── Active conversation ────────────────────────────────────────────────────
-  const [activeId, setActiveId] = useState<string | null>(
-    // Don't use the placeholder segment that generateStaticParams emits
-    initialConversationId === 'placeholder' ? null : (initialConversationId ?? null),
-  );
+  const [activeId, setActiveId] = useState<string | null>(initialConversationId ?? null);
   const [currentConversation, setCurrentConversation] = useState<ConversationDetail | null>(null);
   const [loadingConversation, setLoadingConversation] = useState(false);
 
@@ -102,7 +99,7 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
     } catch {
       toast.error('Conversa não encontrada');
       setActiveId(null);
-      router.replace('/ai-chat/');
+      router.replace('/ai-chat/');   // drop ?id= param on not-found
     } finally {
       setLoadingConversation(false);
     }
@@ -117,6 +114,7 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
     setCurrentConversation(null);
     setStreamingContent('');
     setIsStreaming(false);
+    // Query-param routing: keeps everything on /ai-chat/ (the single static page)
     router.push('/ai-chat/');
   }
 
@@ -127,7 +125,8 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
     setActiveId(id);
     setIsStreaming(false);
     setStreamingContent('');
-    router.push(`/ai-chat/${id}/`);
+    // ?id= avoids dynamic path segments that would 404 on static hosting
+    router.push(`/ai-chat/?id=${id}`);
   }
 
   async function handleArchiveConversation(id: string) {
@@ -203,7 +202,8 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
             realMessageId = chunk.messageId ?? null;
             if (realConversationId && realConversationId !== activeId) {
               setActiveId(realConversationId);
-              router.replace(`/ai-chat/${realConversationId}/`);
+              // Use ?id= query param — static export can't serve /ai-chat/{uuid}/ paths
+              router.replace(`/ai-chat/?id=${realConversationId}`);
             }
             break;
           }
