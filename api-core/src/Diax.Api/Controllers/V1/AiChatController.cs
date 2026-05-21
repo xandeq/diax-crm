@@ -14,7 +14,7 @@ namespace Diax.Api.Controllers.V1;
 /// </summary>
 [ApiController]
 [ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/ai/[action]")]
+[Route("api/v{version:apiVersion}/ai")]
 [Route("api/ai")] // alias sem versão para compatibilidade com o frontend
 [Produces("application/json")]
 [Authorize]
