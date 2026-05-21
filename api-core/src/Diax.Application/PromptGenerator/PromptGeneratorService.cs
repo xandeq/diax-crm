@@ -59,7 +59,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
     /// </summary>
     private static readonly string[] TextLlmFallbackOrder = new[]
     {
-        "deepseek", "openrouter", "gemini", "perplexity", "chatgpt"
+        "deepseek", "openrouter", "anthropic", "gemini", "perplexity", "chatgpt"
     };
 
     public async Task<string> GenerateAsync(string rawPrompt, string provider, string promptType, string? model = null)
@@ -85,8 +85,10 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
 
         foreach (var currentProvider in providersToTry)
         {
+            bool isOriginalProvider = currentProvider == normalizedProvider;
+
             // Only pass the explicit model for the originally requested provider
-            var currentModel = currentProvider == normalizedProvider ? model : null;
+            var currentModel = isOriginalProvider ? model : null;
 
             ProviderSettings settings;
             try
@@ -110,14 +112,17 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             try
             {
                 _logger.LogInformation(
-                    "Prompt generation attempt. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. RawPromptLength: {Length}",
-                    currentProvider, settings.Model, normalizedPromptType, rawPrompt.Length);
+                    "Prompt generation attempt. Provider: {Provider}. Model: {Model}. PromptType: {PromptType}. RawPromptLength: {Length}. IsOriginal: {IsOriginal}",
+                    currentProvider, settings.Model, normalizedPromptType, rawPrompt.Length, isOriginalProvider);
 
-                var finalPrompt = currentProvider == "gemini"
-                    ? await SendGeminiPromptAsync(settings, metaPrompt, rawPrompt)
-                    : await SendPromptAsync(settings, metaPrompt, rawPrompt);
+                var finalPrompt = currentProvider switch
+                {
+                    "gemini" => await SendGeminiPromptAsync(settings, metaPrompt, rawPrompt),
+                    "anthropic" => await SendAnthropicPromptAsync(settings, metaPrompt, rawPrompt),
+                    _ => await SendPromptAsync(settings, metaPrompt, rawPrompt)
+                };
 
-                if (currentProvider != normalizedProvider)
+                if (!isOriginalProvider)
                 {
                     _logger.LogWarning(
                         "Prompt generation succeeded via FALLBACK provider {FallbackProvider} (original: {OriginalProvider}).",
@@ -138,6 +143,14 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
                 _logger.LogWarning(
                     "Provider {Provider} failed with retryable error ({ErrorType}): {Message}. Trying next provider...",
                     currentProvider, ex.GetType().Name, ex.Message);
+            }
+            catch (ArgumentException ex) when (!isOriginalProvider)
+            {
+                // Config/validation error on a FALLBACK provider — skip silently, don't stop the chain
+                lastException = ex;
+                _logger.LogWarning(
+                    "Fallback provider {Provider} skipped due to configuration/validation error: {Message}",
+                    currentProvider, ex.Message);
             }
         }
 
@@ -268,6 +281,97 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         }
 
         throw new InvalidOperationException("Resposta inválida do Google Gemini.");
+    }
+
+    private async Task<string> SendAnthropicPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
+    {
+        // Validate model against database
+        var isValidModel = await _modelValidator.IsValidModelAsync("anthropic", settings.Model);
+        if (!isValidModel)
+        {
+            var validModels = await _modelValidator.GetActiveModelKeysAsync("anthropic");
+            if (validModels.Count == 0)
+            {
+                // No models in DB → treat as API key/config error (retryable)
+                throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'.");
+            }
+            var errorMessage = $"Modelo Anthropic '{settings.Model}' não encontrado. Modelos disponíveis: {string.Join(", ", validModels)}";
+            _logger.LogWarning("Invalid Anthropic model requested: {Model}", settings.Model);
+            throw new ArgumentException(errorMessage);
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.ApiKey))
+        {
+            _logger.LogError("API Key missing for Anthropic provider.");
+            throw new InvalidOperationException($"API key not configured for provider '{settings.ProviderName}'.");
+        }
+
+        var endpoint = $"{settings.BaseUrl.TrimEnd('/')}/messages";
+
+        var payload = new
+        {
+            model = settings.Model,
+            max_tokens = 4096,
+            system = metaPrompt,
+            messages = new[]
+            {
+                new { role = "user", content = rawPrompt }
+            }
+        };
+
+        var timeoutSeconds = GetTimeoutSeconds();
+        using var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Add("x-api-key", settings.ApiKey);
+        request.Headers.Add("anthropic-version", "2023-06-01");
+
+        _logger.LogDebug(
+            "Preparing Anthropic request. Endpoint: {Endpoint}. Model: {Model}",
+            endpoint, settings.Model);
+
+        using var response = await client.SendAsync(request);
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning(
+                "Anthropic prompt generation failed. Status: {StatusCode}. Body: {Body}",
+                (int)response.StatusCode, TruncateForLog(responseBody, 1000));
+            throw new PromptGeneratorException(
+                settings.ProviderName,
+                (int)response.StatusCode,
+                ExtractErrorMessage(responseBody, settings.ProviderName),
+                responseBody);
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(responseBody);
+            var root = document.RootElement;
+            if (root.TryGetProperty("content", out var content) &&
+                content.ValueKind == JsonValueKind.Array &&
+                content.GetArrayLength() > 0)
+            {
+                var firstItem = content[0];
+                if (firstItem.TryGetProperty("text", out var text))
+                {
+                    var result = text.GetString();
+                    if (!string.IsNullOrWhiteSpace(result))
+                        return result.Trim();
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Error parsing Anthropic response");
+        }
+
+        throw new InvalidOperationException("Resposta inválida da Anthropic.");
     }
 
     private async Task<string> SendPromptAsync(ProviderSettings settings, string metaPrompt, string rawPrompt)
@@ -468,6 +572,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
             "google" => "gemini",
             "openai" => "chatgpt",
             "gpt" => "chatgpt",
+            "claude" => "anthropic",
             _ => normalized
         };
     }
@@ -511,6 +616,11 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
                 "gemini",
                 _settings.Gemini,
                 "https://generativelanguage.googleapis.com/v1beta",
+                model),
+            "anthropic" or "claude" => BuildSettings(
+                "anthropic",
+                _settings.Anthropic,
+                "https://api.anthropic.com/v1",
                 model),
             "perplexity" => BuildSettings(
                 "perplexity",
@@ -597,6 +707,7 @@ public class PromptGeneratorService : IApplicationService, IPromptGeneratorServi
         {
             "chatgpt" => "openai",
             "gemini" => "gemini",
+            "anthropic" or "claude" => "anthropic",
             _ => providerName
         };
     }
