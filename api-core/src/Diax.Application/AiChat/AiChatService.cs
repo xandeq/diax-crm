@@ -253,6 +253,7 @@ public class AiChatService : IAiChatService
         AnthropicUsage? finalUsage = null;
         string? stopReason = null;
         bool errored = false;
+        bool wasCancelled = false;
 
         // Cria mensagem placeholder do assistente — será atualizada ao final com usage + cost.
         // Mesmo padrão do userMessage: via repositório direto para evitar UPDATE em conv.
@@ -295,6 +296,7 @@ public class AiChatService : IAiChatService
                 {
                     _logger.LogInformation("[AiChatService] Stream cancelled by client");
                     loopCancelled = true;
+                    wasCancelled = true;
                     hasNext = false;
                 }
                 catch (Exception ex)
@@ -349,6 +351,17 @@ public class AiChatService : IAiChatService
         {
             if (enumerator is not null)
                 await enumerator.DisposeAsync();
+        }
+
+        // ----- Cancellation guard: remove placeholder para não poluir a conversa -----
+        if (wasCancelled)
+        {
+            // Cliente desconectou antes de receber resposta completa.
+            // Remove o placeholder vazio/parcial do assistente — não há dado útil a persistir.
+            // Usa CancellationToken.None pois o token original já foi cancelado.
+            await _repository.DeleteMessageAsync(assistantMessage, CancellationToken.None);
+            await _uow.SaveChangesAsync(CancellationToken.None);
+            yield break;
         }
 
         // ----- Persiste resposta final + usage -----

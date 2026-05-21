@@ -63,6 +63,13 @@ public class AiChatRepository : Repository<AiConversation>, IAiChatRepository
         await Context.Set<AiChatMessage>().AddAsync(message, cancellationToken);
     }
 
+    public Task DeleteMessageAsync(AiChatMessage message, CancellationToken cancellationToken = default)
+    {
+        // Remove diretamente do DbSet sem passar pela navigation property da conversa.
+        Context.Set<AiChatMessage>().Remove(message);
+        return Task.CompletedTask;
+    }
+
     public async Task<(int InputTokens, int OutputTokens, int CacheReadTokens, int CacheCreationTokens, decimal CostUsd)>
         GetMonthlyUsageAsync(
             Guid userId,

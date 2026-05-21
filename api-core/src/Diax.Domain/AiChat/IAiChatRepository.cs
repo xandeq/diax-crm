@@ -33,6 +33,12 @@ public interface IAiChatRepository : IRepository<AiConversation>
     /// </summary>
     Task AddMessageAsync(AiChatMessage message, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Remove uma mensagem diretamente do DbSet (sem passar pela navigation property da conversa).
+    /// Usado para apagar o placeholder do assistente quando o cliente cancela antes de receber resposta.
+    /// </summary>
+    Task DeleteMessageAsync(AiChatMessage message, CancellationToken cancellationToken = default);
+
     /// <summary>Somatório de tokens e custo USD do usuário no mês corrente (UTC).</summary>
     Task<(int InputTokens, int OutputTokens, int CacheReadTokens, int CacheCreationTokens, decimal CostUsd)>
         GetMonthlyUsageAsync(
