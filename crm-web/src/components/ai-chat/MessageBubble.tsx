@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/types/ai-chat';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -39,7 +40,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
           <div className="prose prose-sm prose-zinc max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+            >
               {message.content}
             </ReactMarkdown>
           </div>

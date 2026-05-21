@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 import {
   listConversations,
@@ -50,6 +51,9 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
 
   // ── Model ──────────────────────────────────────────────────────────────────
   const [selectedModel, setSelectedModel] = useState<AnthropicModelId>(DEFAULT_MODEL);
+
+  // ── Mobile sidebar ─────────────────────────────────────────────────────────
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ── Effects ────────────────────────────────────────────────────────────────
 
@@ -336,15 +340,22 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
   return (
     // -mx-6 removes the px-6 from the root layout; h-full fills flex-1 main
     <div className="flex -mx-6 h-full overflow-hidden border-t border-zinc-100">
-      {/* Left sidebar */}
-      <ConversationSidebar
-        conversations={conversations}
-        activeId={activeId}
-        onSelect={handleSelectConversation}
-        onNew={handleNewConversation}
-        onArchive={handleArchiveConversation}
-        loading={loadingConversations}
-      />
+      {/* Left sidebar — hidden on mobile unless toggled */}
+      <div className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex flex-col absolute md:relative inset-0 md:inset-auto z-30 md:z-auto`}>
+        <ConversationSidebar
+          conversations={conversations}
+          activeId={activeId}
+          onSelect={(id) => { handleSelectConversation(id); setSidebarOpen(false); }}
+          onNew={() => { handleNewConversation(); setSidebarOpen(false); }}
+          onArchive={handleArchiveConversation}
+          loading={loadingConversations}
+        />
+        {/* Mobile backdrop */}
+        <div
+          className="md:hidden fixed inset-0 -z-10 bg-black/40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      </div>
 
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-white">
@@ -362,6 +373,24 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
           </div>
         ) : (
           <>
+            {/* Chat header bar (mobile sidebar toggle + title) */}
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-100 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((o) => !o)}
+                className="md:hidden p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 transition-colors"
+                title="Conversas"
+              >
+                {sidebarOpen ? (
+                  <PanelLeftClose className="w-4 h-4" />
+                ) : (
+                  <PanelLeftOpen className="w-4 h-4" />
+                )}
+              </button>
+              <span className="text-xs text-zinc-400 truncate flex-1 text-center md:text-left">
+                {currentConversation?.title ?? 'Nova conversa'}
+              </span>
+            </div>
             <ChatMessages
               messages={currentConversation?.messages ?? []}
               streamingContent={streamingContent}
