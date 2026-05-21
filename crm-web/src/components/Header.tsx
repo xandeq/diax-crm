@@ -120,6 +120,11 @@ export function Header() {
                   IA
                 </button>
                 <div role="menu" className={dropdownClass}>
+                  <Link href="/ai-chat/" className={menuItemClass} role="menuitem">
+                    Claude Chat
+                    <span className="ml-1.5 rounded bg-emerald-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
+                  </Link>
+                  <div className={separatorClass}></div>
                   <Link href="/utilities/image-generation" className={menuItemClass} role="menuitem">Geração de Imagens</Link>
                   <Link href="/utilities/prompt-generator" className={menuItemClass} role="menuitem">Gerador de Prompts</Link>
                   <Link href="/utilities/humanize-text" className={menuItemClass} role="menuitem">Humanizar Texto</Link>
@@ -237,6 +242,7 @@ export function Header() {
             </MobileSection>
 
             <MobileSection label="IA">
+              <Link href="/ai-chat/" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100 font-medium" onClick={() => setMobileOpen(false)}>Claude Chat</Link>
               <Link href="/utilities/image-generation" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Geração de Imagens</Link>
               <Link href="/utilities/prompt-generator" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Gerador de Prompts</Link>
               <Link href="/utilities/humanize-text" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Humanizar Texto</Link>
