@@ -51,8 +51,9 @@ export function streamChat(options: StreamChatOptions): () => void {
         method: 'POST',
         body: JSON.stringify(request),
         headers: {
+          // Cache-Control intentionally omitted: native EventSource sends it,
+          // but fetch()-based SSE does not need it, and it triggers CORS preflight.
           Accept: 'text/event-stream',
-          'Cache-Control': 'no-cache',
         },
         signal: controller.signal,
       });

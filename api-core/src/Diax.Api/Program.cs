@@ -395,7 +395,13 @@ app.Use(async (context, next) =>
         {
             context.Response.Headers.Append("Access-Control-Allow-Origin", origin);
             context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-            context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-Api-Key, X-Correlation-Id");
+            // Mirror whatever headers the browser asked for (same as AllowAnyHeader() in CORS policy).
+            // A static whitelist breaks whenever a new header is added (e.g. Cache-Control for SSE).
+            var requestedHeaders = context.Request.Headers["Access-Control-Request-Headers"].ToString();
+            var allowedHeaders = string.IsNullOrWhiteSpace(requestedHeaders)
+                ? "Content-Type, Authorization, X-Requested-With, X-Api-Key, X-Correlation-Id, Cache-Control, Accept"
+                : requestedHeaders;
+            context.Response.Headers.Append("Access-Control-Allow-Headers", allowedHeaders);
             context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
             context.Response.Headers.Append("Access-Control-Max-Age", "3600");
         }
