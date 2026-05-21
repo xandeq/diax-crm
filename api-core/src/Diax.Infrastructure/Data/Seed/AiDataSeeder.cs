@@ -80,6 +80,15 @@ public static class AiDataSeeder
             "google/imagen-3",                           // does not exist in OR
             "openai/gpt-image-1",                        // does not exist in OR
         },
+        ["anthropic"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            // Claude 3.x series removed from API (not_found_error 404 as of 2026-05)
+            "claude-3-haiku-20240307",
+            "claude-3-sonnet-20240229",
+            "claude-3-opus-20240229",
+            "claude-3-5-haiku-20241022",
+            "claude-3-5-sonnet-20241022",
+        },
         ["gemini"] = new(StringComparer.OrdinalIgnoreCase)
         {
             "gemini-2.5-flash",       // chat model, does NOT output images
@@ -243,11 +252,10 @@ public static class AiDataSeeder
             SupportsListModels: false,
             Models: new()
             {
-                new ModelSeed("claude-3-5-haiku-20241022",  "Claude 3.5 Haiku"),
-                new ModelSeed("claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet"),
-                new ModelSeed("claude-3-haiku-20240307",    "Claude 3 Haiku"),
-                new ModelSeed("claude-3-sonnet-20240229",   "Claude 3 Sonnet"),
-                new ModelSeed("claude-3-opus-20240229",     "Claude 3 Opus"),
+                // Claude 4.5 family (current generation, confirmed working 2026-05)
+                new ModelSeed("claude-haiku-4-5",    "Claude Haiku 4.5 (rápido)"),
+                new ModelSeed("claude-sonnet-4-5",   "Claude Sonnet 4.5"),
+                new ModelSeed("claude-opus-4-5",     "Claude Opus 4.5"),
             }),
 
         new ProviderSeed(

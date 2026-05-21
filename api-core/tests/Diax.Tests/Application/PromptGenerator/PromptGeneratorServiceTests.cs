@@ -32,7 +32,7 @@ public class PromptGeneratorServiceTests
         return new PromptGeneratorSettings
         {
             TimeoutSeconds = 5,
-            Anthropic = new ProviderConfig { ApiKey = anthropicKey, BaseUrl = "https://api.anthropic.com/v1", Model = "claude-3-haiku-20240307" },
+            Anthropic = new ProviderConfig { ApiKey = anthropicKey, BaseUrl = "https://api.anthropic.com/v1", Model = "claude-haiku-4-5" },
             OpenAI = new ProviderConfig { ApiKey = openAiKey, BaseUrl = "https://api.openai.com/v1", Model = "gpt-4o-mini" },
             Gemini = new ProviderConfig { ApiKey = geminiKey, BaseUrl = "https://generativelanguage.googleapis.com/v1beta", Model = "gemini-2.0-flash" },
             DeepSeek = new ProviderConfig { ApiKey = deepSeekKey, BaseUrl = "https://api.deepseek.com", Model = "deepseek-chat" },
@@ -129,12 +129,12 @@ public class PromptGeneratorServiceTests
         httpFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(handler.Object));
 
-        var validator = BuildValidator("anthropic", "claude-3-haiku-20240307");
+        var validator = BuildValidator("anthropic", "claude-haiku-4-5");
         var settings = BuildSettings(anthropicKey: "sk-ant-test");
         var service = BuildService(settings, validator.Object, httpFactory.Object);
 
         // Act
-        await service.GenerateAsync("quero comprar um canguru portador", "anthropic", "professional", "claude-3-haiku-20240307");
+        await service.GenerateAsync("quero comprar um canguru portador", "anthropic", "professional", "claude-haiku-4-5");
 
         // Assert: exactly one request, and it goes to the Anthropic endpoint
         Assert.Single(capturedRequests);
@@ -164,13 +164,13 @@ public class PromptGeneratorServiceTests
         httpFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(handler.Object));
 
-        var validator = BuildValidator("anthropic", "claude-3-haiku-20240307");
+        var validator = BuildValidator("anthropic", "claude-haiku-4-5");
         // Gemini also has a key but should NOT be called
         var settings = BuildSettings(anthropicKey: "sk-ant-test", geminiKey: "gemini-key");
         var service = BuildService(settings, validator.Object, httpFactory.Object);
 
         // Act
-        await service.GenerateAsync("buy a baby kangaroo carrier", "anthropic", "professional", "claude-3-haiku-20240307");
+        await service.GenerateAsync("buy a baby kangaroo carrier", "anthropic", "professional", "claude-haiku-4-5");
 
         // Assert: no request went to Gemini
         var geminiRequests = capturedRequests.Where(r => r.RequestUri!.Host.Contains("googleapis.com")).ToList();
@@ -183,13 +183,13 @@ public class PromptGeneratorServiceTests
         // Arrange
         const string expected = "# Prompt Profissional\n\nContexto: compra de canguru portador";
 
-        var validator = BuildValidator("anthropic", "claude-3-haiku-20240307");
+        var validator = BuildValidator("anthropic", "claude-haiku-4-5");
         var httpFactory = BuildHttpClientFactoryMock(AnthropicSuccessResponse(expected));
         var settings = BuildSettings(anthropicKey: "sk-ant-test");
         var service = BuildService(settings, validator.Object, httpFactory);
 
         // Act
-        var result = await service.GenerateAsync("quero comprar um canguru portador", "anthropic", "professional", "claude-3-haiku-20240307");
+        var result = await service.GenerateAsync("quero comprar um canguru portador", "anthropic", "professional", "claude-haiku-4-5");
 
         // Assert
         Assert.Equal(expected, result);
@@ -263,12 +263,12 @@ public class PromptGeneratorServiceTests
         httpFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(handler.Object));
 
-        var validator = BuildValidator("anthropic", "claude-3-haiku-20240307");
+        var validator = BuildValidator("anthropic", "claude-haiku-4-5");
         var settings = BuildSettings(anthropicKey: "sk-ant-test");
         var service = BuildService(settings, validator.Object, httpFactory.Object);
 
         // "claude" should be an alias for "anthropic"
-        await service.GenerateAsync("test", "claude", "professional", "claude-3-haiku-20240307");
+        await service.GenerateAsync("test", "claude", "professional", "claude-haiku-4-5");
 
         var req = Assert.Single(capturedRequests);
         Assert.Contains("api.anthropic.com", req.RequestUri!.Host);
@@ -294,7 +294,7 @@ public class PromptGeneratorServiceTests
 
         // Act & Assert: should throw because no provider has a key
         await Assert.ThrowsAsync<PromptGeneratorException>(() =>
-            service.GenerateAsync("test", "anthropic", "professional", "claude-3-haiku-20240307"));
+            service.GenerateAsync("test", "anthropic", "professional", "claude-haiku-4-5"));
     }
 
     // ─── Fallback: Gemini config error doesn't stop chain ───────────────────────
@@ -324,7 +324,7 @@ public class PromptGeneratorServiceTests
         validator.Setup(v => v.IsValidModelAsync("anthropic", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         validator.Setup(v => v.GetActiveModelKeysAsync("anthropic", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { "claude-3-haiku-20240307" });
+            .ReturnsAsync(new[] { "claude-haiku-4-5" });
         // All others return empty/invalid so they're skipped
         validator.Setup(v => v.GetActiveModelKeysAsync(It.IsNotIn("anthropic"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<string>());
@@ -372,12 +372,12 @@ public class PromptGeneratorServiceTests
         httpFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(handler.Object));
 
-        var validator = BuildValidator("anthropic", "claude-3-haiku-20240307");
+        var validator = BuildValidator("anthropic", "claude-haiku-4-5");
         var settings = BuildSettings(anthropicKey: "sk-ant-test");
         var service = BuildService(settings, validator.Object, httpFactory.Object);
 
         // Act
-        await service.GenerateAsync("test prompt", "anthropic", "professional", "claude-3-haiku-20240307");
+        await service.GenerateAsync("test prompt", "anthropic", "professional", "claude-haiku-4-5");
 
         // Assert body format
         Assert.NotNull(capturedBody);
@@ -385,7 +385,7 @@ public class PromptGeneratorServiceTests
         var root = doc.RootElement;
 
         Assert.True(root.TryGetProperty("model", out var model), "Must send 'model'");
-        Assert.Equal("claude-3-haiku-20240307", model.GetString());
+        Assert.Equal("claude-haiku-4-5", model.GetString());
 
         Assert.True(root.TryGetProperty("max_tokens", out var maxTokens), "Must send 'max_tokens'");
         Assert.True(maxTokens.GetInt32() > 0, "max_tokens must be > 0");
@@ -435,10 +435,10 @@ public class PromptGeneratorServiceTests
         validator.Setup(v => v.IsValidModelAsync("anthropic", "gemini-2.5-flash", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         // config default (claude-3-haiku) is valid
-        validator.Setup(v => v.IsValidModelAsync("anthropic", "claude-3-haiku-20240307", It.IsAny<CancellationToken>()))
+        validator.Setup(v => v.IsValidModelAsync("anthropic", "claude-haiku-4-5", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         validator.Setup(v => v.GetActiveModelKeysAsync("anthropic", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { "claude-3-haiku-20240307", "claude-3-sonnet-20240229" });
+            .ReturnsAsync(new[] { "claude-haiku-4-5", "claude-sonnet-4-5" });
 
         var settings = BuildSettings(anthropicKey: "sk-ant-test");
         var service = BuildService(settings, validator.Object, httpFactory.Object);
@@ -449,6 +449,6 @@ public class PromptGeneratorServiceTests
         // Assert: request used the Anthropic config default model, NOT the gemini model
         Assert.NotNull(capturedModelInBody);
         Assert.DoesNotContain("gemini", capturedModelInBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("claude-3-haiku-20240307", capturedModelInBody);
+        Assert.Equal("claude-haiku-4-5", capturedModelInBody);
     }
 }
