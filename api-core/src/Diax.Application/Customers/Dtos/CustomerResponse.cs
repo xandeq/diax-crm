@@ -53,6 +53,11 @@ public class CustomerResponse
     public bool EmailOptOut { get; set; }
     public bool WhatsAppOptOut { get; set; }
 
+    // Normalização de nomes
+    public string? NormalizedName { get; set; }
+    public int? NormalizationScore { get; set; }
+    public string? NormalizationSourceDescription { get; set; }
+
     // Auditoria
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
@@ -96,6 +101,9 @@ public class CustomerResponse
             LastWhatsAppSentAt = customer.LastWhatsAppSentAt,
             EmailOptOut = customer.EmailOptOut,
             WhatsAppOptOut = customer.WhatsAppOptOut,
+            NormalizedName = customer.NormalizedName,
+            NormalizationScore = customer.NormalizationScore,
+            NormalizationSourceDescription = customer.NormalizationSource?.ToString(),
             CreatedAt = customer.CreatedAt,
             CreatedBy = customer.CreatedBy,
             UpdatedAt = customer.UpdatedAt,

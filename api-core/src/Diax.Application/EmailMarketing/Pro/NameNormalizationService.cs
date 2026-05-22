@@ -76,8 +76,21 @@ public partial class NameNormalizationService : INameNormalizationService
         if (!string.IsNullOrWhiteSpace(email) && email.Contains('@'))
         {
             var fromEmail = ExtractFromEmailPrefix(email);
-            if (fromEmail.Score > fromName.Score)
+            if (fromEmail.Score >= 55)
                 return fromEmail;
+
+            // Fallback: extract from domain when email prefix is generic/junk
+            var fromDomain = ExtractFromDomain(email);
+            if (fromDomain.Score > 0)
+            {
+                var best = fromEmail.Score >= fromDomain.Score ? fromEmail : fromDomain;
+                if (best.Score > fromName.Score)
+                    return best;
+            }
+            else if (fromEmail.Score > fromName.Score)
+            {
+                return fromEmail;
+            }
         }
 
         return fromName;
@@ -163,6 +176,85 @@ public partial class NameNormalizationService : INameNormalizationService
         };
 
         return new(result, score, NormalizationSource.EmailPrefix);
+    }
+
+    private NameNormalizationResult ExtractFromDomain(string email)
+    {
+        if (!email.Contains('@'))
+            return new("", 0, NormalizationSource.Domain);
+
+        var domain = email.Split('@')[1].ToLowerInvariant();
+        var parts = domain.Split('.');
+
+        // Pick the second-level domain (SLD): pvbeauty from pvbeauty.com.br
+        string sld;
+        if (parts.Length >= 3 && parts[^1].Length == 2) // ccTLD like .br, .uk
+            sld = parts[^3];
+        else if (parts.Length >= 2)
+            sld = parts[^2];
+        else
+            return new("", 0, NormalizationSource.Domain);
+
+        if (sld.Length < 3)
+            return new("", 0, NormalizationSource.Domain);
+
+        var ascii = RemoveDiacritics(sld);
+        if (JunkWords.Contains(ascii))
+            return new("", 0, NormalizationSource.Domain);
+
+        // Split compound domain names on known word boundaries using common suffixes
+        // e.g. "beoadvogados" -> "Beo Advogados", "escolamobile" -> "Escola Mobile"
+        var expanded = ExpandDomainName(sld);
+        var normalized = char.ToUpperInvariant(expanded[0]) + expanded[1..].ToLowerInvariant();
+
+        // Score: 50 for single word, 58 for expanded compound
+        var score = expanded.Contains(' ') ? 58 : 50;
+        return new(normalized, score, NormalizationSource.Domain);
+    }
+
+    // Common Brazilian business suffix words used in domains — longest first to avoid partial matches
+    private static readonly string[] DomainSuffixes =
+    [
+        "advogados", "contabil", "contabilidade", "informatica", "imoveis",
+        "imobiliaria", "construtora", "engenharia", "consultoria", "assessoria",
+        "pinturas", "blindagens", "distribuidora", "distribuidoras",
+        "pneus", "tintas", "moveis", "eletrica", "hidraulica",
+        "servicos", "solucoes", "sistemas", "tecnologia", "digital",
+        "academia", "fitness", "saude", "clinica", "odonto", "farma",
+        "restaurante", "churrasco", "padaria", "mercado", "supermercado",
+        "escola", "colegio", "cursos", "educacao", "treinamentos",
+        "hotel", "pousada", "turismo", "viagens", "eventos",
+        "logistica", "transporte", "transportes", "express", "expresso",
+        "grafica", "papelaria", "brindes", "uniforme", "uniformes",
+        "mall", "center", "centre", "shop", "store", "loja", "lojas",
+        "group", "grupo", "holding", "network", "connect",
+        "beauty", "beleza", "estetica", "cabelo", "barbearia",
+        "auto", "oficina", "mecanica", "automotivo", "pecas",
+        "solar", "energia", "agro", "fazenda", "rural",
+        "med", "medica", "medico", "laboratorio", "exames",
+        "adv", "law", "juridico", "legal",
+        "arq", "arquitetura", "design", "criativo", "agencia",
+    ];
+
+    private static string ExpandDomainName(string sld)
+    {
+        // Try to split off a known suffix from the end
+        foreach (var suffix in DomainSuffixes)
+        {
+            if (sld.Length > suffix.Length + 2 && sld.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                var prefix = sld[..^suffix.Length];
+                if (prefix.Length >= 2)
+                {
+                    var prefixTitle = char.ToUpperInvariant(prefix[0]) + prefix[1..].ToLowerInvariant();
+                    var suffixTitle = char.ToUpperInvariant(suffix[0]) + suffix[1..].ToLowerInvariant();
+                    return $"{prefixTitle} {suffixTitle}";
+                }
+            }
+        }
+
+        // No known suffix found — return as-is (single title-cased word)
+        return sld;
     }
 
     private static string RemoveDiacritics(string text)

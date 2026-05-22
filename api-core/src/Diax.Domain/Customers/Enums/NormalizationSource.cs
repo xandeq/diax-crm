@@ -6,4 +6,5 @@ public enum NormalizationSource
     EmailPrefix   = 1,
     AiFallback    = 2,
     Manual        = 3,
+    Domain        = 4,
 }
