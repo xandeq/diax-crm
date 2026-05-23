@@ -40,6 +40,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -314,8 +315,8 @@ function RecipientTable({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function CampaignReportClient({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function CampaignReportClient() {
+  const { id } = useParams<{ id: string }>();
   const [campaign, setCampaign] = useState<EmailCampaignResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

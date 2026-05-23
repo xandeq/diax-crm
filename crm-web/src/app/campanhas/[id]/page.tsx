@@ -10,6 +10,6 @@ export function generateStaticParams() {
   return [{ id: 'placeholder' }];
 }
 
-export default function CampaignReportPage({ params }: { params: { id: string } }) {
-  return <CampaignReportClient params={params} />;
+export default function CampaignReportPage() {
+  return <CampaignReportClient />;
 }
