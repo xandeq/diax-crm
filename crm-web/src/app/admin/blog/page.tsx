@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { blogService } from '@/services/blogService';
 import { BlogPostTable } from '@/components/admin/blog/BlogPostTable';
 import { BlogPostFilters } from '@/components/admin/blog/BlogPostFilters';
@@ -10,79 +11,58 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import type { BlogPost, BlogFilters } from '@/types/blog';
+import type { BlogFilters } from '@/types/blog';
 
 export default function BlogListPage() {
   const router = useRouter();
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const { showConfirm, confirmDialogNode } = useConfirmDialog();
   const [filters, setFilters] = useState<BlogFilters>({
     page: 1,
     pageSize: 10,
     search: '',
-    category: ''
+    category: '',
   });
-  const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    loadPosts();
-  }, [filters]);
+  const { data, isLoading } = useQuery({
+    queryKey: ['blog-posts', filters],
+    queryFn: () => blogService.getAll(filters),
+  });
 
-  const loadPosts = async () => {
-    setLoading(true);
-    try {
-      const response = await blogService.getAll(filters);
-      setPosts(response.items);
-      setTotalCount(response.totalCount);
-    } catch (error) {
-      toast.error('Erro ao carregar posts');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const posts = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
 
-  const handlePublish = async (id: string) => {
-    try {
-      await blogService.publish(id);
-      toast.success('Post publicado com sucesso!');
-      loadPosts();
-    } catch (error) {
-      toast.error('Erro ao publicar post');
-    }
-  };
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
 
-  const handleArchive = async (id: string) => {
-    try {
-      await blogService.archive(id);
-      toast.success('Post arquivado com sucesso!');
-      loadPosts();
-    } catch (error) {
-      toast.error('Erro ao arquivar post');
-    }
-  };
+  const publishMutation = useMutation({
+    mutationFn: (id: string) => blogService.publish(id),
+    onSuccess: () => { toast.success('Post publicado com sucesso!'); invalidate(); },
+    onError: () => toast.error('Erro ao publicar post'),
+  });
 
-  const handleToggleFeatured = async (id: string) => {
-    try {
-      await blogService.toggleFeatured(id);
-      toast.success('Status de destaque alterado!');
-      loadPosts();
-    } catch (error) {
-      toast.error('Erro ao alterar destaque');
-    }
-  };
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => blogService.archive(id),
+    onSuccess: () => { toast.success('Post arquivado com sucesso!'); invalidate(); },
+    onError: () => toast.error('Erro ao arquivar post'),
+  });
+
+  const featuredMutation = useMutation({
+    mutationFn: (id: string) => blogService.toggleFeatured(id),
+    onSuccess: () => { toast.success('Status de destaque alterado!'); invalidate(); },
+    onError: () => toast.error('Erro ao alterar destaque'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => blogService.delete(id),
+    onSuccess: () => { toast.success('Post excluído com sucesso!'); invalidate(); },
+    onError: () => toast.error('Erro ao excluir post'),
+  });
 
   const handleDelete = (id: string) => {
-    showConfirm('Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.', async () => {
-      try {
-        await blogService.delete(id);
-        toast.success('Post excluído com sucesso!');
-        loadPosts();
-      } catch (error) {
-        toast.error('Erro ao excluir post');
-      }
-    });
+    showConfirm(
+      'Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.',
+      () => deleteMutation.mutate(id),
+    );
   };
 
   return (
@@ -102,25 +82,27 @@ export default function BlogListPage() {
             status={filters.status}
             category={filters.category || ''}
             onSearchChange={(search) => setFilters({ ...filters, search, page: 1 })}
-            onStatusChange={(status) => setFilters({ ...filters, status: status === 'all' ? undefined : Number(status), page: 1 })}
+            onStatusChange={(status) =>
+              setFilters({ ...filters, status: status === 'all' ? undefined : Number(status), page: 1 })
+            }
             onCategoryChange={(category) => setFilters({ ...filters, category, page: 1 })}
             onClearFilters={() => setFilters({ page: 1, pageSize: 10, search: '', category: '' })}
           />
 
           <BlogPostTable
             data={posts}
-            loading={loading}
+            loading={isLoading}
             pagination={{
               page: filters.page || 1,
               pageSize: filters.pageSize || 10,
               totalCount,
               onPageChange: (page) => setFilters({ ...filters, page }),
-              onPageSizeChange: (pageSize) => setFilters({ ...filters, pageSize, page: 1 })
+              onPageSizeChange: (pageSize) => setFilters({ ...filters, pageSize, page: 1 }),
             }}
             onEdit={(id) => router.push(`/admin/blog/edit?id=${id}`)}
-            onPublish={handlePublish}
-            onArchive={handleArchive}
-            onToggleFeatured={handleToggleFeatured}
+            onPublish={(id) => publishMutation.mutate(id)}
+            onArchive={(id) => archiveMutation.mutate(id)}
+            onToggleFeatured={(id) => featuredMutation.mutate(id)}
             onDelete={handleDelete}
           />
         </CardContent>
