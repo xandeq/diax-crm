@@ -57,6 +57,7 @@ import {
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 // ── Status Chips Config ──────────────────────────────────────────────────────
@@ -73,13 +74,11 @@ const CUSTOMER_STATUS_CHIPS = [
 export default function CustomersPage() {
   const router = useRouter();
 
+  const queryClient = useQueryClient();
+
   // List state
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedRows, setSelectedRows] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [pageSize, setPageSize] = useState(10);
 
   // Filters
@@ -113,37 +112,28 @@ export default function CustomersPage() {
 
   // ── Data Fetching ────────────────────────────────────────────────────────
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      const status =
-        statusFilter === 'all' ? undefined : (Number(statusFilter) as CustomerStatus);
-      const data = await getCustomers({
-        page,
-        pageSize,
-        search: debouncedSearch || undefined,
-        status,
-        sortBy: sortBy || undefined,
-        sortDescending: sortDirection === 'desc',
-        hasEmail: hasEmailFilter,
-        hasWhatsApp: hasWhatsAppFilter,
-        personType: personTypeFilter,
-        source: sourceFilter,
-        segment: segmentFilter,
-      });
-      setCustomers(data.items);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.totalCount);
-    } catch {
-      setCustomers([]);
-    } finally {
-      setLoading(false);
-    }
+  const queryParams = {
+    page,
+    pageSize,
+    search: debouncedSearch || undefined,
+    status: statusFilter === 'all' ? undefined : (Number(statusFilter) as CustomerStatus),
+    sortBy: sortBy || undefined,
+    sortDescending: sortDirection === 'desc',
+    hasEmail: hasEmailFilter,
+    hasWhatsApp: hasWhatsAppFilter,
+    personType: personTypeFilter,
+    source: sourceFilter,
+    segment: segmentFilter,
   };
 
-  useEffect(() => {
-    fetchCustomers();
-  }, [page, pageSize, debouncedSearch, statusFilter, sortBy, sortDirection, hasEmailFilter, hasWhatsAppFilter, personTypeFilter, sourceFilter, segmentFilter]);
+  const { data: customersData, isLoading: loading } = useQuery({
+    queryKey: ['customers', queryParams],
+    queryFn: () => getCustomers(queryParams),
+  });
+
+  const customers = customersData?.items ?? [];
+  const totalPages = customersData?.totalPages ?? 1;
+  const totalCount = customersData?.totalCount ?? 0;
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -154,6 +144,8 @@ export default function CustomersPage() {
   useEffect(() => {
     setSelectedRows([]);
   }, [page, pageSize]);
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['customers'] });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -202,15 +194,14 @@ export default function CustomersPage() {
     setIsModalOpen(true);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteCustomer(id),
+    onSuccess: () => invalidate(),
+    onError: () => toast.error('Erro ao excluir cliente.'),
+  });
+
   const handleDelete = (id: string) => {
-    showConfirm('Tem certeza que deseja excluir este cliente?', async () => {
-      try {
-        await deleteCustomer(id);
-        fetchCustomers();
-      } catch {
-        toast.error('Erro ao excluir cliente.');
-      }
-    });
+    showConfirm('Tem certeza que deseja excluir este cliente?', () => deleteMutation.mutate(id));
   };
 
   const handleBulkDelete = () => {
@@ -219,7 +210,7 @@ export default function CustomersPage() {
         for (const customer of selectedRows) {
           await deleteCustomer(customer.id);
         }
-        fetchCustomers();
+        invalidate();
         setSelectedRows([]);
       } catch {
         toast.error('Erro ao deletar clientes.');
@@ -690,7 +681,7 @@ export default function CustomersPage() {
       <CustomerFormDialog
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchCustomers}
+        onSuccess={invalidate}
         editingCustomer={editingCustomer}
       />
 
@@ -759,7 +750,7 @@ export default function CustomersPage() {
                         status: newStatus,
                       });
                       setTimelineCustomer({ ...timelineCustomer, status: newStatus });
-                      fetchCustomers();
+                      invalidate();
                     } catch (error) {
                       toast.error('Erro ao atualizar status');
                     }
