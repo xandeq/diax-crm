@@ -308,10 +308,10 @@ function SkeletonRow({
   index: number;
 }) {
   return (
-    <tr className="border-b border-slate-100">
+    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
       {hasCheckbox && (
         <td className="px-5 py-4 w-12">
-          <div className="h-4 w-4 bg-slate-200 rounded animate-pulse" />
+          <div className="h-4 w-4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.1)' }} />
         </td>
       )}
       {Array.from({ length: columnCount }).map((_, j) => (
@@ -319,26 +319,27 @@ function SkeletonRow({
           {j === 0 ? (
             <div className="flex items-center gap-3">
               <div
-                className="h-9 w-9 bg-slate-200 rounded-full animate-pulse shrink-0"
-                style={{ animationDelay: `${index * 80}ms` }}
+                className="h-9 w-9 rounded-full animate-pulse shrink-0"
+                style={{ animationDelay: `${index * 80}ms`, background: 'rgba(255,255,255,0.1)' }}
               />
               <div className="space-y-1.5 flex-1">
                 <div
-                  className="h-3.5 bg-slate-200 rounded animate-pulse"
-                  style={{ width: `${55 + (index * 7) % 30}%`, animationDelay: `${index * 80}ms` }}
+                  className="h-3.5 rounded animate-pulse"
+                  style={{ width: `${55 + (index * 7) % 30}%`, animationDelay: `${index * 80}ms`, background: 'rgba(255,255,255,0.1)' }}
                 />
                 <div
-                  className="h-3 bg-slate-100 rounded animate-pulse"
-                  style={{ width: `${35 + (index * 11) % 25}%`, animationDelay: `${index * 80 + 40}ms` }}
+                  className="h-3 rounded animate-pulse"
+                  style={{ width: `${35 + (index * 11) % 25}%`, animationDelay: `${index * 80 + 40}ms`, background: 'rgba(255,255,255,0.07)' }}
                 />
               </div>
             </div>
           ) : (
             <div
-              className="h-3.5 bg-slate-200 rounded animate-pulse"
+              className="h-3.5 rounded animate-pulse"
               style={{
                 width: `${45 + ((index + j) * 13) % 40}%`,
                 animationDelay: `${(index * columnCount + j) * 40}ms`,
+                background: 'rgba(255,255,255,0.1)',
               }}
             />
           )}
@@ -490,12 +491,12 @@ export function PerfectGrid<T>({
   const to = Math.min(page * pageSize, totalCount);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80">
+            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
               {selectable && (
                 <th className="w-12 px-5 py-3.5">
                   <Checkbox
@@ -521,7 +522,7 @@ export function PerfectGrid<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {loading ? (
               Array.from({ length: Math.min(pageSize, 8) }).map((_, i) => (
                 <SkeletonRow
@@ -546,13 +547,11 @@ export function PerfectGrid<T>({
                   <tr
                     key={id}
                     onClick={() => onRowClick?.(row)}
-                    className={[
-                      'transition-colors',
-                      onRowClick ? 'cursor-pointer' : '',
-                      isSelected
-                        ? 'bg-blue-50/60 hover:bg-blue-50'
-                        : 'hover:bg-slate-50/80',
-                    ].join(' ')}
+                    className={['transition-colors', onRowClick ? 'cursor-pointer' : ''].join(' ')}
+                    style={{
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      background: isSelected ? 'rgba(16,185,129,0.08)' : undefined,
+                    }}
                   >
                     {selectable && (
                       <td
@@ -584,7 +583,7 @@ export function PerfectGrid<T>({
 
       {/* Pagination */}
       {!loading && totalCount > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5 border-t border-slate-200 bg-slate-50/50">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
           <div className="flex items-center gap-4 flex-wrap">
             <p className="text-sm text-slate-600">
               Mostrando{' '}
@@ -603,7 +602,8 @@ export function PerfectGrid<T>({
               <select
                 value={pageSize}
                 onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                className="h-8 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+                className="h-8 rounded-md px-2 text-sm cursor-pointer focus:outline-none"
+                style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -645,7 +645,8 @@ export function PerfectGrid<T>({
                   const val = parseInt(e.target.value, 10);
                   if (val >= 1 && val <= totalPages) onPageChange(val);
                 }}
-                className="h-8 w-14 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700 text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="h-8 w-14 rounded-md px-2 text-sm text-center tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
               />
               <span className="text-sm text-slate-500">/ {totalPages}</span>
             </div>

@@ -60,14 +60,14 @@ export function FinancialGrid<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-gray-100 bg-white overflow-hidden shadow-sm">
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
         <Table>
-          <TableHeader className="bg-gray-50/50">
+          <TableHeader style={{ background: 'rgba(255,255,255,0.04)' }}>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-gray-100">
+              <TableRow key={headerGroup.id} className="hover:bg-transparent" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="text-gray-600 font-semibold py-4">
+                    <TableHead key={header.id} className="font-semibold py-4" style={{ color: '#9CA3AF' }}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -94,7 +94,8 @@ export function FinancialGrid<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0"
+                  className="transition-colors last:border-0"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="py-4">
@@ -115,17 +116,18 @@ export function FinancialGrid<TData, TValue>({
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-2">
-        <div className="text-sm text-gray-500 font-medium">
-           Página <span className="text-gray-900">{page}</span> de <span className="text-gray-900">{pageCount || 1}</span>
+        <div className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
+           Página <span style={{ color: '#F9FAFB' }}>{page}</span> de <span style={{ color: '#F9FAFB' }}>{pageCount || 1}</span>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-gray-600">Linhas por página</p>
+            <p className="text-sm font-medium" style={{ color: '#9CA3AF' }}>Linhas por página</p>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="h-9 w-16 rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+              className="h-9 w-16 rounded-lg px-2 py-1 text-sm outline-none transition-all"
+              style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
             >
               {[10, 20, 50].map((size) => (
                 <option key={size} value={size}>
