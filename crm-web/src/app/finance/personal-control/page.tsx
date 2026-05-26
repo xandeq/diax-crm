@@ -214,28 +214,27 @@ function MetricCard({
   icon: LucideIcon;
   tone: 'green' | 'red' | 'blue' | 'slate';
 }) {
-  const tones = {
-    green: 'from-emerald-50 to-white border-emerald-100 text-emerald-700',
-    red: 'from-rose-50 to-white border-rose-100 text-rose-700',
-    blue: 'from-sky-50 to-white border-sky-100 text-sky-700',
-    slate: 'from-slate-50 to-white border-slate-200 text-slate-700',
+  const toneStyles = {
+    green: { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', icon: 'rgba(16,185,129,0.15)', iconColor: '#10B981' },
+    red:   { bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.2)',  icon: 'rgba(239,68,68,0.15)',  iconColor: '#F87171' },
+    blue:  { bg: 'rgba(14,165,233,0.08)', border: 'rgba(14,165,233,0.2)', icon: 'rgba(14,165,233,0.15)', iconColor: '#38BDF8' },
+    slate: { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.09)', icon: 'rgba(255,255,255,0.08)', iconColor: '#9CA3AF' },
   };
+  const t = toneStyles[tone];
 
   return (
-    <Card className={cn('bg-gradient-to-br shadow-sm', tones[tone])}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-          </div>
-          <div className="rounded-xl bg-white/80 p-3 shadow-sm">
-            <Icon className="h-5 w-5" />
-          </div>
+    <div className="rounded-xl p-5" style={{ background: t.bg, border: `1px solid ${t.border}` }}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium" style={{ color: '#9CA3AF' }}>{title}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: '#F9FAFB' }}>{value}</p>
+          <p className="mt-1 text-xs" style={{ color: '#6B7280' }}>{description}</p>
         </div>
-      </CardContent>
-    </Card>
+        <div className="rounded-xl p-3" style={{ background: t.icon }}>
+          <Icon className="h-5 w-5" style={{ color: t.iconColor }} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -270,7 +269,7 @@ const ASSET_CLASS_LABELS: Record<string, string> = {
 function InvestIQWidget({ data, loading }: { data: InvestIQPortfolioSummary | null; loading: boolean }) {
   if (loading) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border bg-gradient-to-r from-violet-50 to-indigo-50 px-5 py-4 shadow-sm text-sm text-muted-foreground">
+      <div className="flex items-center gap-3 rounded-2xl px-5 py-4 text-sm" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', color: '#9CA3AF' }}>
         <BarChart3 className="h-4 w-4 text-violet-400 animate-pulse" />
         Carregando InvestIQ...
       </div>
@@ -283,30 +282,32 @@ function InvestIQWidget({ data, loading }: { data: InvestIQPortfolioSummary | nu
   const pnlPositive = pnl >= 0;
   const retPct = data.total_return_pct;
 
+  const PILL = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem' };
+
   return (
-    <div className="rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-indigo-50 to-white px-5 py-4 shadow-sm">
+    <div className="rounded-2xl px-5 py-4" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-violet-700">
+        <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#c084fc' }}>
           <BarChart3 className="h-4 w-4" />
           InvestIQ
         </div>
-        <div className="h-4 w-px bg-violet-200" />
+        <div className="h-4 w-px" style={{ background: 'rgba(139,92,246,0.3)' }} />
 
         {/* Portfolio value */}
-        <div className="flex items-center gap-1.5 rounded-lg border border-violet-100 bg-white px-3 py-1.5 text-sm shadow-xs">
-          <span className="text-muted-foreground">Carteira</span>
-          <span className="font-bold tabular-nums text-violet-700">{formatCurrency(data.portfolio_value)}</span>
+        <div className="flex items-center gap-1.5 text-sm" style={PILL}>
+          <span style={{ color: '#9CA3AF' }}>Carteira</span>
+          <span className="font-bold tabular-nums" style={{ color: '#c084fc' }}>{formatCurrency(data.portfolio_value)}</span>
         </div>
 
         {/* P&L */}
-        <div className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm shadow-xs">
+        <div className="flex items-center gap-1.5 text-sm" style={PILL}>
           {pnlPositive ? (
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
           ) : (
-            <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
+            <TrendingDown className="h-3.5 w-3.5 text-rose-400" />
           )}
-          <span className="text-muted-foreground">P&L</span>
-          <span className={cn('font-semibold tabular-nums', pnlPositive ? 'text-emerald-600' : 'text-rose-500')}>
+          <span style={{ color: '#9CA3AF' }}>P&L</span>
+          <span className="font-semibold tabular-nums" style={{ color: pnlPositive ? '#10B981' : '#F87171' }}>
             {pnlPositive ? '+' : ''}{formatCurrency(pnl)}
             {retPct !== null && (
               <span className="ml-1 text-xs opacity-75">({retPct >= 0 ? '+' : ''}{retPct?.toFixed(2)}%)</span>
@@ -316,21 +317,21 @@ function InvestIQWidget({ data, loading }: { data: InvestIQPortfolioSummary | nu
 
         {/* Dividends last 30d */}
         {data.monthly_dividends > 0 && (
-          <div className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm shadow-xs">
-            <span className="text-muted-foreground">Dividendos/30d</span>
-            <span className="font-semibold tabular-nums text-emerald-600">+{formatCurrency(data.monthly_dividends)}</span>
+          <div className="flex items-center gap-1.5 text-sm" style={PILL}>
+            <span style={{ color: '#9CA3AF' }}>Dividendos/30d</span>
+            <span className="font-semibold tabular-nums" style={{ color: '#10B981' }}>+{formatCurrency(data.monthly_dividends)}</span>
           </div>
         )}
 
         {/* Allocation pills */}
         {data.asset_allocation.map((a) => (
-          <div key={a.asset_class} className="flex items-center gap-1 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs text-indigo-700">
+          <div key={a.asset_class} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs" style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818CF8' }}>
             <span className="font-medium">{ASSET_CLASS_LABELS[a.asset_class] ?? a.asset_class}</span>
-            <span className="opacity-60">{a.percentage.toFixed(1)}%</span>
+            <span className="opacity-70">{a.percentage.toFixed(1)}%</span>
           </div>
         ))}
 
-        <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
+        <div className="ml-auto flex items-center gap-1 text-[11px]" style={{ color: '#6B7280' }}>
           <span>{data.position_count} posições</span>
         </div>
       </div>
@@ -358,34 +359,36 @@ function PatrimonioTotalCard({
   const accountsPct = total > 0 ? Math.round((accountsTotal / total) * 100) : 0;
   const investiqPct = total > 0 ? Math.round((investiqAmount / total) * 100) : 0;
 
+  const BREAKDOWN_PILL = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem' };
+
   return (
-    <div className="rounded-2xl border bg-gradient-to-r from-emerald-50 via-white to-violet-50 p-5 shadow-sm dark:from-emerald-950/40 dark:via-slate-950 dark:to-violet-950/40">
+    <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(11,21,16,0.8) 50%, rgba(139,92,246,0.1) 100%)', border: '1px solid rgba(16,185,129,0.2)' }}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-violet-500 p-2.5 text-white">
+          <div className="rounded-xl p-2.5" style={{ background: 'linear-gradient(135deg, #10B981, #8B5CF6)', color: '#fff' }}>
             <Wallet className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Patrimônio Total</p>
-            <p className="text-3xl font-semibold tracking-tight">{formatCurrency(total)}</p>
+            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: '#9CA3AF' }}>Patrimônio Total</p>
+            <p className="text-3xl font-semibold tracking-tight" style={{ color: '#F9FAFB' }}>{formatCurrency(total)}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <div className="rounded-lg border bg-white/70 px-3 py-2 text-xs shadow-xs dark:bg-slate-900/70">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+          <div className="text-xs" style={BREAKDOWN_PILL}>
+            <div className="flex items-center gap-1.5" style={{ color: '#9CA3AF' }}>
               <Building2 className="h-3.5 w-3.5" />
               <span>Contas</span>
-              {accountsPct > 0 && <span className="font-medium text-foreground">{accountsPct}%</span>}
+              {accountsPct > 0 && <span className="font-medium" style={{ color: '#D1D5DB' }}>{accountsPct}%</span>}
             </div>
-            <p className="font-semibold tabular-nums">{formatCurrency(accountsTotal)}</p>
+            <p className="font-semibold tabular-nums" style={{ color: '#F9FAFB' }}>{formatCurrency(accountsTotal)}</p>
           </div>
-          <div className="rounded-lg border bg-white/70 px-3 py-2 text-xs shadow-xs dark:bg-slate-900/70">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+          <div className="text-xs" style={BREAKDOWN_PILL}>
+            <div className="flex items-center gap-1.5" style={{ color: '#9CA3AF' }}>
               <BarChart3 className="h-3.5 w-3.5" />
               <span>InvestIQ</span>
-              {investiqConfigured && investiqPct > 0 && <span className="font-medium text-foreground">{investiqPct}%</span>}
+              {investiqConfigured && investiqPct > 0 && <span className="font-medium" style={{ color: '#D1D5DB' }}>{investiqPct}%</span>}
             </div>
-            <p className="font-semibold tabular-nums">
+            <p className="font-semibold tabular-nums" style={{ color: '#F9FAFB' }}>
               {investiqLoading ? '—' : investiqConfigured ? formatCurrency(investiqAmount) : 'não configurado'}
             </p>
           </div>
@@ -434,16 +437,18 @@ function PatrimonioWidget({
     }
   };
 
+  const ACCT_PILL = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem' };
+
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-gradient-to-r from-slate-50 to-white px-5 py-4 shadow-sm">
-      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-        <Building2 className="h-4 w-4 text-slate-500" />
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl px-5 py-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+      <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#D1D5DB' }}>
+        <Building2 className="h-4 w-4" style={{ color: '#9CA3AF' }} />
         Patrimônio
       </div>
-      <div className="h-4 w-px bg-slate-200" />
+      <div className="h-4 w-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
       {accounts.map((a) => (
-        <div key={a.id} className="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm shadow-xs">
-          <span className="text-muted-foreground">{a.name}</span>
+        <div key={a.id} className="flex items-center gap-1.5 text-sm" style={ACCT_PILL}>
+          <span style={{ color: '#9CA3AF' }}>{a.name}</span>
           {editingId === a.id ? (
             <div className="flex items-center gap-1">
               <Input
@@ -478,8 +483,8 @@ function PatrimonioWidget({
           )}
         </div>
       ))}
-      <div className="ml-auto flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-900 px-4 py-1.5 text-sm">
-        <span className="text-slate-300">Total</span>
+      <div className="ml-auto flex items-center gap-1.5 rounded-xl px-4 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+        <span style={{ color: '#9CA3AF' }}>Total</span>
         <span className={cn('font-bold tabular-nums', total >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
           {formatCurrency(total)}
         </span>

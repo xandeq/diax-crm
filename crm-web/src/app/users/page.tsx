@@ -128,8 +128,8 @@ export default function UsersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usuários</h1>
-            <p className="text-gray-500 mt-1">Administre contas, grupos e permissões do sistema</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#F9FAFB' }}>Gerenciamento de Usuários</h1>
+            <p className="mt-1" style={{ color: '#9CA3AF' }}>Administre contas, grupos e permissões do sistema</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => refetch()} variant="outline" disabled={loading}>
@@ -144,16 +144,16 @@ export default function UsersPage() {
         </div>
 
         {errorMessage && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-            <p className="text-sm text-red-600 flex-1">{errorMessage}</p>
+          <div className="rounded-lg p-4 flex items-center gap-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+            <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
+            <p className="text-sm flex-1" style={{ color: '#fca5a5' }}>{errorMessage}</p>
           </div>
         )}
 
         {/* Create / Edit Form */}
         {isFormOpen && (
-          <div className="bg-white p-6 rounded-lg border shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">
+          <div className="p-6 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: '#F9FAFB' }}>
               {editingId ? 'Editar Usuário' : 'Novo Usuário'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -194,7 +194,7 @@ export default function UsersPage() {
                   <Users className="h-4 w-4" />
                   Grupos
                 </Label>
-                <div className="border rounded-lg p-4 space-y-3 bg-gray-50/50">
+                <div className="rounded-lg p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   {groups.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Nenhum grupo cadastrado. Crie um em Grupos & Permissões.</p>
                   ) : (
@@ -205,11 +205,11 @@ export default function UsersPage() {
                         return (
                           <div
                             key={group.id}
-                            className={`flex items-start space-x-3 p-3 rounded-md border transition-colors ${
-                              isChecked
-                                ? 'bg-indigo-50 border-indigo-200'
-                                : 'bg-white border-gray-200 hover:border-gray-300'
-                            }`}
+                            className="flex items-start space-x-3 p-3 rounded-md border transition-colors"
+                            style={{
+                              background: isChecked ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)',
+                              borderColor: isChecked ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.09)'
+                            }}
                           >
                             <Checkbox
                               id={`group-${group.id}`}
@@ -247,7 +247,7 @@ export default function UsersPage() {
                 <Label htmlFor="isActive" className="cursor-pointer">Usuário Ativo</Label>
               </div>
 
-              <div className="flex gap-2 justify-end pt-2 border-t">
+              <div className="flex gap-2 justify-end pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                 <Button type="button" variant="ghost" onClick={resetForm} disabled={saveMutation.isPending}>
                   Cancelar
                 </Button>
@@ -261,46 +261,52 @@ export default function UsersPage() {
         )}
 
         {/* Users Table */}
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+          <table className="min-w-full">
+            <thead style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupos</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criado em</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Usuário</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Grupos</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Criado em</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-indigo-500" />
+                  <td colSpan={5} className="px-6 py-10 text-center" style={{ color: '#9CA3AF' }}>
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-indigo-400" />
                     Carregando usuários...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-gray-500">Nenhum usuário cadastrado.</td>
+                  <td colSpan={5} className="px-6 py-10 text-center" style={{ color: '#9CA3AF' }}>Nenhum usuário cadastrado.</td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr
+                    key={user.id}
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '')}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                          user.isAdmin ? 'bg-purple-100' : 'bg-gray-100'
-                        }`}>
+                        <div
+                          className="h-8 w-8 rounded-full flex items-center justify-center"
+                          style={{ background: user.isAdmin ? 'rgba(147,51,234,0.15)' : 'rgba(255,255,255,0.07)' }}
+                        >
                           {user.isAdmin
-                            ? <Shield className="h-4 w-4 text-purple-600" />
-                            : <User className="h-4 w-4 text-gray-500" />
+                            ? <Shield className="h-4 w-4 text-purple-400" />
+                            : <User className="h-4 w-4" style={{ color: '#9CA3AF' }} />
                           }
                         </div>
                         <div>
-                          <span className="text-sm font-medium text-gray-900">{user.email}</span>
+                          <span className="text-sm font-medium" style={{ color: '#F9FAFB' }}>{user.email}</span>
                           {user.isAdmin && (
-                            <span className="ml-2 text-xs text-purple-600 font-medium">Admin</span>
+                            <span className="ml-2 text-xs font-medium" style={{ color: '#c084fc' }}>Admin</span>
                           )}
                         </div>
                       </div>
@@ -318,7 +324,7 @@ export default function UsersPage() {
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">Sem grupo</span>
+                          <span className="text-xs italic" style={{ color: '#6B7280' }}>Sem grupo</span>
                         )}
                       </div>
                     </td>
@@ -329,7 +335,7 @@ export default function UsersPage() {
                         <Badge className="bg-red-100 text-red-700 border-red-200">Inativo</Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: '#9CA3AF' }}>
                       {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -340,7 +346,7 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-400 hover:text-red-300"
                           onClick={() => handleDelete(user)}
                         >
                           <Trash2 className="h-4 w-4" />
