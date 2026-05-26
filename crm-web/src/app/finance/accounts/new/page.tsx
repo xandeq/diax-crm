@@ -60,7 +60,7 @@ export default function NewFinancialAccountPage() {
     <div className="p-8 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold mb-6">Nova Conta Financeira</h1>
 
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="rounded-lg p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
         {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -44,40 +44,40 @@ export default function NewCreditCardPage() {
 
       {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-6">{error}</div>}
 
-      <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="rounded-lg p-6 space-y-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Nome do Cartão</label>
+          <label className="block text-sm font-medium" style={{ color: '#D1D5DB' }}>Nome do Cartão</label>
           <input
             type="text"
             required
             placeholder="Ex: Nubank, Visa Platinum"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#F9FAFB', padding: '0.5rem 0.75rem' }}
             value={formData.name}
             onChange={e => setFormData({...formData, name: e.target.value})}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Últimos 4 dígitos</label>
+          <label className="block text-sm font-medium" style={{ color: '#D1D5DB' }}>Últimos 4 dígitos</label>
           <input
             type="text"
             required
             maxLength={4}
             pattern="\d{4}"
             placeholder="1234"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#F9FAFB', padding: '0.5rem 0.75rem' }}
             value={formData.lastFourDigits}
             onChange={e => setFormData({...formData, lastFourDigits: e.target.value})}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Limite</label>
+          <label className="block text-sm font-medium" style={{ color: '#D1D5DB' }}>Limite</label>
           <input
             type="number"
             step="0.01"
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#F9FAFB', padding: '0.5rem 0.75rem' }}
             value={formData.limit}
             onChange={e => setFormData({...formData, limit: Number(e.target.value)})}
           />
@@ -85,26 +85,26 @@ export default function NewCreditCardPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Dia de Fechamento</label>
+            <label className="block text-sm font-medium" style={{ color: '#D1D5DB' }}>Dia de Fechamento</label>
             <input
               type="number"
               min="1"
               max="31"
               required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#F9FAFB', padding: '0.5rem 0.75rem' }}
               value={formData.closingDay}
               onChange={e => setFormData({...formData, closingDay: Number(e.target.value)})}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Dia de Vencimento</label>
+            <label className="block text-sm font-medium" style={{ color: '#D1D5DB' }}>Dia de Vencimento</label>
             <input
               type="number"
               min="1"
               max="31"
               required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#F9FAFB', padding: '0.5rem 0.75rem' }}
               value={formData.dueDay}
               onChange={e => setFormData({...formData, dueDay: Number(e.target.value)})}
             />
@@ -115,7 +115,7 @@ export default function NewCreditCardPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="mr-4 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="mr-4 px-4 py-2 rounded-md text-sm font-medium" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
           >
             Cancelar
           </button>

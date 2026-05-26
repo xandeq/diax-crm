@@ -49,7 +49,7 @@ export default function FinancialAccountsPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Contas Financeiras</h1>
-          <p className="text-gray-600">Gerencie suas contas bancárias e carteiras</p>
+          <p style={{ color: '#9CA3AF' }}>Gerencie suas contas bancárias e carteiras</p>
         </div>
         <Link href="/finance/accounts/new">
           <Button className="bg-blue-600 hover:bg-blue-700">
@@ -61,28 +61,31 @@ export default function FinancialAccountsPage() {
 
       {isError && <div className="bg-red-100 text-red-700 p-4 rounded mb-6">Erro ao carregar contas</div>}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+        <table className="min-w-full">
+          <thead style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Nome</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Tipo</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Saldo</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Status</th>
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Ações</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody>
             {accounts.map((account) => (
-              <tr key={account.id} className={!account.isActive ? 'bg-gray-50 opacity-60' : ''}>
+              <tr
+                key={account.id}
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: !account.isActive ? 0.6 : 1 }}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{account.name}</div>
+                  <div className="text-sm font-medium" style={{ color: '#F9FAFB' }}>{account.name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{accountTypeLabels[account.accountType] ?? 'Desconhecido'}</div>
+                  <div className="text-sm" style={{ color: '#9CA3AF' }}>{accountTypeLabels[account.accountType] ?? 'Desconhecido'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className={`text-sm font-medium ${account.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`text-sm font-medium ${account.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
                   </div>
                 </td>
@@ -94,13 +97,13 @@ export default function FinancialAccountsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <Link href={`/finance/accounts/edit?id=${account.id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                  <Link href={`/finance/accounts/edit?id=${account.id}`} className="text-indigo-400 hover:text-indigo-300 mr-4">
                     <Pencil className="h-4 w-4 inline" />
                   </Link>
                   <button
                     onClick={() => handleDelete(account.id)}
                     disabled={deleteMutation.isPending}
-                    className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                    className="text-red-400 hover:text-red-300 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4 inline" />
                   </button>
@@ -109,7 +112,7 @@ export default function FinancialAccountsPage() {
             ))}
             {accounts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-4 text-center" style={{ color: '#9CA3AF' }}>
                   Nenhuma conta encontrada
                 </td>
               </tr>
