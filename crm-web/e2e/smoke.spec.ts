@@ -87,14 +87,12 @@ test.describe('Regression — Apps Inventory', () => {
     await expect(page.getByRole('link', { name: 'easy-apply-bot' })).toBeVisible();
   });
 
-  test('menu Pessoal tem link para Inventário de Apps', async ({ page }) => {
+  test('sidebar dashboard tem link para Inventário de Apps', async ({ page }) => {
     await login(page);
     await page.goto('/dashboard/');
 
-    const pessoalMenu = page.getByRole('button', { name: 'Pessoal' });
-    await pessoalMenu.hover();
-
-    const inventarioLink = page.getByRole('menuitem', { name: 'Inventário de Apps' });
+    // New dashboard uses fixed sidebar overlay — find the nav link directly
+    const inventarioLink = page.locator('.db-nav a[href="/tools/apps-inventory"]');
     await expect(inventarioLink).toBeVisible();
     await inventarioLink.click();
     await expect(page).toHaveURL(/tools\/apps-inventory/);
