@@ -91,8 +91,8 @@ test.describe('Regression — Apps Inventory', () => {
     await login(page);
     await page.goto('/dashboard/');
 
-    // New dashboard uses fixed sidebar overlay — find the nav link directly
-    const inventarioLink = page.locator('.db-nav a[href="/tools/apps-inventory"]');
+    // AppShell sidebar uses sh-nav class
+    const inventarioLink = page.locator('.sh-nav a[href="/tools/apps-inventory"]');
     await expect(inventarioLink).toBeVisible();
     await inventarioLink.click();
     await expect(page).toHaveURL(/tools\/apps-inventory/);
