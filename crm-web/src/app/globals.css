@@ -483,6 +483,7 @@
   .bg-gray-50\/80, .bg-gray-100\/80, .bg-gray-200\/80   { background-color: rgba(255,255,255,0.06) !important; }
   .bg-white\/50, .bg-white\/60, .bg-white\/70, .bg-white\/80 { background-color: rgba(255,255,255,0.07) !important; }
   .bg-zinc-50\/50, .bg-zinc-100\/50                      { background-color: rgba(255,255,255,0.04) !important; }
+  .hover\:bg-slate-50\/50:hover,
   .hover\:bg-slate-50\/60:hover,
   .hover\:bg-slate-50\/80:hover,
   .hover\:bg-gray-50\/50:hover,

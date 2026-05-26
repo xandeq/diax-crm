@@ -259,7 +259,7 @@ function NewCampaignModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+      <div className="rounded-xl w-full max-w-md" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Nova Campanha</h2>
           <button onClick={handleClose} className="text-slate-400 hover:text-slate-600">
@@ -441,7 +441,7 @@ function EditBudgetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+      <div className="rounded-xl w-full max-w-sm" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Editar Orçamento</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -562,7 +562,7 @@ function EditAdSetBudgetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+      <div className="rounded-xl w-full max-w-sm" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Editar Orçamento do Conjunto</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -979,7 +979,7 @@ export default function AdsPage() {
           <h1 className="text-2xl font-bold text-slate-800">Anúncios</h1>
           <p className="text-slate-500 text-sm mt-1">Gerencie suas campanhas do Facebook Ads</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-8">
+        <div className="rounded-xl p-8" style={{ border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.04)' }}>
           <ConnectForm onConnected={loadData} />
         </div>
       </div>
@@ -1106,8 +1106,8 @@ export default function AdsPage() {
 
           {/* Campaign status */}
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-xl border border-slate-100 p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center">
+            <div className="rounded-xl p-5 flex items-center gap-4" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.07)' }}>
                 <Zap className="w-5 h-5 text-slate-400" />
               </div>
               <div>
@@ -1115,7 +1115,7 @@ export default function AdsPage() {
                 <p className="text-xs text-slate-500">Campanhas totais</p>
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-slate-100 p-5 flex items-center gap-4">
+            <div className="rounded-xl p-5 flex items-center gap-4" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
               <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
               </div>
@@ -1127,7 +1127,7 @@ export default function AdsPage() {
           </div>
 
           {/* Quick navigation */}
-          <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50">
+          <div className="rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
             <button
               onClick={() => setActiveTab('campaigns')}
               className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50/50 transition-colors"
@@ -1160,7 +1160,7 @@ export default function AdsPage() {
 
       {/* Campaigns Tab */}
       {activeTab === 'campaigns' && (
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
           <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-700">
               Campanhas ({campaigns.length})
@@ -1210,7 +1210,7 @@ export default function AdsPage() {
 
       {/* Ad Sets Tab */}
       {activeTab === 'adsets' && (
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
           <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between gap-4">
             <h2 className="text-sm font-semibold text-slate-700 shrink-0">
               Conjuntos ({adSets.length})
@@ -1287,7 +1287,7 @@ export default function AdsPage() {
             ))}
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
             <div className="px-5 py-4 border-b border-slate-50">
               <h2 className="text-sm font-semibold text-slate-700">
                 Insights por Campanha
