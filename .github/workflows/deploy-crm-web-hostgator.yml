@@ -14,12 +14,13 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     environment: production
 
     defaults:
       run:
         working-directory: crm-web
+        shell: pwsh
 
     steps:
       - name: Checkout
@@ -40,15 +41,19 @@ jobs:
           HOSTGATOR_FTP_REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
           CRM_WEB_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
         run: |
-          missing=false
-          for var in HOSTGATOR_FTP_SERVER HOSTGATOR_FTP_USERNAME HOSTGATOR_FTP_PASSWORD HOSTGATOR_FTP_REMOTE_DIR CRM_WEB_API_BASE_URL; do
-            val=$(eval echo "\$$var")
-            if [ -z "$val" ]; then
-              echo "::error::Missing required secret: $var"
-              missing=true
-            fi
-          done
-          if [ "$missing" = "true" ]; then exit 1; fi
+          $missing = $false
+          function Check-Secret([string]$name, [string]$value) {
+            if ([string]::IsNullOrWhiteSpace($value)) {
+              Write-Host "::error::Missing required secret: $name"
+              $script:missing = $true
+            }
+          }
+          Check-Secret "HOSTGATOR_FTP_SERVER" $env:HOSTGATOR_FTP_SERVER
+          Check-Secret "HOSTGATOR_FTP_USERNAME" $env:HOSTGATOR_FTP_USERNAME
+          Check-Secret "HOSTGATOR_FTP_PASSWORD" $env:HOSTGATOR_FTP_PASSWORD
+          Check-Secret "HOSTGATOR_FTP_REMOTE_DIR" $env:HOSTGATOR_FTP_REMOTE_DIR
+          Check-Secret "CRM_WEB_API_BASE_URL" $env:CRM_WEB_API_BASE_URL
+          if ($missing) { exit 1 }
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -58,31 +63,87 @@ jobs:
           NEXT_PUBLIC_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
         run: npm run build
 
-      - name: Install lftp
-        run: sudo apt-get install -y lftp
-
-      - name: Network diagnostics
+      - name: Network diagnostics (FTP)
         env:
           HOST: ${{ secrets.HOSTGATOR_FTP_SERVER }}
         run: |
-          echo "Host: $HOST"
-          dig +short A "$HOST" || echo "DNS lookup failed"
-          nc -zv -w5 "$HOST" 21 2>&1 && echo "FTP port 21 open" || echo "FTP port 21 closed"
+          Write-Host "Host: $env:HOST"
+          try {
+            $dns = Resolve-DnsName -Name $env:HOST -Type A -ErrorAction Stop
+            $ips = $dns | Where-Object { $_.IPAddress } | Select-Object -ExpandProperty IPAddress
+            if ($ips) { Write-Host ("DNS A: " + ($ips -join ', ')) }
+          } catch { Write-Host "DNS lookup failed: $($_.Exception.Message)" }
+          foreach ($port in @(21)) {
+            $res = Test-NetConnection -ComputerName $env:HOST -Port $port -WarningAction SilentlyContinue
+            Write-Host "TCP $($env:HOST):$port -> $($res.TcpTestSucceeded)"
+          }
 
-      - name: Deploy via FTP (lftp)
+      - name: Deploy via FTP (PowerShell WebClient)
         env:
           FTP_SERVER: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           FTP_USER: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
           FTP_PASS: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
           FTP_REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
         run: |
-          lftp -c "
-            set ftp:passive-mode yes;
-            set ftp:ssl-allow no;
-            set net:timeout 60;
-            set net:max-retries 5;
-            set net:reconnect-interval-base 10;
-            open -u '$FTP_USER','$FTP_PASS' ftp://$FTP_SERVER;
-            mirror --reverse --delete --verbose --exclude .git --exclude node_modules out/ $FTP_REMOTE_DIR;
-            bye
-          "
+          $localDir = Join-Path $env:GITHUB_WORKSPACE "crm-web\out"
+          $server   = $env:FTP_SERVER
+          $user     = $env:FTP_USER
+          $pass     = $env:FTP_PASS
+          $remoteBase = $env:FTP_REMOTE_DIR.TrimEnd('/')
+
+          Write-Host "Uploading $localDir -> ftp://$server$remoteBase"
+
+          $creds = [System.Net.NetworkCredential]::new($user, $pass)
+
+          function Ensure-FtpDir([string]$uri) {
+            try {
+              $req = [System.Net.FtpWebRequest]::Create($uri)
+              $req.Credentials = $creds
+              $req.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
+              $req.UseBinary = $true
+              $req.UsePassive = $true
+              $req.KeepAlive = $false
+              $null = $req.GetResponse()
+            } catch [System.Net.WebException] {
+              # 550 = directory already exists, safe to ignore
+              if ($_.Exception.Response -and $_.Exception.Response.StatusCode -eq 550) { return }
+              throw
+            }
+          }
+
+          function Upload-File([string]$localPath, [string]$remoteUri) {
+            $req = [System.Net.FtpWebRequest]::Create($remoteUri)
+            $req.Credentials = $creds
+            $req.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
+            $req.UseBinary = $true
+            $req.UsePassive = $true
+            $req.KeepAlive = $false
+            $bytes = [System.IO.File]::ReadAllBytes($localPath)
+            $req.ContentLength = $bytes.Length
+            $stream = $req.GetRequestStream()
+            $stream.Write($bytes, 0, $bytes.Length)
+            $stream.Close()
+            $null = $req.GetResponse()
+          }
+
+          $files = Get-ChildItem -Path $localDir -Recurse -File
+          $total = $files.Count
+          $done  = 0
+          Write-Host "Files to upload: $total"
+
+          foreach ($file in $files) {
+            $rel        = $file.FullName.Substring($localDir.Length).Replace('\', '/').TrimStart('/')
+            $remoteUri  = "ftp://$server$remoteBase/$rel"
+            $remoteDir  = "ftp://$server" + ($remoteBase + '/' + ($rel | Split-Path -Parent)).Replace('\', '/').TrimEnd('/')
+
+            # Ensure parent directory exists
+            Ensure-FtpDir $remoteDir
+
+            Upload-File $file.FullName $remoteUri
+            $done++
+            if ($done % 50 -eq 0 -or $done -eq $total) {
+              Write-Host "  [$done/$total] $rel"
+            }
+          }
+
+          Write-Host "Deploy complete: $done files uploaded."
