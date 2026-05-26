@@ -73,23 +73,24 @@ export function ContactSearchInput({
 
   if (selectedContact) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-slate-50">
+      <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}>
         <div className="flex-1 min-w-0">
-          <span className="font-medium text-slate-900">{selectedContact.name}</span>
+          <span className="font-medium" style={{ color: '#F9FAFB' }}>{selectedContact.name}</span>
           {selectedContact.companyName && (
-            <span className="text-xs text-slate-400 ml-2">({selectedContact.companyName})</span>
+            <span className="text-xs ml-2" style={{ color: '#6B7280' }}>({selectedContact.companyName})</span>
           )}
-          <span className="text-sm text-green-600 ml-2 font-mono">
+          <span className="text-sm ml-2 font-mono text-emerald-400">
             {normalizePhoneBR(selectedContact.whatsApp ?? selectedContact.phone) || selectedContact.email}
           </span>
         </div>
         <button
           type="button"
           onClick={onClear}
-          className="p-1 hover:bg-slate-200 rounded-md transition-colors"
+          className="p-1 rounded-md transition-colors"
+          style={{ color: '#6B7280' }}
           title="Limpar seleção"
         >
-          <X className="h-4 w-4 text-slate-500" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     );
@@ -114,12 +115,15 @@ export function ContactSearchInput({
         )}
       </div>
       {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-64 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 rounded-md shadow-lg max-h-64 overflow-y-auto" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
           {results.map((contact) => (
             <button
               key={contact.id}
               type="button"
-              className="w-full text-left px-3 py-2.5 hover:bg-slate-50 flex items-center justify-between border-b border-slate-100 last:border-0 transition-colors"
+              className="w-full text-left px-3 py-2.5 flex items-center justify-between transition-colors last:border-0"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: '#D1D5DB' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               onClick={() => {
                 onSelect(contact);
                 setSearchText('');
@@ -127,12 +131,12 @@ export function ContactSearchInput({
               }}
             >
               <div className="min-w-0">
-                <span className="font-medium text-slate-900">{contact.name}</span>
+                <span className="font-medium" style={{ color: '#F9FAFB' }}>{contact.name}</span>
                 {contact.companyName && (
-                  <span className="text-xs text-slate-400 ml-2">({contact.companyName})</span>
+                  <span className="text-xs ml-2" style={{ color: '#6B7280' }}>({contact.companyName})</span>
                 )}
               </div>
-              <span className="text-sm text-green-600 ml-3 font-mono shrink-0">
+              <span className="text-sm ml-3 font-mono shrink-0 text-emerald-400">
                 {normalizePhoneBR(contact.whatsApp ?? contact.phone) || '–'}
               </span>
             </button>
@@ -140,7 +144,7 @@ export function ContactSearchInput({
         </div>
       )}
       {isOpen && searchText.length >= 2 && results.length === 0 && !searching && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg p-3 text-sm text-slate-500 text-center">
+        <div className="absolute z-50 w-full mt-1 rounded-md shadow-lg p-3 text-sm text-center" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)', color: '#6B7280' }}>
           Nenhum contato encontrado.
         </div>
       )}

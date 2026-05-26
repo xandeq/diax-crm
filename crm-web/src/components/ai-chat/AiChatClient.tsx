@@ -339,7 +339,7 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
 
   return (
     // -mx-6 removes the px-6 from the root layout; h-full fills flex-1 main
-    <div className="flex -mx-6 h-full overflow-hidden border-t border-zinc-100">
+    <div className="flex -mx-6 h-full overflow-hidden" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
       {/* Left sidebar — hidden on mobile unless toggled */}
       <div className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex flex-col absolute md:relative inset-0 md:inset-auto z-30 md:z-auto`}>
         <ConversationSidebar
@@ -358,15 +358,15 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
       </div>
 
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-white">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0" style={{ background: '#0B1510' }}>
         {loadingConversation ? (
           <div className="flex flex-1 items-center justify-center">
             <div className="flex gap-1.5">
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
-                  className="w-2 h-2 rounded-full bg-zinc-300 animate-bounce"
-                  style={{ animationDelay: `${i * 150}ms` }}
+                  className="w-2 h-2 rounded-full animate-bounce"
+                  style={{ background: 'rgba(255,255,255,0.2)', animationDelay: `${i * 150}ms` }}
                 />
               ))}
             </div>
@@ -374,11 +374,12 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
         ) : (
           <>
             {/* Chat header bar (mobile sidebar toggle + title) */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-100 flex-shrink-0">
+            <div className="flex items-center gap-2 px-3 py-2 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               <button
                 type="button"
                 onClick={() => setSidebarOpen((o) => !o)}
-                className="md:hidden p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 transition-colors"
+                className="md:hidden p-1.5 rounded-lg transition-colors"
+                style={{ color: '#9CA3AF' }}
                 title="Conversas"
               >
                 {sidebarOpen ? (
@@ -387,7 +388,7 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
                   <PanelLeftOpen className="w-4 h-4" />
                 )}
               </button>
-              <span className="text-xs text-zinc-400 truncate flex-1 text-center md:text-left">
+              <span className="text-xs truncate flex-1 text-center md:text-left" style={{ color: '#6B7280' }}>
                 {currentConversation?.title ?? 'Nova conversa'}
               </span>
             </div>

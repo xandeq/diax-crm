@@ -1,7 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Flame, Snowflake, Thermometer } from 'lucide-react';
 import React from 'react';
 
@@ -15,25 +13,25 @@ export function getSegmentBadge(segment: string) {
   const lower = segment.toLowerCase();
   if (lower === 'hot') {
     return (
-      <Badge className="bg-red-100 text-red-700 hover:bg-red-100 flex items-center gap-1 w-fit">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
         <Flame className="h-3 w-3" />
         Quente
-      </Badge>
+      </span>
     );
   }
   if (lower === 'warm') {
     return (
-      <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 flex items-center gap-1 w-fit">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(251,146,60,0.12)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.2)' }}>
         <Thermometer className="h-3 w-3" />
         Morno
-      </Badge>
+      </span>
     );
   }
   return (
-    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 flex items-center gap-1 w-fit">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}>
       <Snowflake className="h-3 w-3" />
       Frio
-    </Badge>
+    </span>
   );
 }
 
@@ -55,10 +53,8 @@ export function ToggleSwitch({ checked, onCheckedChange, disabled, id }: ToggleS
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
-      className={[
-        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'bg-slate-900' : 'bg-slate-200',
-      ].join(' ')}
+      className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      style={{ background: checked ? '#10B981' : 'rgba(255,255,255,0.12)' }}
     >
       <span
         className={[
@@ -82,20 +78,18 @@ export interface StatCardProps {
 
 export function StatCard({ title, value, icon, description, accent }: StatCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-slate-600">{title}</CardTitle>
-        <span className={`h-8 w-8 rounded-md flex items-center justify-center ${accent ?? 'bg-slate-100'}`}>
+    <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+      <div className="flex flex-row items-center justify-between pb-2">
+        <span className="text-sm font-medium" style={{ color: '#9CA3AF' }}>{title}</span>
+        <span className={`h-8 w-8 rounded-md flex items-center justify-center ${accent ?? ''}`} style={!accent ? { background: 'rgba(255,255,255,0.08)' } : undefined}>
           {icon}
         </span>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-        {description && (
-          <p className="text-xs text-slate-500 mt-1">{description}</p>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      <div className="text-2xl font-bold" style={{ color: '#F9FAFB' }}>{value}</div>
+      {description && (
+        <p className="text-xs mt-1" style={{ color: '#6B7280' }}>{description}</p>
+      )}
+    </div>
   );
 }
 
@@ -105,10 +99,11 @@ export function StatusIndicator({ enabled, label }: { enabled: boolean; label: s
   return (
     <div className="flex items-center gap-2">
       <span
-        className={`inline-block h-2 w-2 rounded-full ${enabled ? 'bg-green-500' : 'bg-slate-300'}`}
+        className="inline-block h-2 w-2 rounded-full"
+        style={{ background: enabled ? '#10B981' : 'rgba(255,255,255,0.2)' }}
       />
-      <span className="text-sm text-slate-700">{label}</span>
-      <span className={`text-xs font-medium ${enabled ? 'text-green-600' : 'text-slate-400'}`}>
+      <span className="text-sm" style={{ color: '#D1D5DB' }}>{label}</span>
+      <span className="text-xs font-medium" style={{ color: enabled ? '#34d399' : '#6B7280' }}>
         {enabled ? 'Ativo' : 'Inativo'}
       </span>
     </div>
