@@ -74,7 +74,7 @@ export function FinancialToolbar({
           <select
             value={filters.categoryId || ""}
             onChange={(e) => onFilterChange({ ...filters, categoryId: e.target.value || undefined, page: 1 })}
-            className="h-12 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent min-w-[180px] shadow-sm transition-all"
+            className="h-12 rounded-xl px-4 py-2 text-sm outline-none min-w-[180px] transition-all" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
           >
             <option value="">Todas as Categorias</option>
             {categories.map((cat) => (
@@ -85,7 +85,7 @@ export function FinancialToolbar({
           <select
             value={filters.financialAccountId || ""}
             onChange={(e) => onFilterChange({ ...filters, financialAccountId: e.target.value || undefined, page: 1 })}
-            className="h-12 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent min-w-[180px] shadow-sm transition-all"
+            className="h-12 rounded-xl px-4 py-2 text-sm outline-none min-w-[180px] transition-all" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
           >
             <option value="">Todas as Contas</option>
             {accounts.map((acc) => (
@@ -93,20 +93,22 @@ export function FinancialToolbar({
             ))}
           </select>
 
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1 shadow-sm">
-             <CalendarIcon className="h-4 w-4 text-gray-400 mr-1" />
+          <div className="flex items-center gap-2 rounded-xl px-3 py-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+             <CalendarIcon className="h-4 w-4 mr-1" style={{ color: '#9CA3AF' }} />
              <input
                type="date"
                value={filters.startDate || ""}
                onChange={(e) => onFilterChange({ ...filters, startDate: e.target.value || undefined, page: 1 })}
                className="bg-transparent border-none text-sm outline-none h-10 w-32"
+               style={{ color: '#D1D5DB', colorScheme: 'dark' }}
              />
-             <span className="text-gray-300">até</span>
+             <span style={{ color: '#6B7280' }}>até</span>
              <input
                type="date"
                value={filters.endDate || ""}
                onChange={(e) => onFilterChange({ ...filters, endDate: e.target.value || undefined, page: 1 })}
                className="bg-transparent border-none text-sm outline-none h-10 w-32"
+               style={{ color: '#D1D5DB', colorScheme: 'dark' }}
              />
           </div>
 

@@ -115,23 +115,24 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {/* Table */}
-      <div className="rounded-md border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-md overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-50">
+            <TableHeader style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-b border-slate-200">
+                <TableRow key={headerGroup.id} style={{ borderBottom: 'none' }}>
                   {headerGroup.headers.map((header) => {
                     return (
                       <TableHead
                         key={header.id}
-                        className="px-4 py-3 text-slate-700 font-medium"
+                        className="px-4 py-3 font-medium"
+                        style={{ color: '#9CA3AF' }}
                       >
                         {header.isPlaceholder ? null : (
                           <div
                             className={
                               header.column.getCanSort()
-                                ? 'flex items-center gap-2 cursor-pointer select-none hover:text-slate-900'
+                                ? 'flex items-center gap-2 cursor-pointer select-none hover:text-white'
                                 : ''
                             }
                             onClick={header.column.getToggleSortingHandler()}
@@ -154,12 +155,13 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody className="divide-y divide-slate-200">
+            <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell
                     colSpan={tableColumns.length}
-                    className="h-24 text-center text-slate-500"
+                    className="h-24 text-center"
+                    style={{ color: '#9CA3AF' }}
                   >
                     Carregando...
                   </TableCell>
@@ -169,7 +171,10 @@ export function DataTable<TData, TValue>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className="hover:bg-slate-50 transition-colors"
+                    className="transition-colors"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '')}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="px-4 py-3">
@@ -182,7 +187,8 @@ export function DataTable<TData, TValue>({
                 <TableRow>
                   <TableCell
                     colSpan={tableColumns.length}
-                    className="h-24 text-center text-slate-500"
+                    className="h-24 text-center"
+                    style={{ color: '#9CA3AF' }}
                   >
                     Nenhum resultado encontrado.
                   </TableCell>
@@ -193,8 +199,8 @@ export function DataTable<TData, TValue>({
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50">
-          <div className="text-sm text-slate-500">
+        <div className="flex items-center justify-between px-4 py-3 text-sm" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
+          <div style={{ color: '#9CA3AF' }}>
             {selectable && (
               <span className="mr-4">
                 {table.getFilteredSelectedRowModel().rows.length} de{' '}
@@ -209,14 +215,16 @@ export function DataTable<TData, TValue>({
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="p-1 rounded-md border border-slate-300 bg-white disabled:opacity-50 hover:bg-slate-50 transition-colors"
+              className="p-1 rounded-md disabled:opacity-50 transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="p-1 rounded-md border border-slate-300 bg-white disabled:opacity-50 hover:bg-slate-50 transition-colors"
+              className="p-1 rounded-md disabled:opacity-50 transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
