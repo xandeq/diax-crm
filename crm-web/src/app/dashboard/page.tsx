@@ -3,11 +3,13 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Activity, AlertCircle, BarChart2, Bell, BookOpen, Calendar,
-  ChevronRight, Circle, Command, CreditCard, FileText, Flame,
-  Globe, Grid, HelpCircle, Home, Layers, LayoutDashboard,
-  Mail, MessageSquare, Phone, Plus, Search, Settings,
-  Shield, Star, Tag, TrendingUp, Users, Zap
+  Activity, AlertCircle, BarChart2, Bell, BookOpen, Bot,
+  Briefcase, Calendar, ChevronRight, Circle, CreditCard,
+  DollarSign, FileText, Flame, Globe, HelpCircle, Home,
+  LayoutDashboard, Link2, ListChecks, LogOut, Mail, Megaphone,
+  MessageSquare, Package, Phone, Plus, RefreshCw, Repeat,
+  Search, Settings, Shield, Star, Tag, Target, TrendingUp,
+  Upload, UserPlus, Users, Wallet, Zap
 } from 'lucide-react';
 
 const ApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -257,19 +259,107 @@ const tasks = [
   { text: 'Exportar relatório mensal', done: true, pri: 'med' },
 ];
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', active: true },
-  { icon: Users, label: 'CRM / Leads' },
-  { icon: TrendingUp, label: 'Pipeline' },
-  { icon: Mail, label: 'Email Marketing' },
-  { icon: MessageSquare, label: 'WhatsApp' },
-  { icon: CreditCard, label: 'Financeiro' },
-  { icon: BarChart2, label: 'Relatórios' },
-  { icon: Calendar, label: 'Agenda' },
-  { icon: Zap, label: 'IA / Ferramentas' },
-  { icon: Globe, label: 'Google Ads' },
-  { icon: FileText, label: 'Blog' },
-  { icon: Settings, label: 'Configurações' },
+type NavChild = { label: string; href: string; badge?: string };
+type NavItem = { icon: React.ElementType; label: string; href?: string; children?: NavChild[]; badge?: string };
+type NavGroup = { section: string; items: NavItem[] };
+
+const navGroups: NavGroup[] = [
+  {
+    section: 'Principal',
+    items: [
+      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+    ],
+  },
+  {
+    section: 'CRM',
+    items: [
+      { icon: Users, label: 'Clientes', href: '/customers/' },
+      { icon: TrendingUp, label: 'Leads', children: [
+        { label: 'Todos os Leads', href: '/leads/' },
+        { label: 'Importar Leads', href: '/leads/import' },
+      ]},
+      { icon: HelpCircle, label: 'Helpdesk', href: '/helpdesk' },
+    ],
+  },
+  {
+    section: 'Marketing',
+    items: [
+      { icon: Mail, label: 'Outreach', href: '/outreach' },
+      { icon: Megaphone, label: 'Email Marketing', children: [
+        { label: 'Email Marketing', href: '/email-marketing' },
+        { label: 'Email Marketing PRO', href: '/email-marketing/pro', badge: 'NEW' },
+        { label: 'Campanhas', href: '/campanhas' },
+      ]},
+      { icon: Globe, label: 'Meta Ads', href: '/ads/' },
+      { icon: BarChart2, label: 'Analytics', href: '/analytics' },
+    ],
+  },
+  {
+    section: 'Finanças',
+    items: [
+      { icon: Star, label: 'Morning Briefing', href: '/finance/morning-briefing' },
+      { icon: LayoutDashboard, label: 'Dashboard Financeiro', href: '/finance' },
+      { icon: Wallet, label: 'Planilha Financeira', href: '/finance/personal-control' },
+      { icon: DollarSign, label: 'Transações', children: [
+        { label: 'Todas as Transações', href: '/finance/transactions' },
+        { label: 'Receitas', href: '/finance/incomes' },
+        { label: 'Despesas', href: '/finance/expenses' },
+        { label: 'Transferências', href: '/finance/transfers' },
+        { label: 'Importar OFX/CSV', href: '/finance/imports' },
+      ]},
+      { icon: CreditCard, label: 'Cartões de Crédito', href: '/finance/credit-cards' },
+      { icon: Briefcase, label: 'Contas', href: '/finance/accounts' },
+      { icon: Target, label: 'Planejador', children: [
+        { label: 'Planejador Financeiro', href: '/finance/planner' },
+        { label: 'Metas Financeiras', href: '/finance/planner/goals' },
+        { label: 'Recorrentes', href: '/finance/planner/recurring' },
+      ]},
+      { icon: FileText, label: 'Imposto de Renda', href: '/finance/tax-documents' },
+    ],
+  },
+  {
+    section: 'IA',
+    items: [
+      { icon: MessageSquare, label: 'Claude Chat', href: '/ai-chat/', badge: 'NEW' },
+      { icon: Zap, label: 'Ferramentas IA', children: [
+        { label: 'Geração de Imagens', href: '/utilities/image-generation' },
+        { label: 'Gerador de Prompts', href: '/utilities/prompt-generator' },
+        { label: 'Humanizar Texto', href: '/utilities/humanize-text' },
+        { label: 'Otimizador de Email', href: '/utilities/email-subject-optimizer' },
+        { label: 'Gerador de Personas', href: '/utilities/lead-persona-generator' },
+        { label: 'Teste A/B Outreach', href: '/utilities/outreach-ab-test' },
+        { label: 'Batch Social Media', href: '/utilities/social-batch-generator' },
+        { label: 'Insights de Clientes', href: '/utilities/customer-insights' },
+      ]},
+    ],
+  },
+  {
+    section: 'Pessoal',
+    items: [
+      { icon: Calendar, label: 'Agenda', href: '/agenda' },
+      { icon: ListChecks, label: 'Tarefas', href: '/tasks' },
+      { icon: Package, label: 'Listas e Compras', href: '/household/checklists' },
+      { icon: Tag, label: 'Snippets', href: '/utilities/snippets' },
+      { icon: Link2, label: 'Extratores', children: [
+        { label: 'HTML → Texto', href: '/tools/html-extractor' },
+        { label: 'HTML → Links', href: '/tools/html-url-extractor' },
+      ]},
+      { icon: Briefcase, label: 'Inventário de Apps', href: '/tools/apps-inventory' },
+    ],
+  },
+  {
+    section: 'Admin',
+    items: [
+      { icon: Users, label: 'Usuários', href: '/users/' },
+      { icon: Shield, label: 'Grupos & Permissões', href: '/admin/groups' },
+      { icon: Bot, label: 'Provedores IA', href: '/admin/ai' },
+      { icon: FileText, label: 'Blog', children: [
+        { label: 'Gerenciar Blog', href: '/admin/blog' },
+        { label: 'Novo Post', href: '/admin/blog/new' },
+      ]},
+      { icon: Activity, label: 'Logs do Sistema', href: '/logs/' },
+    ],
+  },
 ];
 
 const stageColors: Record<string, string> = {
@@ -434,11 +524,96 @@ const CSS = `
   }
   @keyframes db-pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
   .db-live { animation: db-pulse 2s infinite; }
+  .db-nav-group { position: relative; }
+  .db-nav-flyout {
+    position: fixed;
+    left: 220px;
+    width: 210px;
+    background: #0D1F18;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 6px;
+    z-index: 300;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  }
+  .db-nav-flyout-item {
+    display: block;
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    color: #9CA3AF;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .1s, color .1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .db-nav-flyout-item:hover { background: rgba(255,255,255,0.07); color: #F9FAFB; }
+  .db-nav-badge {
+    font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    background: #10B981; color: #fff; margin-left: 4px; vertical-align: middle;
+  }
   @media (max-width: 1200px) {
     .db-grid-4 { grid-template-columns: repeat(2, 1fr); }
     .db-grid-73, .db-grid-63 { grid-template-columns: 1fr; }
   }
 `;
+
+function NavItemEl({ item, activeNav, setActiveNav }: { item: NavItem; activeNav: string; setActiveNav: (s: string) => void }) {
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
+  const [flyoutTop, setFlyoutTop] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const isActive = activeNav === item.label;
+  const hasChildren = item.children && item.children.length > 0;
+
+  const handleMouseEnter = () => {
+    if (hasChildren && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setFlyoutTop(rect.top);
+      setFlyoutOpen(true);
+    }
+  };
+  const handleMouseLeave = () => setFlyoutOpen(false);
+
+  return (
+    <div ref={ref} className="db-nav-group" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      {hasChildren ? (
+        <div
+          className={`db-nav-item ${isActive ? 'active' : ''}`}
+          onClick={() => setActiveNav(item.label)}
+          style={{ justifyContent: 'space-between' }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <item.icon size={15} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{item.label}</span>
+          </span>
+          <ChevronRight size={12} style={{ flexShrink: 0, opacity: .5 }} />
+        </div>
+      ) : (
+        <a
+          href={item.href}
+          className={`db-nav-item ${isActive ? 'active' : ''}`}
+          onClick={() => setActiveNav(item.label)}
+        >
+          <item.icon size={15} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{item.label}</span>
+          {item.badge && <span className="db-nav-badge">{item.badge}</span>}
+        </a>
+      )}
+      {flyoutOpen && hasChildren && (
+        <div className="db-nav-flyout" style={{ top: flyoutTop }}>
+          {item.children!.map(child => (
+            <a key={child.href} href={child.href} className="db-nav-flyout-item">
+              {child.label}
+              {child.badge && <span className="db-nav-badge">{child.badge}</span>}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState('Dashboard');
@@ -465,36 +640,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="db-nav">
-            <div className="db-nav-section">Principal</div>
-            {navItems.slice(0, 2).map(item => (
-              <a key={item.label} className={`db-nav-item ${activeNav === item.label ? 'active' : ''}`} onClick={() => setActiveNav(item.label)}>
-                <item.icon size={15} />
-                {item.label}
-              </a>
-            ))}
-
-            <div className="db-nav-section">Vendas</div>
-            {navItems.slice(2, 6).map(item => (
-              <a key={item.label} className={`db-nav-item ${activeNav === item.label ? 'active' : ''}`} onClick={() => setActiveNav(item.label)}>
-                <item.icon size={15} />
-                {item.label}
-              </a>
-            ))}
-
-            <div className="db-nav-section">Análise</div>
-            {navItems.slice(6, 9).map(item => (
-              <a key={item.label} className={`db-nav-item ${activeNav === item.label ? 'active' : ''}`} onClick={() => setActiveNav(item.label)}>
-                <item.icon size={15} />
-                {item.label}
-              </a>
-            ))}
-
-            <div className="db-nav-section">Ferramentas</div>
-            {navItems.slice(9).map(item => (
-              <a key={item.label} className={`db-nav-item ${activeNav === item.label ? 'active' : ''}`} onClick={() => setActiveNav(item.label)}>
-                <item.icon size={15} />
-                {item.label}
-              </a>
+            {navGroups.map(group => (
+              <div key={group.section}>
+                <div className="db-nav-section">{group.section}</div>
+                {group.items.map(item => (
+                  <NavItemEl key={item.label} item={item} activeNav={activeNav} setActiveNav={setActiveNav} />
+                ))}
+              </div>
             ))}
           </div>
 
