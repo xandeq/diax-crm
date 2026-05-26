@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import React from 'react';
 import { tasksService } from '@/services/tasks';
 import { CreateTaskRequest, TaskItem, TaskPriority, TaskStatus } from '@/types/tasks';
 import { format, isPast, parseISO } from 'date-fns';
@@ -31,17 +32,31 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 };
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
-    Low: 'bg-slate-100 text-slate-700',
-    Medium: 'bg-blue-100 text-blue-700',
-    High: 'bg-orange-100 text-orange-700',
-    Urgent: 'bg-red-100 text-red-700',
+    Low: 'text-slate-400',
+    Medium: 'text-blue-400',
+    High: 'text-orange-400',
+    Urgent: 'text-red-400',
+};
+
+const PRIORITY_BG: Record<TaskPriority, React.CSSProperties> = {
+    Low:    { background: 'rgba(148,163,184,0.12)', color: '#94a3b8' },
+    Medium: { background: 'rgba(96,165,250,0.12)',  color: '#60a5fa' },
+    High:   { background: 'rgba(251,146,60,0.12)',  color: '#fb923c' },
+    Urgent: { background: 'rgba(248,113,113,0.12)', color: '#f87171' },
 };
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
-    Todo: 'bg-slate-100 text-slate-700',
-    InProgress: 'bg-yellow-100 text-yellow-700',
-    Done: 'bg-green-100 text-green-700',
-    Cancelled: 'bg-gray-100 text-gray-500',
+    Todo: 'text-slate-400',
+    InProgress: 'text-yellow-400',
+    Done: 'text-emerald-400',
+    Cancelled: 'text-slate-500',
+};
+
+const STATUS_BG: Record<TaskStatus, React.CSSProperties> = {
+    Todo:       { background: 'rgba(148,163,184,0.12)', color: '#94a3b8' },
+    InProgress: { background: 'rgba(250,204,21,0.12)',  color: '#facc15' },
+    Done:       { background: 'rgba(52,211,153,0.12)',  color: '#34d399' },
+    Cancelled:  { background: 'rgba(107,114,128,0.12)', color: '#6b7280' },
 };
 
 type FilterStatus = TaskStatus | 'All' | 'Overdue';
@@ -186,8 +201,8 @@ export function TasksClient() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-900">Tarefas</h1>
-                    <p className="text-sm text-gray-500 mt-1">{tasks.length} tarefa{tasks.length !== 1 ? 's' : ''}</p>
+                    <h1 className="text-2xl font-semibold" style={{ color: '#F9FAFB' }}>Tarefas</h1>
+                    <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>{tasks.length} tarefa{tasks.length !== 1 ? 's' : ''}</p>
                 </div>
                 <Button onClick={openCreate}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -201,11 +216,10 @@ export function TasksClient() {
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            filter === f
-                                ? 'bg-gray-900 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                        className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                        style={filter === f
+                            ? { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }
+                            : { background: 'rgba(255,255,255,0.06)', color: '#9CA3AF', border: '1px solid rgba(255,255,255,0.09)' }}
                     >
                         {f === 'All' ? 'Todas' : f === 'Overdue' ? '⚠ Vencidas' : STATUS_LABELS[f]}
                         {' '}
@@ -220,7 +234,7 @@ export function TasksClient() {
                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                 </div>
             ) : tasks.length === 0 ? (
-                <div className="text-center py-16 text-gray-400">
+                <div className="text-center py-16" style={{ color: '#6B7280' }}>
                     <Circle className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p>Nenhuma tarefa encontrada</p>
                 </div>
@@ -231,18 +245,20 @@ export function TasksClient() {
                         return (
                             <div
                                 key={task.id}
-                                className={`bg-white border rounded-lg p-4 flex items-start gap-4 hover:border-gray-300 transition-colors ${
-                                    task.status === 'Done' ? 'opacity-60' : ''
-                                }`}
+                                className="rounded-lg p-4 flex items-start gap-4 transition-colors"
+                                style={{
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid rgba(255,255,255,0.09)',
+                                    opacity: task.status === 'Done' ? 0.6 : 1,
+                                }}
                             >
                                 {/* Complete toggle */}
                                 <button
                                     onClick={() => task.status === 'Done' ? handleReopen(task) : handleComplete(task)}
-                                    className={`mt-0.5 flex-shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                        task.status === 'Done'
-                                            ? 'border-green-500 bg-green-500 text-white'
-                                            : 'border-gray-300 hover:border-green-400'
-                                    }`}
+                                    className="mt-0.5 flex-shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors"
+                                    style={task.status === 'Done'
+                                        ? { borderColor: '#10B981', background: '#10B981', color: '#fff' }
+                                        : { borderColor: 'rgba(255,255,255,0.2)' }}
                                     title={task.status === 'Done' ? 'Reabrir' : 'Concluir'}
                                 >
                                     {task.status === 'Done' && <Check className="h-3 w-3" />}
@@ -252,24 +268,23 @@ export function TasksClient() {
                                 <div className="flex-1 min-w-0">
                                     <button
                                         onClick={() => openEdit(task)}
-                                        className={`text-left font-medium text-gray-900 hover:text-blue-600 transition-colors ${
-                                            task.status === 'Done' ? 'line-through text-gray-400' : ''
-                                        }`}
+                                        className="text-left font-medium transition-colors hover:text-blue-400"
+                                        style={{ color: task.status === 'Done' ? '#6B7280' : '#F9FAFB', textDecoration: task.status === 'Done' ? 'line-through' : 'none' }}
                                     >
                                         {task.title}
                                     </button>
                                     {task.description && (
-                                        <p className="text-sm text-gray-500 mt-0.5 truncate">{task.description}</p>
+                                        <p className="text-sm mt-0.5 truncate" style={{ color: '#9CA3AF' }}>{task.description}</p>
                                     )}
                                     <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                        <Badge className={`text-xs ${PRIORITY_COLORS[task.priority]}`}>
+                                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={PRIORITY_BG[task.priority]}>
                                             {PRIORITY_LABELS[task.priority]}
-                                        </Badge>
-                                        <Badge className={`text-xs ${STATUS_COLORS[task.status]}`}>
+                                        </span>
+                                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={STATUS_BG[task.status]}>
                                             {STATUS_LABELS[task.status]}
-                                        </Badge>
+                                        </span>
                                         {task.dueDate && (
-                                            <span className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-500' : 'text-gray-400'}`}>
+                                            <span className="flex items-center gap-1 text-xs" style={{ color: isOverdue ? '#f87171' : '#6B7280' }}>
                                                 {isOverdue ? <AlertCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                                                 {format(parseISO(task.dueDate), 'dd/MM/yyyy', { locale: ptBR })}
                                             </span>
@@ -282,7 +297,8 @@ export function TasksClient() {
                                     {task.status === 'Done' && (
                                         <button
                                             onClick={() => handleReopen(task)}
-                                            className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                                            className="p-1.5 rounded transition-colors"
+                                            style={{ color: '#6B7280' }}
                                             title="Reabrir"
                                         >
                                             <RotateCcw className="h-3.5 w-3.5" />
@@ -290,14 +306,16 @@ export function TasksClient() {
                                     )}
                                     <button
                                         onClick={() => handleArchive(task)}
-                                        className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                                        className="p-1.5 rounded transition-colors"
+                                        style={{ color: '#6B7280' }}
                                         title="Arquivar"
                                     >
                                         <Archive className="h-3.5 w-3.5" />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(task)}
-                                        className="p-1.5 text-gray-400 hover:text-red-500 rounded"
+                                        className="p-1.5 rounded transition-colors hover:text-red-400"
+                                        style={{ color: '#6B7280' }}
                                         title="Excluir"
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />

@@ -322,8 +322,8 @@ export function AgendaClient() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-2xl font-bold text-slate-800">Minha Agenda</h1>
-                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                    <h1 className="text-2xl font-bold" style={{ color: '#F9FAFB' }}>Minha Agenda</h1>
+                    <div className="flex p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>
                         <Button variant={view === 'month' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('month')} className="h-8 px-3">
                             <CalendarIcon className="w-4 h-4 mr-1.5" /> Mês
                         </Button>
@@ -342,7 +342,7 @@ export function AgendaClient() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                     {(view === 'month' || view === 'week') && (
-                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1">
+                        <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrev}>
                                 <ChevronLeft className="h-4 w-4" />
                             </Button>
@@ -369,7 +369,7 @@ export function AgendaClient() {
                     <Button variant="outline" size="sm" className="font-medium" onClick={() => setIsLabelManagerOpen(true)}>
                         <Tag className="w-4 h-4 mr-1.5" /> Labels
                     </Button>
-                    <Button variant="outline" size="sm" className="border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 font-medium" onClick={() => setIsImportOpen(true)}>
+                    <Button variant="outline" size="sm" className="font-medium" style={{ borderColor: 'rgba(167,139,250,0.3)', color: '#a78bfa', background: 'rgba(139,92,246,0.08)' }} onClick={() => setIsImportOpen(true)}>
                         <Sparkles className="w-4 h-4 mr-1.5 text-purple-600" /> IA Extrair
                     </Button>
                     <Button size="sm" onClick={() => handleOpenForm()} className="bg-blue-600 hover:bg-blue-700">
@@ -387,7 +387,8 @@ export function AgendaClient() {
                         value={aiCommand}
                         onChange={e => setAiCommand(e.target.value)}
                         placeholder='IA: "Mover todas reuniões KPIT para 11:30" ou "Cancelar meetings de sexta"...'
-                        className="pl-9 border-purple-200 focus-visible:ring-purple-400 bg-purple-50/30 placeholder:text-slate-400"
+                        className="pl-9 placeholder:text-slate-500"
+                        style={{ borderColor: 'rgba(167,139,250,0.25)', background: 'rgba(139,92,246,0.06)', color: '#D1D5DB' }}
                         disabled={isAiLoading}
                     />
                 </div>
@@ -403,7 +404,7 @@ export function AgendaClient() {
             </form>
 
             {/* Main Area */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)' }}>
                 {isLoading && appointments.length === 0 ? (
                     <div className="flex justify-center items-center h-64 text-slate-400">
                         <Loader2 className="w-8 h-8 animate-spin" />
@@ -421,9 +422,9 @@ export function AgendaClient() {
                 ) : view === 'month' ? (
                     <div className="flex flex-col h-full">
                         {/* Month view headers — starts Monday */}
-                        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/50">
+                        <div className="grid grid-cols-7" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
                             {weekDaysShort.map(day => (
-                                <div key={day} className="py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                <div key={day} className="py-3 text-center text-xs font-medium uppercase tracking-wider" style={{ color: '#6B7280' }}>
                                     {day}
                                 </div>
                             ))}
@@ -438,12 +439,18 @@ export function AgendaClient() {
                                 return (
                                     <div
                                         key={dayKey}
-                                        className={`min-h-[120px] p-2 border-slate-100 relative group transition-colors
-                                            ${!isCurrentMonth ? 'bg-slate-50/50 text-slate-400' : 'bg-white'}
-                                            ${dayIdx > 6 ? 'border-t' : ''}
-                                            ${dayIdx % 7 !== 6 ? 'border-r' : ''}
-                                            ${isDropTarget ? 'bg-blue-50 ring-2 ring-inset ring-blue-300' : 'hover:bg-slate-50'}
-                                            cursor-pointer`}
+                                        className="min-h-[120px] p-2 relative group transition-colors cursor-pointer"
+                                        style={{
+                                            background: isDropTarget
+                                                ? 'rgba(59,130,246,0.08)'
+                                                : !isCurrentMonth
+                                                    ? 'rgba(255,255,255,0.01)'
+                                                    : 'transparent',
+                                            borderTop: dayIdx > 6 ? '1px solid rgba(255,255,255,0.06)' : undefined,
+                                            borderRight: dayIdx % 7 !== 6 ? '1px solid rgba(255,255,255,0.06)' : undefined,
+                                            outline: isDropTarget ? '2px solid rgba(59,130,246,0.4)' : undefined,
+                                            outlineOffset: '-2px',
+                                        }}
                                         onClick={(e) => {
                                             if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'DIV') {
                                                 handleOpenForm(day);
@@ -513,42 +520,42 @@ export function AgendaClient() {
                     </div>
                 ) : (
                     <div className="p-6">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Próximos Compromissos</h2>
+                        <h2 className="text-lg font-semibold mb-4" style={{ color: '#F9FAFB' }}>Próximos Compromissos</h2>
                         {upcomingAppointments.length === 0 ? (
-                            <p className="text-slate-500 text-center py-8">Nenhum compromisso agendado.</p>
+                            <p className="text-center py-8" style={{ color: '#6B7280' }}>Nenhum compromisso agendado.</p>
                         ) : (
                             <div className="space-y-3">
                                 {upcomingAppointments.map(appt => {
                                     const dateObj = parseISO(appt.date);
                                     const labelColor = appt.label?.color;
                                     return (
-                                        <div key={appt.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-slate-100 bg-slate-50 rounded-lg hover:shadow-sm transition-shadow group">
+                                        <div key={appt.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg transition-shadow group" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
                                             <div className="flex items-start gap-4">
                                                 <div
                                                     className="p-3 rounded-lg flex flex-col items-center justify-center min-w-[70px]"
                                                     style={labelColor
                                                         ? { backgroundColor: labelColor + '20', color: labelColor }
-                                                        : { backgroundColor: '#f1f5f9', color: '#475569' }}
+                                                        : { backgroundColor: 'rgba(255,255,255,0.06)', color: '#9CA3AF' }}
                                                 >
                                                     <span className="text-xs font-bold uppercase">{format(dateObj, 'MMM', { locale: ptBR })}</span>
                                                     <span className="text-xl font-bold leading-none">{format(dateObj, 'dd')}</span>
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                                                    <h3 className="font-semibold flex items-center gap-2" style={{ color: '#F9FAFB' }}>
                                                         {appt.title}
-                                                        {appt.recurrenceGroupId && <span className="text-xs text-slate-400 font-normal">↺ recorrente</span>}
+                                                        {appt.recurrenceGroupId && <span className="text-xs font-normal" style={{ color: '#6B7280' }}>↺ recorrente</span>}
                                                     </h3>
-                                                    <div className="flex items-center gap-3 text-sm text-slate-500 mt-1">
+                                                    <div className="flex items-center gap-3 text-sm mt-1" style={{ color: '#9CA3AF' }}>
                                                         <span>{format(dateObj, 'HH:mm')}</span>
                                                         {appt.label ? (
                                                             <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-semibold" style={{ backgroundColor: appt.label.color + '20', color: appt.label.color }}>
                                                                 {appt.label.name}
                                                             </span>
                                                         ) : (
-                                                            <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-semibold border bg-white">{TYPE_LABELS[appt.type]}</span>
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-semibold" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#9CA3AF' }}>{TYPE_LABELS[appt.type]}</span>
                                                         )}
                                                     </div>
-                                                    {appt.description && <p className="text-sm text-slate-600 mt-1 line-clamp-2">{appt.description}</p>}
+                                                    {appt.description && <p className="text-sm mt-1 line-clamp-2" style={{ color: '#9CA3AF' }}>{appt.description}</p>}
                                                 </div>
                                             </div>
                                             <div className="mt-3 sm:mt-0 flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -630,15 +637,15 @@ export function AgendaClient() {
                     </DialogHeader>
                     {aiBatchResult && (
                         <div className="space-y-4 mt-2">
-                            <p className="text-sm font-medium text-slate-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
+                            <p className="text-sm font-medium rounded-lg px-3 py-2" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#D1D5DB' }}>
                                 {aiBatchResult.summary}
                             </p>
                             {aiBatchResult.changes.length === 0 ? (
-                                <p className="text-sm text-slate-500 text-center py-4">Nenhuma alteração encontrada.</p>
+                                <p className="text-sm text-center py-4" style={{ color: '#6B7280' }}>Nenhuma alteração encontrada.</p>
                             ) : (
                                 <div className="space-y-1.5 max-h-64 overflow-y-auto">
                                     {aiBatchResult.changes.map((change, i) => (
-                                        <div key={i} className="text-sm text-slate-600 bg-slate-50 rounded px-3 py-1.5 border border-slate-100">
+                                        <div key={i} className="text-sm rounded px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#D1D5DB' }}>
                                             {formatBatchChange(change)}
                                         </div>
                                     ))}

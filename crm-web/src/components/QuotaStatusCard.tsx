@@ -1,8 +1,5 @@
 import React from 'react';
 import { AlertCircle, RotateCw } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 
 export interface QuotaStatusDto {
@@ -50,53 +47,65 @@ export function QuotaStatusCard({ quota, isLoading = false, onResetClick }: Quot
     return 'default';
   };
 
-  return (
-    <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">
-            Quota de Uso — {quota.providerName}
-          </CardTitle>
-          <Badge variant={getStatusBadgeVariant()}>
-            {quota.remaining}/{quota.dailyLimit} {quota.quotaType === 'Credits' ? 'créditos' : 'gerações'}
-          </Badge>
-        </div>
-      </CardHeader>
+  const STAT_PILL = {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: '0.5rem',
+    padding: '0.5rem',
+    textAlign: 'center' as const,
+  };
 
-      <CardContent className="space-y-4">
+  return (
+    <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.75rem', padding: '1.5rem' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold" style={{ color: '#F9FAFB' }}>
+          Quota de Uso — {quota.providerName}
+        </h3>
+        <Badge variant={getStatusBadgeVariant()}>
+          {quota.remaining}/{quota.dailyLimit} {quota.quotaType === 'Credits' ? 'créditos' : 'gerações'}
+        </Badge>
+      </div>
+
+      <div className="space-y-4">
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-700 font-medium">Uso diário</span>
-            <span className="text-gray-600">{percentUsed.toFixed(0)}%</span>
+            <span style={{ color: '#D1D5DB' }} className="font-medium">Uso diário</span>
+            <span style={{ color: '#9CA3AF' }}>{percentUsed.toFixed(0)}%</span>
           </div>
-          <Progress value={percentUsed} className="h-3" />
+          <div className="h-3 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${getProgressColor()}`}
+              style={{ width: `${percentUsed}%` }}
+            />
+          </div>
         </div>
 
         {/* Usage Details */}
         <div className="grid grid-cols-3 gap-3 text-sm">
-          <div className="rounded-lg bg-white/50 p-2 text-center">
-            <div className="text-gray-600 font-medium">Usado</div>
-            <div className="text-lg font-bold text-gray-900">{quota.currentUsage}</div>
+          <div style={STAT_PILL}>
+            <div style={{ color: '#9CA3AF' }} className="font-medium">Usado</div>
+            <div className="text-lg font-bold" style={{ color: '#F9FAFB' }}>{quota.currentUsage}</div>
           </div>
-          <div className="rounded-lg bg-white/50 p-2 text-center">
-            <div className="text-gray-600 font-medium">Limite</div>
-            <div className="text-lg font-bold text-gray-900">{quota.dailyLimit}</div>
+          <div style={STAT_PILL}>
+            <div style={{ color: '#9CA3AF' }} className="font-medium">Limite</div>
+            <div className="text-lg font-bold" style={{ color: '#F9FAFB' }}>{quota.dailyLimit}</div>
           </div>
-          <div className="rounded-lg bg-white/50 p-2 text-center">
-            <div className="text-gray-600 font-medium">Restante</div>
-            <div className={`text-lg font-bold ${quota.isExhausted ? 'text-red-600' : 'text-green-600'}`}>
+          <div style={STAT_PILL}>
+            <div style={{ color: '#9CA3AF' }} className="font-medium">Restante</div>
+            <div className={`text-lg font-bold ${quota.isExhausted ? 'text-red-400' : 'text-emerald-400'}`}>
               {quota.remaining}
             </div>
           </div>
         </div>
 
         {/* Reset Time */}
-        <div className="rounded-lg bg-white/60 p-3 text-sm">
-          <div className="text-gray-600 font-medium mb-1">Próximo reset</div>
+        <div className="rounded-lg p-3 text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ color: '#9CA3AF' }} className="font-medium mb-1">Próximo reset</div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-900 font-semibold">{resetTimeFormatted} (UTC)</span>
-            <span className="text-gray-600">
+            <span style={{ color: '#F9FAFB' }} className="font-semibold">{resetTimeFormatted} (UTC)</span>
+            <span style={{ color: '#9CA3AF' }}>
               {quota.timeUntilReset.hours}h {quota.timeUntilReset.minutes}m
             </span>
           </div>
@@ -104,13 +113,15 @@ export function QuotaStatusCard({ quota, isLoading = false, onResetClick }: Quot
 
         {/* Exhausted Alert */}
         {quota.isExhausted && (
-          <Alert variant="destructive" className="mt-3">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Limite diário atingido</AlertTitle>
-            <AlertDescription>
-              Você alcançou o limite de {quota.dailyLimit} {quota.quotaType === 'Credits' ? 'créditos' : 'gerações'} por dia. Tente novamente após o reset.
-            </AlertDescription>
-          </Alert>
+          <div className="rounded-lg p-3 flex gap-3 mt-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+            <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-semibold text-sm text-red-400">Limite diário atingido</div>
+              <div className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
+                Você alcançou o limite de {quota.dailyLimit} {quota.quotaType === 'Credits' ? 'créditos' : 'gerações'} por dia. Tente novamente após o reset.
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Reset Button (for admins) */}
@@ -118,13 +129,14 @@ export function QuotaStatusCard({ quota, isLoading = false, onResetClick }: Quot
           <button
             onClick={onResetClick}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#D1D5DB' }}
           >
             <RotateCw className="h-4 w-4" />
             Reset Manual (Admin)
           </button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
