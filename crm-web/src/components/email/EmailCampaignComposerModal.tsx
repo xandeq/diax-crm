@@ -408,17 +408,17 @@ export function EmailCampaignComposerModal({
               </Button>
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500 mb-1">Assunto</p>
-              <p className="text-sm font-medium text-slate-900">{previewSubject || '(sem preview ainda)'}</p>
+            <div className=”rounded-md p-3” style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+              <p className=”text-xs mb-1” style={{ color: '#6B7280' }}>Assunto</p>
+              <p className=”text-sm font-medium” style={{ color: '#F9FAFB' }}>{previewSubject || '(sem preview ainda)'}</p>
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-white p-3 min-h-[360px] overflow-auto">
-              <p className="text-xs text-slate-500 mb-2">Corpo</p>
+            <div className=”rounded-md p-3 min-h-[360px] overflow-auto” style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+              <p className=”text-xs mb-2” style={{ color: '#6B7280' }}>Corpo</p>
               {previewHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                <div dangerouslySetInnerHTML={{ __html: previewHtml }} style={{ background: '#ffffff', color: '#111', padding: '8px', borderRadius: '4px' }} />
               ) : (
-                <p className="text-sm text-slate-500">Clique em “Atualizar preview” para renderizar as variáveis.</p>
+                <p className=”text-sm” style={{ color: '#6B7280' }}>Clique em “Atualizar preview” para renderizar as variáveis.</p>
               )}
             </div>
           </div>

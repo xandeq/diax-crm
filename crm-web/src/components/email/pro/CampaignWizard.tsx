@@ -29,14 +29,20 @@ function StepIndicator({ current }: { current: number }) {
     <div className="flex items-center gap-2 mb-6">
       {STEPS.map((label, i) => (
         <div key={i} className="flex items-center gap-2">
-          <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
-            ${i < current ? 'bg-green-500 text-white' : i === current ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
+          <div
+            className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
+            style={i < current
+              ? { background: '#10B981', color: '#fff' }
+              : i === current
+                ? { background: '#3b82f6', color: '#fff' }
+                : { background: 'rgba(255,255,255,0.1)', color: '#6B7280' }}
+          >
             {i < current ? '✓' : i + 1}
           </div>
-          <span className={`text-sm ${i === current ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>
+          <span className="text-sm" style={{ color: i === current ? '#F9FAFB' : '#6B7280', fontWeight: i === current ? 600 : 400 }}>
             {label}
           </span>
-          {i < STEPS.length - 1 && <div className="w-6 h-px bg-slate-200" />}
+          {i < STEPS.length - 1 && <div className="w-6 h-px" style={{ background: 'rgba(255,255,255,0.1)' }} />}
         </div>
       ))}
     </div>
@@ -83,11 +89,10 @@ function AudienceStep({
               key={val}
               type="button"
               onClick={() => onChange({ ...state, preset: val })}
-              className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-                state.preset === val
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-slate-300 text-slate-600 hover:border-blue-400'
-              }`}
+              className="px-4 py-1.5 rounded-full text-sm border transition-colors"
+              style={state.preset === val
+                ? { background: '#3b82f6', color: '#fff', borderColor: '#3b82f6' }
+                : { background: 'rgba(255,255,255,0.05)', color: '#9CA3AF', borderColor: 'rgba(255,255,255,0.15)' }}
             >
               {label}
             </button>
@@ -386,18 +391,18 @@ function SendStep({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
-        <h3 className="font-semibold text-slate-700">Resumo do Envio</h3>
+      <div className="rounded-lg p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+        <h3 className="font-semibold" style={{ color: '#D1D5DB' }}>Resumo do Envio</h3>
         <div className="grid grid-cols-3 gap-3">
           {providerCounts.map(({ name, count }) => (
-            <div key={name} className="text-center bg-white rounded border p-3">
-              <div className="text-2xl font-bold text-slate-800">{count}</div>
-              <div className="text-xs text-slate-500">{name}</div>
+            <div key={name} className="text-center rounded p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}>
+              <div className="text-2xl font-bold" style={{ color: '#F9FAFB' }}>{count}</div>
+              <div className="text-xs" style={{ color: '#9CA3AF' }}>{name}</div>
             </div>
           ))}
         </div>
-        <div className="text-sm text-slate-600">
-          <span className="font-semibold">{leads.length} emails</span> serão enfileirados e enviados pelo worker em até 5 minutos.
+        <div className="text-sm" style={{ color: '#9CA3AF' }}>
+          <span className="font-semibold" style={{ color: '#D1D5DB' }}>{leads.length} emails</span> serão enfileirados e enviados pelo worker em até 5 minutos.
         </div>
       </div>
 

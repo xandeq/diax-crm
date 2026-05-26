@@ -238,11 +238,11 @@ export function EmailMarketingComposerModal({
           {/* Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
-            <div className="rounded-md border border-slate-200 bg-white p-3 min-h-[120px] max-h-[200px] overflow-auto">
+            <div className="rounded-md p-3 min-h-[120px] max-h-[200px] overflow-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
               {bodyHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+                <div dangerouslySetInnerHTML={{ __html: bodyHtml }} style={{ background: '#ffffff', color: '#111', padding: '4px', borderRadius: '4px' }} />
               ) : (
-                <p className="text-sm text-slate-400">O preview do HTML aparecer\u00e1 aqui...</p>
+                <p className="text-sm" style={{ color: '#6B7280' }}>O preview do HTML aparecer\u00e1 aqui...</p>
               )}
             </div>
           </div>
