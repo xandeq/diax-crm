@@ -75,7 +75,7 @@ export function ChatInput({
       </div>
 
       {/* Input row */}
-      <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 focus-within:border-zinc-400 focus-within:bg-white transition-colors shadow-sm">
+      <div className="flex items-end gap-2 rounded-2xl px-3 py-2 transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
         <textarea
           ref={textareaRef}
           value={text}
@@ -85,7 +85,8 @@ export function ChatInput({
           placeholder="Mensagem (Enter para enviar)"
           rows={1}
           disabled={disabled}
-          className="flex-1 resize-none bg-transparent text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none min-h-[24px] max-h-[200px] py-0.5 leading-relaxed"
+          className="flex-1 resize-none bg-transparent text-sm placeholder:text-zinc-500 focus:outline-none min-h-[24px] max-h-[200px] py-0.5 leading-relaxed"
+          style={{ color: '#F9FAFB' }}
         />
 
         <button

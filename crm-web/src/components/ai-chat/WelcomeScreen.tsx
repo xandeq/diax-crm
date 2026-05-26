@@ -35,7 +35,8 @@ export function WelcomeScreen({ onSuggestion }: WelcomeScreenProps) {
             key={i}
             type="button"
             onClick={() => onSuggestion(s)}
-            className="text-left px-4 py-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 text-sm text-zinc-700 leading-snug transition-all active:scale-[0.98] shadow-sm"
+            className="text-left px-4 py-3 rounded-xl text-sm leading-snug transition-all active:scale-[0.98]"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#D1D5DB' }}
           >
             {s}
           </button>
