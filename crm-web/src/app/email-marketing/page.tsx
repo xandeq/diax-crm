@@ -960,7 +960,7 @@ export default function EmailMarketingPage() {
 
                   {/* Rendered preview */}
                   <div
-                    className="prose max-w-none min-h-[220px] max-h-[400px] overflow-auto rounded-md border bg-white p-4 text-sm"
+                    className="prose max-w-none min-h-[220px] max-h-[400px] overflow-auto rounded-md border p-4 text-sm" style={{ background: '#ffffff', color: '#111' }}
                     dangerouslySetInnerHTML={{ __html: renderPreview(htmlBody) }}
                   />
                 </div>

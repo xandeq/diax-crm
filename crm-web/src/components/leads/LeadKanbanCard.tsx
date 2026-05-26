@@ -14,12 +14,8 @@ export function LeadKanbanCard({ lead, isUpdating, onDragStart }: Props) {
         <div
             draggable={!isUpdating}
             onDragStart={(e) => onDragStart(e, lead.id)}
-            className={`
-                bg-white border border-slate-200 rounded-lg p-3 shadow-sm
-                cursor-grab active:cursor-grabbing select-none
-                transition-all duration-150
-                ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md hover:border-slate-300'}
-            `}
+            className={`rounded-lg p-3 cursor-grab active:cursor-grabbing select-none transition-all duration-150 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
