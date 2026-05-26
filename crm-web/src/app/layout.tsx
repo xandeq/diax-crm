@@ -2,7 +2,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { Header } from '@/components/Header';
 import { QueryProvider } from '@/components/QueryProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { Calistoga, Inter, JetBrains_Mono } from "next/font/google";
+import { Calistoga, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from 'sonner';
 import './globals.css';
 
@@ -16,6 +16,13 @@ const calistoga = Calistoga({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-calistoga",
+  display: "swap",
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
   display: "swap",
 });
 
@@ -41,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}>
+    <html lang="pt-BR" className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable}`}>
       <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground min-h-screen flex flex-col">
         <QueryProvider>
         <AuthProvider>
