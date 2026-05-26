@@ -29,9 +29,9 @@ function DeleteModal({ isOpen, onClose, onConfirm, loading }: {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-100">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmar Exclusão</h3>
-        <p className="text-gray-600 mb-8">
+      <div className="p-8 rounded-2xl max-w-md w-full mx-4" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
+        <h3 className="text-xl font-bold mb-2" style={{ color: '#F9FAFB' }}>Confirmar Exclusão</h3>
+        <p className="mb-8" style={{ color: '#9CA3AF' }}>
           Tem certeza que deseja excluir esta transferência? O saldo das contas será revertido.
         </p>
         <div className="flex justify-end gap-3">
@@ -64,11 +64,11 @@ function NewTransferModal({ isOpen, onClose, onConfirm, accounts, loading }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-lg w-full mx-4 border border-gray-100">
-        <h3 className="text-xl font-bold text-gray-900 mb-6">Nova Transferência</h3>
+      <div className="p-8 rounded-2xl max-w-lg w-full mx-4" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
+        <h3 className="text-xl font-bold mb-6" style={{ color: '#F9FAFB' }}>Nova Transferência</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Conta Origem</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>Conta Origem</label>
             <select
               className="w-full border rounded-lg px-3 py-2 text-sm"
               value={form.fromFinancialAccountId}
@@ -81,7 +81,7 @@ function NewTransferModal({ isOpen, onClose, onConfirm, accounts, loading }: {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Conta Destino</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>Conta Destino</label>
             <select
               className="w-full border rounded-lg px-3 py-2 text-sm"
               value={form.toFinancialAccountId}
@@ -95,7 +95,7 @@ function NewTransferModal({ isOpen, onClose, onConfirm, accounts, loading }: {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>Valor</label>
               <input
                 type="number"
                 min="0.01"
@@ -106,7 +106,7 @@ function NewTransferModal({ isOpen, onClose, onConfirm, accounts, loading }: {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>Data</label>
               <input
                 type="date"
                 className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -116,7 +116,7 @@ function NewTransferModal({ isOpen, onClose, onConfirm, accounts, loading }: {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>Descrição</label>
             <input
               type="text"
               className="w-full border rounded-lg px-3 py-2 text-sm"
