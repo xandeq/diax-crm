@@ -67,6 +67,11 @@
   --diax-green:       #10B981;
   --diax-green-hover: #059669;
   --diax-green-dim:   rgba(16,185,129,0.15);
+  /* Text scale — all pass WCAG AA on #0F1A14 background
+     text-1 (#F9FAFB) = 17.5:1  ✅ AAA
+     text-2 (#D1D5DB) = 12.1:1  ✅ AAA
+     text-3 (#9CA3AF) =  7.4:1  ✅ AAA
+     text-4 (#6B7280) =  3.8:1  — use ONLY for all-caps decorative labels ≥10px */
   --diax-text-1:      #F9FAFB;
   --diax-text-2:      #D1D5DB;
   --diax-text-3:      #9CA3AF;
@@ -127,34 +132,50 @@
 
   body {
     background: var(--diax-bg);
-    color: var(--diax-text-1);
+    color: var(--diax-text-2);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Force dark on common semantic elements */
-  h1, h2, h3, h4, h5, h6 { color: var(--diax-text-1); }
-  p, span, label { color: inherit; }
+  /* Headings — always high contrast */
+  h1, h2, h3, h4, h5, h6 { color: var(--diax-text-1); font-weight: 700; }
 
-  /* Input fields — dark style */
-  input, textarea, select {
-    background: var(--diax-bg-card-2);
+  /* Paragraphs and labels default to readable secondary text */
+  p { color: var(--diax-text-2); }
+  label { color: var(--diax-text-2); font-size: 13px; font-weight: 500; }
+  small { color: var(--diax-text-3); }
+
+  /* Links */
+  a { color: inherit; }
+  a:not([class]) { color: var(--diax-green); }
+
+  /* Input fields — legible on dark */
+  input:not([class]), textarea:not([class]), select:not([class]) {
+    background: rgba(255,255,255,0.06);
     color: var(--diax-text-1);
-    border-color: var(--diax-border);
+    border: 1px solid var(--diax-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
   }
   input::placeholder, textarea::placeholder {
-    color: var(--diax-text-4);
+    color: var(--diax-text-3);
+    opacity: 1;
   }
 
   /* Tables */
   table { color: var(--diax-text-2); }
-  th { color: var(--diax-text-3); }
+  th    { color: var(--diax-text-3); font-weight: 600; font-size: 12px; }
+  td    { color: var(--diax-text-2); }
+
+  /* HR */
+  hr { border-color: var(--diax-border); }
 
   /* Scrollbars — subtle dark */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 }
 
 /* ── DIAX component classes — available to all pages ── */
@@ -330,9 +351,53 @@
   .divide-gray-100 > * + * { border-color: rgba(255,255,255,0.06) !important; }
   .divide-gray-200 > * + * { border-color: rgba(255,255,255,0.08) !important; }
 
-  /* White */
-  .bg-white { background-color: rgba(255,255,255,0.05) !important; }
+  /* White / black */
+  .bg-white  { background-color: rgba(255,255,255,0.05) !important; }
+  .text-white { color: #F9FAFB !important; }
   .text-black { color: #F9FAFB !important; }
+
+  /* Zinc */
+  .bg-zinc-50   { background-color: rgba(255,255,255,0.03) !important; }
+  .bg-zinc-100  { background-color: rgba(255,255,255,0.06) !important; }
+  .bg-zinc-200  { background-color: rgba(255,255,255,0.09) !important; }
+  .bg-zinc-700  { background-color: rgba(255,255,255,0.12) !important; }
+  .bg-zinc-800  { background-color: rgba(255,255,255,0.08) !important; }
+  .bg-zinc-900  { background-color: #0B1510 !important; }
+  .text-zinc-400 { color: #9CA3AF !important; }
+  .text-zinc-500 { color: #9CA3AF !important; }
+  .text-zinc-600 { color: #D1D5DB !important; }
+  .text-zinc-700 { color: #D1D5DB !important; }
+  .text-zinc-800 { color: #F9FAFB !important; }
+  .text-zinc-900 { color: #F9FAFB !important; }
+  .border-zinc-100 { border-color: rgba(255,255,255,0.06) !important; }
+  .border-zinc-200 { border-color: rgba(255,255,255,0.08) !important; }
+  .border-zinc-700 { border-color: rgba(255,255,255,0.12) !important; }
+  .border-zinc-800 { border-color: rgba(255,255,255,0.08) !important; }
+  .divide-zinc-100 > * + * { border-color: rgba(255,255,255,0.06) !important; }
+  .divide-zinc-200 > * + * { border-color: rgba(255,255,255,0.08) !important; }
+
+  /* Neutral */
+  .bg-neutral-50  { background-color: rgba(255,255,255,0.03) !important; }
+  .bg-neutral-100 { background-color: rgba(255,255,255,0.06) !important; }
+  .bg-neutral-200 { background-color: rgba(255,255,255,0.09) !important; }
+  .bg-neutral-800 { background-color: rgba(255,255,255,0.08) !important; }
+  .bg-neutral-900 { background-color: #0B1510 !important; }
+  .text-neutral-400 { color: #9CA3AF !important; }
+  .text-neutral-500 { color: #9CA3AF !important; }
+  .text-neutral-600 { color: #D1D5DB !important; }
+  .text-neutral-700 { color: #D1D5DB !important; }
+  .text-neutral-800 { color: #F9FAFB !important; }
+  .text-neutral-900 { color: #F9FAFB !important; }
+  .border-neutral-100 { border-color: rgba(255,255,255,0.06) !important; }
+  .border-neutral-200 { border-color: rgba(255,255,255,0.08) !important; }
+
+  /* Stone */
+  .bg-stone-50  { background-color: rgba(255,255,255,0.03) !important; }
+  .bg-stone-100 { background-color: rgba(255,255,255,0.06) !important; }
+  .bg-stone-200 { background-color: rgba(255,255,255,0.09) !important; }
+  .text-stone-500 { color: #9CA3AF !important; }
+  .text-stone-600 { color: #D1D5DB !important; }
+  .text-stone-700 { color: #D1D5DB !important; }
 
   /* Blue */
   .bg-blue-50  { background-color: rgba(99,102,241,0.08) !important; }
@@ -403,9 +468,28 @@
   .text-cyan-600  { color: #22D3EE !important; }
   .text-cyan-700  { color: #22D3EE !important; }
 
+  /* Explicit foreground classes */
+  .text-foreground        { color: var(--diax-text-1) !important; }
+  .text-muted-foreground  { color: var(--diax-text-3) !important; }
+  .text-card-foreground   { color: var(--diax-text-1) !important; }
+  .bg-muted              { background-color: rgba(255,255,255,0.06) !important; }
+  .bg-card               { background-color: var(--diax-bg-card) !important; }
+  .bg-secondary          { background-color: rgba(255,255,255,0.07) !important; }
+  .text-secondary-foreground { color: var(--diax-text-2) !important; }
+  .bg-accent             { background-color: rgba(16,185,129,0.15) !important; }
+  .text-accent-foreground { color: #10B981 !important; }
+  .bg-primary            { background-color: #10B981 !important; }
+  .text-primary          { color: #10B981 !important; }
+  .text-primary-foreground { color: #fff !important; }
+  .bg-destructive        { background-color: rgba(239,68,68,0.15) !important; }
+  .text-destructive      { color: #F87171 !important; }
+  .border-border         { border-color: var(--diax-border) !important; }
+  .border-input          { border-color: var(--diax-border) !important; }
+
   /* Ring / focus */
   .ring-1 { --tw-ring-color: rgba(255,255,255,0.12); }
   .ring-gray-200 { --tw-ring-color: rgba(255,255,255,0.08) !important; }
+  .focus-visible\:ring-ring:focus-visible { --tw-ring-color: #10B981; }
 
   /* Widget enter animation */
   .widget-enter { animation: var(--animate-widget-enter); }

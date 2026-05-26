@@ -146,17 +146,17 @@ const SHELL_CSS = `
     font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0;
   }
   .sh-logo-text { font-size: 15px; font-weight: 700; color: #F9FAFB; }
-  .sh-logo-sub { font-size: 10px; color: #6B7280; }
+  .sh-logo-sub { font-size: 10px; color: #9CA3AF; }
   .sh-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 1px; }
-  .sh-section { font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: .08em; padding: 12px 10px 3px; }
+  .sh-section { font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: .1em; padding: 12px 10px 3px; }
   .sh-item {
     display: flex; align-items: center; gap: 9px;
     padding: 8px 10px; border-radius: 9px;
     cursor: pointer; transition: background .12s;
-    color: #6B7280; font-size: 13px; font-weight: 500;
+    color: #9CA3AF; font-size: 13px; font-weight: 500;
     text-decoration: none; width: 100%;
   }
-  .sh-item:hover { background: rgba(255,255,255,0.05); color: #D1D5DB; }
+  .sh-item:hover { background: rgba(255,255,255,0.05); color: #F9FAFB; }
   .sh-item.active { background: rgba(16,185,129,0.15); color: #10B981; }
   .sh-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sh-badge {
@@ -201,7 +201,7 @@ const SHELL_CSS = `
     display: flex; align-items: center; gap: 8px;
     background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
     border-radius: 10px; padding: 7px 13px;
-    color: #6B7280; font-size: 13px;
+    color: #9CA3AF; font-size: 13px;
   }
   .sh-content {
     flex: 1; overflow-y: auto;
