@@ -27,6 +27,7 @@ import {
     QueueCampaignRecipientsResponse,
     sendTestEmail,
 } from '@/services/emailMarketing';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     AlertCircle,
     ArrowLeft,
@@ -82,13 +83,11 @@ const DEFAULT_TEMPLATE = `<p>Olá {{nome}},</p>
 DIAX Marketing Digital</p>`;
 
 export default function EmailMarketingPage() {
-  const [contacts, setContacts] = useState<Customer[]>([]);
+  const queryClient = useQueryClient();
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [segment, setSegment] = useState('');
   const [contactType, setContactType] = useState<'all' | 'leads' | 'customers'>('all');
   const [pageSize, setPageSize] = useState('100');
@@ -98,11 +97,6 @@ export default function EmailMarketingPage() {
   const [showPreview, setShowPreview] = useState(false);
 
   const [campaignName, setCampaignName] = useState('');
-  const [savedCampaigns, setSavedCampaigns] = useState<EmailCampaignResponse[]>([]);
-  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
-
-  const [sending, setSending] = useState(false);
-  const [sendingTest, setSendingTest] = useState(false);
   const [result, setResult] = useState<QueueCampaignRecipientsResponse | null>(null);
   const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
 
@@ -154,19 +148,93 @@ export default function EmailMarketingPage() {
     return filtered;
   }, [excludeOptOut, neverEmailed]);
 
-  const loadContacts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiFetch<PagedResponse<Customer>>(`/customers?${buildContactsQs().toString()}`, { method: 'GET' });
-      setContacts(applyQualityFilters(data.items));
-      setTotalCount(data.totalCount);
-      setTotalPages(data.totalPages);
-    } catch (e: unknown) {
-      toast.error('Erro ao carregar contatos: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
-    } finally {
-      setLoading(false);
-    }
-  }, [buildContactsQs, applyQualityFilters]);
+  // ── Contacts query ───────────────────────────────────────────────────────────
+  const {
+    data: contactsData,
+    isLoading: loading,
+    refetch: refetchContacts,
+  } = useQuery({
+    queryKey: ['email-marketing-contacts', page, pageSize, search, segment, contactType, neverEmailed, excludeOptOut],
+    queryFn: () =>
+      apiFetch<PagedResponse<Customer>>(`/customers?${buildContactsQs().toString()}`, { method: 'GET' }),
+    select: (data) => ({
+      items: applyQualityFilters(data.items),
+      totalCount: data.totalCount,
+      totalPages: data.totalPages,
+    }),
+    placeholderData: (prev) => prev,
+  });
+
+  const contacts = contactsData?.items ?? [];
+  const totalCount = contactsData?.totalCount ?? 0;
+  const totalPages = contactsData?.totalPages ?? 0;
+
+  // ── Campaigns query (for Load History dropdown) ──────────────────────────────
+  const {
+    data: campaignsData,
+    isLoading: isLoadingCampaigns,
+  } = useQuery({
+    queryKey: ['email-campaigns-list'],
+    queryFn: () => getEmailCampaigns(1, 20),
+    select: (data) => data.items,
+  });
+
+  const savedCampaigns: EmailCampaignResponse[] = campaignsData ?? [];
+
+  // ── Send campaign mutation ───────────────────────────────────────────────────
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      const finalCampaignName = campaignName.trim() || `Disparo Manual - ${new Date().toLocaleString('pt-BR')}`;
+      // 1. Criar a campanha para salvar no histórico
+      const campaign = await createEmailCampaign({
+        name: finalCampaignName,
+        subject,
+        bodyHtml: htmlBody,
+      });
+      setCurrentCampaignId(campaign.id);
+      // 2. Enfileirar na campanha criada
+      const res = await queueCampaignRecipients(campaign.id, {
+        customerIds: Array.from(selectedIds),
+      });
+      return res;
+    },
+    onSuccess: (res) => {
+      setResult(res);
+      toast.success(`${res.queuedCount} email(s) enfileirado(s) com sucesso e salvo no histórico!`);
+      clearSelection();
+      // Recarrega campanhas para atualizar dropdown
+      queryClient.invalidateQueries({ queryKey: ['email-campaigns-list'] });
+    },
+    onError: (e: unknown) => {
+      toast.error('Erro ao enviar: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
+    },
+  });
+
+  // ── Send test email mutation ─────────────────────────────────────────────────
+  const sendTestMutation = useMutation({
+    mutationFn: async () => {
+      let campaignId = currentCampaignId;
+      if (!campaignId) {
+        const finalName = campaignName.trim() || `Rascunho - ${new Date().toLocaleString('pt-BR')}`;
+        const campaign = await createEmailCampaign({
+          name: finalName,
+          subject: subject || '(sem assunto)',
+          bodyHtml: htmlBody,
+        });
+        campaignId = campaign.id;
+        setCurrentCampaignId(campaign.id);
+        // Refresh campaigns dropdown
+        queryClient.invalidateQueries({ queryKey: ['email-campaigns-list'] });
+      }
+      await sendTestEmail(campaignId, { subjectOverride: subject, bodyHtmlOverride: htmlBody });
+    },
+    onSuccess: () => {
+      toast.success('E-mail de teste enviado para seu e-mail!');
+    },
+    onError: (e: unknown) => {
+      toast.error('Erro ao enviar teste: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
+    },
+  });
 
   const handleSelectAll = useCallback(async () => {
     if (totalCount === 0) return;
@@ -196,18 +264,6 @@ export default function EmailMarketingPage() {
       setSelectingAll(false);
     }
   }, [buildContactsQs, totalCount, applyQualityFilters]);
-
-  useEffect(() => {
-    loadContacts();
-  }, [loadContacts]);
-
-  useEffect(() => {
-    setIsLoadingCampaigns(true);
-    getEmailCampaigns(1, 20)
-      .then(data => setSavedCampaigns(data.items))
-      .catch(() => { /* ignora se falhar */ })
-      .finally(() => setIsLoadingCampaigns(false));
-  }, []);
 
   // Reset page when filters change
   useEffect(() => {
@@ -271,32 +327,12 @@ export default function EmailMarketingPage() {
     setSelectedIds(new Set());
   };
 
-  const handleSendTest = async () => {
+  const handleSendTest = () => {
     if (!subject.trim() && !htmlBody.trim()) {
       toast.error('Preencha o assunto ou o corpo do email antes de enviar o teste.');
       return;
     }
-    setSendingTest(true);
-    try {
-      let campaignId = currentCampaignId;
-      if (!campaignId) {
-        const finalName = campaignName.trim() || `Rascunho - ${new Date().toLocaleString('pt-BR')}`;
-        const campaign = await createEmailCampaign({
-          name: finalName,
-          subject: subject || '(sem assunto)',
-          bodyHtml: htmlBody,
-        });
-        campaignId = campaign.id;
-        setCurrentCampaignId(campaign.id);
-        getEmailCampaigns(1, 20).then(data => setSavedCampaigns(data.items));
-      }
-      await sendTestEmail(campaignId, { subjectOverride: subject, bodyHtmlOverride: htmlBody });
-      toast.success('E-mail de teste enviado para seu e-mail!');
-    } catch (e: unknown) {
-      toast.error('Erro ao enviar teste: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
-    } finally {
-      setSendingTest(false);
-    }
+    sendTestMutation.mutate();
   };
 
   /** Insere texto/HTML na posição atual do cursor no editor TipTap */
@@ -420,40 +456,15 @@ export default function EmailMarketingPage() {
     });
   };
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (selectedIds.size === 0) { toast.error('Selecione pelo menos um contato.'); return; }
     if (!subject.trim()) { toast.error('Informe o assunto do email.'); return; }
     if (!htmlBody.trim()) { toast.error('Informe o corpo do email.'); return; }
-
-    setSending(true);
-    setResult(null);
-    try {
-      // 1. Criar a campanha para salvar no histórico
-      const finalCampaignName = campaignName.trim() || `Disparo Manual - ${new Date().toLocaleString('pt-BR')}`;
-      const campaign = await createEmailCampaign({
-        name: finalCampaignName,
-        subject,
-        bodyHtml: htmlBody,
-      });
-      setCurrentCampaignId(campaign.id);
-
-      // 2. Enfileirar na campanha criada
-      const res = await queueCampaignRecipients(campaign.id, {
-        customerIds: Array.from(selectedIds)
-      });
-
-      setResult(res);
-      toast.success(`${res.queuedCount} email(s) enfileirado(s) com sucesso e salvo no histórico!`);
-      clearSelection();
-
-      // Recarrega campanhas para atualizar dropdown
-      getEmailCampaigns(1, 20).then(data => setSavedCampaigns(data.items));
-    } catch (e: unknown) {
-      toast.error('Erro ao enviar: ' + (e instanceof Error ? e.message : 'Erro inesperado'));
-    } finally {
-      setSending(false);
-    }
+    sendMutation.mutate();
   };
+
+  const sending = sendMutation.isPending;
+  const sendingTest = sendTestMutation.isPending;
 
   const pageIds = contacts.map(c => c.id);
   const allPageSelected = pageIds.length > 0 && pageIds.every(id => selectedIds.has(id));
@@ -591,7 +602,7 @@ export default function EmailMarketingPage() {
                 <option value="200">200 / pág</option>
                 <option value="500">500 / pág</option>
               </select>
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={loadContacts} title="Recarregar">
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => refetchContacts()} title="Recarregar">
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>

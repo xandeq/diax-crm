@@ -203,12 +203,18 @@
       "Bash(head -5 echo echo 'If found, listing contents:' cat ~/.microsoft/usersecrets/*/secrets.json)",
       "Bash(echo 'Searching for .env files in the repository...' find 'C:/Users/acq20/Desktop/Trabalho/Alexandre Queiroz Marketing Digital/DIAX/CRM' -name .env* -o -name appsettings*.json)",
       "Bash(timeout 20 dotnet run)",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "mcp__claude_ai_Canva__get-design",
+      "mcp__claude_ai_Canva__get-design-content",
+      "mcp__claude_ai_Canva__get-design-pages",
+      "Read(//c/tmp/**)",
+      "mcp__claude_ai_Canva__export-design"
     ],
     "additionalDirectories": [
       "C:\\Users\\acq20\\.claude",
       "c:\\Users\\acq20\\Desktop\\Trabalho\\Alexandre Queiroz Marketing Digital\\DIAX\\CRM\\crm-web\\src\\app\\campaigns",
-      "c:\\Users\\acq20\\Desktop\\Trabalho\\Alexandre Queiroz Marketing Digital\\DIAX\\CRM\\crm-web\\src\\app\\campaigns\\[id]"
+      "c:\\Users\\acq20\\Desktop\\Trabalho\\Alexandre Queiroz Marketing Digital\\DIAX\\CRM\\crm-web\\src\\app\\campaigns\\[id]",
+      "C:\\tmp"
     ]
   }
 }
