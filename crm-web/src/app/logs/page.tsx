@@ -183,14 +183,14 @@ export default function LogsPage() {
         {/* Delete All Confirmation Modal */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="rounded-lg p-6 max-w-md w-full mx-4" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="bg-red-100 p-2 rounded-full">
-                  <Trash2 className="h-5 w-5 text-red-600" />
+                <div className="p-2 rounded-full" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                  <Trash2 className="h-5 w-5 text-red-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">Excluir Todos os Logs</h3>
+                <h3 className="text-lg font-semibold" style={{ color: '#F9FAFB' }}>Excluir Todos os Logs</h3>
               </div>
-              <p className="text-gray-600 mb-2">
+              <p className="mb-2" style={{ color: '#9CA3AF' }}>
                 Tem certeza que deseja excluir <strong>todos os {stats?.totalCount?.toLocaleString('pt-BR') || ''} logs</strong> do sistema?
               </p>
               <p className="text-sm text-red-600 mb-6">

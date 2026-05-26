@@ -86,7 +86,7 @@ export function CreditCardDetailsClient() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div className="p-6 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
                         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                             <FileText className="h-5 w-5 text-gray-500" />
                             Fatura
@@ -143,8 +143,8 @@ export function CreditCardDetailsClient() {
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                        <div className="p-6 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                             <h2 className="text-lg font-semibold">Lançamentos</h2>
                             <span className="text-sm text-gray-500">{transactions?.totalCount || 0} lançamentos</span>
                         </div>

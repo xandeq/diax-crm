@@ -68,9 +68,9 @@ function DeleteModal({ isOpen, onClose, onConfirm, loading, count }: DeleteModal
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-100">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmar Exclusão</h3>
-        <p className="text-gray-600 mb-8">
+      <div className="p-8 rounded-2xl max-w-md w-full mx-4" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
+        <h3 className="text-xl font-bold mb-2" style={{ color: '#F9FAFB' }}>Confirmar Exclusão</h3>
+        <p className="mb-8" style={{ color: '#9CA3AF' }}>
           Tem certeza que deseja excluir {count > 1 ? `estas ${count} transações` : 'esta transação'}?
           Esta ação pode impactar seu saldo bancário e não pode ser desfeita.
         </p>
