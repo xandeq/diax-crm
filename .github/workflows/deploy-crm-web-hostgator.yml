@@ -102,13 +102,16 @@ jobs:
 
           foreach ($file in $files) {
             $rel       = $file.FullName.Substring($localDir.Length).TrimStart('\').Replace('\', '/')
-            $remoteUrl = "ftp://$server$remoteBase/$rel"
+            # URL-encode each path segment (handles spaces, parens, brackets, etc.)
+            $encodedRel = ($rel.Split('/') | ForEach-Object { [System.Uri]::EscapeDataString($_) }) -join '/'
+            $remoteUrl = "ftp://$server$remoteBase/$encodedRel"
 
             $result = curl.exe --user $userPass `
               --upload-file $file.FullName `
               $remoteUrl `
               --ftp-create-dirs `
               --ftp-pasv `
+              --globoff `
               --retry 3 `
               --retry-delay 5 `
               --silent `
