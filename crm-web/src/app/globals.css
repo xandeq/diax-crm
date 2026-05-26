@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "highlight.js/styles/github.css";
+@import "highlight.js/styles/github-dark.css";
 
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
@@ -7,42 +7,35 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-jakarta, 'Plus Jakarta Sans', var(--font-inter), system-ui, sans-serif);
   --font-serif: var(--font-calistoga), Georgia, serif;
   --font-mono: var(--font-mono), "JetBrains Mono", monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-
   --color-border: var(--border);
   --color-input: var(--input);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-accent-secondary: var(--accent-secondary);
-
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-
   --color-ring: var(--ring);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -62,148 +55,360 @@
   }
 }
 
+/* ── DIAX Design System — Dark-first, single palette ── */
 :root {
+  /* Core palette */
+  --diax-bg:          #0F1A14;
+  --diax-bg-sidebar:  #0B1510;
+  --diax-bg-card:     rgba(255,255,255,0.04);
+  --diax-bg-card-2:   rgba(255,255,255,0.07);
+  --diax-border:      rgba(255,255,255,0.08);
+  --diax-border-2:    rgba(255,255,255,0.12);
+  --diax-green:       #10B981;
+  --diax-green-hover: #059669;
+  --diax-green-dim:   rgba(16,185,129,0.15);
+  --diax-text-1:      #F9FAFB;
+  --diax-text-2:      #D1D5DB;
+  --diax-text-3:      #9CA3AF;
+  --diax-text-4:      #6B7280;
 
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* shadcn/ui tokens — all dark */
+  --background:         oklch(0.12 0.014 155);
+  --foreground:         oklch(0.985 0.002 247);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card:               oklch(0.15 0.012 155);
+  --card-foreground:    oklch(0.985 0.002 247);
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover:            oklch(0.13 0.016 155);
+  --popover-foreground: oklch(0.985 0.002 247);
 
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --primary:            oklch(0.696 0.17 162);   /* #10B981 */
+  --primary-foreground: oklch(1 0 0);
 
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --secondary:          oklch(0.20 0.013 155);
+  --secondary-foreground: oklch(0.985 0.002 247);
 
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --muted:              oklch(0.20 0.012 155);
+  --muted-foreground:   oklch(0.674 0.008 247);  /* #9CA3AF */
 
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --accent-secondary: #4D7CFF;
+  --accent:             oklch(0.696 0.17 162);
+  --accent-foreground:  oklch(1 0 0);
+  --accent-secondary:   #6366F1;
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: #F8FAFC;
+  --destructive:        oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
 
-  --ring: oklch(0.708 0 0);
+  --border:             oklch(1 0 0 / 8%);
+  --input:              oklch(1 0 0 / 8%);
+  --ring:               oklch(0.696 0.17 162);
 
   --radius: 0.625rem;
 
-  --background: oklch(1 0 0);
-
-  --foreground: oklch(0.145 0 0);
-
-  --chart-1: oklch(0.646 0.222 41.116);
-
-  --chart-2: oklch(0.6 0.118 184.704);
-
-  --chart-3: oklch(0.398 0.07 227.392);
-
-  --chart-4: oklch(0.828 0.189 84.429);
-
-  --chart-5: oklch(0.769 0.188 70.08);
-
-  --sidebar: oklch(0.985 0 0);
-
-  --sidebar-foreground: oklch(0.145 0 0);
-
-  --sidebar-primary: oklch(0.205 0 0);
-
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-
-  --sidebar-accent: oklch(0.97 0 0);
-
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-
-  --sidebar-border: oklch(0.922 0 0);
-
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --accent-secondary: #4D7CFF;
-
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: #F8FAFC;
-
-  --ring: oklch(0.556 0 0);
-
-  --chart-1: oklch(0.488 0.243 264.376);
-
-  --chart-2: oklch(0.696 0.17 162.48);
-
+  /* Charts */
+  --chart-1: oklch(0.696 0.17 162);
+  --chart-2: oklch(0.588 0.22 264);
   --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.704 0.191 22.216);
+  --chart-5: oklch(0.627 0.265 303.9);
 
-  --chart-4: oklch(0.627 0.265 303.9);
-
-  --chart-5: oklch(0.645 0.246 16.439);
-
-  --sidebar: oklch(0.205 0 0);
-
-  --sidebar-foreground: oklch(0.985 0 0);
-
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-
-  --sidebar-accent: oklch(0.269 0 0);
-
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-
-  --sidebar-border: oklch(1 0 0 / 10%);
-
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Sidebar (unused now — AppShell owns it) */
+  --sidebar:                oklch(0.09 0.012 155);
+  --sidebar-foreground:     oklch(0.985 0.002 247);
+  --sidebar-primary:        oklch(0.696 0.17 162);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:         oklch(0.20 0.013 155);
+  --sidebar-accent-foreground: oklch(0.985 0.002 247);
+  --sidebar-border:         oklch(1 0 0 / 6%);
+  --sidebar-ring:           oklch(0.696 0.17 162);
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+
   body {
-    @apply bg-background text-foreground;
+    background: var(--diax-bg);
+    color: var(--diax-text-1);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
+
+  /* Force dark on common semantic elements */
+  h1, h2, h3, h4, h5, h6 { color: var(--diax-text-1); }
+  p, span, label { color: inherit; }
+
+  /* Input fields — dark style */
+  input, textarea, select {
+    background: var(--diax-bg-card-2);
+    color: var(--diax-text-1);
+    border-color: var(--diax-border);
+  }
+  input::placeholder, textarea::placeholder {
+    color: var(--diax-text-4);
+  }
+
+  /* Tables */
+  table { color: var(--diax-text-2); }
+  th { color: var(--diax-text-3); }
+
+  /* Scrollbars — subtle dark */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 }
 
-/* Utility classes for the design system */
+/* ── DIAX component classes — available to all pages ── */
 @layer utilities {
-  .gradient-text {
-    @apply bg-gradient-to-r from-accent to-accent-secondary bg-clip-text text-transparent;
+  /* Layout grids */
+  .diax-grid-1 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .diax-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .diax-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .diax-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .diax-grid-73 { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+  .diax-grid-63 { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
+
+  /* Card */
+  .diax-card {
+    background: var(--diax-bg-card);
+    border: 1px solid var(--diax-border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .diax-card-sm { padding: 14px 16px; }
+
+  /* Page header */
+  .diax-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .diax-page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--diax-text-1);
+  }
+  .diax-page-sub {
+    font-size: 13px;
+    color: var(--diax-text-4);
+    margin-top: 2px;
   }
 
-  .gradient-border {
-    @apply relative rounded-xl bg-gradient-to-br from-accent via-accent-secondary to-accent p-[2px];
+  /* Buttons */
+  .diax-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+    text-decoration: none;
+  }
+  .diax-btn-primary { background: var(--diax-green); color: #fff; }
+  .diax-btn-primary:hover { background: var(--diax-green-hover); }
+  .diax-btn-ghost { background: var(--diax-bg-card-2); color: var(--diax-text-2); border: 1px solid var(--diax-border); }
+  .diax-btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+  /* Badges */
+  .diax-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .diax-badge-green  { background: rgba(16,185,129,0.15);  color: #10B981; }
+  .diax-badge-blue   { background: rgba(99,102,241,0.15);  color: #818CF8; }
+  .diax-badge-yellow { background: rgba(245,158,11,0.15);  color: #FBBF24; }
+  .diax-badge-red    { background: rgba(239,68,68,0.15);   color: #F87171; }
+  .diax-badge-purple { background: rgba(139,92,246,0.15);  color: #A78BFA; }
+  .diax-badge-pink   { background: rgba(236,72,153,0.15);  color: #F472B6; }
+
+  /* Avatar */
+  .diax-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10B981, #6366F1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
   }
 
-  .widget-enter {
-    animation: var(--animate-widget-enter);
+  /* Section title inside cards */
+  .diax-card-title { font-size: 14px; font-weight: 600; color: var(--diax-text-1); }
+  .diax-card-sub   { font-size: 11px; color: var(--diax-text-4); margin-top: 2px; }
+
+  /* Table */
+  .diax-table { width: 100%; border-collapse: collapse; }
+  .diax-table th {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--diax-text-3);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--diax-border);
   }
+  .diax-table td {
+    font-size: 13px;
+    color: var(--diax-text-2);
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .diax-table tr:last-child td { border-bottom: none; }
+  .diax-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Stat row item */
+  .diax-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .diax-stat-label  { font-size: 12px; color: var(--diax-text-3); font-weight: 500; }
+  .diax-stat-value  { font-size: 24px; font-weight: 700; color: var(--diax-text-1); font-family: var(--font-mono); }
+  .diax-stat-delta  { font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 999px; width: fit-content; }
+  .diax-stat-delta-up   { background: rgba(16,185,129,0.12); color: #10B981; }
+  .diax-stat-delta-down { background: rgba(239,68,68,0.12);  color: #EF4444; }
+
+  /* Animations */
+  @keyframes diax-pulse { 0%,100%{opacity:1}50%{opacity:.5} }
+  .diax-live { animation: diax-pulse 2s infinite; }
+  .diax-dot-live {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--diax-green);
+    animation: diax-pulse 2s infinite;
+  }
+
+  /* Responsive breakpoints */
+  @media (max-width: 1280px) {
+    .diax-grid-4  { grid-template-columns: repeat(2, 1fr); }
+    .diax-grid-73, .diax-grid-63 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    .diax-grid-2, .diax-grid-3 { grid-template-columns: 1fr; }
+    .diax-grid-4 { grid-template-columns: 1fr; }
+  }
+
+  /* ── Override hardcoded light-mode Tailwind utilities ──
+     Components across the app use bg-slate-100, bg-blue-100, etc.
+     These overrides remap them to dark equivalents. */
+
+  /* Neutral / slate */
+  .bg-slate-50   { background-color: rgba(255,255,255,0.03) !important; }
+  .bg-slate-100  { background-color: rgba(255,255,255,0.06) !important; }
+  .bg-slate-200  { background-color: rgba(255,255,255,0.09) !important; }
+  .text-slate-500 { color: #9CA3AF !important; }
+  .text-slate-600 { color: #9CA3AF !important; }
+  .text-slate-700 { color: #D1D5DB !important; }
+  .text-slate-800 { color: #F9FAFB !important; }
+  .text-slate-900 { color: #F9FAFB !important; }
+  .border-slate-100 { border-color: rgba(255,255,255,0.06) !important; }
+  .border-slate-200 { border-color: rgba(255,255,255,0.08) !important; }
+
+  /* Gray */
+  .bg-gray-50   { background-color: rgba(255,255,255,0.03) !important; }
+  .bg-gray-100  { background-color: rgba(255,255,255,0.06) !important; }
+  .bg-gray-200  { background-color: rgba(255,255,255,0.09) !important; }
+  .text-gray-400 { color: #9CA3AF !important; }
+  .text-gray-500 { color: #9CA3AF !important; }
+  .text-gray-600 { color: #D1D5DB !important; }
+  .text-gray-700 { color: #D1D5DB !important; }
+  .text-gray-800 { color: #F9FAFB !important; }
+  .text-gray-900 { color: #F9FAFB !important; }
+  .border-gray-100 { border-color: rgba(255,255,255,0.06) !important; }
+  .border-gray-200 { border-color: rgba(255,255,255,0.08) !important; }
+  .border-gray-300 { border-color: rgba(255,255,255,0.12) !important; }
+  .divide-gray-100 > * + * { border-color: rgba(255,255,255,0.06) !important; }
+  .divide-gray-200 > * + * { border-color: rgba(255,255,255,0.08) !important; }
+
+  /* White */
+  .bg-white { background-color: rgba(255,255,255,0.05) !important; }
+  .text-black { color: #F9FAFB !important; }
+
+  /* Blue */
+  .bg-blue-50  { background-color: rgba(99,102,241,0.08) !important; }
+  .bg-blue-100 { background-color: rgba(99,102,241,0.15) !important; }
+  .text-blue-600 { color: #818CF8 !important; }
+  .text-blue-700 { color: #818CF8 !important; }
+  .text-blue-800 { color: #A5B4FC !important; }
+  .border-blue-200 { border-color: rgba(99,102,241,0.25) !important; }
+
+  /* Green / emerald */
+  .bg-green-50   { background-color: rgba(16,185,129,0.08) !important; }
+  .bg-green-100  { background-color: rgba(16,185,129,0.15) !important; }
+  .bg-emerald-50  { background-color: rgba(16,185,129,0.08) !important; }
+  .bg-emerald-100 { background-color: rgba(16,185,129,0.15) !important; }
+  .text-green-600  { color: #10B981 !important; }
+  .text-green-700  { color: #10B981 !important; }
+  .text-green-800  { color: #6EE7B7 !important; }
+  .text-emerald-600 { color: #10B981 !important; }
+  .text-emerald-700 { color: #10B981 !important; }
+  .border-green-200  { border-color: rgba(16,185,129,0.25) !important; }
+  .border-emerald-200 { border-color: rgba(16,185,129,0.25) !important; }
+
+  /* Yellow / amber */
+  .bg-yellow-50   { background-color: rgba(245,158,11,0.08) !important; }
+  .bg-yellow-100  { background-color: rgba(245,158,11,0.15) !important; }
+  .bg-amber-50    { background-color: rgba(245,158,11,0.08) !important; }
+  .bg-amber-100   { background-color: rgba(245,158,11,0.15) !important; }
+  .text-yellow-600 { color: #FBBF24 !important; }
+  .text-yellow-700 { color: #FBBF24 !important; }
+  .text-amber-600  { color: #FBBF24 !important; }
+  .text-amber-700  { color: #FBBF24 !important; }
+
+  /* Orange */
+  .bg-orange-50  { background-color: rgba(249,115,22,0.08) !important; }
+  .bg-orange-100 { background-color: rgba(249,115,22,0.15) !important; }
+  .text-orange-600 { color: #FB923C !important; }
+  .text-orange-700 { color: #FB923C !important; }
+
+  /* Red */
+  .bg-red-50   { background-color: rgba(239,68,68,0.08) !important; }
+  .bg-red-100  { background-color: rgba(239,68,68,0.15) !important; }
+  .text-red-500 { color: #F87171 !important; }
+  .text-red-600 { color: #F87171 !important; }
+  .text-red-700 { color: #FCA5A5 !important; }
+  .border-red-200 { border-color: rgba(239,68,68,0.25) !important; }
+
+  /* Purple / violet / indigo */
+  .bg-purple-50   { background-color: rgba(139,92,246,0.08) !important; }
+  .bg-purple-100  { background-color: rgba(139,92,246,0.15) !important; }
+  .bg-violet-100  { background-color: rgba(139,92,246,0.15) !important; }
+  .bg-indigo-50   { background-color: rgba(99,102,241,0.08) !important; }
+  .bg-indigo-100  { background-color: rgba(99,102,241,0.15) !important; }
+  .text-purple-600 { color: #A78BFA !important; }
+  .text-purple-700 { color: #A78BFA !important; }
+  .text-indigo-600 { color: #818CF8 !important; }
+  .text-indigo-700 { color: #818CF8 !important; }
+
+  /* Pink */
+  .bg-pink-50  { background-color: rgba(236,72,153,0.08) !important; }
+  .bg-pink-100 { background-color: rgba(236,72,153,0.15) !important; }
+  .text-pink-600 { color: #F472B6 !important; }
+  .text-pink-700 { color: #F472B6 !important; }
+
+  /* Teal / cyan */
+  .bg-teal-100  { background-color: rgba(20,184,166,0.15) !important; }
+  .text-teal-600 { color: #2DD4BF !important; }
+  .text-teal-700 { color: #2DD4BF !important; }
+  .text-cyan-600  { color: #22D3EE !important; }
+  .text-cyan-700  { color: #22D3EE !important; }
+
+  /* Ring / focus */
+  .ring-1 { --tw-ring-color: rgba(255,255,255,0.12); }
+  .ring-gray-200 { --tw-ring-color: rgba(255,255,255,0.08) !important; }
+
+  /* Widget enter animation */
+  .widget-enter { animation: var(--animate-widget-enter); }
 }
 
 @theme inline {
@@ -249,20 +454,11 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
   @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
   }
-
   @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
   }
 }
