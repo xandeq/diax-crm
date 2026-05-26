@@ -78,72 +78,53 @@ jobs:
             Write-Host "TCP $($env:HOST):$port -> $($res.TcpTestSucceeded)"
           }
 
-      - name: Deploy via FTP (PowerShell WebClient)
+      - name: Deploy via FTP (curl.exe)
         env:
           FTP_SERVER: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           FTP_USER: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
           FTP_PASS: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
           FTP_REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
         run: |
-          $localDir = Join-Path $env:GITHUB_WORKSPACE "crm-web\out"
-          $server   = $env:FTP_SERVER
-          $user     = $env:FTP_USER
-          $pass     = $env:FTP_PASS
+          $localDir   = Join-Path $env:GITHUB_WORKSPACE "crm-web\out"
+          $server     = $env:FTP_SERVER
           $remoteBase = $env:FTP_REMOTE_DIR.TrimEnd('/')
+          $userPass   = "$($env:FTP_USER):$($env:FTP_PASS)"
 
           Write-Host "Uploading $localDir -> ftp://$server$remoteBase"
-
-          $creds = [System.Net.NetworkCredential]::new($user, $pass)
-
-          function Ensure-FtpDir([string]$uri) {
-            try {
-              $req = [System.Net.FtpWebRequest]::Create($uri)
-              $req.Credentials = $creds
-              $req.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
-              $req.UseBinary = $true
-              $req.UsePassive = $true
-              $req.KeepAlive = $false
-              $null = $req.GetResponse()
-            } catch [System.Net.WebException] {
-              # 550 = directory already exists, safe to ignore
-              if ($_.Exception.Response -and $_.Exception.Response.StatusCode -eq 550) { return }
-              throw
-            }
-          }
-
-          function Upload-File([string]$localPath, [string]$remoteUri) {
-            $req = [System.Net.FtpWebRequest]::Create($remoteUri)
-            $req.Credentials = $creds
-            $req.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
-            $req.UseBinary = $true
-            $req.UsePassive = $true
-            $req.KeepAlive = $false
-            $bytes = [System.IO.File]::ReadAllBytes($localPath)
-            $req.ContentLength = $bytes.Length
-            $stream = $req.GetRequestStream()
-            $stream.Write($bytes, 0, $bytes.Length)
-            $stream.Close()
-            $null = $req.GetResponse()
-          }
 
           $files = Get-ChildItem -Path $localDir -Recurse -File
           $total = $files.Count
           $done  = 0
+          $errors = 0
           Write-Host "Files to upload: $total"
 
           foreach ($file in $files) {
-            $rel        = $file.FullName.Substring($localDir.Length).Replace('\', '/').TrimStart('/')
-            $remoteUri  = "ftp://$server$remoteBase/$rel"
-            $remoteDir  = "ftp://$server" + ($remoteBase + '/' + ($rel | Split-Path -Parent)).Replace('\', '/').TrimEnd('/')
+            $rel       = $file.FullName.Substring($localDir.Length).TrimStart('\').Replace('\', '/')
+            $remoteUrl = "ftp://$server$remoteBase/$rel"
 
-            # Ensure parent directory exists
-            Ensure-FtpDir $remoteDir
+            $result = curl.exe --user $userPass `
+              --upload-file $file.FullName `
+              $remoteUrl `
+              --ftp-create-dirs `
+              --passive `
+              --retry 3 `
+              --retry-delay 5 `
+              --silent `
+              --show-error 2>&1
 
-            Upload-File $file.FullName $remoteUri
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "  FAIL [$($LASTEXITCODE)]: $rel -- $result"
+              $errors++
+            }
+
             $done++
             if ($done % 50 -eq 0 -or $done -eq $total) {
-              Write-Host "  [$done/$total] $rel"
+              Write-Host "  [$done/$total] uploaded (errors: $errors)"
             }
           }
 
-          Write-Host "Deploy complete: $done files uploaded."
+          if ($errors -gt 0) {
+            Write-Host "::error::Deploy completed with $errors upload failures out of $total files."
+            exit 1
+          }
+          Write-Host "Deploy complete: $total files uploaded successfully."
