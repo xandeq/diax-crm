@@ -1,24 +1,23 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AppEntry, AppType, APPS_LAST_UPDATED, appsInventory } from '@/data/apps-inventory';
 import { Bot, Box, Calendar, Code2, ExternalLink, Filter, Layers, PackageSearch, RefreshCw, Search, Server, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-const TYPE_COLORS: Record<AppType, string> = {
-  'SaaS':           'bg-blue-100 text-blue-800',
-  'Pipeline':       'bg-purple-100 text-purple-800',
-  'Bot/Automação':  'bg-orange-100 text-orange-800',
-  'Scraper':        'bg-yellow-100 text-yellow-800',
-  'Projeto':        'bg-slate-100 text-slate-700',
-  'Infraestrutura': 'bg-red-100 text-red-800',
-  'Conteúdo':       'bg-pink-100 text-pink-800',
-  'Scripts':        'bg-teal-100 text-teal-800',
-  'Ferramenta':     'bg-green-100 text-green-800',
-  'Placeholder':    'bg-gray-100 text-gray-500',
+const TYPE_STYLES: Record<AppType, React.CSSProperties> = {
+  'SaaS':           { background: 'rgba(96,165,250,0.12)',  color: '#60a5fa' },
+  'Pipeline':       { background: 'rgba(167,139,250,0.12)', color: '#a78bfa' },
+  'Bot/Automação':  { background: 'rgba(251,146,60,0.12)',  color: '#fb923c' },
+  'Scraper':        { background: 'rgba(250,204,21,0.12)',  color: '#facc15' },
+  'Projeto':        { background: 'rgba(148,163,184,0.12)', color: '#94a3b8' },
+  'Infraestrutura': { background: 'rgba(248,113,113,0.12)', color: '#f87171' },
+  'Conteúdo':       { background: 'rgba(244,114,182,0.12)', color: '#f472b6' },
+  'Scripts':        { background: 'rgba(45,212,191,0.12)',  color: '#2dd4bf' },
+  'Ferramenta':     { background: 'rgba(52,211,153,0.12)',  color: '#34d399' },
+  'Placeholder':    { background: 'rgba(107,114,128,0.12)', color: '#6b7280' },
 };
 
 const TYPE_ICONS: Record<AppType, React.ReactNode> = {
@@ -63,11 +62,11 @@ export default function AppsInventoryPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Inventário de Apps</h1>
-          <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+          <h1 className="text-2xl font-semibold" style={{ color: '#F9FAFB' }}>Inventário de Apps</h1>
+          <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: '#9CA3AF' }}>
             <Calendar className="h-3.5 w-3.5" />
             Atualizado em {APPS_LAST_UPDATED} · {appsInventory.length} projetos em{' '}
-            <code className="font-mono text-xs bg-slate-100 px-1 rounded">D:\claude-code</code>
+            <code className="font-mono text-xs px-1 rounded" style={{ background: 'rgba(255,255,255,0.08)', color: '#D1D5DB' }}>D:\claude-code</code>
           </p>
         </div>
         <div
@@ -87,19 +86,18 @@ export default function AppsInventoryPage() {
           <button
             key={type}
             onClick={() => setActiveType(activeType === type ? null : type)}
-            className={`text-left rounded-lg border p-3 transition-all hover:shadow-sm ${
-              activeType === type
-                ? 'ring-2 ring-slate-400 bg-slate-50'
-                : 'bg-white hover:border-slate-300'
-            }`}
+            className="text-left rounded-lg p-3 transition-all"
+            style={activeType === type
+              ? { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', outline: '2px solid rgba(16,185,129,0.2)' }
+              : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}
           >
             <div className="flex items-center gap-1.5 mb-1">
-              <span className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-1.5 py-0.5 ${TYPE_COLORS[type]}`}>
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-1.5 py-0.5" style={TYPE_STYLES[type]}>
                 {TYPE_ICONS[type]}
                 {type}
               </span>
             </div>
-            <p className="text-xl font-bold text-slate-800">{count}</p>
+            <p className="text-xl font-bold" style={{ color: '#F9FAFB' }}>{count}</p>
           </button>
         ))}
       </div>
@@ -125,52 +123,50 @@ export default function AppsInventoryPage() {
             Limpar filtros
           </Button>
         )}
-        <span className="text-sm text-slate-400 ml-auto">
+        <span className="text-sm ml-auto" style={{ color: '#6B7280' }}>
           {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {/* Table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium text-slate-700 flex items-center gap-2">
-            <PackageSearch className="h-4 w-4" />
+      <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+        <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <PackageSearch className="h-4 w-4" style={{ color: '#9CA3AF' }} />
+          <span className="text-base font-medium" style={{ color: '#D1D5DB' }}>
             {activeType ? `${activeType} (${filtered.length})` : `Todos os projetos (${filtered.length})`}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50">
-                  <th className="text-left px-4 py-2.5 font-medium text-slate-600 w-[200px]">Pasta</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-slate-600 w-[140px]">Tipo</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-slate-600 w-[200px]">Stack</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-slate-600">Descrição</th>
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
+                <th className="text-left px-4 py-2.5 font-medium w-[200px]" style={{ color: '#6B7280' }}>Pasta</th>
+                <th className="text-left px-4 py-2.5 font-medium w-[140px]" style={{ color: '#6B7280' }}>Tipo</th>
+                <th className="text-left px-4 py-2.5 font-medium w-[200px]" style={{ color: '#6B7280' }}>Stack</th>
+                <th className="text-left px-4 py-2.5 font-medium" style={{ color: '#6B7280' }}>Descrição</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="text-center py-12" style={{ color: '#6B7280' }}>
+                    Nenhum projeto encontrado
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-12 text-slate-400">
-                      Nenhum projeto encontrado
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((app, i) => (
-                    <AppRow key={app.folder} app={app} isLast={i === filtered.length - 1} />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+              ) : (
+                filtered.map((app, i) => (
+                  <AppRow key={app.folder} app={app} isLast={i === filtered.length - 1} />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Footer hint */}
-      <p className="text-xs text-slate-400 text-center">
+      <p className="text-xs text-center" style={{ color: '#6B7280' }}>
         Para atualizar, diga ao Claude:{' '}
-        <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">&quot;atualiza o inventário de apps&quot;</span>
+        <span className="font-mono px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.08)', color: '#D1D5DB' }}>&quot;atualiza o inventário de apps&quot;</span>
       </p>
     </div>
   );
@@ -180,12 +176,18 @@ function AppRow({ app, isLast }: { app: AppEntry; isLast: boolean }) {
   const isPlaceholder = app.type === 'Placeholder';
 
   return (
-    <tr className={`${isLast ? '' : 'border-b border-slate-50'} hover:bg-slate-50/60 transition-colors ${isPlaceholder ? 'opacity-50' : ''}`}>
+    <tr
+      className="transition-colors"
+      style={{ borderBottom: isLast ? undefined : '1px solid rgba(255,255,255,0.05)', opacity: isPlaceholder ? 0.5 : 1 }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5">
           <a
             href={`file:///D:/claude-code/${app.folder}`}
-            className="font-mono text-xs font-medium text-slate-800 hover:text-blue-600 flex items-center gap-1 group"
+            className="font-mono text-xs font-medium flex items-center gap-1 group hover:text-blue-400 transition-colors"
+            style={{ color: '#D1D5DB' }}
             title={`D:\\claude-code\\${app.folder}`}
           >
             {app.folder}
@@ -194,22 +196,22 @@ function AppRow({ app, isLast }: { app: AppEntry; isLast: boolean }) {
         </div>
       </td>
       <td className="px-4 py-3">
-        <Badge
-          variant="secondary"
-          className={`text-[11px] font-medium gap-1 ${TYPE_COLORS[app.type]}`}
+        <span
+          className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-1.5 py-0.5"
+          style={TYPE_STYLES[app.type]}
         >
           {TYPE_ICONS[app.type]}
           {app.type}
-        </Badge>
+        </span>
       </td>
       <td className="px-4 py-3">
         {app.stack === '—' ? (
-          <span className="text-slate-300">—</span>
+          <span style={{ color: '#374151' }}>—</span>
         ) : (
-          <span className="text-xs text-slate-600 font-mono">{app.stack}</span>
+          <span className="text-xs font-mono" style={{ color: '#9CA3AF' }}>{app.stack}</span>
         )}
       </td>
-      <td className="px-4 py-3 text-slate-600 text-xs leading-relaxed max-w-[400px]">
+      <td className="px-4 py-3 text-xs leading-relaxed max-w-[400px]" style={{ color: '#9CA3AF' }}>
         {app.description}
       </td>
     </tr>
