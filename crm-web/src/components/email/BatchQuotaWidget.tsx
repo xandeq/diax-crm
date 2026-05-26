@@ -81,9 +81,9 @@ export function BatchQuotaWidget() {
   const anyDegraded    = data.some(p => p.health === 'degraded')
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
       {/* Header bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
+      <div className="flex items-center justify-between px-4 py-3" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="flex items-center gap-2">
           {anyDown
             ? <XCircle className="h-4 w-4 text-red-500" />
@@ -137,7 +137,7 @@ export function BatchQuotaWidget() {
             </div>
           </div>
           {/* Total progress bar */}
-          <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+          <div className="h-3 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
             <div
               className={`h-full rounded-full transition-all duration-500 ${barColor(totalPct)}`}
               style={{ width: `${Math.min(totalPct, 100)}%` }}
@@ -150,7 +150,7 @@ export function BatchQuotaWidget() {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-slate-100" />
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }} />
 
         {/* Per-provider rows */}
         <div className="space-y-3">
