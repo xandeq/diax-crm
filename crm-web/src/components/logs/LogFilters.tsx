@@ -44,16 +44,17 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
   };
 
   return (
-    <div className="bg-white rounded-lg border p-4 mb-4">
+    <div className="rounded-lg p-4 mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
       <div className="flex items-center justify-between">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+          className="flex items-center gap-2 text-sm font-medium"
+          style={{ color: '#D1D5DB' }}
         >
           <Filter className="h-4 w-4" />
           Filtros
           {activeFiltersCount > 0 && (
-            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
               {activeFiltersCount}
             </span>
           )}

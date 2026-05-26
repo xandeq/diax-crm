@@ -144,12 +144,12 @@ export default function LogsPage() {
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-lg border">
+        <div className="rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
           <LogsTable logs={data?.items || []} loading={loading} />
 
           {/* Pagination */}
           {data && data.totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t">
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
               <div className="text-sm text-gray-500">
                 Mostrando {((data.page - 1) * data.pageSize) + 1} a {Math.min(data.page * data.pageSize, data.totalCount)} de {data.totalCount} registros
               </div>
@@ -228,10 +228,10 @@ export default function LogsPage() {
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="bg-white rounded-lg border p-4">
-      <div className="text-sm text-gray-500 mb-1">{label}</div>
+    <div className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+      <div className="text-sm mb-1" style={{ color: '#9CA3AF' }}>{label}</div>
       <div className="flex items-center gap-2">
-        <span className="text-2xl font-bold">{value.toLocaleString('pt-BR')}</span>
+        <span className="text-2xl font-bold" style={{ color: '#F9FAFB' }}>{value.toLocaleString('pt-BR')}</span>
         <Badge className={color}>{label}</Badge>
       </div>
     </div>

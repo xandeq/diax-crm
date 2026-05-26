@@ -39,7 +39,7 @@ function LogLevelBadge({ level }: { level: LogLevel }) {
 }
 
 function StatusCodeBadge({ code }: { code?: number }) {
-  if (!code) return <span className="text-gray-400">-</span>;
+  if (!code) return <span style={{ color: '#6B7280' }}>-</span>;
 
   let color = 'bg-gray-100 text-gray-800';
   if (code >= 200 && code < 300) color = 'bg-green-100 text-green-800';
@@ -163,12 +163,12 @@ async function copyPromptToClipboard(action: 'analyze' | 'fix' | 'refactor', det
 
 function PromptButtons({ details }: { details: AppLogResponse }) {
   return (
-    <div className="flex items-center gap-2 mt-4 pt-3 border-t">
-      <span className="text-xs text-gray-500 mr-1">Copiar prompt para IA:</span>
+    <div className="flex items-center gap-2 mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      <span className="text-xs mr-1" style={{ color: '#9CA3AF' }}>Copiar prompt para IA:</span>
       <Button
         variant="outline"
         size="sm"
-        className="text-xs gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50"
+        className="text-xs gap-1.5 text-blue-400 border-blue-800 hover:bg-blue-950"
         onClick={(e) => { e.stopPropagation(); copyPromptToClipboard('analyze', details); }}
       >
         <Search className="h-3.5 w-3.5" />
@@ -177,7 +177,7 @@ function PromptButtons({ details }: { details: AppLogResponse }) {
       <Button
         variant="outline"
         size="sm"
-        className="text-xs gap-1.5 text-red-700 border-red-200 hover:bg-red-50"
+        className="text-xs gap-1.5 text-red-400 border-red-800 hover:bg-red-950"
         onClick={(e) => { e.stopPropagation(); copyPromptToClipboard('fix', details); }}
       >
         <Wrench className="h-3.5 w-3.5" />
@@ -186,7 +186,7 @@ function PromptButtons({ details }: { details: AppLogResponse }) {
       <Button
         variant="outline"
         size="sm"
-        className="text-xs gap-1.5 text-amber-700 border-amber-200 hover:bg-amber-50"
+        className="text-xs gap-1.5 text-amber-400 border-amber-800 hover:bg-amber-950"
         onClick={(e) => { e.stopPropagation(); copyPromptToClipboard('refactor', details); }}
       >
         <RefreshCw className="h-3.5 w-3.5" />
@@ -195,6 +195,11 @@ function PromptButtons({ details }: { details: AppLogResponse }) {
     </div>
   );
 }
+
+const INFO_BOX = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '0.375rem', padding: '0.75rem' };
+const LABEL_COLOR = { color: '#9CA3AF' };
+const VALUE_COLOR = { color: '#D1D5DB' };
+const HEADING_COLOR = { color: '#F9FAFB' };
 
 function LogRow({ log }: { log: AppLogListItemResponse }) {
   const [expanded, setExpanded] = useState(false);
@@ -239,7 +244,10 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
   return (
     <>
       <tr
-        className="hover:bg-gray-50 cursor-pointer border-b"
+        className="cursor-pointer transition-colors"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+        onMouseLeave={e => (e.currentTarget.style.background = '')}
         onClick={handleExpand}
       >
         <td className="px-3 py-2">
@@ -253,22 +261,22 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
             )}
           </Button>
         </td>
-        <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">
+        <td className="px-3 py-2 text-xs whitespace-nowrap" style={{ color: '#9CA3AF' }}>
           {formatDate(log.timestampUtc)}
         </td>
         <td className="px-3 py-2">
           <LogLevelBadge level={log.level} />
         </td>
-        <td className="px-3 py-2 text-xs text-gray-600">
+        <td className="px-3 py-2 text-xs" style={{ color: '#D1D5DB' }}>
           {logCategoryLabels[log.category]}
         </td>
-        <td className="px-3 py-2 text-sm max-w-md truncate" title={log.message}>
+        <td className="px-3 py-2 text-sm max-w-md truncate" style={{ color: '#F9FAFB' }} title={log.message}>
           {log.message}
         </td>
-        <td className="px-3 py-2 text-xs text-gray-500 font-mono">
+        <td className="px-3 py-2 text-xs font-mono" style={{ color: '#9CA3AF' }}>
           {log.httpMethod && log.requestPath ? (
             <span>
-              <span className="font-semibold">{log.httpMethod}</span> {log.requestPath}
+              <span className="font-semibold" style={{ color: '#D1D5DB' }}>{log.httpMethod}</span> {log.requestPath}
             </span>
           ) : (
             '-'
@@ -280,21 +288,21 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
       </tr>
 
       {expanded && details && (
-        <tr className="bg-gray-50">
+        <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
           <td colSpan={7} className="px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               {/* Informações básicas */}
               <div className="space-y-2">
-                <h4 className="font-semibold text-gray-700">Informações Gerais</h4>
-                <div className="bg-white p-3 rounded border space-y-1">
-                  <p><span className="text-gray-500">ID:</span> <span className="font-mono text-xs">{details.id}</span></p>
-                  <p><span className="text-gray-500">Correlation ID:</span> <span className="font-mono text-xs">{details.correlationId || '-'}</span></p>
-                  <p><span className="text-gray-500">Request ID:</span> <span className="font-mono text-xs">{details.requestId || '-'}</span></p>
-                  <p><span className="text-gray-500">User ID:</span> <span className="font-mono text-xs">{details.userId || '-'}</span></p>
-                  <p><span className="text-gray-500">Machine:</span> {details.machineName || '-'}</p>
-                  <p><span className="text-gray-500">Environment:</span> {details.environment || '-'}</p>
+                <h4 className="font-semibold" style={HEADING_COLOR}>Informações Gerais</h4>
+                <div style={INFO_BOX} className="space-y-1">
+                  <p><span style={LABEL_COLOR}>ID:</span> <span className="font-mono text-xs" style={VALUE_COLOR}>{details.id}</span></p>
+                  <p><span style={LABEL_COLOR}>Correlation ID:</span> <span className="font-mono text-xs" style={VALUE_COLOR}>{details.correlationId || '-'}</span></p>
+                  <p><span style={LABEL_COLOR}>Request ID:</span> <span className="font-mono text-xs" style={VALUE_COLOR}>{details.requestId || '-'}</span></p>
+                  <p><span style={LABEL_COLOR}>User ID:</span> <span className="font-mono text-xs" style={VALUE_COLOR}>{details.userId || '-'}</span></p>
+                  <p><span style={LABEL_COLOR}>Machine:</span> <span style={VALUE_COLOR}>{details.machineName || '-'}</span></p>
+                  <p><span style={LABEL_COLOR}>Environment:</span> <span style={VALUE_COLOR}>{details.environment || '-'}</span></p>
                   {details.responseTimeMs && (
-                    <p><span className="text-gray-500">Response Time:</span> {details.responseTimeMs}ms</p>
+                    <p><span style={LABEL_COLOR}>Response Time:</span> <span style={VALUE_COLOR}>{details.responseTimeMs}ms</span></p>
                   )}
                 </div>
               </div>
@@ -302,34 +310,34 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
               {/* Requisição HTTP */}
               {details.requestPath && (
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-700">Requisição HTTP</h4>
-                  <div className="bg-white p-3 rounded border space-y-1">
-                    <p><span className="text-gray-500">Método:</span> {details.httpMethod}</p>
-                    <p><span className="text-gray-500">Path:</span> <span className="font-mono text-xs">{details.requestPath}</span></p>
+                  <h4 className="font-semibold" style={HEADING_COLOR}>Requisição HTTP</h4>
+                  <div style={INFO_BOX} className="space-y-1">
+                    <p><span style={LABEL_COLOR}>Método:</span> <span style={VALUE_COLOR}>{details.httpMethod}</span></p>
+                    <p><span style={LABEL_COLOR}>Path:</span> <span className="font-mono text-xs" style={VALUE_COLOR}>{details.requestPath}</span></p>
                     {details.queryString && (
-                      <p><span className="text-gray-500">Query:</span> <span className="font-mono text-xs">{details.queryString}</span></p>
+                      <p><span style={LABEL_COLOR}>Query:</span> <span className="font-mono text-xs" style={VALUE_COLOR}>{details.queryString}</span></p>
                     )}
-                    <p><span className="text-gray-500">Status:</span> <StatusCodeBadge code={details.statusCode} /></p>
-                    <p><span className="text-gray-500">Client IP:</span> {details.clientIp || '-'}</p>
-                    <p><span className="text-gray-500">User Agent:</span> <span className="text-xs">{details.userAgent || '-'}</span></p>
+                    <p><span style={LABEL_COLOR}>Status:</span> <StatusCodeBadge code={details.statusCode} /></p>
+                    <p><span style={LABEL_COLOR}>Client IP:</span> <span style={VALUE_COLOR}>{details.clientIp || '-'}</span></p>
+                    <p><span style={LABEL_COLOR}>User Agent:</span> <span className="text-xs" style={VALUE_COLOR}>{details.userAgent || '-'}</span></p>
                   </div>
                 </div>
               )}
 
               {/* Mensagem completa */}
               <div className="md:col-span-2 space-y-2">
-                <h4 className="font-semibold text-gray-700">Mensagem</h4>
-                <div className="bg-white p-3 rounded border">
-                  <pre className="whitespace-pre-wrap text-xs">{details.message}</pre>
+                <h4 className="font-semibold" style={HEADING_COLOR}>Mensagem</h4>
+                <div style={INFO_BOX}>
+                  <pre className="whitespace-pre-wrap text-xs" style={{ color: '#D1D5DB' }}>{details.message}</pre>
                 </div>
               </div>
 
               {/* Headers */}
               {details.headersJson && (
                 <div className="md:col-span-2 space-y-2">
-                  <h4 className="font-semibold text-gray-700">Headers</h4>
-                  <div className="bg-gray-800 text-green-400 p-3 rounded overflow-x-auto">
-                    <pre className="text-xs">{formatJson(details.headersJson)}</pre>
+                  <h4 className="font-semibold" style={HEADING_COLOR}>Headers</h4>
+                  <div className="rounded overflow-x-auto" style={{ background: '#0B1510', border: '1px solid rgba(255,255,255,0.09)', padding: '0.75rem' }}>
+                    <pre className="text-xs" style={{ color: '#4ade80' }}>{formatJson(details.headersJson)}</pre>
                   </div>
                 </div>
               )}
@@ -337,25 +345,25 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
               {/* Exception */}
               {details.exceptionType && (
                 <div className="md:col-span-2 space-y-2">
-                  <h4 className="font-semibold text-red-700">Exceção</h4>
-                  <div className="bg-red-50 border border-red-200 p-3 rounded space-y-2">
-                    <p><span className="text-gray-500">Tipo:</span> <span className="font-mono text-red-700">{details.exceptionType}</span></p>
-                    <p><span className="text-gray-500">Mensagem:</span> {details.exceptionMessage}</p>
+                  <h4 className="font-semibold" style={{ color: '#f87171' }}>Exceção</h4>
+                  <div className="rounded p-3 space-y-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                    <p><span style={LABEL_COLOR}>Tipo:</span> <span className="font-mono" style={{ color: '#f87171' }}>{details.exceptionType}</span></p>
+                    <p><span style={LABEL_COLOR}>Mensagem:</span> <span style={{ color: '#fca5a5' }}>{details.exceptionMessage}</span></p>
                     {details.targetSite && (
-                      <p><span className="text-gray-500">Target:</span> <span className="font-mono text-xs">{details.targetSite}</span></p>
+                      <p><span style={LABEL_COLOR}>Target:</span> <span className="font-mono text-xs" style={VALUE_COLOR}>{details.targetSite}</span></p>
                     )}
                     {details.stackTrace && (
                       <div className="mt-2">
-                        <p className="text-gray-500 mb-1">Stack Trace:</p>
-                        <pre className="bg-gray-800 text-red-400 p-2 rounded text-xs overflow-x-auto whitespace-pre-wrap">
+                        <p className="mb-1" style={LABEL_COLOR}>Stack Trace:</p>
+                        <pre className="rounded text-xs overflow-x-auto whitespace-pre-wrap p-2" style={{ background: '#0B1510', color: '#f87171' }}>
                           {details.stackTrace}
                         </pre>
                       </div>
                     )}
                     {details.innerException && (
                       <div className="mt-2">
-                        <p className="text-gray-500 mb-1">Inner Exception:</p>
-                        <pre className="bg-gray-800 text-yellow-400 p-2 rounded text-xs overflow-x-auto whitespace-pre-wrap">
+                        <p className="mb-1" style={LABEL_COLOR}>Inner Exception:</p>
+                        <pre className="rounded text-xs overflow-x-auto whitespace-pre-wrap p-2" style={{ background: '#0B1510', color: '#fbbf24' }}>
                           {details.innerException}
                         </pre>
                       </div>
@@ -367,9 +375,9 @@ function LogRow({ log }: { log: AppLogListItemResponse }) {
               {/* Additional Data */}
               {details.additionalData && (
                 <div className="md:col-span-2 space-y-2">
-                  <h4 className="font-semibold text-gray-700">Dados Adicionais</h4>
-                  <div className="bg-gray-800 text-blue-400 p-3 rounded overflow-x-auto">
-                    <pre className="text-xs">{formatJson(details.additionalData)}</pre>
+                  <h4 className="font-semibold" style={HEADING_COLOR}>Dados Adicionais</h4>
+                  <div className="rounded overflow-x-auto" style={{ background: '#0B1510', border: '1px solid rgba(255,255,255,0.09)', padding: '0.75rem' }}>
+                    <pre className="text-xs" style={{ color: '#60a5fa' }}>{formatJson(details.additionalData)}</pre>
                   </div>
                 </div>
               )}
@@ -390,14 +398,14 @@ export function LogsTable({ logs, loading }: LogsTableProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#6B7280' }} />
       </div>
     );
   }
 
   if (logs.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="text-center py-12" style={{ color: '#9CA3AF' }}>
         Nenhum log encontrado com os filtros selecionados.
       </div>
     );
@@ -406,15 +414,15 @@ export function LogsTable({ logs, loading }: LogsTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left">
-        <thead className="bg-gray-100 text-xs uppercase text-gray-600">
+        <thead style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <tr>
-            <th className="px-3 py-2 w-10"></th>
-            <th className="px-3 py-2">Data/Hora</th>
-            <th className="px-3 py-2">Nível</th>
-            <th className="px-3 py-2">Categoria</th>
-            <th className="px-3 py-2">Mensagem</th>
-            <th className="px-3 py-2">Requisição</th>
-            <th className="px-3 py-2">Status</th>
+            <th className="px-3 py-2 w-10 text-xs uppercase font-medium tracking-wider" style={{ color: '#9CA3AF' }}></th>
+            <th className="px-3 py-2 text-xs uppercase font-medium tracking-wider" style={{ color: '#9CA3AF' }}>Data/Hora</th>
+            <th className="px-3 py-2 text-xs uppercase font-medium tracking-wider" style={{ color: '#9CA3AF' }}>Nível</th>
+            <th className="px-3 py-2 text-xs uppercase font-medium tracking-wider" style={{ color: '#9CA3AF' }}>Categoria</th>
+            <th className="px-3 py-2 text-xs uppercase font-medium tracking-wider" style={{ color: '#9CA3AF' }}>Mensagem</th>
+            <th className="px-3 py-2 text-xs uppercase font-medium tracking-wider" style={{ color: '#9CA3AF' }}>Requisição</th>
+            <th className="px-3 py-2 text-xs uppercase font-medium tracking-wider" style={{ color: '#9CA3AF' }}>Status</th>
           </tr>
         </thead>
         <tbody>
