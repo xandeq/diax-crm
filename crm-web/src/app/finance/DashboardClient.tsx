@@ -71,12 +71,12 @@ function sortUpcoming(items: RecurringTransaction[], limit = 6): RecurringTransa
 // ── Isolated primitives ────────────────────────────────────────────────────────
 
 function SkeletonBlock({ className }: { className?: string }) {
-    return <div className={`animate-pulse bg-slate-200/70 rounded ${className}`} />;
+    return <div className={`animate-pulse rounded ${className}`} style={{ background: 'rgba(255,255,255,0.08)' }} />;
 }
 
 function AnimatedBar({ pct, color }: { pct: number; color: string }) {
     return (
-        <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <motion.div
                 className={`h-full rounded-full ${color}`}
                 initial={{ width: 0 }}
@@ -90,14 +90,14 @@ function AnimatedBar({ pct, color }: { pct: number; color: string }) {
 // ── Quick links data ───────────────────────────────────────────────────────────
 
 const QUICK_LINKS = [
-    { href: '/finance/morning-briefing', label: 'Morning Briefing', Icon: Sun, bg: 'bg-amber-50', fg: 'text-amber-600' },
-    { href: '/finance/personal-control', label: 'Planilha Financeira', Icon: BookOpen, bg: 'bg-emerald-50', fg: 'text-emerald-600' },
-    { href: '/finance/transactions', label: 'Transações', Icon: ReceiptText, bg: 'bg-blue-50', fg: 'text-blue-600' },
-    { href: '/finance/planner', label: 'Planner', Icon: LayoutDashboard, bg: 'bg-slate-100', fg: 'text-slate-600' },
-    { href: '/finance/credit-cards', label: 'Cartões', Icon: CreditCard, bg: 'bg-rose-50', fg: 'text-rose-600' },
-    { href: '/finance/accounts', label: 'Contas', Icon: Building2, bg: 'bg-sky-50', fg: 'text-sky-600' },
-    { href: '/finance/planner/recurring', label: 'Recorrentes', Icon: Repeat2, bg: 'bg-violet-50', fg: 'text-violet-600' },
-    { href: '/finance/imports', label: 'Importar Extrato', Icon: FileInput, bg: 'bg-orange-50', fg: 'text-orange-600' },
+    { href: '/finance/morning-briefing', label: 'Morning Briefing',   Icon: Sun,           tint: 'rgba(245,158,11,0.12)',  fg: '#fbbf24' },
+    { href: '/finance/personal-control', label: 'Planilha Financeira',Icon: BookOpen,       tint: 'rgba(16,185,129,0.12)', fg: '#34d399' },
+    { href: '/finance/transactions',     label: 'Transações',          Icon: ReceiptText,   tint: 'rgba(59,130,246,0.12)', fg: '#60a5fa' },
+    { href: '/finance/planner',          label: 'Planner',             Icon: LayoutDashboard,tint:'rgba(148,163,184,0.12)',fg: '#94a3b8' },
+    { href: '/finance/credit-cards',     label: 'Cartões',             Icon: CreditCard,    tint: 'rgba(244,63,94,0.12)',  fg: '#fb7185' },
+    { href: '/finance/accounts',         label: 'Contas',              Icon: Building2,     tint: 'rgba(14,165,233,0.12)', fg: '#38bdf8' },
+    { href: '/finance/planner/recurring',label: 'Recorrentes',         Icon: Repeat2,       tint: 'rgba(139,92,246,0.12)', fg: '#a78bfa' },
+    { href: '/finance/imports',          label: 'Importar Extrato',    Icon: FileInput,     tint: 'rgba(249,115,22,0.12)', fg: '#fb923c' },
 ] as const;
 
 // ── Fade-up animation factory ──────────────────────────────────────────────────
@@ -107,6 +107,14 @@ const fadeUp = (delay = 0) => ({
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.42, delay, ease: [0.16, 1, 0.3, 1] as const },
 });
+
+// ── Shared card style ──────────────────────────────────────────────────────────
+
+const CARD = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderRadius: '1rem',
+} as const;
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -130,27 +138,27 @@ export function DashboardClient() {
     const isPositive   = netFlow >= 0;
 
     return (
-        <div className="min-h-screen bg-[#f8f9fb]">
+        <div className="min-h-screen">
             <div className="px-5 md:px-8 py-8 max-w-[1400px] mx-auto space-y-6">
 
                 {/* ── Header ── */}
                 <motion.div {...fadeUp(0)} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-[1.65rem] font-bold text-zinc-900 tracking-tight leading-none">Visão Geral</h1>
-                        <p className="text-sm text-zinc-400 mt-1.5">Controle financeiro pessoal</p>
+                        <h1 className="text-[1.65rem] font-bold tracking-tight leading-none" style={{ color: '#F9FAFB' }}>Visão Geral</h1>
+                        <p className="text-sm mt-1.5" style={{ color: '#9CA3AF' }}>Controle financeiro pessoal</p>
                     </div>
 
                     {/* Segmented period selector */}
-                    <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit shadow-sm">
+                    <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}>
                         {(['current', 'last_month', 'year'] as PeriodKey[]).map(p => (
                             <button
                                 key={p}
                                 onClick={() => setPeriod(p)}
-                                className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                    period === p
-                                        ? 'bg-zinc-900 text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-800'
-                                }`}
+                                className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                style={period === p
+                                    ? { background: 'rgba(16,185,129,0.2)', color: '#34d399' }
+                                    : { color: '#9CA3AF' }
+                                }
                             >
                                 {PERIOD_LABELS[p]}
                             </button>
@@ -163,19 +171,24 @@ export function DashboardClient() {
                     {...fadeUp(0.06)}
                     className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-4"
                 >
-                    {/* Net Cash Flow — dark hero card */}
-                    <div className={`rounded-2xl p-7 flex flex-col justify-between min-h-[180px] ${
-                        isPositive
-                            ? 'bg-zinc-900'
-                            : 'bg-rose-950'
-                    }`}>
+                    {/* Net Cash Flow — hero card */}
+                    <div
+                        className="rounded-2xl p-7 flex flex-col justify-between min-h-[180px]"
+                        style={{
+                            background: isPositive
+                                ? 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(5,150,105,0.10) 100%)'
+                                : 'linear-gradient(135deg, rgba(239,68,68,0.18) 0%, rgba(185,28,28,0.10) 100%)',
+                            border: `1px solid ${isPositive ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                        }}
+                    >
                         <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: 'rgba(255,255,255,0.4)' }}>
                                 Saldo Líquido
                             </p>
-                            <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
-                                isPositive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-400/15 text-rose-300'
-                            }`}>
+                            <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{
+                                background: isPositive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                                color: isPositive ? '#34d399' : '#f87171',
+                            }}>
                                 {isPositive
                                     ? <TrendingUp className="h-3 w-3" />
                                     : <TrendingDown className="h-3 w-3" />
@@ -185,25 +198,25 @@ export function DashboardClient() {
                         </div>
 
                         {isLoading ? (
-                            <SkeletonBlock className="h-11 w-48 bg-white/10" />
+                            <SkeletonBlock className="h-11 w-48" />
                         ) : (
-                            <p className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+                            <p className="text-4xl md:text-5xl font-bold tracking-tight" style={{ color: '#F9FAFB' }}>
                                 {formatCurrency(netFlow)}
                             </p>
                         )}
 
-                        <div className="flex items-center gap-3 text-xs text-white/30">
+                        <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                             <Calendar className="h-3.5 w-3.5" />
                             <span>{PERIOD_LABELS[period]}</span>
                         </div>
                     </div>
 
                     {/* Income */}
-                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between">
+                    <div className="rounded-2xl p-6 flex flex-col justify-between" style={CARD}>
                         <div className="flex items-center justify-between mb-4">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Entradas</p>
-                            <div className="p-1.5 bg-emerald-50 rounded-lg">
-                                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: '#9CA3AF' }}>Entradas</p>
+                            <div className="p-1.5 rounded-lg" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                                <TrendingUp className="h-3.5 w-3.5" style={{ color: '#34d399' }} />
                             </div>
                         </div>
 
@@ -214,19 +227,19 @@ export function DashboardClient() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <p className="text-2xl font-bold text-zinc-900 tracking-tight">{formatCurrency(income)}</p>
+                                <p className="text-2xl font-bold tracking-tight" style={{ color: '#F9FAFB' }}>{formatCurrency(income)}</p>
                                 <AnimatedBar pct={(income / maxVal) * 100} color="bg-emerald-500" />
-                                <p className="text-xs text-slate-400">receitas do período</p>
+                                <p className="text-xs" style={{ color: '#9CA3AF' }}>receitas do período</p>
                             </div>
                         )}
                     </div>
 
                     {/* Expenses */}
-                    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between">
+                    <div className="rounded-2xl p-6 flex flex-col justify-between" style={CARD}>
                         <div className="flex items-center justify-between mb-4">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Saídas</p>
-                            <div className="p-1.5 bg-rose-50 rounded-lg">
-                                <TrendingDown className="h-3.5 w-3.5 text-rose-600" />
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: '#9CA3AF' }}>Saídas</p>
+                            <div className="p-1.5 rounded-lg" style={{ background: 'rgba(244,63,94,0.12)' }}>
+                                <TrendingDown className="h-3.5 w-3.5" style={{ color: '#fb7185' }} />
                             </div>
                         </div>
 
@@ -237,11 +250,11 @@ export function DashboardClient() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <p className="text-2xl font-bold text-zinc-900 tracking-tight">{formatCurrency(expenses)}</p>
+                                <p className="text-2xl font-bold tracking-tight" style={{ color: '#F9FAFB' }}>{formatCurrency(expenses)}</p>
                                 <AnimatedBar pct={(expenses / maxVal) * 100} color="bg-rose-500" />
                                 <div className="flex gap-3 text-xs">
-                                    <span className="text-emerald-600 font-medium">Pago {formatCurrency(paidExp)}</span>
-                                    <span className="text-amber-600 font-medium">Pendente {formatCurrency(pendingExp)}</span>
+                                    <span className="font-medium" style={{ color: '#34d399' }}>Pago {formatCurrency(paidExp)}</span>
+                                    <span className="font-medium" style={{ color: '#fbbf24' }}>Pendente {formatCurrency(pendingExp)}</span>
                                 </div>
                             </div>
                         )}
@@ -254,15 +267,16 @@ export function DashboardClient() {
                     className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4"
                 >
                     {/* Upcoming recurring payments */}
-                    <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="rounded-2xl overflow-hidden" style={CARD}>
+                        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                             <div className="flex items-center gap-2">
-                                <Repeat2 className="h-4 w-4 text-slate-400" />
-                                <h2 className="text-sm font-semibold text-zinc-800">Próximos Recorrentes</h2>
+                                <Repeat2 className="h-4 w-4" style={{ color: '#6B7280' }} />
+                                <h2 className="text-sm font-semibold" style={{ color: '#D1D5DB' }}>Próximos Recorrentes</h2>
                             </div>
                             <Link
                                 href="/finance/planner/recurring"
-                                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors"
+                                className="flex items-center gap-1 text-xs transition-colors"
+                                style={{ color: '#6B7280' }}
                             >
                                 Ver todos <ArrowRight className="h-3 w-3" />
                             </Link>
@@ -270,19 +284,20 @@ export function DashboardClient() {
 
                         {upcoming.length === 0 ? (
                             <div className="py-14 flex flex-col items-center gap-3">
-                                <div className="p-3 bg-slate-50 rounded-2xl">
-                                    <Repeat2 className="h-6 w-6 text-slate-300" />
+                                <div className="p-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                    <Repeat2 className="h-6 w-6" style={{ color: '#4B5563' }} />
                                 </div>
-                                <p className="text-sm text-slate-400">Nenhum item recorrente ativo</p>
+                                <p className="text-sm" style={{ color: '#9CA3AF' }}>Nenhum item recorrente ativo</p>
                                 <Link
                                     href="/finance/planner/recurring"
-                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                    className="text-xs font-medium flex items-center gap-1"
+                                    style={{ color: '#60a5fa' }}
                                 >
                                     Cadastrar <ArrowUpRight className="h-3 w-3" />
                                 </Link>
                             </div>
                         ) : (
-                            <div className="divide-y divide-slate-100">
+                            <div>
                                 {upcoming.map((r, i) => {
                                     const isIncome = r.type === TransactionType.Income;
                                     return (
@@ -291,33 +306,40 @@ export function DashboardClient() {
                                             initial={{ opacity: 0, x: -8 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: 0.18 + i * 0.05, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                                            className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/60 transition-colors"
+                                            className="flex items-center gap-4 px-6 py-3.5 transition-colors"
+                                            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                                         >
                                             {/* Day badge */}
-                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                                                isIncome ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                                            }`}>
+                                            <div
+                                                className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                                style={{
+                                                    background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(244,63,94,0.12)',
+                                                    color: isIncome ? '#34d399' : '#fb7185',
+                                                }}
+                                            >
                                                 {r.dayOfMonth}
                                             </div>
 
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium text-zinc-800 truncate">{r.description}</p>
+                                                <p className="text-sm font-medium truncate" style={{ color: '#D1D5DB' }}>{r.description}</p>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                                                        r.itemKind === RecurringItemKind.Subscription
-                                                            ? 'bg-violet-50 text-violet-600'
-                                                            : 'bg-slate-100 text-slate-500'
-                                                    }`}>
+                                                    <span
+                                                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                                                        style={r.itemKind === RecurringItemKind.Subscription
+                                                            ? { background: 'rgba(139,92,246,0.12)', color: '#a78bfa' }
+                                                            : { background: 'rgba(255,255,255,0.08)', color: '#9CA3AF' }
+                                                        }
+                                                    >
                                                         {r.itemKind === RecurringItemKind.Subscription ? 'Assinatura' : 'Padrão'}
                                                     </span>
                                                     {r.hasVariableAmount && (
-                                                        <span className="text-[10px] text-amber-600 font-medium">Valor variável</span>
+                                                        <span className="text-[10px] font-medium" style={{ color: '#fbbf24' }}>Valor variável</span>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <div className="flex flex-col items-end flex-shrink-0">
-                                                <span className={`text-sm font-bold ${isIncome ? 'text-emerald-600' : 'text-zinc-800'}`}>
+                                                <span className="text-sm font-bold" style={{ color: isIncome ? '#34d399' : '#D1D5DB' }}>
                                                     {isIncome ? '+' : '-'}{formatCurrency(r.amount)}
                                                 </span>
                                             </div>
@@ -328,63 +350,62 @@ export function DashboardClient() {
                         )}
                     </div>
 
-                    {/* Projections panel — dark */}
-                    <div className="bg-zinc-950 rounded-2xl p-7 flex flex-col justify-between">
+                    {/* Projections panel */}
+                    <div className="rounded-2xl p-7 flex flex-col justify-between" style={{ background: 'rgba(5,15,10,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}>
                         <div>
                             <div className="flex items-center gap-2 mb-8">
-                                <Wallet className="h-4 w-4 text-zinc-500" />
-                                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Projeção</p>
+                                <Wallet className="h-4 w-4" style={{ color: '#4B5563' }} />
+                                <p className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: '#4B5563' }}>Projeção</p>
                             </div>
 
                             <div className="space-y-6">
                                 <div>
-                                    <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">A Receber</p>
+                                    <p className="text-[11px] uppercase tracking-wider mb-1.5" style={{ color: '#4B5563' }}>A Receber</p>
                                     {isLoading
-                                        ? <SkeletonBlock className="h-7 w-36 bg-white/5" />
-                                        : <p className="text-xl font-bold text-white">{formatCurrency(pendingIn)}</p>
+                                        ? <SkeletonBlock className="h-7 w-36" />
+                                        : <p className="text-xl font-bold" style={{ color: '#F9FAFB' }}>{formatCurrency(pendingIn)}</p>
                                     }
                                 </div>
 
                                 <div>
-                                    <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1.5">A Pagar</p>
+                                    <p className="text-[11px] uppercase tracking-wider mb-1.5" style={{ color: '#4B5563' }}>A Pagar</p>
                                     {isLoading
-                                        ? <SkeletonBlock className="h-7 w-36 bg-white/5" />
-                                        : <p className="text-xl font-bold text-white">{formatCurrency(pendingExp)}</p>
+                                        ? <SkeletonBlock className="h-7 w-36" />
+                                        : <p className="text-xl font-bold" style={{ color: '#F9FAFB' }}>{formatCurrency(pendingExp)}</p>
                                     }
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-zinc-800/60 mt-6">
-                            <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">Saldo Projetado</p>
+                        <div className="pt-6 mt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                            <p className="text-[11px] uppercase tracking-wider mb-2" style={{ color: '#4B5563' }}>Saldo Projetado</p>
                             {isLoading ? (
-                                <SkeletonBlock className="h-10 w-44 bg-white/5" />
+                                <SkeletonBlock className="h-10 w-44" />
                             ) : (
-                                <p className={`text-3xl font-bold tracking-tight ${
-                                    projFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                                }`}>
+                                <p className={`text-3xl font-bold tracking-tight`} style={{ color: projFlow >= 0 ? '#34d399' : '#f87171' }}>
                                     {formatCurrency(projFlow)}
                                 </p>
                             )}
-                            <p className="text-[11px] text-zinc-600 mt-1.5">após todos os pagamentos</p>
+                            <p className="text-[11px] mt-1.5" style={{ color: '#4B5563' }}>após todos os pagamentos</p>
                         </div>
                     </div>
                 </motion.div>
 
                 {/* ── Quick access: horizontal scroll strip ── */}
                 <motion.div {...fadeUp(0.18)}>
-                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] mb-3">Acesso Rápido</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-3" style={{ color: '#6B7280' }}>Acesso Rápido</p>
                     <div className="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {QUICK_LINKS.map(({ href, label, Icon, bg, fg }) => (
+                        {QUICK_LINKS.map(({ href, label, Icon, tint, fg }) => (
                             <Link
                                 key={href}
                                 href={href}
-                                className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-sm active:scale-[0.98] transition-all duration-150"
+                                className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-xl active:scale-[0.98] transition-all duration-150"
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
                             >
-                                <div className={`p-1.5 rounded-lg ${bg}`}>
-                                    <Icon className={`h-3.5 w-3.5 ${fg}`} />
+                                <div className="p-1.5 rounded-lg" style={{ background: tint }}>
+                                    <Icon className="h-3.5 w-3.5" style={{ color: fg }} />
                                 </div>
-                                <span className="text-sm font-medium text-zinc-700 whitespace-nowrap">{label}</span>
+                                <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#D1D5DB' }}>{label}</span>
                             </Link>
                         ))}
                     </div>

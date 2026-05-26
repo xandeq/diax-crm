@@ -62,8 +62,8 @@ export function FinanceNav() {
   const pathname = usePathname();
 
   return (
-    <div className="border-b border-gray-100 bg-white mb-6">
-      <div className="flex flex-wrap items-center justify-center gap-2 p-2">
+    <div className="border-b mb-6" style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(11,21,16,0.8)' }}>
+      <div className="flex flex-wrap items-center justify-center gap-1.5 p-2">
         {navItems.map((item) => {
           const isActive = item.exact
             ? pathname === item.href
@@ -74,13 +74,14 @@ export function FinanceNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap",
+                "flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
                 isActive
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  ? "text-emerald-400"
+                  : "text-zinc-400 hover:text-zinc-200"
               )}
+              style={isActive ? { background: 'rgba(16,185,129,0.12)' } : undefined}
             >
-              <item.icon className={cn("h-4 w-4", isActive ? "text-blue-600" : "text-gray-400")} />
+              <item.icon className={cn("h-4 w-4", isActive ? "text-emerald-400" : "text-zinc-600")} />
               {item.name}
             </Link>
           );
