@@ -1,5 +1,5 @@
+import { AppShell } from '@/components/AppShell';
 import { AuthGuard } from '@/components/AuthGuard';
-import { Header } from '@/components/Header';
 import { QueryProvider } from '@/components/QueryProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Calistoga, Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
@@ -49,19 +49,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable} ${plusJakartaSans.variable}`}>
-      <body suppressHydrationWarning className="font-sans antialiased bg-background text-foreground min-h-screen flex flex-col">
+      <body suppressHydrationWarning className="font-sans antialiased" style={{ background: '#0F1A14', overflow: 'hidden' }}>
         <QueryProvider>
-        <AuthProvider>
-          <AuthGuard>
-            <div className="w-full max-w-[1400px] mx-auto px-6 flex-1 flex flex-col">
-              <Header />
-              <main className="flex-1">
+          <AuthProvider>
+            <AuthGuard>
+              <AppShell>
                 {children}
-              </main>
-              <Toaster />
-            </div>
-          </AuthGuard>
-        </AuthProvider>
+              </AppShell>
+              <Toaster theme="dark" />
+            </AuthGuard>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

@@ -2,15 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
-import {
-  Activity, AlertCircle, BarChart2, Bell, BookOpen, Bot,
-  Briefcase, Calendar, ChevronRight, Circle, CreditCard,
-  DollarSign, FileText, Flame, Globe, HelpCircle, Home,
-  LayoutDashboard, Link2, ListChecks, LogOut, Mail, Megaphone,
-  MessageSquare, Package, Phone, Plus, RefreshCw, Repeat,
-  Search, Settings, Shield, Star, Tag, Target, TrendingUp,
-  Upload, UserPlus, Users, Wallet, Zap
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 const ApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -259,108 +251,6 @@ const tasks = [
   { text: 'Exportar relatório mensal', done: true, pri: 'med' },
 ];
 
-type NavChild = { label: string; href: string; badge?: string };
-type NavItem = { icon: React.ElementType; label: string; href?: string; children?: NavChild[]; badge?: string };
-type NavGroup = { section: string; items: NavItem[] };
-
-const navGroups: NavGroup[] = [
-  {
-    section: 'Principal',
-    items: [
-      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-    ],
-  },
-  {
-    section: 'CRM',
-    items: [
-      { icon: Users, label: 'Clientes', href: '/customers/' },
-      { icon: TrendingUp, label: 'Leads', children: [
-        { label: 'Todos os Leads', href: '/leads/' },
-        { label: 'Importar Leads', href: '/leads/import' },
-      ]},
-      { icon: HelpCircle, label: 'Helpdesk', href: '/helpdesk' },
-    ],
-  },
-  {
-    section: 'Marketing',
-    items: [
-      { icon: Mail, label: 'Outreach', href: '/outreach' },
-      { icon: Megaphone, label: 'Email Marketing', children: [
-        { label: 'Email Marketing', href: '/email-marketing' },
-        { label: 'Email Marketing PRO', href: '/email-marketing/pro', badge: 'NEW' },
-        { label: 'Campanhas', href: '/campanhas' },
-      ]},
-      { icon: Globe, label: 'Meta Ads', href: '/ads/' },
-      { icon: BarChart2, label: 'Analytics', href: '/analytics' },
-    ],
-  },
-  {
-    section: 'Finanças',
-    items: [
-      { icon: Star, label: 'Morning Briefing', href: '/finance/morning-briefing' },
-      { icon: LayoutDashboard, label: 'Dashboard Financeiro', href: '/finance' },
-      { icon: Wallet, label: 'Planilha Financeira', href: '/finance/personal-control' },
-      { icon: DollarSign, label: 'Transações', children: [
-        { label: 'Todas as Transações', href: '/finance/transactions' },
-        { label: 'Receitas', href: '/finance/incomes' },
-        { label: 'Despesas', href: '/finance/expenses' },
-        { label: 'Transferências', href: '/finance/transfers' },
-        { label: 'Importar OFX/CSV', href: '/finance/imports' },
-      ]},
-      { icon: CreditCard, label: 'Cartões de Crédito', href: '/finance/credit-cards' },
-      { icon: Briefcase, label: 'Contas', href: '/finance/accounts' },
-      { icon: Target, label: 'Planejador', children: [
-        { label: 'Planejador Financeiro', href: '/finance/planner' },
-        { label: 'Metas Financeiras', href: '/finance/planner/goals' },
-        { label: 'Recorrentes', href: '/finance/planner/recurring' },
-      ]},
-      { icon: FileText, label: 'Imposto de Renda', href: '/finance/tax-documents' },
-    ],
-  },
-  {
-    section: 'IA',
-    items: [
-      { icon: MessageSquare, label: 'Claude Chat', href: '/ai-chat/', badge: 'NEW' },
-      { icon: Zap, label: 'Ferramentas IA', children: [
-        { label: 'Geração de Imagens', href: '/utilities/image-generation' },
-        { label: 'Gerador de Prompts', href: '/utilities/prompt-generator' },
-        { label: 'Humanizar Texto', href: '/utilities/humanize-text' },
-        { label: 'Otimizador de Email', href: '/utilities/email-subject-optimizer' },
-        { label: 'Gerador de Personas', href: '/utilities/lead-persona-generator' },
-        { label: 'Teste A/B Outreach', href: '/utilities/outreach-ab-test' },
-        { label: 'Batch Social Media', href: '/utilities/social-batch-generator' },
-        { label: 'Insights de Clientes', href: '/utilities/customer-insights' },
-      ]},
-    ],
-  },
-  {
-    section: 'Pessoal',
-    items: [
-      { icon: Calendar, label: 'Agenda', href: '/agenda' },
-      { icon: ListChecks, label: 'Tarefas', href: '/tasks' },
-      { icon: Package, label: 'Listas e Compras', href: '/household/checklists' },
-      { icon: Tag, label: 'Snippets', href: '/utilities/snippets' },
-      { icon: Link2, label: 'Extratores', children: [
-        { label: 'HTML → Texto', href: '/tools/html-extractor' },
-        { label: 'HTML → Links', href: '/tools/html-url-extractor' },
-      ]},
-      { icon: Briefcase, label: 'Inventário de Apps', href: '/tools/apps-inventory' },
-    ],
-  },
-  {
-    section: 'Admin',
-    items: [
-      { icon: Users, label: 'Usuários', href: '/users/' },
-      { icon: Shield, label: 'Grupos & Permissões', href: '/admin/groups' },
-      { icon: Bot, label: 'Provedores IA', href: '/admin/ai' },
-      { icon: FileText, label: 'Blog', children: [
-        { label: 'Gerenciar Blog', href: '/admin/blog' },
-        { label: 'Novo Post', href: '/admin/blog/new' },
-      ]},
-      { icon: Activity, label: 'Logs do Sistema', href: '/logs/' },
-    ],
-  },
-];
 
 const stageColors: Record<string, string> = {
   'Negociação': '#F59E0B',
@@ -391,68 +281,9 @@ function KpiCard({ kpi, idx }: { kpi: typeof kpis[0]; idx: number }) {
 
 /* ── CSS string ── */
 const CSS = `
-  .db-overlay {
-    position: fixed; inset: 0; z-index: 100;
-    display: flex; background: #0F1A14;
-    font-family: var(--font-jakarta, 'Plus Jakarta Sans', sans-serif);
-    overflow: hidden;
-  }
-  .db-sidebar {
-    width: 220px; flex-shrink: 0;
-    background: #0B1510;
-    border-right: 1px solid rgba(255,255,255,0.06);
-    display: flex; flex-direction: column;
-    overflow-y: auto; overflow-x: hidden;
-  }
-  .db-sidebar::-webkit-scrollbar { width: 4px; }
-  .db-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
-  .db-logo {
-    padding: 22px 20px 14px;
-    display: flex; align-items: center; gap: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    flex-shrink: 0;
-  }
-  .db-logo-icon {
-    width: 32px; height: 32px; border-radius: 10px;
-    background: linear-gradient(135deg, #10B981, #059669);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 14px; color: #fff;
-  }
-  .db-logo-text { font-size: 15px; font-weight: 700; color: #F9FAFB; }
-  .db-logo-sub { font-size: 10px; color: #6B7280; }
-  .db-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
-  .db-nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 12px; border-radius: 10px;
-    cursor: pointer; transition: background .15s;
-    color: #6B7280; font-size: 13px; font-weight: 500;
-    text-decoration: none;
-  }
-  .db-nav-item:hover { background: rgba(255,255,255,0.05); color: #D1D5DB; }
-  .db-nav-item.active { background: rgba(16,185,129,0.15); color: #10B981; }
-  .db-nav-section { font-size: 10px; font-weight: 600; color: #4B5563; text-transform: uppercase; letter-spacing: .08em; padding: 14px 12px 4px; }
-  .db-main {
-    flex: 1; display: flex; flex-direction: column; overflow: hidden;
-  }
-  .db-topbar {
-    height: 58px; flex-shrink: 0;
-    background: rgba(15,26,20,0.95); backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    display: flex; align-items: center; padding: 0 24px; gap: 16px;
-  }
-  .db-search {
-    flex: 1; max-width: 340px;
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px; padding: 8px 14px;
-    color: #6B7280; font-size: 13px;
-  }
   .db-content {
-    flex: 1; overflow-y: auto; padding: 22px 24px 40px;
     display: flex; flex-direction: column; gap: 20px;
   }
-  .db-content::-webkit-scrollbar { width: 6px; }
-  .db-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
   .db-page-header {
     display: flex; align-items: center; justify-content: space-between;
   }
@@ -524,99 +355,14 @@ const CSS = `
   }
   @keyframes db-pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
   .db-live { animation: db-pulse 2s infinite; }
-  .db-nav-group { position: relative; }
-  .db-nav-flyout {
-    position: fixed;
-    left: 220px;
-    width: 210px;
-    background: #0D1F18;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    padding: 6px;
-    z-index: 300;
-    box-shadow: 0 8px 32px rgba(0,0,0,.6);
-  }
-  .db-nav-flyout-item {
-    display: block;
-    padding: 7px 10px;
-    border-radius: 7px;
-    font-size: 12px;
-    color: #9CA3AF;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background .1s, color .1s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .db-nav-flyout-item:hover { background: rgba(255,255,255,0.07); color: #F9FAFB; }
-  .db-nav-badge {
-    font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
-    background: #10B981; color: #fff; margin-left: 4px; vertical-align: middle;
-  }
   @media (max-width: 1200px) {
     .db-grid-4 { grid-template-columns: repeat(2, 1fr); }
     .db-grid-73, .db-grid-63 { grid-template-columns: 1fr; }
   }
 `;
 
-function NavItemEl({ item, activeNav, setActiveNav }: { item: NavItem; activeNav: string; setActiveNav: (s: string) => void }) {
-  const [flyoutOpen, setFlyoutOpen] = useState(false);
-  const [flyoutTop, setFlyoutTop] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const isActive = activeNav === item.label;
-  const hasChildren = item.children && item.children.length > 0;
-
-  const handleMouseEnter = () => {
-    if (hasChildren && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      setFlyoutTop(rect.top);
-      setFlyoutOpen(true);
-    }
-  };
-  const handleMouseLeave = () => setFlyoutOpen(false);
-
-  return (
-    <div ref={ref} className="db-nav-group" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      {hasChildren ? (
-        <div
-          className={`db-nav-item ${isActive ? 'active' : ''}`}
-          onClick={() => setActiveNav(item.label)}
-          style={{ justifyContent: 'space-between' }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <item.icon size={15} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{item.label}</span>
-          </span>
-          <ChevronRight size={12} style={{ flexShrink: 0, opacity: .5 }} />
-        </div>
-      ) : (
-        <a
-          href={item.href}
-          className={`db-nav-item ${isActive ? 'active' : ''}`}
-          onClick={() => setActiveNav(item.label)}
-        >
-          <item.icon size={15} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{item.label}</span>
-          {item.badge && <span className="db-nav-badge">{item.badge}</span>}
-        </a>
-      )}
-      {flyoutOpen && hasChildren && (
-        <div className="db-nav-flyout" style={{ top: flyoutTop }}>
-          {item.children!.map(child => (
-            <a key={child.href} href={child.href} className="db-nav-flyout-item">
-              {child.label}
-              {child.badge && <span className="db-nav-badge">{child.badge}</span>}
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function DashboardPage() {
-  const [activeNav, setActiveNav] = useState('Dashboard');
   const [tab, setTab] = useState('visao-geral');
   const [mounted, setMounted] = useState(false);
 
@@ -628,65 +374,10 @@ export default function DashboardPage() {
   return (
     <>
       <style>{CSS}</style>
-      <div className="db-overlay">
-        {/* ── Sidebar ── */}
-        <nav className="db-sidebar">
-          <div className="db-logo">
-            <div className="db-logo-icon">D</div>
-            <div>
-              <div className="db-logo-text">DIAX CRM</div>
-              <div className="db-logo-sub">v5 · Pro</div>
-            </div>
-          </div>
+      <div className="db-content">
 
-          <div className="db-nav">
-            {navGroups.map(group => (
-              <div key={group.section}>
-                <div className="db-nav-section">{group.section}</div>
-                {group.items.map(item => (
-                  <NavItemEl key={item.label} item={item} activeNav={activeNav} setActiveNav={setActiveNav} />
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* User block */}
-          <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="db-avatar" style={{ width: 34, height: 34 }}>AQ</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#F9FAFB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Alexandre Q.</div>
-              <div style={{ fontSize: 10, color: '#6B7280' }}>Admin</div>
-            </div>
-            <div className="db-live" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
-          </div>
-        </nav>
-
-        {/* ── Main ── */}
-        <div className="db-main">
-          {/* Topbar */}
-          <div className="db-topbar">
-            <div className="db-search">
-              <Search size={14} />
-              <span>Buscar leads, contatos, negócios…</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, opacity: .5 }}>⌘K</span>
-            </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="db-btn db-btn-primary" style={{ padding: '7px 14px' }}>
-                <Plus size={14} /> Novo Lead
-              </button>
-              <div style={{ position: 'relative', cursor: 'pointer' }}>
-                <Bell size={17} color="#9CA3AF" />
-                <div style={{ position: 'absolute', top: -3, right: -3, width: 7, height: 7, borderRadius: '50%', background: '#EF4444' }} />
-              </div>
-              <HelpCircle size={17} color="#9CA3AF" style={{ cursor: 'pointer' }} />
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="db-content">
-
-            {/* Page header */}
-            <div className="db-page-header">
+        {/* Page header */}
+        <div className="db-page-header">
               <div>
                 <div className="db-page-title">Dashboard Executivo</div>
                 <div className="db-page-sub">Maio 2026 · Atualizado agora há pouco</div>
@@ -1003,8 +694,6 @@ export default function DashboardPage() {
               </Rv>
             </div>
 
-          </div>
-        </div>
       </div>
     </>
   );
