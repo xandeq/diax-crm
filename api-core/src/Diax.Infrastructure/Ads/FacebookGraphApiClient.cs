@@ -1,5 +1,6 @@
 using Diax.Application.Ads.Dtos;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -572,10 +573,10 @@ public class FacebookGraphApiClient
         r.BudgetRemaining,
         r.DailyBudget,
         r.LifetimeBudget,
-        r.StartTime,
-        r.StopTime,
-        r.CreatedTime ?? DateTime.MinValue,
-        r.UpdatedTime ?? DateTime.MinValue);
+        ParseFbDate(r.StartTime),
+        ParseFbDate(r.StopTime),
+        ParseFbDate(r.CreatedTime) ?? DateTime.MinValue,
+        ParseFbDate(r.UpdatedTime) ?? DateTime.MinValue);
 
     private static FacebookAdSetDto MapAdSet(FacebookAdSetResult r) => new(
         r.Id ?? "",
@@ -586,10 +587,10 @@ public class FacebookGraphApiClient
         r.LifetimeBudget,
         r.BillingEvent ?? "",
         r.OptimizationGoal ?? "",
-        r.StartTime,
-        r.EndTime,
-        r.CreatedTime ?? DateTime.MinValue,
-        r.UpdatedTime ?? DateTime.MinValue);
+        ParseFbDate(r.StartTime),
+        ParseFbDate(r.EndTime),
+        ParseFbDate(r.CreatedTime) ?? DateTime.MinValue,
+        ParseFbDate(r.UpdatedTime) ?? DateTime.MinValue);
 
     private static FacebookAdDto MapAd(FacebookAdResult r) => new(
         r.Id ?? "",
@@ -598,8 +599,8 @@ public class FacebookGraphApiClient
         r.Name ?? "",
         r.Status ?? "",
         r.Creative?.Id,
-        r.CreatedTime ?? DateTime.MinValue,
-        r.UpdatedTime ?? DateTime.MinValue);
+        ParseFbDate(r.CreatedTime) ?? DateTime.MinValue,
+        ParseFbDate(r.UpdatedTime) ?? DateTime.MinValue);
 
     private static FacebookInsightDto MapInsight(FacebookInsightResult r) => new(
         r.CampaignId ?? "",
@@ -632,7 +633,38 @@ public class FacebookGraphApiClient
         r.Title,
         r.CallToActionType,
         r.LinkUrl,
-        r.CreatedTime ?? DateTime.MinValue);
+        ParseFbDate(r.CreatedTime) ?? DateTime.MinValue);
+
+    /// <summary>
+    /// Parses Facebook date strings which use ISO 8601 with timezone offset without colon
+    /// e.g. "2025-02-20T09:00:00-0300" instead of "2025-02-20T09:00:00-03:00".
+    /// </summary>
+    private static DateTime? ParseFbDate(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        // Facebook omits the colon in timezone offset (e.g. "-0300" instead of "-03:00").
+        // Normalize by inserting a colon before the last 2 digits of the offset.
+        var normalized = raw;
+        if (raw.Length >= 5)
+        {
+            var tzStart = raw.Length - 5;
+            var tzChar = raw[tzStart];
+            if ((tzChar == '+' || tzChar == '-') && !raw.Contains(':', tzStart))
+                normalized = raw.Insert(raw.Length - 2, ":");
+        }
+
+        if (DateTimeOffset.TryParse(normalized, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out var dto))
+            return dto.UtcDateTime;
+
+        // Fallback: try as-is
+        if (DateTime.TryParse(raw, CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AllowWhiteSpaces, out var dt))
+            return dt;
+
+        return null;
+    }
 }
 
 // ===== RAW RESPONSE MODELS =====
@@ -706,16 +738,16 @@ public class FacebookCampaignResult
     public string? LifetimeBudget { get; set; }
 
     [JsonPropertyName("start_time")]
-    public DateTime? StartTime { get; set; }
+    public string? StartTime { get; set; }
 
     [JsonPropertyName("stop_time")]
-    public DateTime? StopTime { get; set; }
+    public string? StopTime { get; set; }
 
     [JsonPropertyName("created_time")]
-    public DateTime? CreatedTime { get; set; }
+    public string? CreatedTime { get; set; }
 
     [JsonPropertyName("updated_time")]
-    public DateTime? UpdatedTime { get; set; }
+    public string? UpdatedTime { get; set; }
 }
 
 public class FacebookAdSetResult
@@ -745,16 +777,16 @@ public class FacebookAdSetResult
     public string? OptimizationGoal { get; set; }
 
     [JsonPropertyName("start_time")]
-    public DateTime? StartTime { get; set; }
+    public string? StartTime { get; set; }
 
     [JsonPropertyName("end_time")]
-    public DateTime? EndTime { get; set; }
+    public string? EndTime { get; set; }
 
     [JsonPropertyName("created_time")]
-    public DateTime? CreatedTime { get; set; }
+    public string? CreatedTime { get; set; }
 
     [JsonPropertyName("updated_time")]
-    public DateTime? UpdatedTime { get; set; }
+    public string? UpdatedTime { get; set; }
 }
 
 public class FacebookAdResult
@@ -778,10 +810,10 @@ public class FacebookAdResult
     public FacebookCreativeRef? Creative { get; set; }
 
     [JsonPropertyName("created_time")]
-    public DateTime? CreatedTime { get; set; }
+    public string? CreatedTime { get; set; }
 
     [JsonPropertyName("updated_time")]
-    public DateTime? UpdatedTime { get; set; }
+    public string? UpdatedTime { get; set; }
 }
 
 public class FacebookCreativeRef
@@ -889,5 +921,5 @@ public class FacebookCreativeResult
     public string? LinkUrl { get; set; }
 
     [JsonPropertyName("created_time")]
-    public DateTime? CreatedTime { get; set; }
+    public string? CreatedTime { get; set; }
 }
