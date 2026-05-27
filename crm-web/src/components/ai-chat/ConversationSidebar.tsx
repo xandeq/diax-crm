@@ -56,8 +56,8 @@ export function ConversationSidebar({
           ))
         ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-12 px-4 text-center">
-            <MessageSquare className="w-5 h-5 text-zinc-700" />
-            <p className="text-xs text-zinc-700 leading-snug">
+            <MessageSquare className="w-5 h-5 text-zinc-500" />
+            <p className="text-xs text-zinc-400 leading-snug">
               Nenhuma conversa ainda.{' '}
               <button
                 type="button"
@@ -86,7 +86,7 @@ export function ConversationSidebar({
                 <p className="text-xs font-medium truncate leading-tight">
                   {conv.title}
                 </p>
-                <p className="text-[10px] text-zinc-700 mt-0.5 truncate">
+                <p className="text-[10px] text-zinc-500 mt-0.5 truncate">
                   {formatDistanceToNow(
                     new Date(conv.updatedAt ?? conv.createdAt),
                     { addSuffix: true, locale: ptBR },

@@ -53,7 +53,10 @@ export function ChatInput({
   const canSend = text.trim().length > 0 && !isStreaming && !disabled;
 
   return (
-    <div className="flex-shrink-0 border-t border-zinc-100 bg-white/90 backdrop-blur-sm px-4 py-3">
+    <div
+      className="flex-shrink-0 px-4 py-3"
+      style={{ background: '#0B1510', borderTop: '1px solid rgba(255,255,255,0.08)' }}
+    >
       {/* Model selector strip */}
       <div className="flex items-center gap-1 mb-2">
         {MODEL_OPTIONS.map((m) => (
@@ -65,9 +68,14 @@ export function ChatInput({
             className={cn(
               'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors',
               selectedModel === m.id
-                ? 'bg-zinc-900 text-white'
-                : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700',
+                ? 'text-white'
+                : 'cursor-pointer',
             )}
+            style={
+              selectedModel === m.id
+                ? { background: 'rgba(16,185,129,0.25)', color: '#6EE7B7' }
+                : { color: '#9CA3AF', background: 'transparent' }
+            }
           >
             {m.label}
           </button>
@@ -75,7 +83,10 @@ export function ChatInput({
       </div>
 
       {/* Input row */}
-      <div className="flex items-end gap-2 rounded-2xl px-3 py-2 transition-colors" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div
+        className="flex items-end gap-2 rounded-2xl px-3 py-2 transition-colors"
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)' }}
+      >
         <textarea
           ref={textareaRef}
           value={text}
@@ -85,7 +96,7 @@ export function ChatInput({
           placeholder="Mensagem (Enter para enviar)"
           rows={1}
           disabled={disabled}
-          className="flex-1 resize-none bg-transparent text-sm placeholder:text-zinc-500 focus:outline-none min-h-[24px] max-h-[200px] py-0.5 leading-relaxed"
+          className="flex-1 resize-none bg-transparent text-sm focus:outline-none min-h-[24px] max-h-[200px] py-0.5 leading-relaxed"
           style={{ color: '#F9FAFB' }}
         />
 
@@ -94,14 +105,14 @@ export function ChatInput({
           onClick={isStreaming ? onStop : handleSend}
           disabled={!isStreaming && !canSend}
           title={isStreaming ? 'Parar' : 'Enviar'}
-          className={cn(
-            'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all active:scale-[0.96]',
+          className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all active:scale-[0.96]"
+          style={
             isStreaming
-              ? 'bg-zinc-800 hover:bg-zinc-700 text-white cursor-pointer'
+              ? { background: 'rgba(255,255,255,0.12)', color: '#F9FAFB', cursor: 'pointer' }
               : canSend
-                ? 'bg-zinc-900 hover:bg-zinc-700 text-white cursor-pointer'
-                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed',
-          )}
+                ? { background: '#10B981', color: '#fff', cursor: 'pointer' }
+                : { background: 'rgba(255,255,255,0.06)', color: '#4B5563', cursor: 'not-allowed' }
+          }
         >
           {isStreaming ? (
             <Square className="w-3 h-3 fill-current" />
@@ -111,7 +122,7 @@ export function ChatInput({
         </button>
       </div>
 
-      <p className="text-[10px] text-zinc-400 text-center mt-1.5">
+      <p className="text-[10px] text-center mt-1.5" style={{ color: '#6B7280' }}>
         Shift+Enter para nova linha · IA pode cometer erros — revise informações importantes
       </p>
     </div>
