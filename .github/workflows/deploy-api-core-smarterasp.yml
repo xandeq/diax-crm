@@ -84,6 +84,7 @@ jobs:
         env:
           GOOGLE_SHEETS_SA_JSON: ${{ secrets.GOOGLE_SHEETS_SA_JSON }}
           GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
         run: |
           # Use jq for proper JSON escaping (handles quotes, backslashes, special chars)
           jq -n \
@@ -123,6 +124,7 @@ jobs:
             --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
             --arg googleSheetsJson "$GOOGLE_SHEETS_SA_JSON" \
             --arg googleSheetsSpreadsheetId "$GOOGLE_SHEETS_SPREADSHEET_ID" \
+            --arg ga4PropertyId "$GA4_PROPERTY_ID" \
             '{
               "ConnectionStrings": {
                 "DefaultConnection": $connStr
@@ -257,6 +259,10 @@ jobs:
               "GoogleSheets": {
                 "ServiceAccountJson": $googleSheetsJson,
                 "SpreadsheetId": $googleSheetsSpreadsheetId
+              },
+              "GA4": {
+                "PropertyId": $ga4PropertyId,
+                "ServiceAccountJson": $googleSheetsJson
               },
               "Cors": {
                 "AllowedOrigins": [
