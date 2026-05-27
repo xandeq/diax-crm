@@ -650,7 +650,7 @@ public class FacebookGraphApiClient
         {
             var tzStart = raw.Length - 5;
             var tzChar = raw[tzStart];
-            if ((tzChar == '+' || tzChar == '-') && !raw.Contains(':', tzStart))
+            if ((tzChar == '+' || tzChar == '-') && raw.IndexOf(':', tzStart) < 0)
                 normalized = raw.Insert(raw.Length - 2, ":");
         }
 
