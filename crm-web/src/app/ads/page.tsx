@@ -55,10 +55,14 @@ import { toast } from 'sonner';
 const DATE_PRESETS = [
   { label: 'Hoje', value: 'today' },
   { label: 'Ontem', value: 'yesterday' },
-  { label: 'Últimos 7 dias', value: 'last_7d' },
-  { label: 'Últimos 30 dias', value: 'last_30d' },
+  { label: '7 dias', value: 'last_7d' },
+  { label: '30 dias', value: 'last_30d' },
+  { label: '90 dias', value: 'last_90d' },
   { label: 'Este mês', value: 'this_month' },
   { label: 'Mês passado', value: 'last_month' },
+  { label: 'Este ano', value: 'this_year' },
+  { label: 'Ano passado', value: 'last_year' },
+  { label: 'Personalizado', value: 'custom' },
 ];
 
 const CAMPAIGN_OBJECTIVES = [
@@ -259,7 +263,7 @@ function NewCampaignModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="rounded-xl w-full max-w-md" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="rounded-xl w-full max-w-md bg-white shadow-xl border border-slate-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Nova Campanha</h2>
           <button onClick={handleClose} className="text-slate-400 hover:text-slate-600">
@@ -441,7 +445,7 @@ function EditBudgetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="rounded-xl w-full max-w-sm" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="rounded-xl w-full max-w-sm bg-white shadow-xl border border-slate-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Editar Orçamento</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -562,7 +566,7 @@ function EditAdSetBudgetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="rounded-xl w-full max-w-sm" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="rounded-xl w-full max-w-sm bg-white shadow-xl border border-slate-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Editar Orçamento do Conjunto</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -810,6 +814,8 @@ export default function AdsPage() {
   const [notConnected, setNotConnected] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'campaigns' | 'adsets' | 'insights'>('overview');
+  const [customSince, setCustomSince] = useState('2025-01-01');
+  const [customUntil, setCustomUntil] = useState(new Date().toISOString().slice(0, 10));
 
   // Campaign write state
   const [showNewCampaign, setShowNewCampaign] = useState(false);
@@ -869,10 +875,13 @@ export default function AdsPage() {
     }
   }, []);
 
-  const loadInsights = useCallback(async (preset: string) => {
+  const loadInsights = useCallback(async (preset: string, since?: string, until?: string) => {
     setLoadingInsights(true);
     try {
-      const data = await getInsights({ datePreset: preset, level: 'campaign' });
+      const params = preset === 'custom'
+        ? { since, until, level: 'campaign' }
+        : { datePreset: preset, level: 'campaign' };
+      const data = await getInsights(params);
       setInsights(data);
     } catch {
       toast.error('Erro ao carregar insights');
@@ -888,7 +897,7 @@ export default function AdsPage() {
   }, [isAuthenticated, authLoading, router, loadData]);
 
   useEffect(() => {
-    if (activeTab === 'insights' && !notConnected && !loading) {
+    if (activeTab === 'insights' && !notConnected && !loading && datePreset !== 'custom') {
       loadInsights(datePreset);
     }
   }, [activeTab, datePreset, notConnected, loading, loadInsights]);
@@ -1286,6 +1295,37 @@ export default function AdsPage() {
               </button>
             ))}
           </div>
+          {/* Custom date range */}
+          {datePreset === 'custom' && (
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-500 whitespace-nowrap">De:</label>
+                <input
+                  type="date"
+                  value={customSince}
+                  onChange={e => setCustomSince(e.target.value)}
+                  className="px-2.5 py-1.5 text-xs rounded-md border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-500 whitespace-nowrap">Até:</label>
+                <input
+                  type="date"
+                  value={customUntil}
+                  onChange={e => setCustomUntil(e.target.value)}
+                  className="px-2.5 py-1.5 text-xs rounded-md border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={() => loadInsights('custom', customSince, customUntil)}
+                disabled={!customSince || !customUntil || loadingInsights}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {loadingInsights ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                Buscar
+              </button>
+            </div>
+          )}
 
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
             <div className="px-5 py-4 border-b border-slate-50">
