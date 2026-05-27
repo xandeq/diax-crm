@@ -93,7 +93,8 @@ export function Header() {
                   <div className={separatorClass}></div>
                   <Link href="/ads/" className={menuItemClass} role="menuitem">Anúncios (Meta Ads)</Link>
                   <div className={separatorClass}></div>
-                  <Link href="/analytics" className={menuItemClass} role="menuitem">Analytics</Link>
+                  <Link href="/analytics" className={menuItemClass} role="menuitem">Analytics (Email)</Link>
+                  <Link href="/google-analytics" className={menuItemClass} role="menuitem">Google Analytics</Link>
                 </div>
               </div>
 
@@ -229,7 +230,8 @@ export function Header() {
               <Link href="/email-marketing/pro" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Email Marketing PRO</Link>
               <Link href="/campanhas" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Campanhas</Link>
               <Link href="/ads/" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Anúncios (Meta Ads)</Link>
-              <Link href="/analytics" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Analytics</Link>
+              <Link href="/analytics" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Analytics (Email)</Link>
+              <Link href="/google-analytics" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Google Analytics</Link>
             </MobileSection>
 
             <MobileSection label="Finanças">

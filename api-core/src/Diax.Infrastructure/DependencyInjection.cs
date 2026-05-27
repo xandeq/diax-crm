@@ -1,4 +1,5 @@
 using Diax.Application.Ads;
+using Diax.Application.GoogleAnalytics;
 using Diax.Domain.Ads.Repositories;
 using Diax.Domain.Audit;
 using Diax.Domain.Auth;
@@ -413,6 +414,10 @@ public static class DependencyInjection
         services.AddScoped<IFacebookAdAccountRepository, FacebookAdAccountRepository>();
         services.AddHttpClient<FacebookGraphApiClient>();
         services.AddScoped<IFacebookAdsService, FacebookAdsService>();
+
+        // ===== GOOGLE ANALYTICS 4 (DATA API) =====
+        services.AddMemoryCache();
+        services.AddHttpClient<IGoogleAnalyticsService, Diax.Infrastructure.GoogleAnalytics.GoogleAnalyticsService>();
 
         // ===== CONFIGURATION PROVIDERS =====
         services.AddScoped<Diax.Shared.Interfaces.IConfigurationProvider, ExternalServices.ConfigurationProvider>();
