@@ -30,7 +30,6 @@ public class AnthropicProxyController : ControllerBase
 
     private static readonly string[] _headersToForward =
     [
-        "anthropic-version",
         "anthropic-beta",
         "content-type",
     ];
