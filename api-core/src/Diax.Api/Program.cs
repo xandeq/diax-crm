@@ -55,6 +55,12 @@ builder.Services.AddHttpContextAccessor();
 // HttpClient factory (used for external AI providers)
 builder.Services.AddHttpClient();
 
+// HttpClient dedicado para o AnthropicProxy — timeout infinito p/ suportar streams longos
+builder.Services.AddHttpClient("anthropic-proxy", client =>
+{
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
+
 // Data Protection API (for encrypting API keys)
 // Keys are persisted to App_Data/DataProtection-Keys so they survive app restarts and deploys.
 // Without persistence, every restart generates new keys and all DB-encrypted values become undecryptable.
