@@ -1,0 +1,8 @@
+[allowlist]
+description = "Allowlist de padrões intencionais"
+
+# A SERVICE_KEY na página de tutorial do Anthropic Proxy é intencional:
+# é a chave de acesso ao proxy do CRM projetada para ser compartilhada com usuários.
+paths = [
+  '''anthropic-proxy/page\.tsx''',
+]
