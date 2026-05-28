@@ -7,7 +7,7 @@ import {
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
-  Wallet, Zap
+  Wallet, Zap, Cpu
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -74,6 +74,7 @@ const navGroups: NavGroup[] = [
     section: 'IA',
     items: [
       { icon: MessageSquare, label: 'Claude Chat', href: '/ai-chat/', badge: 'NEW' },
+      { icon: Cpu, label: 'Anthropic Proxy', href: '/tools/anthropic-proxy', badge: 'API' },
       { icon: Zap, label: 'Ferramentas IA', children: [
         { label: 'Geração de Imagens', href: '/utilities/image-generation' },
         { label: 'Gerador de Prompts', href: '/utilities/prompt-generator' },
