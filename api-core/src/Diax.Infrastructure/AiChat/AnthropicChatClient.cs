@@ -166,7 +166,7 @@ public class AnthropicChatClient : IAnthropicChatClient
         if (string.IsNullOrWhiteSpace(_apiKey))
             throw new InvalidOperationException("Anthropic API key não configurada no servidor.");
 
-        using var httpRequest = BuildRequest(request, stream: false);
+        using var httpRequest = BuildRequest(request, stream: false, tools: null);
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
@@ -194,11 +194,69 @@ public class AnthropicChatClient : IAnthropicChatClient
         return new AnthropicCompletionResult(textBuilder.ToString(), usage);
     }
 
+    public async Task<AnthropicToolResult> CompleteWithToolsAsync(
+        AnthropicMessageRequest request,
+        IReadOnlyList<AnthropicToolDefinition> tools,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            throw new InvalidOperationException("Anthropic API key não configurada no servidor.");
+
+        using var httpRequest = BuildRequest(request, stream: false, tools: tools);
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning("[AnthropicChat] CompleteWithToolsAsync HTTP {Status}: {Body}", response.StatusCode, errorBody);
+            throw new HttpRequestException($"Anthropic API retornou {(int)response.StatusCode}.");
+        }
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var root = JsonNode.Parse(json) ?? throw new InvalidOperationException("Resposta JSON inválida.");
+
+        var stopReason = root["stop_reason"]?.GetValue<string>();
+        var usage = ParseUsage(root["usage"]);
+
+        if (stopReason == "tool_use")
+        {
+            var contentArr = root["content"]!.AsArray();
+            foreach (var block in contentArr)
+            {
+                if (block?["type"]?.GetValue<string>() == "tool_use")
+                {
+                    var toolUseId = block["id"]!.GetValue<string>();
+                    var toolName = block["name"]!.GetValue<string>();
+                    var toolInput = JsonSerializer.Deserialize<JsonElement>(
+                        block["input"]!.ToJsonString());
+                    return new AnthropicToolResult.ToolUseRequest(toolUseId, toolName, toolInput, usage);
+                }
+            }
+            // Fallthrough: tool_use stop_reason but no tool_use block found — treat as text
+        }
+
+        // end_turn (or unknown stop_reason) — extract all text blocks
+        var textBuilder = new StringBuilder();
+        if (root["content"] is JsonArray arr)
+        {
+            foreach (var block in arr)
+            {
+                if (block?["type"]?.GetValue<string>() == "text")
+                    textBuilder.Append(block["text"]?.GetValue<string>() ?? string.Empty);
+            }
+        }
+
+        return new AnthropicToolResult.TextResponse(textBuilder.ToString(), usage);
+    }
+
     // ===== HELPERS =====
 
-    private HttpRequestMessage BuildRequest(AnthropicMessageRequest req, bool stream)
+    private HttpRequestMessage BuildRequest(
+        AnthropicMessageRequest req,
+        bool stream,
+        IReadOnlyList<AnthropicToolDefinition>? tools = null)
     {
-        var body = BuildRequestBody(req, stream);
+        var body = BuildRequestBody(req, stream, tools);
         var httpReq = new HttpRequestMessage(HttpMethod.Post, "messages")
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
@@ -210,7 +268,10 @@ public class AnthropicChatClient : IAnthropicChatClient
         return httpReq;
     }
 
-    private static string BuildRequestBody(AnthropicMessageRequest req, bool stream)
+    private static string BuildRequestBody(
+        AnthropicMessageRequest req,
+        bool stream,
+        IReadOnlyList<AnthropicToolDefinition>? tools = null)
     {
         var root = new JsonObject
         {
@@ -270,6 +331,22 @@ public class AnthropicChatClient : IAnthropicChatClient
             });
         }
         root["messages"] = messages;
+
+        // Tool definitions — only added when tools are provided (preserves no-tools body exactly)
+        if (tools is { Count: > 0 })
+        {
+            var toolsArray = new JsonArray();
+            foreach (var t in tools)
+            {
+                toolsArray.Add(new JsonObject
+                {
+                    ["name"] = t.Name,
+                    ["description"] = t.Description,
+                    ["input_schema"] = JsonNode.Parse(t.InputSchema.GetRawText())
+                });
+            }
+            root["tools"] = toolsArray;
+        }
 
         return root.ToJsonString();
     }
