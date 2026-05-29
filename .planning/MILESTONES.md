@@ -17,10 +17,20 @@
 
 ---
 
-## v1.1 — Produtividade Pessoal (current)
+## v1.1 — Produtividade Pessoal (superado)
 
-**Status:** 🟡 Em definição (2026-04-03)
+**Status:** ⚠️ Superado (planejado 2026-04-03, nunca executado pelo GSD)
 
-**Goal:** Transformar o CRM de repositório de dados em ferramenta de ação diária — Morning Briefing, Tarefas, Pipeline Kanban visual e Propostas comerciais com PDF.
+**Goal:** Morning Briefing, Tarefas, Pipeline Kanban visual e Propostas comerciais com PDF.
 
-**Fases:** A definir pelo roadmapper.
+**Nota:** Planejado mas execução seguiu por sprints fora do GSD. Itens remanescentes em "Deferido" no PROJECT.md. Numeração de fases continua (Phase 1 = 01-tarefas).
+
+---
+
+## v1.2 — Agentes de IA (current)
+
+**Status:** 🟡 Em definição (2026-05-28)
+
+**Goal:** Três agentes de IA (Comercial, Suporte, Pessoal) operando sobre os dados reais do CRM, executando ações sob confirmação, reaproveitando a infra de IA existente sem quebrar nada. Orquestração compartilhada + UI bonita em /agentes (padrão /impeccable).
+
+**Fases:** A definir pelo roadmapper (continua a numeração a partir da Phase 2).

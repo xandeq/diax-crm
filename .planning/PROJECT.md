@@ -8,6 +8,17 @@ Sistema de controle pessoal e profissional de Alexandre Queiroz — CRM privado 
 
 Centralizar todas as operações de negócio (leads, finanças, comunicação, IA) em um único sistema pessoal, eliminando ferramentas externas pagas.
 
+## Current Milestone: v1.2 Agentes de IA
+
+**Goal:** Transformar o CRM de repositório de dados em parceiro de execução por IA — três agentes (Comercial, Suporte, Pessoal) que conversam usando os DADOS REAIS do CRM e podem executar ações sob confirmação, reaproveitando a infra de IA existente sem quebrar nada.
+
+**Target features:**
+- Agente Comercial — qualifica leads, prioriza pipeline, gera outreach, atualiza status/segmento (parcialmente construído)
+- Agente de Suporte — atende com base no histórico do cliente, sugere respostas, abre/tria tickets
+- Agente Pessoal — resume agenda e finanças, cria compromissos
+- Orquestração compartilhada (AgentOrchestrator + framework de tools/function-calling com confirmação)
+- UI /agentes bonita no crm-web (padrão /impeccable, reaproveitando o chat de ai-chat)
+
 ## Requirements
 
 ### Validated
@@ -32,20 +43,33 @@ Centralizar todas as operações de negócio (leads, finanças, comunicação, I
 
 ### Active
 
-<!-- Milestone v1.1 — Produtividade Pessoal -->
+<!-- Milestone v1.2 — Agentes de IA -->
 
-- [ ] Morning Briefing: tela de boas-vindas com agenda do dia, leads quentes pendentes, tarefas do dia e snapshot financeiro
-- [ ] Módulo de tarefas avulsas com título, prazo, prioridade e status
-- [ ] Pipeline Kanban visual dos leads com drag-and-drop por etapa
-- [ ] Módulo de propostas comerciais com templates, itens de serviço, validade, assinatura e geração por IA
-- [ ] Exportação de proposta como PDF
+- [ ] Agente Comercial: chat sobre o pipeline real de leads, prioriza, gera outreach e atualiza status/segmento sob confirmação
+- [ ] Agente de Suporte: atende com histórico do cliente, sugere respostas e abre/tria tickets
+- [ ] Agente Pessoal: resume agenda e finanças, cria compromissos sob confirmação
+- [ ] Orquestração de agentes (AgentOrchestrator) + framework de tools/function-calling com confirmação do usuário
+- [ ] Persistência/retomada de conversas dos agentes (reuso de AiConversation)
+- [ ] UI /agentes no crm-web — seletor de agente + chat com streaming + ações confirmáveis (padrão /impeccable)
+
+### Deferido (v1.1 — superado por trabalho em sprints)
+
+<!-- Milestone GSD v1.1 "Produtividade Pessoal" foi planejado em 2026-04-03 mas nunca executado pelo GSD.
+     O codebase evoluiu por sprints fora do GSD. Itens abaixo permanecem como backlog; alguns podem já
+     existir parcialmente via sprints (não verificado neste milestone). Reavaliar em milestone futuro. -->
+
+- [ ] Morning Briefing (agenda do dia + leads quentes + tarefas + snapshot financeiro)
+- [ ] Módulo de tarefas avulsas (título, prazo, prioridade, status)
+- [ ] Pipeline Kanban visual com drag-and-drop
+- [ ] Propostas comerciais com templates + geração por IA + export PDF
 
 ### Out of Scope
 
-- Portal do cliente — sistema é single-user, clientes não acessam — v1.1
+- Portal do cliente — sistema é single-user, clientes não acessam
 - Assinatura digital legal — complexidade jurídica, defer v2
 - App mobile nativo — web-first suficiente por ora
-- Integração Google Calendar — bidireccional complexo, defer v2
+- Integração Google Calendar — bidirecional complexo, defer v2
+- Agentes que executam ações sem confirmação do usuário — risco de escrita indevida; toda ação que grava dados exige confirmação explícita
 
 ## Context
 
@@ -70,6 +94,9 @@ Centralizar todas as operações de negócio (leads, finanças, comunicação, I
 | Static export Next.js | Hospedagem simples em shared hosting sem Node.js | ✓ Good |
 | Clean Architecture .NET | Separação de responsabilidades, testabilidade | ✓ Good |
 | Customer = Lead (modelo unificado) | Evita duplicação de entidade, status distingue fase | ✓ Good |
+| Agentes = motor de chat único + prompt/tools/escopo por tipo | Reaproveita IAnthropicChatClient/AiChat; evita 3 stacks separadas | — Pending |
+| Ações de escrita dos agentes exigem confirmação do usuário | Segurança: IA não grava dados sem aprovação explícita | — Pending |
+| v1.2 supera v1.1 no GSD | v1.1 nunca executado pelo GSD; código evoluiu via sprints | — Pending |
 
 ## Evolution
 
@@ -88,4 +115,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-04-03 — GSD planning inicializado, milestone v1.1 definido*
+*Last updated: 2026-05-28 — milestone v1.2 Agentes de IA iniciado (supera v1.1)*
