@@ -10,6 +10,7 @@ using Diax.Application.Logs;
 using Diax.Application.Snippets;
 using Diax.Application.AI;
 using Diax.Application.AiChat;
+using Diax.Application.Agents.Commercial;
 using Diax.Application.AI.EmailOptimization;
 using Diax.Application.AI.LeadPersona;
 using Diax.Application.AI.OutreachAbTest;
@@ -80,6 +81,9 @@ public static class DependencyInjection
         services.AddScoped<IOutreachAbTestService, OutreachAbTestService>();
         services.AddScoped<ISocialMediaBatchService, SocialMediaBatchService>();
         services.AddScoped<ICustomerInsightsService, CustomerInsightsService>();
+
+        // ===== AGENTES DE IA =====
+        services.AddScoped<ICommercialAgentService, CommercialAgentService>();
         services.AddScoped<EmailMarketingService>();
         services.AddScoped<OutreachService>();
         services.AddScoped<ILeadNormalizationService, LeadNormalizationService>();
