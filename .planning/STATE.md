@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Agentes de IA
 status: unknown
-stopped_at: Completed 02-02-PLAN.md — AnthropicChatClient tool-use extension
-last_updated: "2026-05-29T13:44:46.716Z"
+stopped_at: Completed 02-01-PLAN.md (AgentPendingAction + migration)
+last_updated: "2026-05-29T13:52:10.548Z"
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-05-28)
 ## Current Position
 
 Phase: 02 (funda-o-de-agentes) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Plan: 2 of 4
 
 *Updated after each plan completion*
 | Phase 02-funda-o-de-agentes P02-02 | 8m | 2 tasks | 3 files |
+| Phase 02-funda-o-de-agentes P01 | 35 | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Plan: 2 of 4
 - v1.2: UI /agentes toda em Phase 6 (uma fase única) para consistência visual e reuso máximo de componentes
 - v1.2: Fases 3-5 (backends dos agentes) validáveis via API tests e /wave-qa sem necessidade de UI
 - [Phase 02-funda-o-de-agentes]: CompleteWithToolsAsync is opt-in third method on IAnthropicChatClient — tools array gated by if-block, no-tools body provably identical to existing paths
+- [Phase 02-funda-o-de-agentes]: AgentPendingAction stored in DB table (not in-memory/signed token) - survives restarts, auditable, consistent with EF Core patterns
+- [Phase 02-funda-o-de-agentes]: Payload column is nvarchar(max) via HasColumnType fluent config to support arbitrary JSON tool inputs
 
 ### Testing Protocol
 
@@ -91,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-29T13:44:46.708Z
-Stopped at: Completed 02-02-PLAN.md — AnthropicChatClient tool-use extension
+Last session: 2026-05-29T13:52:10.543Z
+Stopped at: Completed 02-01-PLAN.md (AgentPendingAction + migration)
 Resume file: None
