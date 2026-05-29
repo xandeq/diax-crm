@@ -1,4 +1,5 @@
 using Diax.Domain.Ads;
+using Diax.Domain.Agents;
 using Diax.Domain.Audit;
 using Diax.Domain.Calendar;
 using Diax.Domain.Common;
@@ -93,6 +94,9 @@ public class DiaxDbContext : DbContext
     public DbSet<AiConversation> AiConversations => Set<AiConversation>();
     public DbSet<AiChatMessage> AiChatMessages => Set<AiChatMessage>();
     public DbSet<AiChatAttachment> AiChatAttachments => Set<AiChatAttachment>();
+
+    // Agent pending actions (confirmação obrigatória antes de gravar dados)
+    public DbSet<AgentPendingAction> AgentPendingActions => Set<AgentPendingAction>();
 
     // AI & RBAC
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
@@ -192,6 +196,11 @@ public class DiaxDbContext : DbContext
 
         // Aplica todas as configurações de entidades do assembly (IEntityTypeConfiguration)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DiaxDbContext).Assembly);
+
+        // AgentPendingAction: Payload stores arbitrary JSON — must be nvarchar(max), not the default 256.
+        modelBuilder.Entity<AgentPendingAction>()
+            .Property(e => e.Payload)
+            .HasColumnType("nvarchar(max)");
 
         // ===== MULTI-TENANCY CONFIG & FILTERS =====
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

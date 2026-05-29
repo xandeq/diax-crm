@@ -1,3 +1,4 @@
+using Diax.Domain.Agents;
 using Diax.Domain.AiChat;
 using Diax.Shared.Results;
 using Microsoft.EntityFrameworkCore;
@@ -15,12 +16,18 @@ public class AiChatRepository : Repository<AiConversation>, IAiChatRepository
         int page,
         int pageSize,
         bool includeArchived = false,
+        AgentType? agentType = null,
         CancellationToken cancellationToken = default)
     {
         var query = DbSet.Where(c => c.UserId == userId);
 
         if (!includeArchived)
             query = query.Where(c => !c.IsArchived);
+
+        // Only filter by AgentType when explicitly specified.
+        // Null = no filter (existing AiChatService callers pass null and see all conversations).
+        if (agentType.HasValue)
+            query = query.Where(c => c.AgentType == agentType.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

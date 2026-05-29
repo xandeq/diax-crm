@@ -55,7 +55,7 @@ public class AiChatService : IAiChatService
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
-        var paged = await _repository.GetPagedByUserAsync(userId, page, pageSize, includeArchived, cancellationToken);
+        var paged = await _repository.GetPagedByUserAsync(userId, page, pageSize, includeArchived, cancellationToken: cancellationToken);
 
         var items = paged.Items
             .Select(c => new ConversationListItemDto(

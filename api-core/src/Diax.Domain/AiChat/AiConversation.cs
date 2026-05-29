@@ -1,3 +1,4 @@
+using Diax.Domain.Agents;
 using Diax.Domain.Common;
 
 namespace Diax.Domain.AiChat;
@@ -15,6 +16,13 @@ public class AiConversation : AuditableEntity, IUserOwnedEntity
     public string Model { get; private set; } = string.Empty;
     public string? SystemPrompt { get; private set; }
     public bool IsArchived { get; private set; }
+
+    /// <summary>
+    /// Null = regular AiChat conversation (existing behavior unchanged).
+    /// Non-null = agent conversation of the given type.
+    /// Set once via SetAgentType(); existing AiChat conversations remain null.
+    /// </summary>
+    public AgentType? AgentType { get; private set; }
 
     public IReadOnlyCollection<AiChatMessage> Messages => _messages.AsReadOnly();
 
@@ -69,6 +77,16 @@ public class AiConversation : AuditableEntity, IUserOwnedEntity
     public void Unarchive()
     {
         IsArchived = false;
+        SetUpdated();
+    }
+
+    /// <summary>
+    /// Associates this conversation with a specific agent type.
+    /// Should be called once when creating an agent conversation.
+    /// </summary>
+    public void SetAgentType(AgentType agentType)
+    {
+        AgentType = agentType;
         SetUpdated();
     }
 

@@ -1,3 +1,4 @@
+using Diax.Domain.Agents;
 using Diax.Domain.Common;
 using Diax.Shared.Results;
 
@@ -5,12 +6,17 @@ namespace Diax.Domain.AiChat;
 
 public interface IAiChatRepository : IRepository<AiConversation>
 {
-    /// <summary>Lista paginada de conversas (não arquivadas) do usuário, mais recentes primeiro.</summary>
+    /// <summary>
+    /// Lista paginada de conversas do usuário, mais recentes primeiro.
+    /// agentType = null → sem filtro por tipo (comportamento existente: retorna todas).
+    /// agentType = AgentType.X → filtra apenas conversas daquele tipo de agente.
+    /// </summary>
     Task<PagedResult<AiConversation>> GetPagedByUserAsync(
         Guid userId,
         int page,
         int pageSize,
         bool includeArchived = false,
+        AgentType? agentType = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>Carrega conversa com todas as mensagens e anexos eager-loaded.</summary>
