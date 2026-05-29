@@ -68,17 +68,39 @@ Planejado em 2026-04-03, nunca executado pelo GSD. Mantido como backlog; reavali
 
 ## Traceability
 
-Preenchida na criação do roadmap.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (a preencher pelo roadmapper) | — | Pending |
+| ORCH-01 | Phase 2 | Pending |
+| ORCH-02 | Phase 2 | Pending |
+| ORCH-03 | Phase 2 | Pending |
+| ORCH-04 | Phase 2 | Pending |
+| ORCH-05 | Phase 2 | Pending |
+| CMRC-01 | Phase 3 | Pending |
+| CMRC-02 | Phase 3 | Pending |
+| CMRC-03 | Phase 3 | Pending |
+| CMRC-04 | Phase 3 | Pending |
+| CMRC-05 | Phase 3 | Pending |
+| CMRC-06 | Phase 3 | Pending |
+| SUP-01 | Phase 4 | Pending |
+| SUP-02 | Phase 4 | Pending |
+| SUP-03 | Phase 4 | Pending |
+| SUP-04 | Phase 4 | Pending |
+| PERS-01 | Phase 5 | Pending |
+| PERS-02 | Phase 5 | Pending |
+| PERS-03 | Phase 5 | Pending |
+| PERS-04 | Phase 5 | Pending |
+| AGUI-01 | Phase 6 | Pending |
+| AGUI-02 | Phase 6 | Pending |
+| AGUI-03 | Phase 6 | Pending |
+| AGUI-04 | Phase 6 | Pending |
+| AGUI-05 | Phase 6 | Pending |
 
 **Coverage:**
-- v1.2 requirements: 24 total (CMRC-01..03 já construídos, a validar)
-- Mapped to phases: a preencher
-- Unmapped: a preencher
+- v1.2 requirements: 24 total (CMRC-01..03 já construídos, a validar na Phase 3)
+- Mapped to phases: 24/24
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-28 — milestone v1.2 Agentes de IA*
+*Traceability filled: 2026-05-28 — roadmap created*
 *v1.1 (Produtividade Pessoal) deferido — ver MILESTONES.md*
