@@ -67,9 +67,9 @@ Detalhes preservados abaixo para referência histórica.
   4. O histórico de uma conversa de agente é salvo em AiConversation com o tipo de agente associado; `GET /api/v1/agents/{type}/conversations` lista as conversas; retomar uma conversa preserva o contexto anterior
   5. Usuário sem permissão no grupo correto recebe 403; uso de tokens de cada conversa é registrado em AiUsageTracking
 
-**Plans:** 4 plans (2 waves)
+**Plans:** 1/4 plans executed
 - [ ] 02-01-PLAN.md — Persistence foundation: AgentPendingAction entity + repo, AgentType nullable on AiConversation, migrations (Wave 1, ORCH-04/05)
-- [ ] 02-02-PLAN.md — LLM tool-use: CompleteWithToolsAsync on IAnthropicChatClient (non-breaking, Wave 1, ORCH-02)
+- [x] 02-02-PLAN.md — LLM tool-use: CompleteWithToolsAsync on IAnthropicChatClient (non-breaking, Wave 1, ORCH-02)
 - [ ] 02-03-PLAN.md — Orchestrator + tool framework: IAgentTool/IAgentHandler/IAgentOrchestratorService + CommercialAgentHandler (Wave 2, ORCH-01/02/04/05)
 - [ ] 02-04-PLAN.md — Controller endpoints + RBAC + usage logging (Wave 3, ORCH-01/03/04/05)
 
@@ -157,7 +157,7 @@ Detalhes preservados abaixo para referência histórica.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 2. Fundação de Agentes | 0/4 | Not started | — |
+| 2. Fundação de Agentes | 1/4 | In Progress|  |
 | 3. Agente Comercial | 0/? | Not started | — |
 | 4. Agente de Suporte | 0/? | Not started | — |
 | 5. Agente Pessoal | 0/? | Not started | — |

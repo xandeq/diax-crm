@@ -13,7 +13,7 @@
 ### Orquestração & Fundação (ORCH)
 
 - [ ] **ORCH-01**: AgentOrchestrator roteia a conversa para o handler do tipo de agente correto (Comercial/Suporte/Pessoal)
-- [ ] **ORCH-02**: Cada agente compartilha o mesmo motor de chat, variando apenas system prompt, ferramentas e escopo de dados
+- [x] **ORCH-02**: Cada agente compartilha o mesmo motor de chat, variando apenas system prompt, ferramentas e escopo de dados
 - [ ] **ORCH-03**: Acesso aos agentes respeita RBAC/grupos (reuso GroupAiAccess) e o uso é registrado (reuso AiUsageTracking)
 - [ ] **ORCH-04**: Framework de tools (function-calling) reutilizável entre agentes; toda tool que grava dados retorna uma ação pendente que exige confirmação do usuário antes de executar
 - [ ] **ORCH-05**: Conversas dos agentes são persistidas e retomáveis (reuso de AiConversation, com o tipo de agente associado)
@@ -71,7 +71,7 @@ Planejado em 2026-04-03, nunca executado pelo GSD. Mantido como backlog; reavali
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ORCH-01 | Phase 2 | Pending |
-| ORCH-02 | Phase 2 | Pending |
+| ORCH-02 | Phase 2 | Complete |
 | ORCH-03 | Phase 2 | Pending |
 | ORCH-04 | Phase 2 | Pending |
 | ORCH-05 | Phase 2 | Pending |
