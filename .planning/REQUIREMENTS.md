@@ -1,101 +1,84 @@
-# Requirements: DIAX CRM
+# Requirements: DIAX CRM — v1.2 Agentes de IA
 
-**Defined:** 2026-04-03
+**Defined:** 2026-05-28
 **Core Value:** Centralizar todas as operações de negócio em um único sistema pessoal
 
-## v1.1 Requirements — Produtividade Pessoal
+> Princípios do milestone: reaproveitar a infra de IA existente (IAnthropicChatClient, AiChatService,
+> ICustomerRepository, OutreachService, ITicketService, IAppointmentService, FinancialSummaryService,
+> GroupAiAccess, AiUsageTracking) **sem quebrar nada**; **não inventar dados** (toda resposta baseada
+> no que está no CRM); **ações de escrita exigem confirmação** do usuário; UI sempre bonita (/impeccable).
 
-### Morning Briefing
+## v1.2 Requirements
 
-- [ ] **BRIEF-01**: Usuário vê agenda de compromissos de hoje ao acessar o dashboard
-- [ ] **BRIEF-02**: Usuário vê lista de leads Warm/Hot sem contato nos últimos 7 dias
-- [ ] **BRIEF-03**: Usuário vê tarefas do dia (com prazo = hoje ou vencidas)
-- [ ] **BRIEF-04**: Usuário vê snapshot financeiro: saldo total das contas + receitas e despesas do mês corrente
+### Orquestração & Fundação (ORCH)
 
-### Tarefas
+- [ ] **ORCH-01**: AgentOrchestrator roteia a conversa para o handler do tipo de agente correto (Comercial/Suporte/Pessoal)
+- [ ] **ORCH-02**: Cada agente compartilha o mesmo motor de chat, variando apenas system prompt, ferramentas e escopo de dados
+- [ ] **ORCH-03**: Acesso aos agentes respeita RBAC/grupos (reuso GroupAiAccess) e o uso é registrado (reuso AiUsageTracking)
+- [ ] **ORCH-04**: Framework de tools (function-calling) reutilizável entre agentes; toda tool que grava dados retorna uma ação pendente que exige confirmação do usuário antes de executar
+- [ ] **ORCH-05**: Conversas dos agentes são persistidas e retomáveis (reuso de AiConversation, com o tipo de agente associado)
 
-- [ ] **TASK-01**: Usuário pode criar tarefa com título, descrição opcional, prazo e prioridade (baixa/média/alta)
-- [ ] **TASK-02**: Usuário pode marcar tarefa como concluída
-- [ ] **TASK-03**: Usuário pode editar e excluir tarefas
-- [ ] **TASK-04**: Usuário pode filtrar tarefas por status (pendente/concluída) e prioridade
-- [ ] **TASK-05**: Usuário vê contagem de tarefas pendentes do dia no header ou dashboard
+### Agente Comercial (CMRC)
 
-### Pipeline Kanban
+- [ ] **CMRC-01**: Usuário conversa com o Agente Comercial e recebe respostas baseadas no pipeline real de leads *(construído — stateless)*
+- [ ] **CMRC-02**: Usuário anexa leads ao contexto por IDs ou por segmento (Hot/Warm/Cold) *(construído)*
+- [ ] **CMRC-03**: Agente prioriza leads por probabilidade de conversão (score/segmento/estágio) *(construído)*
+- [ ] **CMRC-04**: Agente gera rascunho de abordagem (e-mail/WhatsApp) personalizado por lead, reaproveitando padrões de OutreachService/AiOutreachAbTest
+- [ ] **CMRC-05**: Agente pode atualizar status e/ou segmento de um lead via ação confirmada
+- [ ] **CMRC-06**: Conversa do Agente Comercial é persistida e retomável (depende de ORCH-05)
 
-- [ ] **PIPE-01**: Usuário vê leads organizados em colunas por etapa: Lead → Contatado → Qualificado → Negociando → Cliente
-- [ ] **PIPE-02**: Usuário pode mover um lead entre etapas arrastando o card (drag-and-drop)
-- [ ] **PIPE-03**: Card do lead mostra nome, empresa, segmento (Hot/Warm/Cold) e última interação
-- [ ] **PIPE-04**: Usuário pode clicar num card para abrir o detalhe do lead
-- [ ] **PIPE-05**: Usuário vê contagem de leads por coluna
+### Agente de Suporte (SUP)
 
-### Propostas
+- [ ] **SUP-01**: Usuário conversa com o Agente de Suporte com contexto do histórico do cliente (timeline/contatos)
+- [ ] **SUP-02**: Agente sugere resposta de atendimento baseada no histórico e na dúvida apresentada
+- [ ] **SUP-03**: Agente resume sob demanda o histórico de relacionamento de um cliente
+- [ ] **SUP-04**: Agente pode abrir/triar um ticket (reuso de ITicketService) via ação confirmada
 
-- [ ] **PROP-01**: Usuário pode criar e gerenciar templates de proposta com nome, itens de serviço padrão e valores
-- [ ] **PROP-02**: Usuário pode criar uma proposta a partir de um template, preenchendo os dados do cliente
-- [ ] **PROP-03**: Proposta contém: dados do cliente (nome, empresa, contato), itens de serviço (descrição, valor unitário, quantidade), total calculado, data de validade e linha de assinatura
-- [ ] **PROP-04**: Usuário pode editar os itens de uma proposta antes de finalizar
-- [ ] **PROP-05**: Usuário pode gerar o texto/conteúdo da proposta com IA baseado no cliente e serviços selecionados
-- [ ] **PROP-06**: Usuário pode exportar a proposta como PDF
-- [ ] **PROP-07**: Usuário pode vincular uma proposta a um cliente/lead existente
+### Agente Pessoal (PERS)
 
-## v2 Requirements
+- [ ] **PERS-01**: Usuário conversa com o Agente Pessoal sobre sua agenda e finanças
+- [ ] **PERS-02**: Agente resume a agenda do dia/semana (reuso de IAppointmentService)
+- [ ] **PERS-03**: Agente entrega snapshot financeiro sob demanda (reuso de FinancialSummaryService)
+- [ ] **PERS-04**: Agente cria um compromisso na agenda via ação confirmada (reuso de AppointmentService)
 
-### Propostas — Avançado
+### UI dos Agentes (AGUI)
 
-- **PROP-08**: Rastreamento de abertura do PDF (link único por proposta)
-- **PROP-09**: Assinatura digital com valor legal
-- **PROP-10**: Envio da proposta diretamente por e-mail a partir do CRM
+- [ ] **AGUI-01**: Página `/agentes` no crm-web com seletor de agente (Comercial/Suporte/Pessoal)
+- [ ] **AGUI-02**: Componente de chat reaproveitado de `ai-chat`, com streaming da resposta
+- [ ] **AGUI-03**: UI exibe o contexto anexado (leads/cliente) e o custo/uso de tokens da conversa
+- [ ] **AGUI-04**: Ações sugeridas pelo agente aparecem como botões de confirmação (ex.: "Atualizar status", "Abrir ticket", "Criar compromisso")
+- [ ] **AGUI-05**: UI consistente com o design system (shadcn/Tailwind), responsiva e com microinterações (Framer Motion) — padrão /impeccable
 
-### Agenda — Avançado
+## Deferido (v1.1 — Produtividade Pessoal, superado)
 
-- **AGENDA-01**: Sincronização bidirecional com Google Calendar
-- **AGENDA-02**: Lembretes por e-mail ou WhatsApp antes do compromisso
+Planejado em 2026-04-03, nunca executado pelo GSD. Mantido como backlog; reavaliar em milestone futuro.
 
-### Tarefas — Avançado
-
-- **TASK-06**: Tarefas vinculadas a cliente/lead
-- **TASK-07**: Tarefas recorrentes (ex: todo mês revisar finanças)
+### Morning Briefing / Tarefas / Pipeline / Propostas
+- **BRIEF-01..04**, **TASK-01..05**, **PIPE-01..05**, **PROP-01..07** — ver histórico abaixo
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Portal do cliente | Sistema single-user — clientes não têm acesso |
-| App mobile nativo | Web-first é suficiente, defer v2+ |
-| Integração Google Calendar | Complexidade bidirecional, defer v2 |
-| Assinatura digital legal | Requer integração jurídica, defer v2 |
+| Agente executar ação de escrita sem confirmação | Risco de gravar dados indevidos; toda escrita exige aprovação |
+| Agente que inventa/estima dados ausentes | Princípio "sem inventar" — agente só usa o que está no CRM |
+| Novo provider LLM próprio para agentes | Reaproveita IAnthropicChatClient existente |
+| Portal do cliente / acesso externo aos agentes | Sistema single-user |
+| Voz/áudio nos agentes | Fora do escopo deste milestone |
 
 ## Traceability
 
+Preenchida na criação do roadmap.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TASK-01 | Phase 1 | Pending |
-| TASK-02 | Phase 1 | Pending |
-| TASK-03 | Phase 1 | Pending |
-| TASK-04 | Phase 1 | Pending |
-| TASK-05 | Phase 1 | Pending |
-| PIPE-01 | Phase 2 | Pending |
-| PIPE-02 | Phase 2 | Pending |
-| PIPE-03 | Phase 2 | Pending |
-| PIPE-04 | Phase 2 | Pending |
-| PIPE-05 | Phase 2 | Pending |
-| PROP-01 | Phase 3 | Pending |
-| PROP-02 | Phase 3 | Pending |
-| PROP-03 | Phase 3 | Pending |
-| PROP-04 | Phase 3 | Pending |
-| PROP-07 | Phase 3 | Pending |
-| PROP-05 | Phase 4 | Pending |
-| PROP-06 | Phase 4 | Pending |
-| BRIEF-01 | Phase 5 | Pending |
-| BRIEF-02 | Phase 5 | Pending |
-| BRIEF-03 | Phase 5 | Pending |
-| BRIEF-04 | Phase 5 | Pending |
+| (a preencher pelo roadmapper) | — | Pending |
 
 **Coverage:**
-- v1.1 requirements: 21 total
-- Mapped to phases: 21 ✓
-- Unmapped: 0 ✓
+- v1.2 requirements: 24 total (CMRC-01..03 já construídos, a validar)
+- Mapped to phases: a preencher
+- Unmapped: a preencher
 
 ---
-*Requirements defined: 2026-04-03*
-*Last updated: 2026-04-03 — traceability preenchida, roadmap v1.1 finalizado*
+*Requirements defined: 2026-05-28 — milestone v1.2 Agentes de IA*
+*v1.1 (Produtividade Pessoal) deferido — ver MILESTONES.md*
