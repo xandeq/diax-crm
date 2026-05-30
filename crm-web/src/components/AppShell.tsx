@@ -99,6 +99,7 @@ const navGroups: NavGroup[] = [
         { label: 'HTML → Links', href: '/tools/html-url-extractor' },
       ]},
       { icon: Briefcase, label: 'Inventário de Apps', href: '/tools/apps-inventory' },
+      { icon: Activity, label: 'Status das Apps', href: '/tools/status' },
     ],
   },
   {
