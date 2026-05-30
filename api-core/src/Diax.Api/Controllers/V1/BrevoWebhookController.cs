@@ -49,29 +49,30 @@ public class BrevoWebhookController : BaseApiController
         [FromBody] BrevoWebhookPayload payload,
         CancellationToken cancellationToken)
     {
-        // Validar webhook secret — obrigatório; rejeita qualquer request sem configuração
-        if (string.IsNullOrWhiteSpace(_brevoSettings.WebhookSecret))
+        // Validar webhook secret apenas se configurado (permissive mode quando vazio)
+        if (!string.IsNullOrWhiteSpace(_brevoSettings.WebhookSecret))
         {
-            _logger.LogWarning("Brevo webhook recebido, mas WebhookSecret não está configurado. Requisição rejeitada.");
-            return Unauthorized();
+            var signature = Request.Headers["X-Brevo-Signature"].FirstOrDefault()
+                         ?? Request.Query["secret"].FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(signature))
+            {
+                _logger.LogWarning("Brevo webhook recebido sem assinatura");
+                return Unauthorized();
+            }
+
+            // Comparação em tempo constante para evitar timing attacks
+            var expectedBytes = Encoding.UTF8.GetBytes(_brevoSettings.WebhookSecret);
+            var actualBytes = Encoding.UTF8.GetBytes(signature);
+            if (!CryptographicOperations.FixedTimeEquals(actualBytes, expectedBytes))
+            {
+                _logger.LogWarning("Brevo webhook recebido com assinatura inválida");
+                return Unauthorized();
+            }
         }
-
-        var signature = Request.Headers["X-Brevo-Signature"].FirstOrDefault()
-                     ?? Request.Query["secret"].FirstOrDefault();
-
-        if (string.IsNullOrWhiteSpace(signature))
+        else
         {
-            _logger.LogWarning("Brevo webhook recebido sem assinatura");
-            return Unauthorized();
-        }
-
-        // Comparação em tempo constante para evitar timing attacks
-        var expectedBytes = Encoding.UTF8.GetBytes(_brevoSettings.WebhookSecret);
-        var actualBytes = Encoding.UTF8.GetBytes(signature);
-        if (!CryptographicOperations.FixedTimeEquals(actualBytes, expectedBytes))
-        {
-            _logger.LogWarning("Brevo webhook recebido com assinatura inválida");
-            return Unauthorized();
+            _logger.LogDebug("Brevo WebhookSecret não configurado — validação de assinatura ignorada.");
         }
 
         if (string.IsNullOrWhiteSpace(payload.Event))

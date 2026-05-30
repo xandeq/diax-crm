@@ -37,11 +37,17 @@ public class SendGridEmailSender : IEmailSender
 
         try
         {
+            // Pass campaign ID as custom_arg so webhook events can look up the campaign
+            var customArgs = message.Tags?.Count > 0
+                ? new Dictionary<string, string> { ["campaign_id"] = message.Tags[0] }
+                : null;
+
             var payload = new SendGridRequest
             {
                 Personalizations = [new SendGridPersonalization
                 {
-                    To = [new SendGridAddress { Email = message.RecipientEmail, Name = message.RecipientName }]
+                    To = [new SendGridAddress { Email = message.RecipientEmail, Name = message.RecipientName }],
+                    CustomArgs = customArgs
                 }],
                 From = new SendGridAddress
                 {
@@ -119,6 +125,9 @@ public class SendGridEmailSender : IEmailSender
     private sealed class SendGridPersonalization
     {
         public List<SendGridAddress> To { get; set; } = [];
+
+        [JsonPropertyName("custom_args")]
+        public Dictionary<string, string>? CustomArgs { get; set; }
     }
 
     private sealed class SendGridAddress

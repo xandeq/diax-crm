@@ -172,6 +172,19 @@ public class MailjetWebhookController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(evt.Email)) return;
 
+        // Increment unsubscribe count for campaign if resolvable via queue item
+        var items = await _emailQueueRepository.FindAsync(q => q.RecipientEmail == evt.Email, ct);
+        var queueItem = items.OrderByDescending(i => i.SentAt).FirstOrDefault();
+        if (queueItem?.CampaignId != null)
+        {
+            var campaign = await _emailCampaignRepository.GetByIdAsync(queueItem.CampaignId.Value, ct);
+            if (campaign != null)
+            {
+                campaign.IncrementUnsubscribe();
+                await _emailCampaignRepository.UpdateAsync(campaign, ct);
+            }
+        }
+
         var customer = await _customerRepository.GetByEmailAsync(evt.Email, ct);
         if (customer != null && !customer.EmailOptOut)
         {
