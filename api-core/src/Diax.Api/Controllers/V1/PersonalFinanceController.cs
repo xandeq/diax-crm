@@ -844,47 +844,47 @@ public class PersonalFinanceController : BaseApiController
     }
 
     public record PersonalControlIncomeRequest(
-        [property: Range(2000, 2100)] int Year,
-        [property: Range(1, 12)] int Month,
-        [property: Required, StringLength(200, MinimumLength = 1)] string Name,
-        [property: Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
-        [property: Range(1, 31)] int DayOfMonth,
+        [Range(2000, 2100)] int Year,
+        [Range(1, 12)] int Month,
+        [Required, StringLength(200, MinimumLength = 1)] string Name,
+        [Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
+        [Range(1, 31)] int DayOfMonth,
         bool IsRecurring = true,
         bool IsPaid = true,
         DateTime? PaymentDate = null,
-        [property: StringLength(2000)] string? Details = null);
+        [StringLength(2000)] string? Details = null);
 
     public record PersonalControlExpenseRequest(
-        [property: Range(2000, 2100)] int Year,
-        [property: Range(1, 12)] int Month,
-        [property: Required, StringLength(200, MinimumLength = 1)] string Name,
-        [property: Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
-        [property: Required, StringLength(50, MinimumLength = 1)] string PaymentType,
-        [property: Range(1, 31)] int DueDay,
+        [Range(2000, 2100)] int Year,
+        [Range(1, 12)] int Month,
+        [Required, StringLength(200, MinimumLength = 1)] string Name,
+        [Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
+        [Required, StringLength(50, MinimumLength = 1)] string PaymentType,
+        [Range(1, 31)] int DueDay,
         bool IsPaid = false,
         DateTime? PaymentDate = null,
-        [property: StringLength(2000)] string? Details = null,
+        [StringLength(2000)] string? Details = null,
         string? CreditCardId = null,
         bool HasVariableAmount = false);
 
     public record PersonalControlSubscriptionRequest(
-        [property: Range(2000, 2100)] int Year,
-        [property: Range(1, 12)] int Month,
-        [property: Required, StringLength(200, MinimumLength = 1)] string Name,
-        [property: Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
-        [property: Required, StringLength(50, MinimumLength = 1)] string BillingFrequency,
-        [property: Required, StringLength(50, MinimumLength = 1)] string PaymentType,
+        [Range(2000, 2100)] int Year,
+        [Range(1, 12)] int Month,
+        [Required, StringLength(200, MinimumLength = 1)] string Name,
+        [Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
+        [Required, StringLength(50, MinimumLength = 1)] string BillingFrequency,
+        [Required, StringLength(50, MinimumLength = 1)] string PaymentType,
         bool IsPaid = false,
         DateTime? PaymentDate = null,
-        [property: StringLength(2000)] string? Details = null,
+        [StringLength(2000)] string? Details = null,
         string? CreditCardId = null,
         bool HasVariableAmount = false);
 
     public record TogglePersonalControlStatusRequest(bool IsPaid, DateTime? PaymentDate = null);
 
     public record TogglePersonalControlSubscriptionStatusRequest(
-        [property: Range(2000, 2100)] int Year,
-        [property: Range(1, 12)] int Month,
+        [Range(2000, 2100)] int Year,
+        [Range(1, 12)] int Month,
         bool IsPaid,
         DateTime? PaymentDate = null);
 }
