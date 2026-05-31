@@ -45,12 +45,35 @@ public class MailjetWebhookController : BaseApiController
         _logger = logger;
     }
 
+    // Mailjet health check: GET ping to verify endpoint is alive
+    [HttpGet("")]
+    [AllowAnonymous]
+    public IActionResult Ping() => Ok();
+
     [HttpPost("")]
     [AllowAnonymous]
     public async Task<IActionResult> HandleWebhook(
-        [FromBody] List<MailjetWebhookEvent> events,
         CancellationToken cancellationToken)
     {
+        // Read body manually so we can handle empty/missing body gracefully
+        // (Mailjet pings with POST + no body; [FromBody] would reject it)
+        List<MailjetWebhookEvent>? events = null;
+        try
+        {
+            if (Request.ContentLength > 0 || Request.Headers.ContainsKey("Transfer-Encoding"))
+            {
+                using var reader = new System.IO.StreamReader(Request.Body);
+                var body = await reader.ReadToEndAsync(cancellationToken);
+                if (!string.IsNullOrWhiteSpace(body))
+                    events = System.Text.Json.JsonSerializer.Deserialize<List<MailjetWebhookEvent>>(body);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Mailjet webhook: body parse error — {Message}", ex.Message);
+            return Ok(); // Return 200 even on parse error so Mailjet doesn't mark as dead
+        }
+
         if (!string.IsNullOrWhiteSpace(_settings.WebhookSecret))
         {
             var token = Request.Headers["X-Mailjet-Token"].FirstOrDefault();
