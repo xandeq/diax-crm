@@ -647,6 +647,126 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.ToTable("facebook_ad_accounts");
                 });
 
+            modelBuilder.Entity("Diax.Domain.ErrorLogs.ErrorLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AppName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("app_name");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("environment");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("ExceptionType")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("exception_type");
+
+                    b.Property<string>("StackTrace")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("stack_trace");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("source");
+
+                    b.Property<int?>("LineNumber")
+                        .HasColumnType("int")
+                        .HasColumnName("line_number");
+
+                    b.Property<string>("RequestMethod")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("request_method");
+
+                    b.Property<string>("RequestPath")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("request_path");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("AdditionalData")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("additional_data");
+
+                    b.Property<string>("Fingerprint")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<int>("OccurrenceCount")
+                        .HasColumnType("int")
+                        .HasColumnName("occurrence_count");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_resolved");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("resolution_note");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppName", "Level", "IsResolved", "OccurredAt")
+                        .HasDatabaseName("IX_error_logs_app_level_resolved_date");
+
+                    b.HasIndex("Fingerprint", "AppName", "IsResolved")
+                        .HasDatabaseName("IX_error_logs_fingerprint")
+                        .HasFilter("[fingerprint] IS NOT NULL");
+
+                    b.HasIndex("OccurredAt", "AppName", "Level")
+                        .HasDatabaseName("IX_error_logs_occurred_at_app");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("IX_error_logs_occurred_at_retention");
+
+                    b.ToTable("error_logs");
+                });
+
             modelBuilder.Entity("Diax.Domain.Agents.AgentPendingAction", b =>
                 {
                     b.Property<Guid>("Id")

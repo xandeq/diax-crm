@@ -1,4 +1,5 @@
 using Diax.Application.Audit;
+using Diax.Application.ErrorLogs;
 using Diax.Application.Auth;
 using Diax.Application.Customers;
 using Diax.Application.Finance;
@@ -47,6 +48,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
 
         services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IErrorLogService, ErrorLogService>();
 
         // Registra os serviços de aplicação
         services.AddScoped<IUserManagementService, UserManagementService>();
