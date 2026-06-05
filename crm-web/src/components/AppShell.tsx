@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Activity, BarChart2, Bell, Bot, Briefcase, Calendar,
+  Activity, BarChart2, Bell, Bot, Briefcase, Bug, Calendar,
   ChevronRight, CreditCard, DollarSign, FileText, Globe,
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, MessageSquare, Package, Plus, Search,
@@ -113,6 +113,7 @@ const navGroups: NavGroup[] = [
         { label: 'Novo Post', href: '/admin/blog/new' },
       ]},
       { icon: Activity, label: 'Logs do Sistema', href: '/logs/' },
+      { icon: Bug, label: 'Central de Erros', href: '/monitoring', badge: 'NEW' },
     ],
   },
 ];
