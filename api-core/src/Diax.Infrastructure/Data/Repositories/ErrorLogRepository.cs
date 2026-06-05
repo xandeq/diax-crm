@@ -15,6 +15,9 @@ public class ErrorLogRepository : IErrorLogRepository
     public async Task<ErrorLog?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await _db.ErrorLogs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
 
+    public async Task<ErrorLog?> GetByIdTrackedAsync(Guid id, CancellationToken ct = default)
+        => await _db.ErrorLogs.FirstOrDefaultAsync(x => x.Id == id, ct);
+
     public async Task<ErrorLog?> GetOpenByFingerprintAsync(string fingerprint, string appName, CancellationToken ct = default)
         => await _db.ErrorLogs
             .Where(x => x.Fingerprint == fingerprint && x.AppName == appName && !x.IsResolved)
@@ -49,13 +52,21 @@ public class ErrorLogRepository : IErrorLogRepository
                 (x.Source != null && x.Source.Contains(s)));
         }
 
-        // Cursor-based: Id > cursor (cursor = last seen Id as string)
-        if (!string.IsNullOrWhiteSpace(filter.Cursor) && Guid.TryParse(filter.Cursor, out var cursorId))
-            query = query.Where(x => x.Id != cursorId); // simplificado: offset by CreatedAt
+        // Keyset pagination real: (OccurredAt DESC, Id DESC)
+        // Cursor codifica o último item da página anterior
+        var decoded = ErrorLogFilter.DecodeCursor(filter.Cursor);
+        if (decoded.HasValue)
+        {
+            var (cursorDate, cursorId) = decoded.Value;
+            query = query.Where(x =>
+                x.OccurredAt < cursorDate ||
+                (x.OccurredAt == cursorDate && x.Id.CompareTo(cursorId) < 0));
+        }
 
         var total = await query.CountAsync(ct);
         var items = await query
             .OrderByDescending(x => x.OccurredAt)
+            .ThenByDescending(x => x.Id)
             .Take(Math.Min(filter.Limit, 100))
             .ToListAsync(ct);
 
@@ -78,6 +89,20 @@ public class ErrorLogRepository : IErrorLogRepository
             .ToListAsync(ct);
 
         return new ErrorLogStats(totalToday, criticalToday, unresolvedTotal, byApp);
+    }
+
+    public async Task<bool> IncrementOccurrenceAtomicAsync(
+        string fingerprint, string appName, DateTime occurredAt, CancellationToken ct = default)
+    {
+        // UPDATE atômico: sem read-modify-write, sem race condition
+        // ExecuteUpdateAsync emite UPDATE direto no banco sem carregar entidade
+        var affected = await _db.ErrorLogs
+            .Where(x => x.Fingerprint == fingerprint && x.AppName == appName && !x.IsResolved)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.OccurrenceCount, x => x.OccurrenceCount + 1)
+                .SetProperty(x => x.LastSeenAt, occurredAt),
+                ct);
+        return affected > 0;
     }
 
     public async Task<int> DeleteOlderThanAsync(DateTime cutoff, CancellationToken ct = default)

@@ -56,6 +56,8 @@ public class ErrorLogPagedResponse
 {
     public IReadOnlyList<ErrorLogResponse> Items { get; set; } = [];
     public int TotalCount { get; set; }
+    /// <summary>Cursor para a próxima página. Null = não há mais páginas.</summary>
+    public string? NextCursor { get; set; }
 }
 
 public class ErrorLogStatsResponse

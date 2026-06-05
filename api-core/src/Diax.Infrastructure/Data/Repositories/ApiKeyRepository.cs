@@ -28,4 +28,12 @@ public class ApiKeyRepository : Repository<ApiKey>, IApiKeyRepository
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task RecordUsageAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        await DbSet
+            .Where(x => x.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastUsedAt, now), cancellationToken);
+    }
 }

@@ -18,7 +18,10 @@ public interface IApiKeyRepository : IRepository<ApiKey>
     /// <summary>
     /// Obtém todas as API Keys ativas (não expiradas e habilitadas).
     /// </summary>
-    /// <param name="cancellationToken">Token de cancelamento</param>
-    /// <returns>Lista de API Keys ativas</returns>
     Task<IEnumerable<ApiKey>> GetActiveKeysAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atualiza LastUsedAt atomicamente sem carregar a entidade (ExecuteUpdateAsync).
+    /// </summary>
+    Task RecordUsageAsync(Guid id, CancellationToken cancellationToken = default);
 }
