@@ -3,12 +3,41 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, Menu, X } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Logo } from './Logo';
 
 const menuItemClass = "block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50";
-const dropdownClass = "absolute left-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50";
 const separatorClass = "border-t border-slate-100 my-1";
+
+function NavDropdown({ label, align = 'left', children }: { label: string; align?: 'left' | 'right'; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+
+  const handleLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpen(false), 200);
+  };
+
+  return (
+    <div className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      <button type="button" className="hover:text-slate-900" aria-haspopup="menu" aria-expanded={open}>
+        {label}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg z-50`}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface MobileSectionProps {
   label: string;
@@ -63,114 +92,84 @@ export function Header() {
           {isAuthenticated && (
             <>
               {/* ── Core Business: CRM ── */}
-              <div className="relative group">
-                <button type="button" className="hover:text-slate-900" aria-haspopup="menu" aria-expanded="false">
-                  CRM
-                </button>
-                <div role="menu" className={dropdownClass}>
-                  <Link href="/customers/" className={menuItemClass} role="menuitem">Clientes</Link>
-                  <Link href="/leads/" className={menuItemClass} role="menuitem">Leads</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/leads/import" className={menuItemClass} role="menuitem">Importar Leads</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/helpdesk" className={menuItemClass} role="menuitem">Helpdesk</Link>
-                </div>
-              </div>
+              <NavDropdown label="CRM">
+                <Link href="/customers/" className={menuItemClass} role="menuitem">Clientes</Link>
+                <Link href="/leads/" className={menuItemClass} role="menuitem">Leads</Link>
+                <div className={separatorClass}></div>
+                <Link href="/leads/import" className={menuItemClass} role="menuitem">Importar Leads</Link>
+                <div className={separatorClass}></div>
+                <Link href="/helpdesk" className={menuItemClass} role="menuitem">Helpdesk</Link>
+              </NavDropdown>
 
               {/* ── Core Business: Marketing ── */}
-              <div className="relative group">
-                <button type="button" className="hover:text-slate-900" aria-haspopup="menu" aria-expanded="false">
-                  Marketing
-                </button>
-                <div role="menu" className={dropdownClass}>
-                  <Link href="/outreach" className={menuItemClass} role="menuitem">Outreach</Link>
-                  <Link href="/email-marketing" className={menuItemClass} role="menuitem">Email Marketing</Link>
-                  <Link href="/email-marketing/pro" className={menuItemClass} role="menuitem">
-                    Email Marketing PRO
-                    <span className="ml-1.5 rounded bg-blue-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
-                  </Link>
-                  <Link href="/campanhas" className={menuItemClass} role="menuitem">Campanhas</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/ads/" className={menuItemClass} role="menuitem">Anúncios (Meta Ads)</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/analytics" className={menuItemClass} role="menuitem">Analytics (Email)</Link>
-                  <Link href="/google-analytics" className={menuItemClass} role="menuitem">Google Analytics</Link>
-                </div>
-              </div>
+              <NavDropdown label="Marketing">
+                <Link href="/outreach" className={menuItemClass} role="menuitem">Outreach</Link>
+                <Link href="/email-marketing" className={menuItemClass} role="menuitem">Email Marketing</Link>
+                <Link href="/email-marketing/pro" className={menuItemClass} role="menuitem">
+                  Email Marketing PRO
+                  <span className="ml-1.5 rounded bg-blue-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
+                </Link>
+                <Link href="/campanhas" className={menuItemClass} role="menuitem">Campanhas</Link>
+                <div className={separatorClass}></div>
+                <Link href="/ads/" className={menuItemClass} role="menuitem">Anúncios (Meta Ads)</Link>
+                <div className={separatorClass}></div>
+                <Link href="/analytics" className={menuItemClass} role="menuitem">Analytics (Email)</Link>
+                <Link href="/google-analytics" className={menuItemClass} role="menuitem">Google Analytics</Link>
+              </NavDropdown>
 
               {/* ── Finanças ── */}
-              <div className="relative group">
-                <button type="button" className="hover:text-slate-900" aria-haspopup="menu" aria-expanded="false">
-                  Finanças
-                </button>
-                <div role="menu" className={dropdownClass}>
-                  <Link href="/finance/morning-briefing" className={menuItemClass} role="menuitem">Morning Briefing</Link>
-                  <Link href="/finance" className={menuItemClass} role="menuitem">Dashboard Financeiro</Link>
-                  <Link href="/finance/personal-control" className={menuItemClass} role="menuitem">Planilha Financeira</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/finance/transactions" className={menuItemClass} role="menuitem">Transações</Link>
-                  <Link href="/finance/planner" className={menuItemClass} role="menuitem">Planejador Financeiro</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/finance/tax-documents" className={menuItemClass} role="menuitem">Imposto de Renda</Link>
-                </div>
-              </div>
+              <NavDropdown label="Finanças">
+                <Link href="/finance/morning-briefing" className={menuItemClass} role="menuitem">Morning Briefing</Link>
+                <Link href="/finance" className={menuItemClass} role="menuitem">Dashboard Financeiro</Link>
+                <Link href="/finance/personal-control" className={menuItemClass} role="menuitem">Planilha Financeira</Link>
+                <div className={separatorClass}></div>
+                <Link href="/finance/transactions" className={menuItemClass} role="menuitem">Transações</Link>
+                <Link href="/finance/planner" className={menuItemClass} role="menuitem">Planejador Financeiro</Link>
+                <div className={separatorClass}></div>
+                <Link href="/finance/tax-documents" className={menuItemClass} role="menuitem">Imposto de Renda</Link>
+              </NavDropdown>
 
               {/* ── AI Tools: IA ── */}
-              <div className="relative group">
-                <button type="button" className="hover:text-slate-900" aria-haspopup="menu" aria-expanded="false">
-                  IA
-                </button>
-                <div role="menu" className={dropdownClass}>
-                  <Link href="/ai-chat/" className={menuItemClass} role="menuitem">
-                    Claude Chat
-                    <span className="ml-1.5 rounded bg-emerald-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
-                  </Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/utilities/image-generation" className={menuItemClass} role="menuitem">Geração de Imagens</Link>
-                  <Link href="/utilities/prompt-generator" className={menuItemClass} role="menuitem">Gerador de Prompts</Link>
-                  <Link href="/utilities/humanize-text" className={menuItemClass} role="menuitem">Humanizar Texto</Link>
-                  <Link href="/utilities/email-subject-optimizer" className={menuItemClass} role="menuitem">Otimizador de Email</Link>
-                  <Link href="/utilities/lead-persona-generator" className={menuItemClass} role="menuitem">Gerador de Personas</Link>
-                  <Link href="/utilities/outreach-ab-test" className={menuItemClass} role="menuitem">Teste A/B Outreach</Link>
-                  <Link href="/utilities/social-batch-generator" className={menuItemClass} role="menuitem">Batch Social Media</Link>
-                  <Link href="/utilities/customer-insights" className={menuItemClass} role="menuitem">Insights de Clientes</Link>
-                </div>
-              </div>
+              <NavDropdown label="IA">
+                <Link href="/ai-chat/" className={menuItemClass} role="menuitem">
+                  Claude Chat
+                  <span className="ml-1.5 rounded bg-emerald-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
+                </Link>
+                <div className={separatorClass}></div>
+                <Link href="/utilities/image-generation" className={menuItemClass} role="menuitem">Geração de Imagens</Link>
+                <Link href="/utilities/prompt-generator" className={menuItemClass} role="menuitem">Gerador de Prompts</Link>
+                <Link href="/utilities/humanize-text" className={menuItemClass} role="menuitem">Humanizar Texto</Link>
+                <Link href="/utilities/email-subject-optimizer" className={menuItemClass} role="menuitem">Otimizador de Email</Link>
+                <Link href="/utilities/lead-persona-generator" className={menuItemClass} role="menuitem">Gerador de Personas</Link>
+                <Link href="/utilities/outreach-ab-test" className={menuItemClass} role="menuitem">Teste A/B Outreach</Link>
+                <Link href="/utilities/social-batch-generator" className={menuItemClass} role="menuitem">Batch Social Media</Link>
+                <Link href="/utilities/customer-insights" className={menuItemClass} role="menuitem">Insights de Clientes</Link>
+              </NavDropdown>
 
               {/* ── Personal System: Pessoal ── */}
-              <div className="relative group">
-                <button type="button" className="hover:text-slate-900" aria-haspopup="menu" aria-expanded="false">
-                  Pessoal
-                </button>
-                <div role="menu" className={dropdownClass}>
-                  <Link href="/agenda" className={menuItemClass} role="menuitem">Agenda</Link>
-                  <Link href="/tasks" className={menuItemClass} role="menuitem">Tarefas</Link>
-                  <Link href="/household/checklists" className={menuItemClass} role="menuitem">Listas e Compras</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/utilities/snippets" className={menuItemClass} role="menuitem">Snippets</Link>
-                  <Link href="/tools/html-extractor" className={menuItemClass} role="menuitem">Extrator HTML → Texto</Link>
-                  <Link href="/tools/html-url-extractor" className={menuItemClass} role="menuitem">Extrator HTML → Links</Link>
-                  <div className={separatorClass}></div>
-                  <Link href="/tools/apps-inventory" className={menuItemClass} role="menuitem">Inventário de Apps</Link>
-                </div>
-              </div>
+              <NavDropdown label="Pessoal">
+                <Link href="/agenda" className={menuItemClass} role="menuitem">Agenda</Link>
+                <Link href="/tasks" className={menuItemClass} role="menuitem">Tarefas</Link>
+                <Link href="/household/checklists" className={menuItemClass} role="menuitem">Listas e Compras</Link>
+                <div className={separatorClass}></div>
+                <Link href="/utilities/snippets" className={menuItemClass} role="menuitem">Snippets</Link>
+                <Link href="/tools/html-extractor" className={menuItemClass} role="menuitem">Extrator HTML → Texto</Link>
+                <Link href="/tools/html-url-extractor" className={menuItemClass} role="menuitem">Extrator HTML → Links</Link>
+                <div className={separatorClass}></div>
+                <Link href="/tools/apps-inventory" className={menuItemClass} role="menuitem">Inventário de Apps</Link>
+              </NavDropdown>
 
               {/* ── Admin (admin-only) ── */}
               {isAdmin && (
-                <div className="relative group">
-                  <button type="button" className="hover:text-slate-900 font-medium" aria-haspopup="menu" aria-expanded="false">
-                    Admin
-                  </button>
-                  <div role="menu" className="absolute right-0 top-full min-w-[220px] rounded-md border border-slate-200 bg-white shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition z-50">
-                    <Link href="/users/" className={menuItemClass} role="menuitem">Usuários</Link>
-                    <Link href="/admin/groups" className={menuItemClass} role="menuitem">Grupos & Permissões</Link>
-                    <div className={separatorClass}></div>
-                    <Link href="/admin/ai" className={menuItemClass} role="menuitem">Provedores IA</Link>
-                    <Link href="/admin/blog" className={menuItemClass} role="menuitem">Blog</Link>
-                    <div className={separatorClass}></div>
-                    <Link href="/logs/" className={menuItemClass} role="menuitem">Logs do Sistema</Link>
-                  </div>
-                </div>
+                <NavDropdown label="Admin" align="right">
+                  <Link href="/users/" className={menuItemClass} role="menuitem">Usuários</Link>
+                  <Link href="/admin/groups" className={menuItemClass} role="menuitem">Grupos & Permissões</Link>
+                  <div className={separatorClass}></div>
+                  <Link href="/admin/ai" className={menuItemClass} role="menuitem">Provedores IA</Link>
+                  <Link href="/admin/blog" className={menuItemClass} role="menuitem">Blog</Link>
+                  <div className={separatorClass}></div>
+                  <Link href="/logs/" className={menuItemClass} role="menuitem">Logs do Sistema</Link>
+                </NavDropdown>
               )}
 
               {/* ── User / Logout ── */}
