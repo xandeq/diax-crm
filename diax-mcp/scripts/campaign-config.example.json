@@ -1,0 +1,28 @@
+{
+  "_comment": "Renomeie para campaign-config.json e preencha os IDs reais. NÃO commit campaign-config.json.",
+  "api_url": "https://api.seudominio.com.br",
+  "admin_email": "admin@seudominio.com.br",
+  "admin_password": "SUA_SENHA_AQUI",
+  "scheduled_at": "2099-01-01T14:00:00Z",
+  "buckets": [
+    {
+      "name": "Campanha Exemplo — Segmento A",
+      "subject": "Assunto do email aqui",
+      "body": "Olá,\n\nConteúdo do email.\n\nPrimeiro parágrafo.\n\nSegundo parágrafo.\n\nAbraço,\nSeu Nome",
+      "leads": [
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+        "00000000-0000-0000-0000-000000000003"
+      ]
+    },
+    {
+      "name": "Campanha Exemplo — Segmento B",
+      "subject": "Outro assunto aqui",
+      "body": "Olá,\n\nConteúdo diferente.\n\nAbraço,\nSeu Nome",
+      "leads": [
+        "00000000-0000-0000-0000-000000000004",
+        "00000000-0000-0000-0000-000000000005"
+      ]
+    }
+  ]
+}
