@@ -524,25 +524,25 @@ function InvoiceBucketRow({
   const unmatchedTemplates = invoice.linkedSubscriptions.filter((ls) => !matchedTemplateIds.has(ls.templateId));
 
   return (
-    <div className={cn('rounded-md border text-xs', invoice._pending ? 'bg-amber-50 border-amber-300' : invoice.isPaid ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200')}>
-      <div className="flex items-center gap-2 px-2 py-1">
-        {invoice._pending && <span className="text-amber-800 font-semibold">⚠ PENDENTE —</span>}
-        <CreditCardIcon className="h-3 w-3 text-blue-500 shrink-0" />
-        <span className={cn('font-medium flex-1', invoice.isPaid ? 'line-through text-slate-400' : 'text-slate-700')}>
+    <div className={cn('rounded-lg border text-xs shadow-sm', invoice._pending ? 'bg-amber-50 border-amber-400' : invoice.isPaid ? 'bg-slate-100 border-slate-300' : 'bg-blue-50 border-blue-300')}>
+      <div className="flex items-center gap-2 px-3 py-1.5">
+        {invoice._pending && <span className="text-amber-900 font-bold">⚠ PENDENTE —</span>}
+        <CreditCardIcon className="h-3 w-3 text-blue-600 shrink-0" />
+        <span className={cn('font-semibold flex-1', invoice.isPaid ? 'line-through text-slate-500' : 'text-slate-900')}>
           Fatura {invoice.creditCardGroupName}
         </span>
-        <span className="text-slate-500 tabular-nums">dia {dueDay}</span>
-        <span className={cn('font-semibold tabular-nums', invoice.isPaid ? 'text-slate-400 line-through' : invoice._pending ? 'text-amber-800' : 'text-blue-700')}>
+        <span className="text-slate-600 tabular-nums font-medium">dia {dueDay}</span>
+        <span className={cn('font-bold tabular-nums', invoice.isPaid ? 'text-slate-500 line-through' : invoice._pending ? 'text-amber-900' : 'text-blue-800')}>
           {formatCurrency(displayAmount)}
         </span>
         {invoice.statementAmount == null && invoice.totalTransactionsAmount > 0 && (
-          <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">estimado</span>
+          <span className="rounded-sm bg-amber-200 px-1.5 py-0.5 text-[9px] font-semibold text-amber-900">estimado</span>
         )}
-        {invoice.isPaid && <span className="rounded bg-emerald-100 px-1 text-[9px] text-emerald-700">pago</span>}
+        {invoice.isPaid && <span className="rounded-sm bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white">pago</span>}
         {canExpand && (
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="ml-1 text-slate-400 hover:text-slate-600"
+            className="ml-1 text-slate-500 hover:text-slate-900"
             aria-label={expanded ? 'Recolher' : 'Expandir'}
           >
             {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
@@ -551,34 +551,34 @@ function InvoiceBucketRow({
       </div>
 
       {expanded && canExpand && (
-        <div className="border-t border-blue-100 px-3 py-1.5 flex flex-col gap-1">
+        <div className="border-t border-blue-200 bg-white/70 px-3 py-2 flex flex-col gap-1.5">
           {hasRealTxs ? (
             <>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mb-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 mb-0.5">
                 Transações reais ({invoice.transactions.length})
               </span>
               {invoice.transactions.map((tx) => {
                 const matched = matchSub(tx.description, invoice.linkedSubscriptions);
                 return (
                   <div key={tx.transactionId} className="flex items-center gap-1.5 text-[11px]">
-                    <span className="flex-1 text-slate-700">{tx.description}</span>
+                    <span className="flex-1 text-slate-800 font-medium">{tx.description}</span>
                     {matched && (
-                      <span className="rounded bg-emerald-100 px-1 text-[9px] text-emerald-700">✓ conciliado</span>
+                      <span className="rounded-sm bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white">✓ conciliado</span>
                     )}
-                    <span className="tabular-nums font-medium text-slate-700">{formatCurrency(tx.amount)}</span>
+                    <span className="tabular-nums font-semibold text-slate-900">{formatCurrency(tx.amount)}</span>
                   </div>
                 );
               })}
               {unmatchedTemplates.length > 0 && (
                 <>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 mt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 mt-1">
                     Esperado mas não encontrado:
                   </span>
                   {unmatchedTemplates.map((ls) => (
-                    <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-amber-700">
+                    <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-amber-900 font-medium">
                       <span className="flex-1">{ls.description}</span>
-                      {ls.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px]">variável</span>}
-                      <span className="tabular-nums font-medium">{formatCurrency(ls.amount)}</span>
+                      {ls.hasVariableAmount && <span className="rounded-sm bg-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-900">variável</span>}
+                      <span className="tabular-nums font-semibold">{formatCurrency(ls.amount)}</span>
                     </div>
                   ))}
                 </>
@@ -586,14 +586,14 @@ function InvoiceBucketRow({
             </>
           ) : (
             <>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-400 mb-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 mb-0.5">
                 Recorrências previstas (sem PDF):
               </span>
               {invoice.linkedSubscriptions.map((ls) => (
-                <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                <div key={ls.templateId} className="flex items-center gap-1.5 text-[11px] text-slate-800 font-medium">
                   <span className="flex-1">{ls.description}</span>
-                  {ls.hasVariableAmount && <span className="rounded bg-amber-100 px-1 text-[9px] text-amber-700">variável</span>}
-                  <span className="tabular-nums font-medium">{formatCurrency(ls.amount)}</span>
+                  {ls.hasVariableAmount && <span className="rounded-sm bg-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-900">variável</span>}
+                  <span className="tabular-nums font-semibold text-slate-900">{formatCurrency(ls.amount)}</span>
                 </div>
               ))}
             </>
@@ -714,35 +714,35 @@ function SalaryPlannerSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           {buckets.map(({ day, nextDay, incomes, expensesAtVista, debitSubs, invoicesDue, totalIncome, totalCashOut, pendingTotal, periodBalance, runningBalance, investSuggestion }) => (
-            <div key={day} className={cn('rounded-2xl border p-4', runningBalance >= 0 ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100')}>
+            <div key={day} className={cn('rounded-2xl border-2 p-4 shadow-sm', runningBalance >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200')}>
               {/* Header */}
-              <div className="flex flex-wrap items-center gap-4 mb-3">
-                <span className="text-sm font-semibold text-slate-700 w-24 shrink-0">
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <span className={cn('text-sm font-bold w-24 shrink-0', runningBalance >= 0 ? 'text-emerald-900' : 'text-rose-900')}>
                   Dia {day}{nextDay < 32 ? `–${nextDay - 1}` : '+'}
                 </span>
                 {incomes.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">Entradas:</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Entradas:</span>
                     {incomes.map((item) => (
-                      <span key={item.id} className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                      <span key={item.id} className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
                         {item.name} {formatCurrency(item.amount)}
                       </span>
                     ))}
                   </div>
                 )}
-                <div className="ml-auto flex items-center gap-4 text-xs">
-                  <span className="text-slate-500">Receitas <span className="text-emerald-600 font-semibold">{formatCurrency(totalIncome)}</span></span>
-                  <span className="text-slate-500">Saídas <span className="text-rose-500 font-semibold">{formatCurrency(totalCashOut)}</span></span>
-                  <span className={cn('font-bold tabular-nums text-xs', periodBalance >= 0 ? 'text-emerald-600' : 'text-rose-500')}>
+                <div className="ml-auto flex items-center gap-3 text-xs">
+                  <span className="text-slate-700 font-medium">Receitas <span className="text-emerald-700 font-bold">{formatCurrency(totalIncome)}</span></span>
+                  <span className="text-slate-700 font-medium">Saídas <span className="text-rose-700 font-bold">{formatCurrency(totalCashOut)}</span></span>
+                  <span className={cn('font-bold tabular-nums text-xs', periodBalance >= 0 ? 'text-emerald-800' : 'text-rose-700')}>
                     Período: {periodBalance >= 0 ? '+' : ''}{formatCurrency(periodBalance)}
                   </span>
-                  <span className={cn('font-bold tabular-nums text-sm border-l pl-3', runningBalance >= 0 ? 'text-emerald-700' : 'text-rose-600')}>
+                  <span className={cn('font-extrabold tabular-nums text-sm border-l-2 pl-3', runningBalance >= 0 ? 'text-emerald-800 border-emerald-300' : 'text-rose-800 border-rose-300')}>
                     Acum: {runningBalance >= 0 ? '+' : ''}{formatCurrency(runningBalance)}
                   </span>
                   {investSuggestion > 0 && (
-                    <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-1 text-sky-700">
+                    <span className="flex items-center gap-1 rounded-lg bg-sky-100 border border-sky-300 px-2 py-1 text-sky-800 font-semibold">
                       <TrendingUp className="h-3 w-3" />Investir 20%: <strong>{formatCurrency(investSuggestion)}</strong>
                     </span>
                   )}
@@ -751,17 +751,17 @@ function SalaryPlannerSection({
 
               {/* Layer 1 — Debit subscriptions + direct expenses */}
               {(debitSubs.length > 0 || expensesAtVista.length > 0) && (
-                <div className="flex flex-col gap-1 mt-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-500">Saídas diretas:</span>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700">Saídas diretas:</span>
                   {debitSubs.map((item) => (
-                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border flex items-center gap-1', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
-                      {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
-                      <span className="ml-1 inline-flex items-center gap-0.5 rounded bg-emerald-100 px-1 text-[10px] text-emerald-700"><Banknote className="h-2.5 w-2.5" />PIX</span>
+                    <span key={item.id} className={cn('rounded-md px-2.5 py-1 text-xs border flex items-center gap-1.5 shadow-sm', item._pending ? 'bg-amber-200 border-amber-500 text-amber-950 font-bold' : 'bg-white border-slate-300 text-slate-900 font-medium')}>
+                      {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-bold ml-auto">{formatCurrency(item.amount)}</span>
+                      <span className="inline-flex items-center gap-0.5 rounded-sm bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white"><Banknote className="h-2.5 w-2.5" />PIX</span>
                     </span>
                   ))}
                   {expensesAtVista.map((item) => (
-                    <span key={item.id} className={cn('rounded-md px-2 py-0.5 text-xs border', item._pending ? 'bg-amber-100 border-amber-300 text-amber-900 font-semibold' : 'bg-rose-50 border-rose-100 text-slate-600')}>
-                      {item._pending && '⚠ PENDENTE — '}{item.name} <span className="font-medium">{formatCurrency(item.amount)}</span>
+                    <span key={item.id} className={cn('rounded-md px-2.5 py-1 text-xs border flex items-center justify-between shadow-sm', item._pending ? 'bg-amber-200 border-amber-500 text-amber-950 font-bold' : 'bg-white border-slate-300 text-slate-900 font-medium')}>
+                      <span>{item._pending && '⚠ PENDENTE — '}{item.name}</span><span className="font-bold">{formatCurrency(item.amount)}</span>
                     </span>
                   ))}
                 </div>
@@ -769,8 +769,8 @@ function SalaryPlannerSection({
 
               {/* Layer 2 — Invoice payments due this month */}
               {invoicesDue.length > 0 && (
-                <div className="flex flex-col gap-1 mt-2 pt-2 border-t border-slate-200/50">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-500">Faturas (vencimento):</span>
+                <div className="flex flex-col gap-1.5 mt-3 pt-2.5 border-t-2 border-slate-300/60">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Faturas (vencimento):</span>
                   {invoicesDue.map((inv) => (
                     <InvoiceBucketRow key={inv.invoiceId} invoice={inv} />
                   ))}
@@ -778,8 +778,8 @@ function SalaryPlannerSection({
               )}
 
               {pendingTotal > 0 && (
-                <span className="mt-1.5 block text-[11px] text-amber-700">
-                  Total não coberto: <strong>{formatCurrency(pendingTotal)}</strong> — será pago vencido ou com o próximo salário.
+                <span className="mt-2 block text-[11px] text-amber-900 font-bold bg-amber-100 border border-amber-400 rounded px-2 py-1">
+                  ⚠ Total não coberto: {formatCurrency(pendingTotal)} — será pago vencido ou com o próximo salário.
                 </span>
               )}
             </div>
