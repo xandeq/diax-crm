@@ -1472,6 +1472,32 @@ function Page() {
               </TableBody>
             </Table>
           </div>
+          {monthView?.expenses.length ? (() => {
+            const paidTotal = monthView.expenses.filter(e => e.isPaid).reduce((s, e) => s + e.amount, 0);
+            const pendingTotal = monthView.expenses.filter(e => !e.isPaid).reduce((s, e) => s + e.amount, 0);
+            const paidCount = monthView.expenses.filter(e => e.isPaid).length;
+            const pendingCount = monthView.expenses.filter(e => !e.isPaid).length;
+            return (
+              <div className="mt-3 flex flex-wrap gap-3 border-t pt-3">
+                <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">Pago</p>
+                    <p className="text-lg font-bold text-emerald-700 tabular-nums leading-tight">{formatCurrency(paidTotal)}</p>
+                    <p className="text-[11px] text-emerald-600">{paidCount} {paidCount === 1 ? 'item' : 'itens'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5">
+                  <Calendar className="h-5 w-5 text-rose-500 shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-rose-600">Pendente</p>
+                    <p className="text-lg font-bold text-rose-600 tabular-nums leading-tight">{formatCurrency(pendingTotal)}</p>
+                    <p className="text-[11px] text-rose-500">{pendingCount} {pendingCount === 1 ? 'item' : 'itens'}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })() : null}
         </SectionShell>
       </div>
 
