@@ -635,8 +635,10 @@ function InvoiceBucketRow({
 
 function SalaryPlannerSection({
   monthView,
+  startingBalance,
 }: {
   monthView: PersonalControlMonthView;
+  startingBalance: number;
 }) {
   type IncomeItem = (typeof monthView.incomes)[number];
   type ExpenseItem = (typeof monthView.expenses)[number] & { _pending?: boolean };
@@ -688,26 +690,25 @@ function SalaryPlannerSection({
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
     const totalIncome = inc.amount;
-    const prevRunning = acc.length > 0 ? acc[acc.length - 1].runningBalance : 0;
+    // Bucket 0 opens with the real checking-account balance; later buckets carry the running balance forward.
+    const prevRunning = acc.length > 0 ? acc[acc.length - 1].runningBalance : startingBalance;
     let available = prevRunning + totalIncome;
 
-    // Cash walk: debit subs first (bucket 0 only), then expenses by dueDay, then invoices by dueDate
-    const debitSubs: SubItem[] = debitSubsRaw.map((s) => {
-      if (available - s.amount < 0) return { ...s, _pending: true };
-      available -= s.amount;
-      return { ...s, _pending: false };
-    });
-    const expensesAtVista: ExpenseItem[] = expensesAtVistaRaw.map((e) => {
-      if (available - e.amount < 0) return { ...e, _pending: true };
-      available -= e.amount;
-      return { ...e, _pending: false };
-    });
+    // Cash walk: an item always reduces available cash; a PAID item is never flagged "não coberto"
+    // (the money already left the account), only unpaid items can fall short of available cash.
+    const settle = (isPaid: boolean, amount: number): boolean => {
+      const pending = !isPaid && available - amount < 0;
+      available -= amount;
+      return pending;
+    };
+
+    // debit subs first (bucket 0 only), then expenses by dueDay, then invoices by dueDate
+    const debitSubs: SubItem[] = debitSubsRaw.map((s) => ({ ...s, _pending: settle(s.isPaid, s.amount) }));
+    const expensesAtVista: ExpenseItem[] = expensesAtVistaRaw.map((e) => ({ ...e, _pending: settle(e.isPaid, e.amount) }));
     const invoicesDue: InvoiceItem[] = invoicesDueRaw.map((inv) => {
       const amount = inv.statementAmount ?? inv.totalTransactionsAmount;
       if (amount <= 0) return { ...inv, _pending: false };
-      if (available - amount < 0) return { ...inv, _pending: true };
-      available -= amount;
-      return { ...inv, _pending: false };
+      return { ...inv, _pending: settle(inv.isPaid, amount) };
     });
 
     const totalCashOut =
@@ -731,6 +732,43 @@ function SalaryPlannerSection({
     });
     return acc;
   }, []);
+
+  // Remanejamento — para cada período que fecha negativo ou tem conta não coberta,
+  // sugere adiar as despesas NÃO pagas (débito/PIX) para o próximo salário até cobrir o buraco.
+  // Apenas sugere; nada é alterado no dado.
+  const remanejamentos = buckets.flatMap((b, i) => {
+    const gap = Math.max(b.pendingTotal, b.runningBalance < 0 ? -b.runningBalance : 0);
+    if (gap <= 0) return [] as { day: number; title: string; message: string }[];
+
+    const movable = [
+      ...b.expensesAtVista.filter((e) => !e.isPaid).map((e) => ({ name: e.name, amount: e.amount })),
+      ...b.debitSubs.filter((s) => !s.isPaid).map((s) => ({ name: s.name, amount: s.amount })),
+    ].sort((x, y) => y.amount - x.amount);
+
+    const picked: { name: string; amount: number }[] = [];
+    let covered = 0;
+    for (const m of movable) {
+      if (covered >= gap) break;
+      picked.push(m);
+      covered += m.amount;
+    }
+
+    const next = buckets[i + 1];
+    if (picked.length > 0 && next) {
+      return [{
+        day: b.day,
+        title: `Dia ${b.day}: faltam ${formatCurrency(gap)}`,
+        message: `Adie ${picked.map((p) => `${p.name} (${formatCurrency(p.amount)})`).join(', ')} para o salário de dia ${next.day} — cobre ${formatCurrency(covered)} e fecha o período no positivo.`,
+      }];
+    }
+    return [{
+      day: b.day,
+      title: `Dia ${b.day}: faltam ${formatCurrency(gap)}`,
+      message: picked.length === 0
+        ? 'Nenhuma conta não-paga deste período pode ser remanejada. Antecipe uma entrada ou use a reserva.'
+        : `Sem próximo salário no mês para realocar. Antecipe uma entrada de ${formatCurrency(gap)} ou priorize as despesas essenciais.`,
+    }];
+  });
 
   return (
     <Card className="shadow-sm">
@@ -792,15 +830,17 @@ function SalaryPlannerSection({
                       borderRadius: '0.375rem',
                       padding: '0.375rem 0.625rem',
                       fontSize: '0.75rem',
-                      border: item._pending ? '1px solid rgba(251,191,36,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                      background: item._pending ? 'rgba(217,119,6,0.2)' : 'rgba(255,255,255,0.06)',
-                      color: item._pending ? '#FCD34D' : '#E2E8F0',
-                      fontWeight: item._pending ? 700 : 500,
+                      border: item.isPaid ? '1px solid rgba(255,255,255,0.08)' : item._pending ? '1px solid rgba(251,191,36,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                      background: item.isPaid ? 'rgba(255,255,255,0.03)' : item._pending ? 'rgba(217,119,6,0.2)' : 'rgba(255,255,255,0.06)',
+                      color: item.isPaid ? '#6B7280' : item._pending ? '#FCD34D' : '#E2E8F0',
+                      fontWeight: item._pending && !item.isPaid ? 700 : 500,
                       display: 'flex', alignItems: 'center', gap: '0.375rem',
                     }}>
-                      {item._pending && '⚠ PENDENTE — '}{item.name}
-                      <strong style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(item.amount)}</strong>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.125rem', borderRadius: '0.25rem', background: 'rgba(16,185,129,0.25)', padding: '0.125rem 0.375rem', fontSize: '0.625rem', fontWeight: 700, color: '#6EE7B7' }}><Banknote style={{ width: '0.625rem', height: '0.625rem' }} />PIX</span>
+                      <span style={{ textDecoration: item.isPaid ? 'line-through' : 'none' }}>{!item.isPaid && item._pending && '⚠ PENDENTE — '}{item.name}</span>
+                      <strong style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', textDecoration: item.isPaid ? 'line-through' : 'none' }}>{formatCurrency(item.amount)}</strong>
+                      {item.isPaid
+                        ? <span style={{ borderRadius: '0.25rem', background: 'rgba(16,185,129,0.25)', padding: '0.125rem 0.375rem', fontSize: '0.625rem', fontWeight: 700, color: '#6EE7B7' }}>pago</span>
+                        : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.125rem', borderRadius: '0.25rem', background: 'rgba(16,185,129,0.25)', padding: '0.125rem 0.375rem', fontSize: '0.625rem', fontWeight: 700, color: '#6EE7B7' }}><Banknote style={{ width: '0.625rem', height: '0.625rem' }} />PIX</span>}
                     </span>
                   ))}
                   {expensesAtVista.map((item) => (
@@ -808,14 +848,15 @@ function SalaryPlannerSection({
                       borderRadius: '0.375rem',
                       padding: '0.375rem 0.625rem',
                       fontSize: '0.75rem',
-                      border: item._pending ? '1px solid rgba(251,191,36,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                      background: item._pending ? 'rgba(217,119,6,0.2)' : 'rgba(255,255,255,0.06)',
-                      color: item._pending ? '#FCD34D' : '#E2E8F0',
-                      fontWeight: item._pending ? 700 : 500,
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      border: item.isPaid ? '1px solid rgba(255,255,255,0.08)' : item._pending ? '1px solid rgba(251,191,36,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                      background: item.isPaid ? 'rgba(255,255,255,0.03)' : item._pending ? 'rgba(217,119,6,0.2)' : 'rgba(255,255,255,0.06)',
+                      color: item.isPaid ? '#6B7280' : item._pending ? '#FCD34D' : '#E2E8F0',
+                      fontWeight: item._pending && !item.isPaid ? 700 : 500,
+                      display: 'flex', alignItems: 'center', gap: '0.375rem',
                     }}>
-                      <span>{item._pending && '⚠ PENDENTE — '}{item.name}</span>
-                      <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(item.amount)}</strong>
+                      <span style={{ textDecoration: item.isPaid ? 'line-through' : 'none' }}>{!item.isPaid && item._pending && '⚠ PENDENTE — '}{item.name}</span>
+                      <strong style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', textDecoration: item.isPaid ? 'line-through' : 'none' }}>{formatCurrency(item.amount)}</strong>
+                      {item.isPaid && <span style={{ borderRadius: '0.25rem', background: 'rgba(16,185,129,0.25)', padding: '0.125rem 0.375rem', fontSize: '0.625rem', fontWeight: 700, color: '#6EE7B7' }}>pago</span>}
                     </span>
                   ))}
                 </div>
@@ -839,6 +880,20 @@ function SalaryPlannerSection({
             </div>
           ))}
         </div>
+
+        {remanejamentos.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#FCD34D' }}>
+              Sugestões de remanejamento
+            </span>
+            {remanejamentos.map((r) => (
+              <div key={r.day} style={{ borderRadius: '0.5rem', border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(217,119,6,0.12)', padding: '0.625rem 0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FCD34D', marginBottom: '0.125rem' }}>{r.title}</div>
+                <div style={{ fontSize: '0.6875rem', color: '#FDE68A', fontWeight: 500, lineHeight: 1.4 }}>{r.message}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
       </CardContent>
     </Card>
@@ -1403,7 +1458,7 @@ function Page() {
       </div>
 
       {monthView && (
-        <SalaryPlannerSection monthView={monthView} />
+        <SalaryPlannerSection monthView={monthView} startingBalance={accounts.reduce((sum, a) => sum + a.balance, 0)} />
       )}
 
       {monthView
