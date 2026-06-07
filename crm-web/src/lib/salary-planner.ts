@@ -1,9 +1,22 @@
 import { getEffectivePayDay } from './date-utils';
 import { formatCurrency } from './utils';
+import { AccountType, type FinancialAccount } from '@/services/finance';
 import type {
   PersonalControlMonthView,
   PersonalControlInvoiceDueThisMonth,
 } from '@/services/personalControlService';
+
+/**
+ * Liquid cash available to the salary planner: only Checking / Cash / Savings accounts
+ * with a positive balance. Excludes investments (e.g. brokerage) and debt-tracking
+ * accounts carried with a negative balance (credit cards mislabeled as Checking).
+ */
+export function liquidCashBalance(accounts: FinancialAccount[]): number {
+  const liquidTypes = [AccountType.Checking, AccountType.Cash, AccountType.Savings];
+  return accounts
+    .filter((a) => a.isActive && a.balance > 0 && liquidTypes.includes(a.accountType))
+    .reduce((sum, a) => sum + a.balance, 0);
+}
 
 type IncomeItem = PersonalControlMonthView['incomes'][number];
 type ExpenseItem = PersonalControlMonthView['expenses'][number] & { _pending?: boolean };
@@ -35,12 +48,15 @@ export interface Remanejamento {
 /**
  * Builds per-salary cash-flow buckets for the Planner de Salário.
  *
- * Cash-walk semantics:
- * - Bucket 0 opens with the real checking-account balance (`startingBalance`);
- *   later buckets carry the running balance forward.
- * - Every item always reduces available cash, but a PAID item is never flagged
- *   `_pending` ("não coberto") — the money already left the account. Only unpaid
- *   items that exceed available cash are marked pending.
+ * Cash-walk semantics (projected-cash model):
+ * - Bucket 0 opens with the liquid cash balance (`startingBalance`); later buckets
+ *   carry the projected cash forward.
+ * - Paid bills and received income are already reflected in the balance, so they do
+ *   NOT move the projected cash again (no double-counting). Only OPEN items walk the
+ *   cash: unreceived income adds, unpaid bills subtract.
+ * - An unpaid bill that exceeds available projected cash is flagged `_pending`.
+ * - `runningBalance` is the projected liquid cash; display totals (totalIncome/
+ *   totalCashOut/periodBalance) still show the FULL month picture (paid + unpaid).
  */
 export function buildSalaryBuckets(
   monthView: PersonalControlMonthView,
@@ -82,13 +98,18 @@ export function buildSalaryBuckets(
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
     const totalIncome = inc.amount;
-    // Bucket 0 opens with the real checking-account balance; later buckets carry the running balance forward.
     const prevRunning = acc.length > 0 ? acc[acc.length - 1].runningBalance : startingBalance;
-    let available = prevRunning + totalIncome;
 
-    // An item always reduces available cash; a PAID item is never flagged "não coberto".
+    // Projected-cash model: paid expenses and received income are ALREADY reflected in the
+    // account balance, so they must not move the projected cash again (avoids double-counting).
+    // Only OPEN items walk the cash: unreceived income adds, unpaid bills subtract.
+    const openIncome = inc.isPaid ? 0 : inc.amount;
+    let available = prevRunning + openIncome;
+
+    // A PAID item never moves projected cash (already settled) and is never pending.
     const settle = (isPaid: boolean, amount: number): boolean => {
-      const pending = !isPaid && available - amount < 0;
+      if (isPaid) return false;
+      const pending = available - amount < 0;
       available -= amount;
       return pending;
     };
@@ -101,6 +122,7 @@ export function buildSalaryBuckets(
       return { ...inv, _pending: settle(inv.isPaid, amount) };
     });
 
+    // Display totals show the FULL month picture (paid + unpaid).
     const totalCashOut =
       debitSubs.reduce((s, x) => s + x.amount, 0) +
       expensesAtVista.reduce((s, x) => s + x.amount, 0) +
@@ -112,8 +134,10 @@ export function buildSalaryBuckets(
       invoicesDue.filter((x) => x._pending).reduce((s, x) => s + (x.statementAmount ?? x.totalTransactionsAmount), 0);
 
     const periodBalance = totalIncome - totalCashOut;
-    const runningBalance = prevRunning + periodBalance;
-    const investSuggestion = runningBalance > 0 && periodBalance > 0 ? periodBalance * 0.2 : 0;
+    // `available` now holds the projected cash after settling this bucket's OPEN items.
+    const runningBalance = available;
+    const periodCash = runningBalance - prevRunning;
+    const investSuggestion = runningBalance > 0 && periodCash > 0 ? periodCash * 0.2 : 0;
 
     acc.push({
       day, nextDay, incomeName: inc.name, incomes,

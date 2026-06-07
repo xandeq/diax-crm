@@ -16,9 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getEffectivePayDay } from '@/lib/date-utils';
-import { buildSalaryBuckets, buildRemanejamentos } from '@/lib/salary-planner';
+import { buildSalaryBuckets, buildRemanejamentos, liquidCashBalance } from '@/lib/salary-planner';
 import { cn, formatCurrency } from '@/lib/utils';
-import { financeService, type CreditCard, type FinancialAccount } from '@/services/finance';
+import { financeService, AccountType, type CreditCard, type FinancialAccount } from '@/services/finance';
 import {
   usePersonalControlMonth,
   useInvestiqSummary,
@@ -650,7 +650,7 @@ function SalaryPlannerSection({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg">Planner de Salário</CardTitle>
-            <CardDescription>Despesas diretas afetam o caixa; faturas de cartão entram pelo vencimento. Expand da fatura mostra transações reais ou recorrências previstas.</CardDescription>
+            <CardDescription>Despesas diretas afetam o caixa; faturas de cartão entram pelo vencimento. Expand da fatura mostra transações reais ou recorrências previstas. <strong>Caixa</strong> = saldo líquido projetado considerando apenas contas em aberto (as pagas já estão no saldo).</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -685,7 +685,7 @@ function SalaryPlannerSection({
                     Período: {periodBalance >= 0 ? '+' : ''}{formatCurrency(periodBalance)}
                   </span>
                   <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontSize: '0.875rem', borderLeft: `2px solid ${runningBalance >= 0 ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`, paddingLeft: '0.75rem', color: runningBalance >= 0 ? '#34D399' : '#F87171' }}>
-                    Acum: {runningBalance >= 0 ? '+' : ''}{formatCurrency(runningBalance)}
+                    Caixa: {runningBalance >= 0 ? '+' : ''}{formatCurrency(runningBalance)}
                   </span>
                   {investSuggestion > 0 && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', borderRadius: '0.5rem', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.25)', padding: '0.25rem 0.5rem', color: '#7DD3FC', fontWeight: 600 }}>
@@ -1332,7 +1332,7 @@ function Page() {
       </div>
 
       {monthView && (
-        <SalaryPlannerSection monthView={monthView} startingBalance={accounts.reduce((sum, a) => sum + a.balance, 0)} />
+        <SalaryPlannerSection monthView={monthView} startingBalance={liquidCashBalance(accounts)} />
       )}
 
       {monthView
