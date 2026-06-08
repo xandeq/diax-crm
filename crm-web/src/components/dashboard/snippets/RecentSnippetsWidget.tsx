@@ -52,7 +52,14 @@ export function RecentSnippetsWidget() {
         <ul className="space-y-2">
           {items.map(item => (
             <li key={item.id} className="min-w-0">
-              <span className="block truncate text-sm">{item.content}</span>
+              <span className="block truncate text-sm font-medium">{item.title}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {item.content
+                  ? item.content.slice(0, 80)
+                  : item.attachments.length > 0
+                    ? `${item.attachments.length} arquivo(s)`
+                    : ''}
+              </span>
             </li>
           ))}
         </ul>

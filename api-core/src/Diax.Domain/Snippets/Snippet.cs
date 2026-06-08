@@ -12,12 +12,15 @@ public class Snippet : Entity
     public DateTime? ExpiresAt { get; private set; }
     public Guid CreatedByUserId { get; private set; }
 
+    // Navigation
+    public ICollection<SnippetAttachment> Attachments { get; private set; } = new List<SnippetAttachment>();
+
     // EF Core
     private Snippet() { }
 
     public Snippet(
         string title,
-        string content,
+        string? content,
         string language,
         bool isPublic,
         Guid createdByUserId,
@@ -40,12 +43,9 @@ public class Snippet : Entity
         Title = title.Trim();
     }
 
-    public void SetContent(string content)
+    public void SetContent(string? content)
     {
-        if (string.IsNullOrWhiteSpace(content))
-            throw new ArgumentException("Content is required.", nameof(content));
-
-        Content = content;
+        Content = content?.Trim() ?? string.Empty;
     }
 
     public void SetLanguage(string language)

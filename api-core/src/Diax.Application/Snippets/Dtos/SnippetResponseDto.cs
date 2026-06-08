@@ -8,4 +8,5 @@ public class SnippetResponseDto
     public string Language { get; set; } = string.Empty;
     public bool IsPublic { get; set; }
     public DateTime CreatedAt { get; set; }
+    public List<SnippetAttachmentDto> Attachments { get; set; } = new();
 }

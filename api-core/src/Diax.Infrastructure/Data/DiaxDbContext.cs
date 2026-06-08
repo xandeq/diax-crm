@@ -85,6 +85,7 @@ public class DiaxDbContext : DbContext
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
     public DbSet<UserPrompt> UserPrompts => Set<UserPrompt>();
     public DbSet<Snippet> Snippets => Set<Snippet>();
+    public DbSet<SnippetAttachment> SnippetAttachments => Set<SnippetAttachment>();
     public DbSet<ChecklistCategory> ChecklistCategories => Set<ChecklistCategory>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
 

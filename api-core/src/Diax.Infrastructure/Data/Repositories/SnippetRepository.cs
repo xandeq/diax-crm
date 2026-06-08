@@ -17,6 +17,22 @@ public class SnippetRepository : Repository<Snippet>, ISnippetRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<Snippet>> GetByUserIdWithAttachmentsAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(s => s.Attachments)
+            .Where(s => s.CreatedByUserId == userId)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Snippet?> GetByIdWithAttachmentsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(s => s.Attachments)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
     public async Task<Snippet?> GetByIdWithUserAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         return await DbSet
@@ -26,6 +42,13 @@ public class SnippetRepository : Repository<Snippet>, ISnippetRepository
     public async Task<Snippet?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await DbSet
+            .FirstOrDefaultAsync(s => s.Id == id && s.IsPublic, cancellationToken);
+    }
+
+    public async Task<Snippet?> GetPublicByIdWithAttachmentsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(s => s.Attachments)
             .FirstOrDefaultAsync(s => s.Id == id && s.IsPublic, cancellationToken);
     }
 }
