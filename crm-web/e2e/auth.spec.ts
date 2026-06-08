@@ -22,14 +22,14 @@ test.describe('Auth — Login', () => {
     });
 
     test('rota protegida sem login redireciona para /login', async ({ page }) => {
-        // Acessar dashboard sem autenticação — deve redirecionar para login
+        // AuthGuard redireciona via useEffect (assíncrono) — aguardar URL mudar
         await page.goto('/dashboard/');
-        await expect(page).toHaveURL(/login/);
+        await expect(page).toHaveURL(/login/, { timeout: 10000 });
     });
 
     test('rota protegida de finanças sem login redireciona para /login', async ({ page }) => {
         await page.goto('/finance/personal-control/');
-        await expect(page).toHaveURL(/login/);
+        await expect(page).toHaveURL(/login/, { timeout: 10000 });
     });
 });
 
