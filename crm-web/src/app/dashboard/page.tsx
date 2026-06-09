@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight,
-  Baby, CheckCircle, CreditCard, DollarSign, Home, Landmark, LayoutGrid,
+  Baby, CheckCircle, CreditCard, DollarSign, Gauge, Home, Landmark, LayoutGrid,
   Mail, Plane, PiggyBank, RefreshCw, Repeat, ShieldAlert, Sparkles,
   Target, TrendingUp, Users, Wallet, Zap,
 } from 'lucide-react';
@@ -54,6 +54,7 @@ function prevMonthOf(y: number, m: number, offset: number): [number, number] {
   return [yr, mo];
 }
 const R = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const clamp = (n: number) => Math.max(0, Math.min(100, isFinite(n) ? n : 0));
 const S = (v: number) => Math.abs(v) >= 1_000_000 ? `R$ ${(v / 1_000_000).toFixed(1)}M` : Math.abs(v) >= 1_000 ? `R$ ${(v / 1_000).toFixed(1)}k` : R(v);
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -253,6 +254,49 @@ function forecastConfig(sim: MonthlySimulation) {
   };
 }
 
+function radarConfig(metrics: { k: string; v: number }[]) {
+  return {
+    type: 'radar' as const, height: 300,
+    series: [{ name: 'Score', data: metrics.map(m => Math.round(m.v)) }],
+    options: {
+      chart: { background: 'transparent', toolbar: { show: false }, animations: { ...animCfg, speed: 1200 } },
+      labels: metrics.map(m => m.k),
+      colors: [C.primary],
+      stroke: { width: 2 },
+      fill: { opacity: 0.22 },
+      markers: { size: 4, colors: [C.primary], strokeColors: '#0A130F', strokeWidth: 2, hover: { size: 6 } },
+      yaxis: { show: false, min: 0, max: 100 },
+      xaxis: { labels: { style: { colors: metrics.map(() => C.text2), fontSize: '11px', fontWeight: 600 } } },
+      plotOptions: { radar: { polygons: { strokeColors: C.grid, connectorColors: C.grid, fill: { colors: ['rgba(255,255,255,0.012)', 'transparent'] } } } },
+      tooltip: { theme: 'dark' as const, y: { formatter: (v: number) => `${v}/100` } },
+    },
+  };
+}
+function radialGaugeConfig(score: number, color: string) {
+  return {
+    type: 'radialBar' as const, height: 260,
+    series: [Math.max(0, Math.min(100, score))],
+    options: {
+      chart: { background: 'transparent', animations: { ...animCfg, speed: 1400 } },
+      colors: [color],
+      plotOptions: {
+        radialBar: {
+          startAngle: -135, endAngle: 135,
+          hollow: { size: '60%' },
+          track: { background: 'rgba(255,255,255,0.07)', strokeWidth: '100%' },
+          dataLabels: {
+            name: { show: true, color: C.text3, fontSize: '12px', offsetY: 24, fontWeight: 600 },
+            value: { show: true, color: C.text, fontSize: '40px', fontFamily: 'var(--font-mono)', fontWeight: 800, offsetY: -8, formatter: (v: number) => `${Math.round(v)}` },
+          },
+        },
+      },
+      labels: ['Saúde geral'],
+      stroke: { lineCap: 'round' as const },
+      fill: { type: 'gradient', gradient: { shade: 'dark', type: 'horizontal', gradientToColors: [C.info], stops: [0, 100] } },
+    },
+  };
+}
+
 /* ── AnimatedBar ────────────────────────────────────────────────── */
 function AnimatedBar({ pct, color, h = 4 }: { pct: number; color: string; h?: number }) {
   const width = useMotionValue('0%');
@@ -324,9 +368,27 @@ const CSS = `
   @keyframes glow-rotate { to { --glow-angle: 360deg; } }
   @keyframes live-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.7); opacity: 0.5; } }
   @keyframes shimmer { to { background-position: -200% 0; } }
+  @keyframes aurora-flow {
+    0%,100% { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
+    33%     { transform: translate3d(3%,2%,0) rotate(4deg) scale(1.08); }
+    66%     { transform: translate3d(-3%,-2%,0) rotate(-4deg) scale(1.04); }
+  }
+  @keyframes sheen { 0% { transform: translateX(-130%) skewX(-18deg); } 100% { transform: translateX(230%) skewX(-18deg); } }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-    .hero-card { animation: none !important; }
+    .hero-card, .dsh-aurora::before { animation: none !important; }
+  }
+
+  /* Animated aurora / mesh-gradient backdrop (behind dashboard content) */
+  .dsh-aurora { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; border-radius: 24px; }
+  .dsh-aurora::before {
+    content: ''; position: absolute; inset: -18%;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(0,212,170,0.13), transparent 38%),
+      radial-gradient(circle at 82% 16%, rgba(129,140,248,0.11), transparent 42%),
+      radial-gradient(circle at 65% 82%, rgba(244,114,182,0.08), transparent 42%),
+      radial-gradient(circle at 28% 78%, rgba(34,197,94,0.07), transparent 40%);
+    filter: blur(52px); animation: aurora-flow 22s ease-in-out infinite; will-change: transform;
   }
 
   .dsh {
@@ -339,7 +401,17 @@ const CSS = `
     --font-ui: var(--font-jakarta), var(--font-inter), -apple-system, sans-serif;
     --font-num: var(--font-mono), 'SF Mono', ui-monospace, monospace;
     font-family: var(--font-ui);
+    position: relative; isolation: isolate;
   }
+
+  /* KPI sheen sweep on hover (pure CSS, sparkline tooltip disabled so safe) */
+  .card-kpi { position: relative; overflow: hidden; }
+  .card-kpi::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+    transform: translateX(-130%) skewX(-18deg); pointer-events: none; opacity: 0;
+  }
+  .card-kpi:hover::after { opacity: 1; animation: sheen 0.9s ease; }
 
   .dsh :focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; border-radius: 8px; }
   .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
@@ -419,10 +491,10 @@ function KpiCard({ label, value, prefix = '', suffix = '', delta, up, spark, min
   color: string; icon?: React.ReactNode; loading: boolean; idx: number;
 }) {
   return (
-    <motion.div className="card" variants={popVariants} whileHover={cardHover} whileTap={cardTap} style={{ cursor: 'default' }}>
+    <motion.div className="card card-kpi" variants={popVariants} whileHover={cardHover} whileTap={cardTap} style={{ cursor: 'default' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          {icon && <span style={{ color, display: 'inline-flex' }}>{icon}</span>}
+          {icon && <motion.span style={{ color, display: 'inline-flex' }} whileHover={{ rotate: 12, scale: 1.18 }} transition={{ type: 'spring', stiffness: 400, damping: 12 }}>{icon}</motion.span>}
           <span className="label">{label}</span>
         </div>
         {delta && (
@@ -951,6 +1023,46 @@ function CashFlowForecastCard({ sim, mounted, loading }: { sim: MonthlySimulatio
   );
 }
 
+/* ── Business health: radar (6 dims) + radialBar score (real data) ─ */
+function HealthBlock({ metrics, score, mounted, loading }: { metrics: { k: string; v: number }[]; score: number; mounted: boolean; loading: boolean }) {
+  const scoreColor = score >= 70 ? C.success : score >= 45 ? C.warn : C.loss;
+  const scoreLabel = score >= 70 ? 'Saudável' : score >= 45 ? 'Atenção' : 'Crítico';
+  return (
+    <div className="g73">
+      {/* Radar */}
+      <motion.div className="card" whileHover={cardHover} whileTap={cardTap}>
+        <div className="card-h">
+          <div>
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Gauge size={15} style={{ color: C.primary }} />Saúde do Negócio</div>
+            <div className="sub" style={{ marginTop: 2 }}>6 dimensões · 0–100 (dados reais normalizados)</div>
+          </div>
+          <span className="badge" style={{ background: `${scoreColor}1e`, color: scoreColor }}><Activity size={10} /> {scoreLabel}</span>
+        </div>
+        {!mounted || loading ? <Skel h={300} r={10} /> : <ApexChart {...radarConfig(metrics)} />}
+      </motion.div>
+      {/* Score gauge + chips */}
+      <motion.div className="card" whileHover={cardHover} whileTap={cardTap} style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="card-h">
+          <div><div className="card-title">Score Geral</div><div className="sub" style={{ marginTop: 2 }}>Média ponderada</div></div>
+        </div>
+        {!mounted || loading ? <Skel h={200} r={10} /> : <ApexChart {...radialGaugeConfig(score, scoreColor)} />}
+        <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 6 }} variants={stagger5} initial="hidden" whileInView="show" viewport={{ once: true }}>
+          {metrics.map(m => {
+            const c = m.v >= 70 ? C.success : m.v >= 45 ? C.warn : C.loss;
+            return (
+              <motion.div key={m.k} variants={popVariants} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="label" style={{ width: 78, fontSize: 10 }}>{m.k}</span>
+                <div style={{ flex: 1 }}><AnimatedBar pct={m.v} color={c} h={5} /></div>
+                <span className="num" style={{ fontSize: 11, fontWeight: 700, color: c, width: 26, textAlign: 'right' }}>{Math.round(m.v)}</span>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
 /* ── Tab segmented control with sliding pill ────────────────────── */
 function TabSlider({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -1109,6 +1221,17 @@ export default function DashboardPage() {
     { label: 'Disponível p/ Investir', value: Math.abs(availableToInvest), prefix: 'R$ ', suffix: availableToInvest < 0 ? ' ↓' : '', color: availableToInvest >= 0 ? C.info : C.loss, icon: <PiggyBank size={14} />, mini: <div style={{ paddingTop: 6 }}><div className="sub" style={{ fontSize: 11 }}>Saldo livre após contas pagas e a pagar do mês.</div></div> },
   ];
 
+  const maxTrend = Math.max(0, ...trendIncome);
+  const health = [
+    { k: 'Receita',    v: maxTrend > 0 ? clamp((income / maxTrend) * 100) : (income > 0 ? 100 : 0) },
+    { k: 'Fluxo',      v: income > 0 ? clamp((cashFlow / income) * 100) : (cashFlow >= 0 ? 60 : 0) },
+    { k: 'Conversão',  v: clamp(convRate * 4) },
+    { k: 'Email',      v: clamp((openRate / 30) * 100) },
+    { k: 'Pipeline',   v: clamp((totalLeads / 20) * 100) },
+    { k: 'Investível', v: income > 0 ? clamp((availableToInvest / income) * 100) : (availableToInvest > 0 ? 60 : 0) },
+  ];
+  const healthScore = Math.round(health.reduce((a, b) => a + b.v, 0) / health.length);
+
   const pipelineKpis = [
     { label: 'Leads no Funil', value: totalLeads, color: C.info, up: true, icon: <Users size={14} />, mini: <div style={{ paddingTop: 8 }} className="sub">{customers} já viraram clientes</div> },
     { label: 'Clientes', value: customers, color: C.primary, up: true, icon: <CheckCircle size={14} />, mini: <div style={{ paddingTop: 8 }} className="sub">Estágio final do funil</div> },
@@ -1120,6 +1243,7 @@ export default function DashboardPage() {
     <>
       <style>{CSS}</style>
       <motion.div className="dsh" variants={pageVariants} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 48 }}>
+        <div className="dsh-aurora" aria-hidden="true" />
         {/* Topbar */}
         <motion.div variants={sectionVariants} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
@@ -1150,6 +1274,7 @@ export default function DashboardPage() {
               <motion.div className="g4" variants={stagger7}>
                 {overviewKpis.map((k, i) => <KpiCard key={k.label} {...k} loading={loading} idx={i} />)}
               </motion.div>
+              <Section><HealthBlock metrics={health} score={healthScore} mounted={mounted} loading={loading} /></Section>
               <Section><div className="g73"><TrendCard data={data} mounted={mounted} loading={loading} revMoM={revMoM} /><EmailCard data={data} loading={loading} /></div></Section>
               <Section><div className="g2"><FunnelCard data={data} mounted={mounted} loading={loading} totalLeads={totalLeads} /><ExpenseCard data={data} mounted={mounted} loading={loading} expenses={expenses} cashFlow={cashFlow} /></div></Section>
               <Section><div className="g63"><PipelineStagesCard data={data} loading={loading} /><AgendaCard data={data} loading={loading} /></div></Section>
