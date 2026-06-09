@@ -7,7 +7,7 @@ import {
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
-  Wallet, Zap, Cpu
+  Wallet, Zap, Cpu, Newspaper
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -21,6 +21,7 @@ const navGroups: NavGroup[] = [
     section: 'Principal',
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+      { icon: Newspaper, label: 'Daily Briefings', href: '/daily-briefings', badge: 'NEW' },
     ],
   },
   {
