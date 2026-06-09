@@ -501,11 +501,11 @@ function HeroCard({ data, loading, mounted }: { data: DashData | null; loading: 
   const mom = prev > 0 ? ((income - prev) / prev) * 100 : 0;
   const cashFlow = s?.remainingBalance ?? 0;
   const totalExpenses = s?.totalExpenses ?? 0;
-  // Real reference: projected income for the month; fallback to previous month
-  const projected = s?.projectedIncome ?? 0;
-  const goalRef = projected > 0 ? projected : prev;
+  // Real reference: previous month income (API has no projected income field)
+  const available = s?.availableToInvest ?? 0;
+  const goalRef = prev;
   const goalPct = goalRef > 0 ? Math.min((income / goalRef) * 100, 100) : 0;
-  const goalLabel = projected > 0 ? 'da projeção' : prev > 0 ? 'vs mês ant.' : 'meta';
+  const goalLabel = 'vs mês ant.';
   const goalColor = goalPct >= 80 ? C.primary : goalPct >= 50 ? C.warn : C.loss;
   const heroCfg = mounted && data?.trend?.length ? heroChartConfig(data.trend) : null;
 
@@ -563,7 +563,7 @@ function HeroCard({ data, loading, mounted }: { data: DashData | null; loading: 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {loading ? [0, 1].map(i => <Skel key={i} h={42} r={8} />) : [
               { lbl: 'Recebido', val: income, c: C.primary },
-              { lbl: 'Projetado', val: projected, c: C.info },
+              { lbl: 'A investir', val: available, c: C.info },
             ].map((m, i) => (
               <motion.div key={m.lbl} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.45 + i * 0.06, duration: 0.35, ease: EASE_OUT }}>
                 <div className="label" style={{ marginBottom: 5 }}>{m.lbl}</div>
@@ -712,9 +712,9 @@ function ExpenseCard({ data, mounted, loading, expenses, cashFlow, donut = false
 function FinanceBreakdownCard({ summary, loading }: { summary: PersonalFinanceMonthSummary | null | undefined; loading: boolean }) {
   const s = summary;
   const rows = s ? [
-    { lbl: 'Recebido vs Projetado', a: s.totalIncome, b: s.projectedIncome, c: C.primary, icon: <TrendingUp size={13} /> },
-    { lbl: 'Pago vs A pagar', a: s.paidExpenses, b: s.unpaidExpenses, c: C.warn, icon: <Wallet size={13} />, note: `${s.paidCount} pagas · ${s.unpaidCount} pendentes` },
-    { lbl: 'No cartão vs À vista', a: s.expensesWithCard, b: s.expensesWithoutCard, c: C.accent, icon: <CreditCard size={13} /> },
+    { lbl: 'Pago vs A pagar', a: s.paidAmount, b: s.unpaidAmount, c: C.warn, icon: <Wallet size={13} />, note: `${s.paidCount} pagas · ${s.unpaidCount} pendentes` },
+    { lbl: 'No cartão vs À vista', a: s.withCardAmount, b: s.withoutCardAmount, c: C.accent, icon: <CreditCard size={13} /> },
+    { lbl: 'Faturas pagas vs pendentes', a: s.totalCardPaid, b: s.totalCardPending, c: C.info, icon: <Repeat size={13} />, note: `${s.cardsPaidCount} pagas · ${s.cardsPendingCount} pendentes` },
   ] : [];
   return (
     <motion.div className="card" whileHover={cardHover} whileTap={cardTap}>
@@ -745,12 +745,12 @@ function FinanceBreakdownCard({ summary, loading }: { summary: PersonalFinanceMo
             <hr className="divider" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><Repeat size={12} style={{ color: C.info }} />Assinaturas/mês</div>
-                <SpringMetric value={s.subscriptionTotal} prefix="R$ " className="metric-md num" style={{ color: C.info } as React.CSSProperties} />
+                <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><Wallet size={12} style={{ color: C.warn }} />Total a pagar</div>
+                <SpringMetric value={Math.abs(s.totalToPay)} prefix="R$ " className="metric-md num" style={{ color: C.warn } as React.CSSProperties} />
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div className="label" style={{ marginBottom: 4 }}>Saldo projetado</div>
-                <SpringMetric value={Math.abs(s.projectedRemainingBalance)} prefix="R$ " suffix={s.projectedRemainingBalance < 0 ? ' ↓' : ''} className="metric-md num" style={{ color: s.projectedRemainingBalance >= 0 ? C.primary : C.loss } as React.CSSProperties} />
+                <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}><PiggyBank size={12} style={{ color: C.primary }} />Disponível p/ investir</div>
+                <SpringMetric value={Math.abs(s.availableToInvest)} prefix="R$ " suffix={s.availableToInvest < 0 ? ' ↓' : ''} className="metric-md num" style={{ color: s.availableToInvest >= 0 ? C.primary : C.loss } as React.CSSProperties} />
               </div>
             </div>
           </div>}
@@ -1063,7 +1063,7 @@ export default function DashboardPage() {
   const income = cs?.totalIncome ?? 0;
   const expenses = cs?.totalExpenses ?? 0;
   const cashFlow = cs?.remainingBalance ?? 0;
-  const projected = cs?.projectedRemainingBalance ?? 0;
+  const availableToInvest = cs?.availableToInvest ?? 0;
   const totalLeads = (data?.funnel.lead ?? 0) + (data?.funnel.contacted ?? 0) + (data?.funnel.qualified ?? 0) + (data?.funnel.negotiating ?? 0);
   const customers = data?.funnel.customer ?? 0;
   const openRate = data?.email?.openRate ?? 0;
@@ -1106,7 +1106,7 @@ export default function DashboardPage() {
     { label: 'Receita', value: income, prefix: 'R$ ', delta: revMoM !== 0 ? `${revMoM > 0 ? '+' : ''}${revMoM.toFixed(1)}%` : undefined, up: revMoM >= 0, spark: trendIncome, color: C.primary, icon: <DollarSign size={14} /> },
     { label: 'Despesas', value: expenses, prefix: 'R$ ', delta: expMoM !== 0 ? `${expMoM > 0 ? '+' : ''}${expMoM.toFixed(1)}%` : undefined, up: expMoM <= 0, spark: trendExp, color: C.warn, icon: <Wallet size={14} /> },
     { label: 'Saldo Líquido', value: Math.abs(cashFlow), prefix: 'R$ ', suffix: cashFlow < 0 ? ' ↓' : '', spark: trendIncome.map((v, i) => v - (trendExp[i] ?? 0)), color: cashFlow >= 0 ? C.success : C.loss, icon: <PiggyBank size={14} /> },
-    { label: 'Saldo Projetado', value: Math.abs(projected), prefix: 'R$ ', suffix: projected < 0 ? ' ↓' : '', color: projected >= 0 ? C.info : C.loss, icon: <Target size={14} />, mini: <div style={{ paddingTop: 6 }}><div className="sub" style={{ fontSize: 11 }}>Projeção do fechamento do mês considerando recorrências.</div></div> },
+    { label: 'Disponível p/ Investir', value: Math.abs(availableToInvest), prefix: 'R$ ', suffix: availableToInvest < 0 ? ' ↓' : '', color: availableToInvest >= 0 ? C.info : C.loss, icon: <PiggyBank size={14} />, mini: <div style={{ paddingTop: 6 }}><div className="sub" style={{ fontSize: 11 }}>Saldo livre após contas pagas e a pagar do mês.</div></div> },
   ];
 
   const pipelineKpis = [

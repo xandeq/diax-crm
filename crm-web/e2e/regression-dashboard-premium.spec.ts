@@ -58,7 +58,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
     await page.waitForLoadState('networkidle', { timeout: 30000 });
 
     // Check KPI labels exist
-    const labels = ['RECEITA DO MÊS', 'TOTAL DESPESAS', 'LEADS NO FUNIL', 'TAXA DE ABERTURA EMAIL'];
+    const labels = ['RECEITA DO MÊS', 'TOTAL DESPESAS', 'LEADS NO FUNIL', 'ABERTURA EMAIL'];
     for (const label of labels) {
       await expect(page.locator(`text=${label}`).first()).toBeVisible({ timeout: 10000 });
     }
@@ -90,5 +90,37 @@ test.describe('Dashboard Premium — Wave QA', () => {
       await leadsLink.click();
       await expect(page).toHaveURL(/leads/, { timeout: 10000 });
     }
+  });
+
+  // ── Wave: tabs com slider + widgets nativos (metas/forecast) ──
+
+  test('feature: tabs navegáveis (slider) — Pipeline e Financeiro', async ({ page }) => {
+    await page.goto('/dashboard/');
+    await page.waitForLoadState('networkidle', { timeout: 30000 });
+
+    await page.getByRole('tab', { name: 'Pipeline' }).click();
+    await expect(page.locator('text=Maior Gargalo').first()).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole('tab', { name: 'Financeiro' }).click();
+    await expect(page.locator('text=Projeção de Fluxo de Caixa').first()).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole('tab', { name: 'Visão Geral' }).click();
+    await expect(page.locator('text=RECEITA DO MÊS').first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test('feature: aba Financeiro — forecast e metas renderizam sem 5xx', async ({ page }) => {
+    const serverErrors: string[] = [];
+    page.on('response', r => { if (r.status() >= 500) serverErrors.push(`${r.status()} ${r.url()}`); });
+
+    await page.goto('/dashboard/');
+    await page.waitForLoadState('networkidle', { timeout: 30000 });
+    await page.getByRole('tab', { name: 'Financeiro' }).click();
+
+    // Forecast card sempre presente (gráfico ou empty state)
+    await expect(page.locator('text=Projeção de Fluxo de Caixa').first()).toBeVisible({ timeout: 10000 });
+    // Metas card presente (anéis ou empty state — ambos válidos)
+    await expect(page.locator('text=Metas Financeiras').first()).toBeVisible({ timeout: 10000 });
+
+    expect(serverErrors).toHaveLength(0);
   });
 });

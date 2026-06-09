@@ -576,16 +576,19 @@ export interface PersonalFinanceMonthSummary {
     totalExpenses: number;
     totalCreditExpenses: number;
     remainingBalance: number;
-    paidExpenses: number;
-    unpaidExpenses: number;
-    expensesWithCard: number;
-    expensesWithoutCard: number;
-    projectedIncome: number;
-    projectedExpenses: number;
-    projectedRemainingBalance: number;
-    subscriptionTotal: number;
+    paidAmount: number;
+    unpaidAmount: number;
+    withCardAmount: number;
+    withoutCardAmount: number;
     paidCount: number;
     unpaidCount: number;
+    totalCardStatements: number;
+    totalCardPaid: number;
+    totalCardPending: number;
+    cardsPaidCount: number;
+    cardsPendingCount: number;
+    totalToPay: number;
+    availableToInvest: number;
 }
 
 export interface PersonalFinanceMonthResponse {
