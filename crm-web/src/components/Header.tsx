@@ -91,6 +91,12 @@ export function Header() {
 
           {isAuthenticated && (
             <>
+              {/* ── Daily Briefings (top-level) ── */}
+              <Link href="/daily-briefings" className="inline-flex items-center hover:text-slate-900">
+                Daily Briefings
+                <span className="ml-1.5 rounded bg-emerald-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
+              </Link>
+
               {/* ── Core Business: CRM ── */}
               <NavDropdown label="CRM">
                 <Link href="/customers/" className={menuItemClass} role="menuitem">Clientes</Link>
@@ -214,6 +220,11 @@ export function Header() {
           <nav className="relative z-10 mt-[73px] bg-white border-t border-slate-200 overflow-y-auto max-h-[calc(100vh-73px)] shadow-xl divide-y divide-slate-100">
             <Link href="/dashboard" className="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={() => setMobileOpen(false)}>
               Início
+            </Link>
+
+            <Link href="/daily-briefings" className="block px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={() => setMobileOpen(false)}>
+              Daily Briefings
+              <span className="ml-1.5 rounded bg-emerald-600 px-1 py-0.5 text-[10px] font-bold text-white leading-none">NEW</span>
             </Link>
 
             <MobileSection label="CRM">

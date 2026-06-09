@@ -122,6 +122,7 @@ jobs:
             --arg extractorUrl "${{ secrets.EXTRATOR_URL }}" \
             --arg extractorToken "${{ secrets.EXTRATOR_API_TOKEN }}" \
             --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
+            --arg dailyBriefingsKey "${{ secrets.DIAX_DAILY_BRIEFINGS_KEY }}" \
             --arg googleSheetsJson "$GOOGLE_SHEETS_SA_JSON" \
             --arg googleSheetsSpreadsheetId "$GOOGLE_SHEETS_SPREADSHEET_ID" \
             --arg ga4PropertyId "$GA4_PROPERTY_ID" \
@@ -256,6 +257,9 @@ jobs:
                 "ApiToken": $extractorToken
               },
               "ServiceApiKey": $serviceApiKey,
+              "Integrations": {
+                "DailyBriefingsKey": $dailyBriefingsKey
+              },
               "GoogleSheets": {
                 "ServiceAccountJson": $googleSheetsJson,
                 "SpreadsheetId": $googleSheetsSpreadsheetId

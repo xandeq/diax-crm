@@ -12,6 +12,7 @@ using Diax.Domain.Finance.Planner;
 using Diax.Domain.Household;
 using Diax.Domain.ErrorLogs;
 using Diax.Domain.Logs;
+using Diax.Domain.Briefings;
 using Diax.Domain.Snippets;
 using Diax.Domain.PromptGenerator;
 using Diax.Domain.AI;
@@ -86,6 +87,7 @@ public class DiaxDbContext : DbContext
     public DbSet<UserPrompt> UserPrompts => Set<UserPrompt>();
     public DbSet<Snippet> Snippets => Set<Snippet>();
     public DbSet<SnippetAttachment> SnippetAttachments => Set<SnippetAttachment>();
+    public DbSet<DailyBriefing> DailyBriefings => Set<DailyBriefing>();
     public DbSet<ChecklistCategory> ChecklistCategories => Set<ChecklistCategory>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
 
@@ -205,6 +207,16 @@ public class DiaxDbContext : DbContext
             .Property(e => e.Payload)
             .HasColumnType("nvarchar(max)");
 
+        // DailyBriefing: Content é HTML/Markdown de email (20-50KB) → nvarchar(max).
+        // Índice único (UserId, BriefingDate, Source) garante upsert idempotente por gerador/dia.
+        modelBuilder.Entity<DailyBriefing>(b =>
+        {
+            b.Property(e => e.Content).HasColumnType("nvarchar(max)");
+            b.Property(e => e.Source).HasMaxLength(64);
+            b.Property(e => e.ContentFormat).HasMaxLength(16);
+            b.HasIndex(e => new { e.UserId, e.BriefingDate, e.Source }).IsUnique();
+        });
+
         // ===== MULTI-TENANCY CONFIG & FILTERS =====
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
@@ -239,6 +251,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<TaskItem>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<SupportTicket>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<AiConversation>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<DailyBriefing>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.

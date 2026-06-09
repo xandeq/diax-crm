@@ -148,6 +148,10 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Integrations.ICashFlowProjectionIntegrationService,
                           Diax.Application.Integrations.CashFlowProjectionIntegrationService>();
 
+        // ===== DAILY BRIEFINGS =====
+        services.AddScoped<Diax.Application.Briefings.IDailyBriefingService,
+                          Diax.Application.Briefings.DailyBriefingService>();
+
         return services;
     }
 }

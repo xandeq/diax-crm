@@ -218,6 +218,7 @@ public static class DependencyInjection
         services.AddScoped<IChecklistCategoryRepository, ChecklistCategoryRepository>();
         services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();
         services.AddScoped<ITaskRepository, TaskRepository>();
+        services.AddScoped<Diax.Domain.Briefings.IDailyBriefingRepository, DailyBriefingRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
         services.AddScoped<IAiProviderRepository, AiProviderRepository>();
         services.AddScoped<IAiModelRepository, AiModelRepository>();

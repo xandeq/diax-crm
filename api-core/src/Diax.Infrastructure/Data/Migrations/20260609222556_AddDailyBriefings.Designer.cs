@@ -4,6 +4,7 @@ using Diax.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Diax.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(DiaxDbContext))]
-    partial class DiaxDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260609222556_AddDailyBriefings")]
+    partial class AddDailyBriefings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
