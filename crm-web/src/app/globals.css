@@ -234,6 +234,28 @@
   .diax-btn-ghost { background: var(--diax-bg-card-2); color: var(--diax-text-2); border: 1px solid var(--diax-border); }
   .diax-btn-ghost:hover { background: rgba(255,255,255,0.1); }
 
+  /* Premium button effect: sheen sweep + lift + glow (hover-capable devices only) */
+  .btn-fx { position: relative; overflow: hidden; isolation: isolate; }
+  .btn-fx::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 55%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.22), transparent);
+    transform: translateX(-140%) skewX(-18deg);
+    pointer-events: none; opacity: 0; z-index: 1;
+  }
+  @keyframes btn-sheen { to { transform: translateX(260%) skewX(-18deg); } }
+  @media (hover: hover) {
+    .btn-fx { transition: transform .18s cubic-bezier(.22,1,.36,1), box-shadow .18s cubic-bezier(.22,1,.36,1), filter .18s; }
+    .btn-fx:hover:not(:disabled) { transform: translateY(-1.5px); box-shadow: 0 8px 24px rgba(16,185,129,0.28), 0 2px 6px rgba(0,0,0,0.3); }
+    .btn-fx:hover:not(:disabled)::after { opacity: 1; animation: btn-sheen .8s cubic-bezier(.22,1,.36,1); }
+    .diax-btn:hover:not(:disabled) { transform: translateY(-1px); }
+    .diax-btn-primary:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(16,185,129,0.3); }
+  }
+  .btn-fx:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-fx, .btn-fx::after, .diax-btn { transition: none; animation: none; }
+    .btn-fx:hover:not(:disabled)::after { animation: none; opacity: 0; }
+  }
+
   /* Badges */
   .diax-badge {
     display: inline-flex;
