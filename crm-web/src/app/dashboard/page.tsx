@@ -10,9 +10,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight,
-  Baby, CheckCircle, CreditCard, DollarSign, Gauge, Home, Landmark, LayoutGrid,
+  Baby, BarChart3, CheckCircle, CreditCard, DollarSign, Gauge, Home, Landmark, LayoutGrid,
   Mail, Plane, PiggyBank, RefreshCw, Repeat, ShieldAlert, Sparkles,
-  Target, TrendingUp, Users, Wallet, Zap,
+  Target, TrendingDown, TrendingUp, Users, Wallet, Zap,
 } from 'lucide-react';
 
 import { HeroParticles } from '@/components/dashboard/HeroParticles';
@@ -21,6 +21,7 @@ import { financeService, PersonalFinanceMonthResponse, PersonalFinanceMonthSumma
 import { getLeads, CustomerStatus as LeadStatus } from '@/services/leads';
 import { agendaService } from '@/services/agenda';
 import { plannerService } from '@/services/plannerService';
+import { investiqService, InvestIQPortfolioSummary } from '@/services/personalControlService';
 import { FinancialGoal, GoalCategory, MonthlySimulation } from '@/types/planner';
 import { apiFetch } from '@/services/api';
 
@@ -99,6 +100,7 @@ interface DashData {
   email: EmailStats | null; expenses: CatExpense[];
   agenda: { time: string; title: string }[];
   goals: FinancialGoal[]; simulation: MonthlySimulation | null;
+  investiq: InvestIQPortfolioSummary | null;
 }
 type Tab = 'overview' | 'pipeline' | 'finance';
 
@@ -966,6 +968,82 @@ function GoalsCard({ goals, loading }: { goals: FinancialGoal[]; loading: boolea
   );
 }
 
+/* ── InvestIQ card (real /planner/investiq/portfolio-summary) ───── */
+const INVESTIQ_ASSET_LABELS: Record<string, string> = {
+  acao: 'Ações', fii: 'FIIs', renda_fixa: 'Renda Fixa', etf: 'ETFs',
+  cripto: 'Cripto', bdr: 'BDRs', internacional: 'Internacional',
+};
+const INVESTIQ_ASSET_COLORS = ['#A78BFA', '#818CF8', '#00D4AA', '#F472B6', '#F59E0B'];
+
+function InvestIQCard({ investiq, loading }: { investiq: InvestIQPortfolioSummary | null; loading: boolean }) {
+  const configured = !!investiq && investiq.configured !== false;
+  const pnl = configured ? investiq!.unrealized_pnl + investiq!.realized_pnl : 0;
+  const pnlUp = pnl >= 0;
+  const retPct = configured ? investiq!.total_return_pct : null;
+  return (
+    <motion.div className="card" whileHover={cardHover} whileTap={cardTap}>
+      <div className="card-h" style={{ alignItems: 'center' }}>
+        <div>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <BarChart3 size={15} style={{ color: '#A78BFA' }} />Investimentos — InvestIQ
+          </div>
+          <div className="sub" style={{ marginTop: 2 }}>
+            {configured ? `${investiq!.position_count} posições na carteira` : 'Integração com o InvestIQ'}
+          </div>
+        </div>
+        {configured && investiq!.cached_at && (
+          <span className="sub" style={{ fontSize: 10 }}>
+            atualizado {new Date(investiq!.cached_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+      </div>
+      {loading
+        ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>{[0, 1, 2].map(i => <Skel key={i} h={84} r={12} />)}</div>
+        : !configured
+          ? <div style={{ height: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted }}>
+              <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}><BarChart3 size={28} /></motion.div>
+              <div className="sub">Integração InvestIQ pendente — dados indisponíveis</div>
+              <div className="sub" style={{ fontSize: 10 }}>Configure a chave de integração na API para ver a carteira aqui.</div>
+            </div>
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
+                <div>
+                  <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><Wallet size={12} style={{ color: '#A78BFA' }} />Carteira</div>
+                  <SpringMetric value={investiq!.portfolio_value} prefix="R$ " className="metric-md num" style={{ color: '#A78BFA' } as React.CSSProperties} />
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {pnlUp ? <TrendingUp size={12} style={{ color: C.success }} /> : <TrendingDown size={12} style={{ color: C.loss }} />}P&L total
+                  </div>
+                  <SpringMetric value={Math.abs(pnl)} prefix={pnlUp ? 'R$ ' : 'R$ -'} className="metric-md num" style={{ color: pnlUp ? C.success : C.loss } as React.CSSProperties} />
+                  {retPct !== null && <div className="num" style={{ fontSize: 11, fontWeight: 700, color: retPct >= 0 ? C.success : C.loss, marginTop: 3 }}>{retPct >= 0 ? '+' : ''}{retPct.toFixed(2)}% retorno</div>}
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><PiggyBank size={12} style={{ color: C.primary }} />Dividendos/30d</div>
+                  <SpringMetric value={investiq!.monthly_dividends} prefix="R$ " className="metric-md num" style={{ color: C.primary } as React.CSSProperties} />
+                </div>
+              </div>
+              {investiq!.asset_allocation.length > 0 && (
+                <>
+                  <hr className="divider" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {investiq!.asset_allocation.map((a, i) => (
+                      <motion.div key={a.asset_class} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.4, ease: EASE_OUT }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span className="label">{INVESTIQ_ASSET_LABELS[a.asset_class] ?? a.asset_class}</span>
+                          <span className="num" style={{ fontSize: 12, fontWeight: 700, color: C.text2 }}>{S(a.total_value)} <span style={{ color: C.muted }}>· {a.percentage.toFixed(1)}%</span></span>
+                        </div>
+                        <AnimatedBar pct={a.percentage} color={INVESTIQ_ASSET_COLORS[i % INVESTIQ_ASSET_COLORS.length]} h={5} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>}
+    </motion.div>
+  );
+}
+
 /* ── Cash-flow forecast card (real /planner/simulations) ────────── */
 function CashFlowForecastCard({ sim, mounted, loading }: { sim: MonthlySimulation | null; mounted: boolean; loading: boolean }) {
   const hasData = sim && sim.dailyBalances?.length;
@@ -1116,7 +1194,7 @@ export default function DashboardPage() {
         getLeads({ page: 1, pageSize: 1, status: LeadStatus.Customer }),
       ]);
 
-      const [emailRes, agendaRes, goalsRes, simRes] = await Promise.allSettled([
+      const [emailRes, agendaRes, goalsRes, simRes, investiqRes] = await Promise.allSettled([
         apiFetch<{ overallStats: EmailStats }>('/email-campaigns/analytics?days=30').catch(() => null),
         agendaService.getByDateRange(
           new Date(yr, mo - 1, now.getDate()).toISOString(),
@@ -1124,6 +1202,7 @@ export default function DashboardPage() {
         ).catch(() => []),
         plannerService.getActiveFinancialGoals().catch(() => [] as FinancialGoal[]),
         plannerService.getOrGenerateSimulation(yr, mo).catch(() => null),
+        investiqService.getPortfolioSummary(),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1161,8 +1240,9 @@ export default function DashboardPage() {
 
       const goals = (get(goalsRes) as FinancialGoal[] | null) ?? [];
       const simulation = get(simRes) as MonthlySimulation | null;
+      const investiq = get(investiqRes) as InvestIQPortfolioSummary | null;
 
-      setData({ funnel, curr: currMonth, prev: prevMonth1, trend, email: emailData?.overallStats ?? null, expenses, agenda, goals, simulation });
+      setData({ funnel, curr: currMonth, prev: prevMonth1, trend, email: emailData?.overallStats ?? null, expenses, agenda, goals, simulation, investiq });
       setUpdated(new Date());
     } catch (e) { console.error('[dash]', e); }
     finally { setLoading(false); }
@@ -1303,6 +1383,7 @@ export default function DashboardPage() {
               <Section><CashFlowForecastCard sim={data?.simulation ?? null} mounted={mounted} loading={loading} /></Section>
               <Section><div className="g73"><TrendCard data={data} mounted={mounted} loading={loading} revMoM={revMoM} /><FinanceBreakdownCard summary={cs} loading={loading} /></div></Section>
               <Section><div className="g2"><ExpenseCard data={data} mounted={mounted} loading={loading} expenses={expenses} cashFlow={cashFlow} donut /><GoalsCard goals={data?.goals ?? []} loading={loading} /></div></Section>
+              <Section><InvestIQCard investiq={data?.investiq ?? null} loading={loading} /></Section>
             </motion.div>
           )}
         </AnimatePresence>

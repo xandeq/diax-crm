@@ -123,6 +123,7 @@ jobs:
             --arg extractorToken "${{ secrets.EXTRATOR_API_TOKEN }}" \
             --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
             --arg dailyBriefingsKey "${{ secrets.DIAX_DAILY_BRIEFINGS_KEY }}" \
+            --arg investiqKey "${{ secrets.INVESTIQ_INTEGRATION_KEY }}" \
             --arg googleSheetsJson "$GOOGLE_SHEETS_SA_JSON" \
             --arg googleSheetsSpreadsheetId "$GOOGLE_SHEETS_SPREADSHEET_ID" \
             --arg ga4PropertyId "$GA4_PROPERTY_ID" \
@@ -259,6 +260,10 @@ jobs:
               "ServiceApiKey": $serviceApiKey,
               "Integrations": {
                 "DailyBriefingsKey": $dailyBriefingsKey
+              },
+              "InvestIQ": {
+                "BaseUrl": "https://api.investiq.com.br",
+                "IntegrationKey": $investiqKey
               },
               "GoogleSheets": {
                 "ServiceAccountJson": $googleSheetsJson,
