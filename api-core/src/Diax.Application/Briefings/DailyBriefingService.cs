@@ -71,6 +71,17 @@ public class DailyBriefingService(
         return Result.Success(new DailyBriefingDetailResponse(b.Id, b.Source, b.Title, b.Content, b.ContentFormat, b.BriefingDate, b.CreatedAt));
     }
 
+    public async Task<Result> DeleteAsync(Guid userId, Guid id, CancellationToken ct = default)
+    {
+        var b = await repo.GetByIdAndUserAsync(id, userId, ct);
+        if (b is null)
+            return Result.Failure(new Error("DailyBriefing.NotFound", "Briefing não encontrado."));
+
+        await repo.DeleteAsync(b, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+
     private static TimeZoneInfo ResolveBrtTimeZone()
     {
         foreach (var id in new[] { "America/Sao_Paulo", "E. South America Standard Time" })

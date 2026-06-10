@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Newspaper, Clock, RefreshCw, ArrowRight } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Newspaper, Clock, RefreshCw, ArrowRight, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { dailyBriefingsService } from '@/services/dailyBriefingsService';
@@ -19,6 +19,20 @@ function fmtTime(iso: string): string {
 
 export default function DailyBriefingsClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  async function handleDelete(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!window.confirm('Remover este briefing?')) return;
+    setDeletingId(id);
+    try {
+      await dailyBriefingsService.remove(id);
+      await queryClient.invalidateQueries({ queryKey: ['daily-briefings', 'today'] });
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const { data: cards, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['daily-briefings', 'today'],
@@ -87,15 +101,27 @@ export default function DailyBriefingsClient() {
           {cards!.map(card => {
             const meta = sourceMeta(card.source);
             return (
-              <button
+              <div
                 key={card.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedId(card.id)}
-                className="group flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedId(card.id); }}
+                className="group relative flex h-full cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
               >
+                <button
+                  type="button"
+                  aria-label="Remover briefing"
+                  onClick={(e) => handleDelete(card.id, e)}
+                  disabled={deletingId === card.id}
+                  className="absolute right-2.5 top-2.5 rounded-md p-1.5 text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
                 <span className={`mb-3 inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.badge}`}>
                   {meta.label}
                 </span>
-                <h3 className="line-clamp-3 flex-1 text-sm font-semibold leading-snug text-slate-800">
+                <h3 className="line-clamp-3 flex-1 pr-6 text-sm font-semibold leading-snug text-slate-800">
                   {card.title}
                 </h3>
                 <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
@@ -106,7 +132,7 @@ export default function DailyBriefingsClient() {
                     Ler <ArrowRight className="h-3 w-3" />
                   </span>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

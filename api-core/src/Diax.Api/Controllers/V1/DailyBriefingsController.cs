@@ -44,4 +44,15 @@ public class DailyBriefingsController : BaseApiController
         var result = await _service.GetByIdAsync(userId.Value, id, ct);
         return HandleResult(result);
     }
+
+    /// <summary>Remove um briefing (dismiss do card).</summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return Unauthorized();
+
+        var result = await _service.DeleteAsync(userId.Value, id, ct);
+        return HandleResult(result);
+    }
 }

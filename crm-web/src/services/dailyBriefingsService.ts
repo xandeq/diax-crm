@@ -11,4 +11,9 @@ export const dailyBriefingsService = {
   getById: async (id: string): Promise<BriefingDetail> => {
     return apiFetch<BriefingDetail>(`/daily-briefings/${id}`);
   },
+
+  /** Remove um briefing (dismiss). */
+  remove: async (id: string): Promise<void> => {
+    await apiFetch<void>(`/daily-briefings/${id}`, { method: 'DELETE' });
+  },
 };

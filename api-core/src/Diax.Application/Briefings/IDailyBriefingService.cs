@@ -12,4 +12,6 @@ public interface IDailyBriefingService
     Task<Result<IEnumerable<DailyBriefingCardResponse>>> GetTodayAsync(Guid userId, CancellationToken ct = default);
 
     Task<Result<DailyBriefingDetailResponse>> GetByIdAsync(Guid userId, Guid id, CancellationToken ct = default);
+
+    Task<Result> DeleteAsync(Guid userId, Guid id, CancellationToken ct = default);
 }
