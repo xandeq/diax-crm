@@ -44,9 +44,9 @@ const C = {
   funnel:  ['#6366F1', '#8B5CF6', '#A78BFA', '#EC4899', '#00D4AA'],
   expense: ['#F59E0B', '#EF4444', '#8B5CF6', '#6366F1', '#EC4899'],
   text:  '#f4f4f5',
-  text2: '#a1a1aa',
-  text3: '#71717a',
-  muted: '#52525b',
+  text2: '#b0b0ba',
+  text3: '#8e8e99',  // contraste AA p/ texto 11-13px sobre #0B1410
+  muted: '#6e6e7a',
   grid:  'rgba(255,255,255,0.045)',
 } as const;
 
@@ -477,16 +477,21 @@ const CSS = `
   .g73 { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
   .g63 { display: grid; grid-template-columns: 1fr 300px; gap: 14px; }
   .g5cmd { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+  .gstages { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
   .divider { border: none; border-top: 1px solid var(--border-2); margin: 0; }
 
   @media(max-width:1200px) {
     .g4 { grid-template-columns: repeat(2,1fr) !important; }
     .g73, .g63 { grid-template-columns: 1fr !important; }
     .g5cmd { grid-template-columns: repeat(3,1fr) !important; }
+    .gstages { grid-template-columns: repeat(3,1fr) !important; }
   }
   @media(max-width:700px) {
     .g4,.g3,.g2,.g5cmd { grid-template-columns: 1fr !important; }
+    .gstages { grid-template-columns: repeat(2,1fr) !important; }
     .metric-huge { font-size: 38px !important; }
+    .hero-card { padding: 22px 18px; }
+    .card { padding: 16px; }
   }
 `;
 
@@ -848,9 +853,9 @@ function PipelineStagesCard({ data, loading }: { data: DashData | null; loading:
         <Link href="/leads" className="cta-link" style={{ fontSize: 11 }}>Ver todos <ArrowRight size={10} /></Link>
       </div>
       {loading
-        ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>{[0, 1, 2, 3, 4].map(i => <Skel key={i} h={104} r={12} />)}</div>
+        ? <div className="gstages">{[0, 1, 2, 3, 4].map(i => <Skel key={i} h={104} r={12} />)}</div>
         : data && (
-          <motion.div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }} variants={stagger5} initial="hidden" whileInView="show" viewport={{ once: true }}>
+          <motion.div className="gstages" variants={stagger5} initial="hidden" whileInView="show" viewport={{ once: true }}>
             {[
               { lbl: 'Leads', n: data.funnel.lead, c: C.funnel[0], next: data.funnel.contacted },
               { lbl: 'Em Contato', n: data.funnel.contacted, c: C.funnel[1], next: data.funnel.qualified },
@@ -863,7 +868,7 @@ function PipelineStagesCard({ data, loading }: { data: DashData | null; loading:
                 <motion.div key={s.lbl} className="stage-card" variants={popVariants} whileHover={{ y: -3, scale: 1.03, borderColor: `${s.c}55`, transition: { type: 'spring', stiffness: 380, damping: 22 } }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                     <motion.div style={{ width: 8, height: 8, borderRadius: '50%', background: s.c, boxShadow: `0 0 8px ${s.c}` }} animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }} />
-                    <span className="label" style={{ fontSize: 9 }}>{s.lbl}</span>
+                    <span className="label" style={{ fontSize: 10 }}>{s.lbl}</span>
                   </div>
                   <SpringMetric value={s.n} className="num" style={{ fontSize: 28, fontWeight: 800, color: s.c, lineHeight: 1 } as React.CSSProperties} stiffness={80} damping={16} />
                   {conv !== null
@@ -1004,9 +1009,9 @@ function InvestIQCard({ investiq, loading }: { investiq: InvestIQPortfolioSummar
       {loading
         ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>{[0, 1, 2].map(i => <Skel key={i} h={84} r={12} />)}</div>
         : !configured
-          ? <div style={{ height: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted }}>
+          ? <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted }}>
               <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}><BarChart3 size={28} /></motion.div>
-              <div className="sub">Integração InvestIQ pendente — dados indisponíveis</div>
+              <div className="sub">Integração InvestIQ pendente: dados indisponíveis</div>
               <div className="sub" style={{ fontSize: 10 }}>Configure a chave de integração na API para ver a carteira aqui.</div>
             </div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -1076,9 +1081,9 @@ function AdsCard({ ads, loading }: { ads: AdsData | null; loading: boolean }) {
       {loading
         ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>{[0, 1, 2].map(i => <Skel key={i} h={84} r={12} />)}</div>
         : !configured
-          ? <div style={{ height: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted }}>
+          ? <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted }}>
               <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}><Megaphone size={28} /></motion.div>
-              <div className="sub">Integração Ads pendente — dados indisponíveis</div>
+              <div className="sub">Integração Ads pendente: dados indisponíveis</div>
               <Link href="/ads" className="cta-link">Conectar conta Meta →</Link>
             </div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -1126,7 +1131,7 @@ function AdsCard({ ads, loading }: { ads: AdsData | null; loading: boolean }) {
                   </div>
                 </>
               ) : (
-                <div className="sub" style={{ textAlign: 'center', padding: '14px 0' }}>Sem veiculação no período — nenhuma métrica para exibir.</div>
+                <div className="sub" style={{ textAlign: 'center', padding: '14px 0' }}>Sem veiculação no período: nenhuma métrica para exibir.</div>
               )}
             </div>}
     </motion.div>
@@ -1203,7 +1208,7 @@ function HealthBlock({ metrics, score, mounted, loading }: { metrics: { k: strin
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Gauge size={15} style={{ color: C.primary }} />Saúde do Negócio</div>
             <div className="sub" style={{ marginTop: 2 }}>6 dimensões · 0–100 (dados reais normalizados)</div>
           </div>
-          <span className="badge" style={{ background: `${scoreColor}1e`, color: scoreColor }}><Activity size={10} /> {scoreLabel}</span>
+          {!loading && <span className="badge" style={{ background: `${scoreColor}1e`, color: scoreColor }}><Activity size={10} /> {scoreLabel}</span>}
         </div>
         {!mounted || loading ? <Skel h={300} r={10} /> : <ApexChart {...radarConfig(metrics)} />}
       </motion.div>

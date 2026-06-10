@@ -5,12 +5,12 @@ import {
   Activity, BarChart2, Bell, Bot, Briefcase, Bug, Calendar,
   ChevronRight, CreditCard, DollarSign, FileText, Globe,
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
-  Mail, Megaphone, MessageSquare, Package, Plus, Search,
+  Mail, Megaphone, Menu, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
   Wallet, Zap, Cpu, Newspaper
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type NavChild = { label: string; href: string; badge?: string };
 type NavItem = { icon: React.ElementType; label: string; href?: string; children?: NavChild[]; badge?: string };
@@ -219,6 +219,36 @@ const SHELL_CSS = `
   }
   @keyframes sh-pulse { 0%,100%{opacity:1}50%{opacity:.5} }
   .sh-live { animation: sh-pulse 2s infinite; }
+  .sh-menu-btn {
+    display: none; background: none; border: none; cursor: pointer;
+    color: #9CA3AF; padding: 8px; margin-left: -8px; border-radius: 9px;
+    align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .sh-menu-btn:hover { background: rgba(255,255,255,0.06); color: #F9FAFB; }
+  .sh-backdrop { display: none; }
+  @media (max-width: 900px) {
+    .sh-sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0; z-index: 300;
+      transform: translateX(-100%); transition: transform .22s ease-out;
+      box-shadow: 0 0 60px rgba(0,0,0,.6);
+    }
+    .sh-sidebar.open { transform: translateX(0); }
+    .sh-backdrop {
+      display: block; position: fixed; inset: 0; z-index: 250;
+      background: rgba(0,0,0,0.55);
+      opacity: 0; pointer-events: none; transition: opacity .22s;
+    }
+    .sh-backdrop.open { opacity: 1; pointer-events: auto; }
+    .sh-menu-btn { display: inline-flex; }
+    .sh-item { padding: 10px 12px; }
+    .sh-topbar { padding: 0 14px; gap: 10px; }
+    .sh-search { max-width: none; }
+    .sh-search .sh-kbd { display: none; }
+    .sh-inner { padding: 16px 14px 36px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sh-sidebar, .sh-backdrop { transition: none; }
+  }
 `;
 
 function NavItemEl({ item, pathname }: { item: NavItem; pathname: string }) {
@@ -267,6 +297,10 @@ function NavItemEl({ item, pathname }: { item: NavItem; pathname: string }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // fecha o drawer ao navegar
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r));
   if (isPublic) return <>{children}</>;
@@ -279,8 +313,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <style>{SHELL_CSS}</style>
       <div className="sh-wrap">
+        <div className={`sh-backdrop ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
         {/* Sidebar */}
-        <nav className="sh-sidebar">
+        <nav className={`sh-sidebar ${menuOpen ? 'open' : ''}`}>
           <div className="sh-logo">
             <div className="sh-logo-icon">D</div>
             <div>
@@ -316,10 +351,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="sh-main">
           {/* Topbar */}
           <div className="sh-topbar">
+            <button className="sh-menu-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Abrir menu" aria-expanded={menuOpen}>
+              <Menu size={19} />
+            </button>
             <div className="sh-search">
               <Search size={13} />
               <span>Buscar…</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, opacity: .4 }}>⌘K</span>
+              <span className="sh-kbd" style={{ marginLeft: 'auto', fontSize: 11, opacity: .4 }}>⌘K</span>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
               <a href="/leads/" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 9, background: '#10B981', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
