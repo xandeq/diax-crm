@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight,
   Baby, BarChart3, CheckCircle, CreditCard, DollarSign, Gauge, Home, Landmark, LayoutGrid,
-  Mail, Plane, PiggyBank, RefreshCw, Repeat, ShieldAlert, Sparkles,
+  Mail, Megaphone, Plane, PiggyBank, RefreshCw, Repeat, ShieldAlert, Sparkles,
   Target, TrendingDown, TrendingUp, Users, Wallet, Zap,
 } from 'lucide-react';
 
@@ -22,6 +22,8 @@ import { getLeads, CustomerStatus as LeadStatus } from '@/services/leads';
 import { agendaService } from '@/services/agenda';
 import { plannerService } from '@/services/plannerService';
 import { investiqService, InvestIQPortfolioSummary } from '@/services/personalControlService';
+import { getAdAccountSummary, getInsights } from '@/services/ads';
+import type { AdAccountSummary, FacebookInsight } from '@/types/ads';
 import { FinancialGoal, GoalCategory, MonthlySimulation } from '@/types/planner';
 import { apiFetch } from '@/services/api';
 
@@ -101,7 +103,9 @@ interface DashData {
   agenda: { time: string; title: string }[];
   goals: FinancialGoal[]; simulation: MonthlySimulation | null;
   investiq: InvestIQPortfolioSummary | null;
+  ads: AdsData | null;
 }
+interface AdsData { summary: AdAccountSummary; insights: FacebookInsight[]; period: string; }
 type Tab = 'overview' | 'pipeline' | 'finance';
 
 /* ── goal category visual meta ──────────────────────────────────── */
@@ -1044,6 +1048,91 @@ function InvestIQCard({ investiq, loading }: { investiq: InvestIQPortfolioSummar
   );
 }
 
+/* ── Meta Ads card (real /ads/summary + /ads/insights, somente leitura) ── */
+function AdsCard({ ads, loading }: { ads: AdsData | null; loading: boolean }) {
+  const configured = !!ads;
+  const n = (s: string | null | undefined) => { const v = parseFloat(s ?? '0'); return Number.isFinite(v) ? v : 0; };
+  const rows = configured ? ads!.insights : [];
+  const spend = rows.reduce((a, r) => a + n(r.spend), 0);
+  const impressions = rows.reduce((a, r) => a + n(r.impressions), 0);
+  const clicks = rows.reduce((a, r) => a + n(r.clicks), 0);
+  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  const cpc = clicks > 0 ? spend / clicks : 0;
+  const leads = rows.reduce((a, r) => a + (r.actions ?? []).filter(x => x.actionType.includes('lead')).reduce((s, x) => s + n(x.value), 0), 0);
+  const topCampaigns = [...rows].sort((a, b) => n(b.spend) - n(a.spend)).slice(0, 3);
+  return (
+    <motion.div className="card" whileHover={cardHover} whileTap={cardTap}>
+      <div className="card-h" style={{ alignItems: 'center' }}>
+        <div>
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Megaphone size={15} style={{ color: C.info }} />Anúncios — Meta Ads
+          </div>
+          <div className="sub" style={{ marginTop: 2 }}>
+            {configured ? `${ads!.summary.account.accountName} · ${ads!.summary.activeCampaigns}/${ads!.summary.totalCampaigns} campanhas ativas · ${ads!.period}` : 'Integração com a Meta Graph API'}
+          </div>
+        </div>
+        {configured && <Link href="/ads" className="cta-link" style={{ fontSize: 11 }}>Gerenciar <ArrowRight size={10} /></Link>}
+      </div>
+      {loading
+        ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>{[0, 1, 2].map(i => <Skel key={i} h={84} r={12} />)}</div>
+        : !configured
+          ? <div style={{ height: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: C.muted }}>
+              <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}><Megaphone size={28} /></motion.div>
+              <div className="sub">Integração Ads pendente — dados indisponíveis</div>
+              <Link href="/ads" className="cta-link">Conectar conta Meta →</Link>
+            </div>
+          : <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 14 }}>
+                <div>
+                  <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><DollarSign size={12} style={{ color: C.warn }} />Gasto</div>
+                  <SpringMetric value={spend} prefix="R$ " className="metric-md num" style={{ color: C.warn } as React.CSSProperties} />
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>Impressões</div>
+                  <SpringMetric value={impressions} className="metric-md num" style={{ color: C.info } as React.CSSProperties} />
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>Cliques</div>
+                  <SpringMetric value={clicks} className="metric-md num" style={{ color: C.text } as React.CSSProperties} />
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>CTR</div>
+                  <div className="metric-md num" style={{ color: ctr >= 1 ? C.success : C.text2 }}>{ctr.toFixed(2)}%</div>
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 4 }}>CPC</div>
+                  <div className="metric-md num" style={{ color: C.text2 }}>R$ {cpc.toFixed(2)}</div>
+                </div>
+                {leads > 0 && (
+                  <div>
+                    <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><Users size={12} style={{ color: C.primary }} />Leads</div>
+                    <SpringMetric value={leads} className="metric-md num" style={{ color: C.primary } as React.CSSProperties} />
+                  </div>
+                )}
+              </div>
+              {topCampaigns.length > 0 ? (
+                <>
+                  <hr className="divider" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {topCampaigns.map((r, i) => (
+                      <motion.div key={r.campaignId} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.4, ease: EASE_OUT }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                          <span className="label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{r.campaignName ?? r.campaignId}</span>
+                          <span className="num" style={{ fontSize: 12, fontWeight: 700, color: C.text2 }}>{S(n(r.spend))} <span style={{ color: C.muted }}>· {n(r.clicks).toLocaleString('pt-BR')} cliques</span></span>
+                        </div>
+                        <AnimatedBar pct={spend > 0 ? (n(r.spend) / spend) * 100 : 0} color={C.funnel[i % C.funnel.length]} h={5} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="sub" style={{ textAlign: 'center', padding: '14px 0' }}>Sem veiculação no período — nenhuma métrica para exibir.</div>
+              )}
+            </div>}
+    </motion.div>
+  );
+}
+
 /* ── Cash-flow forecast card (real /planner/simulations) ────────── */
 function CashFlowForecastCard({ sim, mounted, loading }: { sim: MonthlySimulation | null; mounted: boolean; loading: boolean }) {
   const hasData = sim && sim.dailyBalances?.length;
@@ -1194,7 +1283,20 @@ export default function DashboardPage() {
         getLeads({ page: 1, pageSize: 1, status: LeadStatus.Customer }),
       ]);
 
-      const [emailRes, agendaRes, goalsRes, simRes, investiqRes] = await Promise.allSettled([
+      const loadAds = async (): Promise<AdsData | null> => {
+        try {
+          const summary = await getAdAccountSummary(); // 404 quando não há conta Meta conectada
+          let period = 'últimos 30 dias';
+          let insights = await getInsights({ datePreset: 'last_30d', level: 'campaign' }).catch(() => [] as FacebookInsight[]);
+          if (!insights.length) {
+            insights = await getInsights({ datePreset: 'maximum', level: 'campaign' }).catch(() => [] as FacebookInsight[]);
+            if (insights.length) period = 'histórico total';
+          }
+          return { summary, insights, period };
+        } catch { return null; }
+      };
+
+      const [emailRes, agendaRes, goalsRes, simRes, investiqRes, adsRes] = await Promise.allSettled([
         apiFetch<{ overallStats: EmailStats }>('/email-campaigns/analytics?days=30').catch(() => null),
         agendaService.getByDateRange(
           new Date(yr, mo - 1, now.getDate()).toISOString(),
@@ -1203,6 +1305,7 @@ export default function DashboardPage() {
         plannerService.getActiveFinancialGoals().catch(() => [] as FinancialGoal[]),
         plannerService.getOrGenerateSimulation(yr, mo).catch(() => null),
         investiqService.getPortfolioSummary(),
+        loadAds(),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1241,8 +1344,9 @@ export default function DashboardPage() {
       const goals = (get(goalsRes) as FinancialGoal[] | null) ?? [];
       const simulation = get(simRes) as MonthlySimulation | null;
       const investiq = get(investiqRes) as InvestIQPortfolioSummary | null;
+      const ads = get(adsRes) as AdsData | null;
 
-      setData({ funnel, curr: currMonth, prev: prevMonth1, trend, email: emailData?.overallStats ?? null, expenses, agenda, goals, simulation, investiq });
+      setData({ funnel, curr: currMonth, prev: prevMonth1, trend, email: emailData?.overallStats ?? null, expenses, agenda, goals, simulation, investiq, ads });
       setUpdated(new Date());
     } catch (e) { console.error('[dash]', e); }
     finally { setLoading(false); }
@@ -1383,7 +1487,7 @@ export default function DashboardPage() {
               <Section><CashFlowForecastCard sim={data?.simulation ?? null} mounted={mounted} loading={loading} /></Section>
               <Section><div className="g73"><TrendCard data={data} mounted={mounted} loading={loading} revMoM={revMoM} /><FinanceBreakdownCard summary={cs} loading={loading} /></div></Section>
               <Section><div className="g2"><ExpenseCard data={data} mounted={mounted} loading={loading} expenses={expenses} cashFlow={cashFlow} donut /><GoalsCard goals={data?.goals ?? []} loading={loading} /></div></Section>
-              <Section><InvestIQCard investiq={data?.investiq ?? null} loading={loading} /></Section>
+              <Section><div className="g2"><InvestIQCard investiq={data?.investiq ?? null} loading={loading} /><AdsCard ads={data?.ads ?? null} loading={loading} /></div></Section>
             </motion.div>
           )}
         </AnimatePresence>
