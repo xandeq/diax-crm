@@ -11,27 +11,23 @@ interface Props {
 
 /**
  * Renderiza o briefing conforme o formato:
- * - html: conteúdo de email (tables + inline styles, geralmente dark) via dangerouslySetInnerHTML
- * - markdown: ReactMarkdown + GFM dentro de prose
- * Conteúdo é first-party (gerado pelos nossos agentes).
+ * - html: email (tables + inline styles, fundo proprio escuro) via dangerouslySetInnerHTML, centralizado
+ * - markdown: ReactMarkdown + GFM com tipografia clara para fundo escuro (.briefing-md, definida no client)
+ * Conteudo e first-party (gerado pelos nossos agentes).
  */
 export function BriefingContent({ content, format }: Props) {
   if (format === 'markdown') {
     return (
-      <div className="prose prose-sm prose-slate max-w-none px-1">
+      <div className="briefing-md">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
       </div>
     );
   }
 
-  // HTML de email: largura ~620px, fundo próprio escuro. Centraliza e permite scroll horizontal.
+  // HTML de email: largura ~640px, fundo proprio. Centraliza e arredonda.
   return (
-    <div className="w-full overflow-x-auto">
-      <div
-        className="mx-auto"
-        style={{ maxWidth: 640 }}
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
+    <div className="briefing-html">
+      <div dangerouslySetInnerHTML={{ __html: content }} />
     </div>
   );
 }

@@ -26,11 +26,14 @@ test.describe('Daily Briefings — area nova', () => {
     // Título da área
     await expect(page.locator('text=Daily Briefings').first()).toBeVisible({ timeout: 10000 });
 
-    // Cards do dia (há briefings inseridos hoje) — clica no primeiro e abre o dialog
-    const firstCard = page.locator('button:has-text("Briefing"), button:has-text("Tarefas")').first();
+    // Cards do dia (há briefings inseridos hoje) — clica no primeiro e abre a view de detalhe (botão Voltar)
+    const firstCard = page.locator('.db-card').first();
     if (await firstCard.isVisible({ timeout: 8000 }).catch(() => false)) {
       await firstCard.click();
-      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
+      await expect(page.getByRole('button', { name: /Voltar/i }).first()).toBeVisible({ timeout: 10000 });
+      // Volta para a lista
+      await page.getByRole('button', { name: /Voltar/i }).first().click();
+      await expect(page.locator('.db-card').first()).toBeVisible({ timeout: 10000 });
     }
 
     expect(jsErrors.filter(e => !e.includes('ResizeObserver'))).toHaveLength(0);
