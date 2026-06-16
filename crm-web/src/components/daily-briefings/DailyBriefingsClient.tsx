@@ -5,16 +5,29 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Newspaper, Clock, RefreshCw, ArrowRight, ArrowLeft, Trash2,
-  Sparkles, Code2, ListChecks, Calendar,
+  Sparkles, Code2, ListChecks, Calendar, TrendingUp, BarChart2, Activity, Bot,
 } from 'lucide-react';
 import { dailyBriefingsService } from '@/services/dailyBriefingsService';
 import { BriefingContent } from './BriefingContent';
 
 /* ── visual por fonte (icone + cor) ───────────────────────────── */
 const SOURCE_VISUAL: Record<string, { label: string; icon: typeof Sparkles; color: string }> = {
-  'claude-ai':      { label: 'Claude AI',           icon: Sparkles,   color: '#60a5fa' },
-  'codex-chatgpt':  { label: 'Codex / ChatGPT',     icon: Code2,      color: '#34d399' },
-  'tarefas-ias':    { label: 'Tarefas para as IAs', icon: ListChecks, color: '#fbbf24' },
+  // ── IA Briefings (routines remotas) ──
+  'ia-anthropic':    { label: 'IA — Anthropic & MCP',         icon: Sparkles,    color: '#60a5fa' },
+  'ia-openai':       { label: 'IA — OpenAI & Codex',          icon: Code2,       color: '#34d399' },
+  // ── CRM Operador ──
+  'crm-tarefas':     { label: 'CRM — Tarefas & Finanças',     icon: ListChecks,  color: '#fbbf24' },
+  // ── InvestIQ ──
+  'investiq-manha':  { label: 'InvestIQ — Análise de Mercado',icon: TrendingUp,  color: '#a78bfa' },
+  'investiq-tarde':  { label: 'InvestIQ — Resumo do Dia',     icon: BarChart2,   color: '#818cf8' },
+  // ── Trends ──
+  'trends-semanal':  { label: 'Trends — Momentum Semanal',    icon: Activity,    color: '#fb923c' },
+  // ── Sessão ──
+  'briefing-sessao': { label: 'Briefing — Sessão do Dia',     icon: Bot,         color: '#2dd4bf' },
+  // ── Legado (backwards compat) ──
+  'claude-ai':       { label: 'IA — Anthropic & MCP',         icon: Sparkles,    color: '#60a5fa' },
+  'codex-chatgpt':   { label: 'IA — OpenAI & Codex',          icon: Code2,       color: '#34d399' },
+  'tarefas-ias':     { label: 'CRM — Tarefas & Finanças',     icon: ListChecks,  color: '#fbbf24' },
 };
 function visual(source: string) {
   return SOURCE_VISUAL[source] ?? { label: source, icon: Newspaper, color: '#00D4AA' };
