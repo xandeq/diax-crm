@@ -19,7 +19,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
     page.on('pageerror', err => jsErrors.push(err.message));
 
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
     // ResizeObserver + ApexCharts internal re-render noise são benignos (não quebram a página)
     expect(jsErrors.filter(e => !e.includes('ResizeObserver') && !e.includes("reading 'node'"))).toHaveLength(0);
@@ -28,7 +28,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
 
   test('hero card — metrica de receita visivel', async ({ page }) => {
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
     // Hero card must exist (teal border = hero-card class)
     const heroCard = page.locator('.hero-card').first();
@@ -45,7 +45,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
 
   test('command center — 5 perguntas renderizadas', async ({ page }) => {
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
     // Command center has 5 question cards
     const cmdCards = page.locator('text=O que funciona?').or(
@@ -56,7 +56,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
 
   test('KPI cards — 4 cards com sparklines visíveis', async ({ page }) => {
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
     // Check KPI labels exist
     const labels = ['RECEITA DO MÊS', 'TOTAL DESPESAS', 'LEADS NO FUNIL', 'ABERTURA EMAIL'];
@@ -77,14 +77,14 @@ test.describe('Dashboard Premium — Wave QA', () => {
     });
 
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
     expect(failedRequests).toHaveLength(0);
   });
 
   test('navegação — link "Ver leads" funciona no funnel', async ({ page }) => {
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
     const leadsLink = page.locator('a[href*="/leads"]').first();
     if (await leadsLink.isVisible({ timeout: 8000 })) {
@@ -97,7 +97,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
 
   test('feature: tabs navegáveis (slider) — Pipeline e Financeiro', async ({ page }) => {
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
     await page.getByRole('tab', { name: 'Pipeline' }).click();
     await expect(page.locator('text=Gargalo no Funil').first()).toBeVisible({ timeout: 10000 });
@@ -113,7 +113,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
     const jsErrors: string[] = [];
     page.on('pageerror', e => jsErrors.push(e.message));
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
     await expect(page.locator('text=Saúde do Negócio').first()).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=Visão do Score').first()).toBeVisible({ timeout: 10000 });
     expect(jsErrors.filter(e => !e.includes('ResizeObserver') && !e.includes("reading 'node'"))).toHaveLength(0);
@@ -124,7 +124,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
     page.on('response', r => { if (r.status() >= 500 && !r.url().includes('investiq')) serverErrors.push(`${r.status()} ${r.url()}`); });
 
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
     await page.getByRole('tab', { name: 'Financeiro' }).click();
 
     // Forecast card sempre presente (gráfico ou empty state)

@@ -21,7 +21,7 @@ test.describe('Daily Briefings — area nova', () => {
     page.on('response', r => { if (r.status() >= 500) serverErrors.push(`${r.status()} ${r.url()}`); });
 
     await page.goto('/daily-briefings/');
-    await page.waitForLoadState('networkidle', { timeout: 30000 });
+    await page.locator('.db-card').first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
 
     // Título da área
     await expect(page.locator('text=Daily Briefings').first()).toBeVisible({ timeout: 10000 });
@@ -43,7 +43,7 @@ test.describe('Daily Briefings — area nova', () => {
 
   test('link no header navega para a área', async ({ page }) => {
     await page.goto('/dashboard/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 20000 });
     const navLink = page.locator('a[href*="/daily-briefings"]').first();
     await expect(navLink).toBeVisible({ timeout: 10000 });
     await navLink.click();
