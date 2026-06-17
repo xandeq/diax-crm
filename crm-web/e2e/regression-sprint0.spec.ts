@@ -81,7 +81,6 @@ test.describe('Regression Sprint 0 — Unified finance routes', () => {
 
         await expect(
             page.getByRole('heading', { name: /transações/i }).first()
-                .or(page.getByText(/transações/i).first())
         ).toBeVisible({ timeout: 10000 });
     });
 

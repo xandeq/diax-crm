@@ -86,7 +86,7 @@ test.describe('Dashboard Premium — Wave QA', () => {
     await page.goto('/dashboard/');
     await page.waitForLoadState('networkidle', { timeout: 30000 });
 
-    const leadsLink = page.locator('a[href="/leads"]').first();
+    const leadsLink = page.locator('a[href*="/leads"]').first();
     if (await leadsLink.isVisible({ timeout: 8000 })) {
       await leadsLink.click();
       await expect(page).toHaveURL(/leads/, { timeout: 10000 });

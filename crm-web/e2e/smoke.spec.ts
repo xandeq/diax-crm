@@ -92,7 +92,7 @@ test.describe('Regression — Apps Inventory', () => {
     await page.goto('/dashboard/');
 
     // AppShell sidebar uses sh-nav class
-    const inventarioLink = page.locator('.sh-nav a[href="/tools/apps-inventory"]');
+    const inventarioLink = page.locator('.sh-nav a[href*="/tools/apps-inventory"]');
     await expect(inventarioLink).toBeVisible();
     await inventarioLink.click();
     await expect(page).toHaveURL(/tools\/apps-inventory/);

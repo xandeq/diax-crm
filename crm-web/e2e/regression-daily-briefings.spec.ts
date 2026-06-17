@@ -44,7 +44,7 @@ test.describe('Daily Briefings — area nova', () => {
   test('link no header navega para a área', async ({ page }) => {
     await page.goto('/dashboard/');
     await page.waitForLoadState('networkidle', { timeout: 30000 });
-    const navLink = page.locator('a[href="/daily-briefings"]').first();
+    const navLink = page.locator('a[href*="/daily-briefings"]').first();
     await expect(navLink).toBeVisible({ timeout: 10000 });
     await navLink.click();
     await expect(page).toHaveURL(/daily-briefings/, { timeout: 10000 });
