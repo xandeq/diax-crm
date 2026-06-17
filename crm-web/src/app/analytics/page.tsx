@@ -335,7 +335,7 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody>
                     {recentCampaigns.map((campaign) => (
-                      <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/campaigns?id=${campaign.id}`)}>
+                      <tr key={campaign.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/campanhas/${campaign.id}`)}>
                         <td className="py-3 px-4">
                           <div>
                             <div className="font-medium text-sm">{campaign.name}</div>

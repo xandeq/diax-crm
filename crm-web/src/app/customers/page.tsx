@@ -277,9 +277,9 @@ export default function CustomersPage() {
           <div className="flex items-center gap-3">
             <Avatar name={row.name} />
             <div className="min-w-0">
-              <p className="font-medium text-slate-900 truncate">{row.name}</p>
+              <p className="font-medium text-zinc-100 truncate">{row.name}</p>
               {row.document && (
-                <p className="text-xs text-slate-500 truncate">{row.document}</p>
+                <p className="text-xs text-zinc-400 truncate">{row.document}</p>
               )}
             </div>
           </div>
@@ -290,8 +290,8 @@ export default function CustomersPage() {
         header: 'Email',
         sortable: true,
         cell: (row) => (
-          <span className="text-sm text-slate-600 truncate block max-w-[220px]">
-            {row.email || <span className="text-slate-400 italic">Sem email</span>}
+          <span className="text-sm text-zinc-300 truncate block max-w-[220px]">
+            {row.email || <span className="text-zinc-500 italic">Sem email</span>}
           </span>
         ),
       },
@@ -300,10 +300,10 @@ export default function CustomersPage() {
         header: 'Telefone',
         cell: (row) => (
           <div>
-            <span className="text-sm text-slate-600">{normalizePhoneBR(row.phone) || '–'}</span>
+            <span className="text-sm text-zinc-300">{normalizePhoneBR(row.phone) || '–'}</span>
             {row.whatsApp && (
-              <span className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
-                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full" />
+              <span className="text-xs text-emerald-400 flex items-center gap-1 mt-0.5">
+                <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                 WA: {normalizePhoneBR(row.whatsApp)}
               </span>
             )}
@@ -315,7 +315,7 @@ export default function CustomersPage() {
         header: 'Empresa',
         sortable: true,
         cell: (row) => (
-          <span className="text-sm text-slate-600">
+          <span className="text-sm text-zinc-300">
             {row.companyName || '–'}
           </span>
         ),
@@ -366,7 +366,7 @@ export default function CustomersPage() {
         header: 'Criado em',
         sortable: true,
         cell: (row) => (
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-zinc-400">
             {new Date(row.createdAt).toLocaleDateString('pt-BR')}
           </span>
         ),
@@ -378,7 +378,7 @@ export default function CustomersPage() {
         cell: (row) => {
           const lastActivity = row.lastContactAt || row.lastEmailSentAt;
           if (!lastActivity) {
-            return <span className="text-sm text-slate-400">Nunca</span>;
+            return <span className="text-sm text-zinc-500">Nunca</span>;
           }
           const lastActivityDate = new Date(lastActivity);
           const now = new Date();
@@ -393,7 +393,7 @@ export default function CustomersPage() {
 
           return (
             <div className="text-sm" title={lastActivityDate.toLocaleString('pt-BR')}>
-              <span className="text-slate-600">📧 {displayText}</span>
+              <span className="text-zinc-300">📧 {displayText}</span>
             </div>
           );
         },
@@ -407,7 +407,7 @@ export default function CustomersPage() {
           <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => handleOpenEdit(row)}
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-700 transition-colors"
+              className="p-1.5 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 transition-colors"
               title="Editar"
             >
               <Edit2 className="h-4 w-4" />
@@ -415,28 +415,28 @@ export default function CustomersPage() {
             <button
               onClick={() => handleWhatsApp(row)}
               disabled={!row.phone && !row.whatsApp}
-              className="p-1.5 hover:bg-green-50 rounded-lg text-green-600 hover:text-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 hover:bg-emerald-500/10 rounded-lg text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="Enviar WhatsApp"
             >
               <MessageCircle className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleEmail(row)}
-              className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 hover:text-blue-700 transition-colors"
+              className="p-1.5 hover:bg-blue-500/10 rounded-lg text-blue-400 hover:text-blue-300 transition-colors"
               title="Enviar Email"
             >
               <Mail className="h-4 w-4" />
             </button>
             <button
               onClick={() => setTimelineCustomer(row)}
-              className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-600 hover:text-indigo-700 transition-colors"
+              className="p-1.5 hover:bg-indigo-500/10 rounded-lg text-indigo-400 hover:text-indigo-300 transition-colors"
               title="Histórico"
             >
               <Activity className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(row.id)}
-              className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 hover:text-red-700 transition-colors"
+              className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 transition-colors"
               title="Excluir"
             >
               <Trash2 className="h-4 w-4" />
@@ -455,16 +455,16 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-display text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight font-display text-zinc-100">
             Clientes
           </h1>
-          <p className="text-slate-500">Gerencie sua base de clientes.</p>
+          <p className="text-zinc-400">Gerencie sua base de clientes.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={handleExport} className="border-white/10 text-zinc-300 hover:bg-white/5">
             <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
-          <Button onClick={handleOpenCreate}>
+          <Button onClick={handleOpenCreate} className="bg-[#00D4AA] hover:bg-[#00B894] text-[#0B1410] font-semibold">
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
           </Button>
         </div>
@@ -474,10 +474,10 @@ export default function CustomersPage() {
       <div className="space-y-3">
         <div className="flex gap-3 items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <Input
               placeholder="Buscar por nome, email ou documento..."
-              className="pl-10 h-10"
+              className="pl-10 h-10 border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-[#00D4AA]"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -485,12 +485,16 @@ export default function CustomersPage() {
           <Button
             variant="outline"
             onClick={() => setShowAdvancedFilters((v) => !v)}
-            className={`shrink-0 ${advancedFilterCount > 0 ? 'border-slate-900 text-slate-900' : ''}`}
+            className={`shrink-0 transition-colors ${
+              advancedFilterCount > 0 
+                ? 'border-[#00D4AA] text-[#00D4AA] bg-[#00D4AA]/5 hover:bg-[#00D4AA]/10' 
+                : 'border-white/10 text-zinc-300 hover:bg-white/5'
+            }`}
           >
             <Filter className="h-4 w-4 mr-1.5" />
             Filtros
             {advancedFilterCount > 0 && (
-              <span className="ml-1.5 bg-slate-900 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="ml-1.5 bg-[#00D4AA] text-[#0B1410] text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center">
                 {advancedFilterCount}
               </span>
             )}
@@ -504,7 +508,7 @@ export default function CustomersPage() {
             <Button
               variant="ghost"
               onClick={clearFilters}
-              className="text-slate-500 hover:text-slate-700 shrink-0"
+              className="text-zinc-400 hover:text-zinc-200 shrink-0 hover:bg-white/5"
             >
               <X className="h-4 w-4 mr-1.5" />
               Limpar
@@ -526,11 +530,11 @@ export default function CustomersPage() {
 
         {/* Advanced Filters Panel */}
         {showAdvancedFilters && (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="bg-white/[0.02] border border-white/10 rounded-lg p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Has Email */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Possui Email</label>
+                <label className="text-sm font-medium text-zinc-300">Possui Email</label>
                 <div className="flex gap-2">
                   <FilterChip
                     label="Qualquer"
@@ -552,7 +556,7 @@ export default function CustomersPage() {
 
               {/* Has WhatsApp */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Possui WhatsApp</label>
+                <label className="text-sm font-medium text-zinc-300">Possui WhatsApp</label>
                 <div className="flex gap-2">
                   <FilterChip
                     label="Qualquer"
@@ -574,7 +578,7 @@ export default function CustomersPage() {
 
               {/* Person Type */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Tipo Pessoa</label>
+                <label className="text-sm font-medium text-zinc-300">Tipo Pessoa</label>
                 <div className="flex gap-2">
                   <FilterChip
                     label="Todos"
@@ -596,10 +600,10 @@ export default function CustomersPage() {
             </div>
 
             {/* Origem + Segmento filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
               {/* Origem */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Origem</label>
+                <label className="text-sm font-medium text-zinc-300">Origem</label>
                 <div className="flex gap-2 flex-wrap">
                   {SOURCE_FILTER_OPTIONS.map((opt) => (
                     <FilterChip
@@ -614,7 +618,7 @@ export default function CustomersPage() {
 
               {/* Segmento */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Segmento</label>
+                <label className="text-sm font-medium text-zinc-300">Segmento</label>
                 <div className="flex gap-2 flex-wrap">
                   {SEGMENT_FILTER_OPTIONS.map((opt) => (
                     <FilterChip
@@ -712,10 +716,10 @@ export default function CustomersPage() {
                 <div className="flex items-center gap-3 mt-3">
                   <Avatar name={timelineCustomer.name} size="sm" />
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-zinc-100">
                       {timelineCustomer.name}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-zinc-400">
                       {timelineCustomer.email || timelineCustomer.companyName || ''}
                     </p>
                   </div>

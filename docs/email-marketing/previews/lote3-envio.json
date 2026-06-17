@@ -1,0 +1,12 @@
+{
+  "queued_at": "2026-06-17 06:43:35 -03",
+  "response_status": 200,
+  "response": "{\"campaignId\":\"7c003aad-0811-4fcc-9118-e0b6780edc1d\",\"requestedCount\":20,\"queuedCount\":20,\"skippedCount\":0,\"effectiveScheduledAt\":\"2026-06-17T09:43:36.0776511Z\",\"skippedRecipients\":[]}",
+  "distribution": {
+    "Brevo": 5,
+    "Mailjet": 5,
+    "Resend": 5,
+    "SendGrid": 5
+  },
+  "leads": 20
+}

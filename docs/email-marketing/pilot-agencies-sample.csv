@@ -1,0 +1,11 @@
+nome,empresa,email,site,cidade,ferramenta_atual,dor_principal,origem,validation_status,consent_status,tags
+Carlos Drummond,Agência Poesia,carlos@agenciapoesia.com.br,agenciapoesia.com.br,Itabira,Pipedrive,Falta de integração com o WhatsApp,Import,valido,consentido,pilot_candidate
+Clarice Lispector,Agência Estrela,clarice@agenciaestrela.com.br,agenciaestrela.com.br,Recife,RD Station,Perda de tempo com cobranças manuais,Import,valido,consentido,pilot_candidate
+Machado Assis,Dom Casmurro Mkt,machado@domcasmurromkt.com.br,domcasmurromkt.com.br,Rio de Janeiro,Planilhas,Falta de integração com o WhatsApp,Import,valido,consentido,pilot_candidate
+Guimarães Rosa,Veredas Digital,rosa@veredasdigital.com.br,veredasdigital.com.br,Cordisburgo,Notion,Falta de integração com o WhatsApp,Import,valido,consentido,pilot_candidate
+Cecília Meireles,Agência Viagem,cecilia@agenciaviagem.com.br,agenciaviagem.com.br,Rio de Janeiro,Pipedrive,Perda de tempo com cobranças manuais,Import,valido,consentido,pilot_candidate
+Erico Verissimo,Tempo e o Vento,erico@tempoeovento.com.br,tempoeovento.com.br,Cruz Alta,Planilhas,Falta de integração com o WhatsApp,Import,valido,consentido,pilot_candidate
+Rachel Queiroz,Quinze Mídia,rachel@quinzemidia.com.br,quinzemidia.com.br,Fortaleza,RD Station,Perda de tempo com cobranças manuais,Import,valido,consentido,pilot_candidate
+Jorge Amado,Cacau Web,jorge@cacauweb.com.br,cacauweb.com.br,Itabuna,Pipedrive,Falta de integração com o WhatsApp,Import,valido,consentido,pilot_candidate
+Manuel Bandeira,Pasárgada SEO,manuel@pasargadaseo.com.br,pasargadaseo.com.br,Recife,Notion,Perda de tempo com cobranças manuais,Import,valido,consentido,pilot_candidate
+Graciliano Ramos,Secas Social,graciliano@secassocial.com.br,secassocial.com.br,Quebrangulo,Planilhas,Falta de integração com o WhatsApp,Import,valido,consentido,pilot_candidate

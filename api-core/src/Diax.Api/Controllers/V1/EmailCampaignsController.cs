@@ -163,4 +163,13 @@ public class EmailCampaignsController : BaseApiController
         var result = await _emailMarketingService.GetAnalyticsSummaryAsync(days, cancellationToken);
         return HandleResult(result);
     }
+
+    [HttpGet("campaigns/{campaignId:guid}/pilot/status")]
+    public async Task<IActionResult> GetPilotStatus(
+        [FromRoute] Guid campaignId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _emailMarketingService.GetPilotStatusAsync(campaignId, cancellationToken);
+        return HandleResult(result);
+    }
 }

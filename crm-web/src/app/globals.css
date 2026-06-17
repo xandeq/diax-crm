@@ -77,6 +77,15 @@
   --diax-text-3:      #9CA3AF;
   --diax-text-4:      #6B7280;
 
+  /* Transitions & Shadows */
+  --diax-transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --diax-transition-normal: 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  --diax-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --diax-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --diax-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --diax-shadow-premium: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+  --diax-shadow-glow: 0 0 18px 2px rgba(16, 185, 129, 0.12);
+
   /* shadcn/ui tokens — all dark */
   --background:         oklch(0.12 0.014 155);
   --foreground:         oklch(0.985 0.002 247);
@@ -138,25 +147,44 @@
   }
 
   /* Headings — always high contrast */
-  h1, h2, h3, h4, h5, h6 { color: var(--diax-text-1); font-weight: 700; }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--diax-text-1);
+    font-weight: 700;
+    transition: color var(--diax-transition-fast);
+  }
 
   /* Paragraphs and labels default to readable secondary text */
-  p { color: var(--diax-text-2); }
+  p { color: var(--diax-text-2); transition: color var(--diax-transition-fast); }
   label { color: var(--diax-text-2); font-size: 13px; font-weight: 500; }
   small { color: var(--diax-text-3); }
 
   /* Links */
-  a { color: inherit; }
+  a {
+    color: inherit;
+    transition: color var(--diax-transition-fast), background var(--diax-transition-fast);
+  }
   a:not([class]) { color: var(--diax-green); }
+  a:not([class]):hover { color: var(--diax-green-hover); }
 
   /* Input fields — legible on dark */
   input:not([class]), textarea:not([class]), select:not([class]) {
-    background: rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.05);
     color: var(--diax-text-1);
     border: 1px solid var(--diax-border);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 8px 12px;
     font-size: 14px;
+    transition: var(--diax-transition-normal);
+  }
+  input:not([class]):hover, textarea:not([class]):hover, select:not([class]):hover {
+    border-color: var(--diax-border-2);
+    background: rgba(255,255,255,0.07);
+  }
+  input:not([class]):focus, textarea:not([class]):focus, select:not([class]):focus {
+    border-color: var(--diax-green);
+    background: rgba(255,255,255,0.09);
+    outline: none;
+    box-shadow: var(--diax-shadow-glow);
   }
   input::placeholder, textarea::placeholder {
     color: var(--diax-text-3);
@@ -165,8 +193,14 @@
 
   /* Tables */
   table { color: var(--diax-text-2); }
-  th    { color: var(--diax-text-3); font-weight: 600; font-size: 12px; }
-  td    { color: var(--diax-text-2); }
+  th    {
+    color: var(--diax-text-3);
+    font-weight: 600;
+    font-size: 12px;
+    transition: var(--diax-transition-fast);
+  }
+  td    { color: var(--diax-text-2); transition: var(--diax-transition-fast); }
+  tr    { transition: var(--diax-transition-fast); }
 
   /* HR */
   hr { border-color: var(--diax-border); }
@@ -194,8 +228,27 @@
     border: 1px solid var(--diax-border);
     border-radius: 16px;
     padding: 20px;
+    transition: var(--diax-transition-normal);
+  }
+  .diax-card:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: var(--diax-shadow-md);
   }
   .diax-card-sm { padding: 14px 16px; }
+
+  /* Glass Card */
+  .glass-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: var(--diax-shadow-premium);
+    transition: var(--diax-transition-normal);
+  }
+  .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: var(--diax-shadow-premium), var(--diax-shadow-glow);
+  }
 
   /* Page header */
   .diax-page-header {
@@ -597,3 +650,104 @@
     to { height: 0; }
   }
 }
+
+/* Custom ApexCharts glassmorphism styling */
+.apexcharts-tooltip.apexcharts-theme-dark {
+  background: rgba(15, 26, 20, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 12px !important;
+}
+
+.apexcharts-tooltip-title {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  font-weight: 700 !important;
+}
+
+@keyframes sheen {
+  0% { transform: translateX(-135%) skewX(-12deg); }
+  100% { transform: translateX(235%) skewX(-12deg); }
+}
+
+.animate-sheen {
+  animation: sheen 0.9s ease;
+}
+
+/* ── Shimmer Loading Effect ── */
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+.shimmer-bg {
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer 1.6s infinite linear !important;
+}
+
+/* ── Responsive Table Card Stacking ── */
+@media (max-width: 767px) {
+  .responsive-table, 
+  .responsive-table thead, 
+  .responsive-table tbody, 
+  .responsive-table th, 
+  .responsive-table td, 
+  .responsive-table tr {
+    display: block !important;
+  }
+  
+  .responsive-table thead {
+    display: none !important;
+  }
+  
+  .responsive-table tr:not([data-detail="true"]) {
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-radius: 0.75rem;
+    margin: 0.75rem !important;
+    padding: 0.5rem 1rem !important;
+  }
+
+  .responsive-table tr[data-selected="true"] {
+    background: rgba(0, 212, 170, 0.08) !important;
+    border-color: rgba(0, 212, 170, 0.3) !important;
+  }
+  
+  .responsive-table tr:not([data-detail="true"]) td {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding: 0.75rem 0 !important;
+    text-align: right !important;
+    background: transparent !important;
+    width: 100% !important;
+  }
+  
+  .responsive-table tr:not([data-detail="true"]) td:last-child {
+    border-bottom: 0 !important;
+  }
+  
+  .responsive-table tr:not([data-detail="true"]) td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.45);
+    text-align: left;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  .responsive-table tr:not([data-detail="true"]) td[data-checkbox="true"] {
+    justify-content: space-between !important;
+  }
+
+  .responsive-table tr:not([data-detail="true"]) td[data-checkbox="true"]::before {
+    content: "Selecionar" !important;
+  }
+}
+
+

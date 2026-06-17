@@ -5,6 +5,8 @@ using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
+using Diax.Domain.Audit;
+using Diax.Domain.Auth;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -69,8 +71,42 @@ public class EmailQueueProcessorWorker : BackgroundService
         var customerRepository = scope.ServiceProvider.GetRequiredService<ICustomerRepository>();
         var templateEngine = scope.ServiceProvider.GetRequiredService<IEmailTemplateEngine>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        var circuitBreaker = scope.ServiceProvider.GetRequiredService<IPilotCircuitBreaker>();
+        var auditLogRepository = scope.ServiceProvider.GetRequiredService<IAuditLogRepository>();
+        var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
 
         var now = DateTime.UtcNow;
+        if (circuitBreaker.IsOpen)
+        {
+            _logger.LogWarning("Circuit breaker is OPEN. Reason: {Reason}. Skipping email dispatch.", circuitBreaker.Reason);
+            
+            // Log PilotRealSendBlocked for each unique campaign with pending items
+            var allPending = await repository.GetPendingBatchByProviderAsync(EmailProvider.Brevo, now, 100, cancellationToken);
+            var campaignIdsPending = allPending
+                .Where(i => i.CampaignId.HasValue)
+                .Select(i => i.CampaignId!.Value)
+                .Distinct()
+                .ToList();
+            
+            foreach (var campaignId in campaignIdsPending)
+            {
+                var firstItem = allPending.First(i => i.CampaignId == campaignId);
+                await LogPilotEventAsync(
+                    auditLogRepository,
+                    userRepository,
+                    unitOfWork,
+                    "PilotRealSendBlocked",
+                    "Blocked",
+                    campaignId,
+                    allPending.Count(i => i.CampaignId == campaignId),
+                    false,
+                    $"Circuit Breaker aberto: {circuitBreaker.Reason}",
+                    firstItem.UserId,
+                    cancellationToken);
+            }
+            return;
+        }
+
         var configuredPerProvider = _settings.PerProviderBatchSize <= 0 ? 20 : _settings.PerProviderBatchSize;
 
         // Enforce daily and hourly limits
@@ -169,6 +205,7 @@ public class EmailQueueProcessorWorker : BackgroundService
                     if (item.CampaignId.HasValue)
                     {
                         await campaignRepository.IncrementSentAsync(item.CampaignId.Value, cancellationToken);
+                        circuitBreaker.RecordSuccess();
                     }
                 }
                 else
@@ -177,6 +214,25 @@ public class EmailQueueProcessorWorker : BackgroundService
                     if (item.CampaignId.HasValue)
                     {
                         await campaignRepository.IncrementFailedAsync(item.CampaignId.Value, cancellationToken);
+                        
+                        var wasClosed = !circuitBreaker.IsOpen;
+                        circuitBreaker.RecordFailure(sendResult.ErrorMessage ?? "Falha desconhecida ao enviar e-mail.");
+                        
+                        if (wasClosed && circuitBreaker.IsOpen)
+                        {
+                            await LogPilotEventAsync(
+                                auditLogRepository,
+                                userRepository,
+                                unitOfWork,
+                                "PilotCircuitBreakerOpened",
+                                "Failed",
+                                item.CampaignId.Value,
+                                1,
+                                false,
+                                $"Circuit Breaker aberto devido a erro de envio: {sendResult.ErrorMessage}",
+                                item.UserId,
+                                cancellationToken);
+                        }
                     }
                 }
 
@@ -246,5 +302,52 @@ public class EmailQueueProcessorWorker : BackgroundService
         {
             return [];
         }
+    }
+
+    private async Task LogPilotEventAsync(
+        IAuditLogRepository auditLogRepository,
+        IUserRepository userRepository,
+        IUnitOfWork unitOfWork,
+        string action,
+        string result,
+        Guid campaignId,
+        int leadCount,
+        bool dryRun,
+        string? blockingReasons,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        string userEmail = "sistema";
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user != null)
+        {
+            userEmail = user.Email;
+        }
+
+        var details = new
+        {
+            CampaignId = campaignId,
+            UserId = userId,
+            UserEmail = userEmail,
+            Action = action,
+            Result = result,
+            BlockingReasons = blockingReasons,
+            LeadCount = leadCount,
+            DryRun = dryRun,
+            Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development",
+            TimestampUtc = DateTime.UtcNow
+        };
+
+        var entry = AuditLogEntry.Create(
+            userId,
+            AuditAction.Custom,
+            "PilotCampaign",
+            campaignId.ToString(),
+            $"Pilot campaign event: {action} ({result})",
+            newValues: JsonSerializer.Serialize(details)
+        );
+
+        await auditLogRepository.AddAsync(entry, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

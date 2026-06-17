@@ -1,0 +1,23 @@
+{
+  "FAL.AI Flux": {
+    "ok": false,
+    "note": "403 {\"detail\": \"User is locked. Reason: Exhausted balance. Top u"
+  },
+  "OpenAI gpt-image-1": {
+    "ok": false,
+    "note": "400 {\n  \"error\": {\n    \"message\": \"Billing hard limit has been r"
+  },
+  "xAI Grok": {
+    "ok": false,
+    "note": "403 {\"code\":\"permission-denied\",\"error\":\"Your team 24c3853f-dd02"
+  },
+  "Gemini nano-banana": {
+    "ok": false,
+    "note": "429 {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded"
+  },
+  "HuggingFace FLUX": {
+    "ok": true,
+    "path": "D:/claude-code/diax-crm/docs/email-marketing/cmp-hf.jpg",
+    "bytes": 45627
+  }
+}

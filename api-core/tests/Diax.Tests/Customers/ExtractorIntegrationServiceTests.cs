@@ -1,12 +1,18 @@
+using Diax.Application.Common;
 using Diax.Application.Customers;
 using Diax.Application.Customers.Dtos;
 using Diax.Application.Customers.Services;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
+using Diax.Domain.EmailMarketing;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
 using Moq;
+
+using Diax.Domain.Audit;
+using Diax.Domain.Auth;
+using Diax.Application.EmailMarketing;
 
 namespace Diax.Tests.Customers;
 
@@ -56,11 +62,26 @@ public class ExtractorIntegrationServiceTests
                 ShouldReject = false
             });
 
+        var currentUserServiceMock = new Mock<ICurrentUserService>();
+        currentUserServiceMock.Setup(s => s.UserId).Returns(Guid.NewGuid());
+        var suppressionMock = new Mock<IEmailSuppressionRepository>();
+        suppressionMock.Setup(s => s.IsSuppressedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var auditLogMock = new Mock<IAuditLogRepository>();
+        var userRepoMock = new Mock<IUserRepository>();
+        var circuitBreakerMock = new Mock<IPilotCircuitBreaker>();
+
         _importService = new CustomerImportService(
             _customerRepoMock.Object,
             _importRepoMock.Object,
             _unitOfWorkMock.Object,
-            _sanitizationMock.Object);
+            _sanitizationMock.Object,
+            currentUserServiceMock.Object,
+            suppressionMock.Object,
+            auditLogMock.Object,
+            userRepoMock.Object,
+            circuitBreakerMock.Object);
 
         _sut = new ExtractorIntegrationService(
             _extractorMock.Object,

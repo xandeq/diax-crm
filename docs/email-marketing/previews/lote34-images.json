@@ -1,0 +1,10 @@
+{
+  "academia": {
+    "img1": "https://api.alexandrequeiroz.com.br/email-images/889f992ac3c94d8e8cb1e8fb7844404a.jpg",
+    "img2": "https://api.alexandrequeiroz.com.br/email-images/fc91e9a3691c4cca85531d64981b5a5a.jpg"
+  },
+  "imobiliaria": {
+    "img1": "https://api.alexandrequeiroz.com.br/email-images/ff440050a08c41ef93e7b9e249989c07.jpg",
+    "img2": "https://api.alexandrequeiroz.com.br/email-images/e4272d9bacdf4b3d85d82519f9fcf75d.jpg"
+  }
+}

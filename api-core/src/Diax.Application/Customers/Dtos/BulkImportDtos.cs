@@ -9,18 +9,25 @@ namespace Diax.Application.Customers.Dtos;
 public record ImportCustomerRow(
     string Name,
     string Email,
-    string? Phone,
-    string? WhatsApp,
-    string? CompanyName,
-    string? Notes,
-    string? Tags);
+    string? Phone = null,
+    string? WhatsApp = null,
+    string? CompanyName = null,
+    string? Notes = null,
+    string? Tags = null,
+    string? Website = null,
+    string? City = null,
+    string? CurrentTool = null,
+    string? MainPain = null,
+    string? ValidationStatus = null,
+    string? ConsentStatus = null);
 
 /// <summary>
 /// Request para importação em lote de customers/leads.
 /// </summary>
 public record BulkImportRequest(
     List<ImportCustomerRow> Customers,
-    LeadSource Source = LeadSource.Import);
+    LeadSource Source = LeadSource.Import,
+    bool DryRun = false);
 
 /// <summary>
 /// Response da importação em lote.

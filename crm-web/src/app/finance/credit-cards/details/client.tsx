@@ -1,5 +1,6 @@
 'use client';
 
+import { FinanceNav } from '@/components/finance/FinanceNav';
 import { FinancialGrid } from '@/components/finance/FinancialGrid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,14 +12,16 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { formatDisplayDate } from '@/lib/date-utils';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { useCreditCardDetail, useCreditCardInvoices, useInvoiceTransactions } from '@/hooks/finance';
 import { Transaction } from '@/services/finance';
 import { ColumnDef } from '@tanstack/react-table';
-import { ArrowLeft, CreditCard as CreditCardIcon, FileText } from 'lucide-react';
+import { ArrowLeft, CreditCard as CreditCardIcon, FileText, Calendar, Wallet, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { Label } from '@/components/ui/label';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 
 export function CreditCardDetailsClient() {
     const searchParams = useSearchParams();
@@ -44,109 +47,162 @@ export function CreditCardDetailsClient() {
         {
             accessorKey: 'date',
             header: 'Data',
-            cell: ({ row }) => <span className="font-medium text-gray-600">{formatDisplayDate(row.original.date)}</span>,
+            cell: ({ row }) => <span className="font-medium text-zinc-400 text-xs tabular-nums">{formatDisplayDate(row.original.date)}</span>,
         },
         {
             accessorKey: 'description',
             header: 'Descrição',
             cell: ({ row }) => (
-                <div className="flex flex-col">
-                    <span className="font-semibold text-gray-900">{row.original.description}</span>
-                    <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">{row.original.categoryName}</span>
+                <div className="flex flex-col py-0.5">
+                    <span className="font-semibold text-zinc-100 text-sm leading-snug">{row.original.description}</span>
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold mt-0.5">{row.original.categoryName}</span>
                 </div>
             ),
         },
         {
             accessorKey: 'amount',
             header: 'Valor',
-            cell: ({ row }) => <span className="font-bold text-gray-900">{formatCurrency(row.original.amount)}</span>,
+            cell: ({ row }) => <span className="font-bold text-rose-400 text-sm tabular-nums">{formatCurrency(row.original.amount)}</span>,
         },
     ], []);
 
-    if (loadingCard || loadingInvoices) return <div className="p-8 flex justify-center"><div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div></div>;
-    if (!id) return <div className="p-8 text-red-600">ID do cartão não fornecido</div>;
-    if (!card) return <div className="p-8 text-red-600">Cartão não encontrado</div>;
+    if (loadingCard || loadingInvoices) {
+        return (
+            <div className="container mx-auto px-4 py-6 max-w-7xl">
+                <FinanceNav />
+                <div className="flex items-center justify-center min-h-[300px] gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+                    <span className="text-zinc-400 text-sm animate-pulse">Carregando detalhes do cartão...</span>
+                </div>
+            </div>
+        );
+    }
+    
+    if (!id) return <div className="container mx-auto px-4 py-6 max-w-7xl text-rose-400 font-semibold">ID do cartão não fornecido</div>;
+    if (!card) return <div className="container mx-auto px-4 py-6 max-w-7xl text-rose-400 font-semibold">Cartão não encontrado</div>;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto space-y-8">
-            <div className="flex items-center gap-4 mb-6">
-                <Link href="/finance/credit-cards">
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-100">
-                        <ArrowLeft className="h-6 w-6 text-gray-500" />
-                    </Button>
-                </Link>
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <CreditCardIcon className="h-6 w-6 text-blue-600" />
-                        {card.name}
-                    </h1>
-                    <p className="text-gray-500 text-sm">Final **** {card.lastFourDigits} • Limite: {formatCurrency(card.limit)}</p>
+        <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
+            <FinanceNav />
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                    <Link href="/finance/credit-cards">
+                        <Button variant="ghost" size="icon" className="rounded-full text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/50">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
+                            <CreditCardIcon className="h-6 w-6 text-violet-400" />
+                            {card.name}
+                        </h1>
+                        <p className="text-zinc-400 text-sm mt-0.5">
+                            Final **** {card.lastFourDigits} • Limite Total: {formatCurrency(card.limit)}
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="space-y-6">
-                    <div className="p-6 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
-                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-gray-500" />
-                            Fatura
+                <motion.div 
+                    initial={{ opacity: 0, x: -15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-6"
+                >
+                    <div className="p-6 rounded-2xl border border-zinc-800/80 bg-[#0a130f]/60 backdrop-blur-md relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent pointer-events-none" />
+
+                        <h2 className="text-sm font-bold tracking-wider uppercase text-zinc-400 mb-5 flex items-center gap-2 relative z-10">
+                            <FileText className="h-4 w-4 text-violet-400" />
+                            Fatura Mensal
                         </h2>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">Selecione o Mês</label>
-                                <Select value={selectedInvoiceId ?? ''} onValueChange={setSelectedInvoiceId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione uma fatura" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {invoices.map(invoice => (
-                                            <SelectItem key={invoice.id} value={invoice.id}>
-                                                {new Date(invoice.referenceYear, invoice.referenceMonth - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                                                {' '}- {invoice.isPaid ? 'Paga' : 'Aberta'}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        <div className="space-y-5 relative z-10">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-zinc-300">Selecione o Mês</Label>
+                            <Select value={selectedInvoiceId ?? ''} onValueChange={setSelectedInvoiceId}>
+                              <SelectTrigger className="bg-zinc-950/80 border-zinc-800 text-zinc-100 focus:border-[#00D4AA] focus:ring-1 focus:ring-[#00D4AA] rounded-xl h-10 text-sm">
+                                <SelectValue placeholder="Selecione uma fatura" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 rounded-xl">
+                                {invoices.map(invoice => (
+                                  <SelectItem key={invoice.id} value={invoice.id}>
+                                    {new Date(invoice.referenceYear, invoice.referenceMonth - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                                    {' '}- {invoice.isPaid ? 'Paga' : 'Aberta'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {selectedInvoice && (
+                            <div className="pt-4 border-t border-zinc-800/80 space-y-3.5">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-zinc-400 flex items-center gap-1.5">
+                                  <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                                  Fechamento
+                                </span>
+                                <span className="font-semibold text-zinc-200 tabular-nums">
+                                  {new Date(selectedInvoice.closingDate).toLocaleDateString('pt-BR')}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-zinc-400 flex items-center gap-1.5">
+                                  <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                                  Vencimento
+                                </span>
+                                <span className="font-semibold text-zinc-200 tabular-nums">
+                                  {new Date(selectedInvoice.dueDate).toLocaleDateString('pt-BR')}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-zinc-400">Status da Fatura</span>
+                                <Badge 
+                                  className={cn(
+                                    "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                                    selectedInvoice.isPaid 
+                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                                      : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                  )}
+                                >
+                                  {selectedInvoice.isPaid ? 'Paga ✓' : 'Aberta'}
+                                </Badge>
+                              </div>
+                              <div className="flex justify-between items-center pt-3.5 border-t border-zinc-800/80">
+                                <span className="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
+                                  <Wallet className="h-4 w-4 text-violet-400" />
+                                  Total Fatura
+                                </span>
+                                <span className="text-xl font-bold text-violet-400 tabular-nums">
+                                  {formatCurrency(selectedInvoice.totalAmount)}
+                                </span>
+                              </div>
                             </div>
+                          )}
 
-                            {selectedInvoice && (
-                                <div className="pt-4 border-t border-gray-100 space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Vencimento</span>
-                                        <span className="font-medium">{new Date(selectedInvoice.dueDate).toLocaleDateString('pt-BR')}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Fechamento</span>
-                                        <span className="font-medium">{new Date(selectedInvoice.closingDate).toLocaleDateString('pt-BR')}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Status</span>
-                                        <Badge variant={selectedInvoice.isPaid ? 'secondary' : 'default'} className={selectedInvoice.isPaid ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>
-                                            {selectedInvoice.isPaid ? 'Paga' : 'Aberta'}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                                        <span className="text-lg font-semibold text-gray-900">Total</span>
-                                        <span className="text-xl font-bold text-blue-600">{formatCurrency(selectedInvoice.totalAmount)}</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {!selectedInvoice && (
-                                <div className="text-center py-8 text-gray-500">
-                                    Nenhuma fatura selecionada
-                                </div>
-                            )}
+                          {!selectedInvoice && (
+                            <div className="text-center py-8 text-zinc-500 text-xs">
+                              Nenhuma fatura selecionada
+                            </div>
+                          )}
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
-                        <div className="p-6 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                            <h2 className="text-lg font-semibold">Lançamentos</h2>
-                            <span className="text-sm text-gray-500">{transactions?.totalCount || 0} lançamentos</span>
+                <motion.div 
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="lg:col-span-2 space-y-6"
+                >
+                    <div className="rounded-2xl overflow-hidden border border-zinc-800/80 bg-[#0a130f]/60 backdrop-blur-md">
+                        <div className="p-5 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                            <h2 className="text-sm font-bold tracking-wider uppercase text-zinc-300">Lançamentos da Fatura</h2>
+                            <span className="text-xs text-zinc-500 font-bold bg-zinc-950/60 px-2 py-0.5 rounded-full border border-zinc-800/40">
+                              {transactions?.totalCount || 0} compras
+                            </span>
                         </div>
 
                         <FinancialGrid
@@ -160,7 +216,7 @@ export function CreditCardDetailsClient() {
                             loading={loadingExpenses}
                         />
                     </div>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

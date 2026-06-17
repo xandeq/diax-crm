@@ -1,0 +1,118 @@
+{
+  "captured_at": "2026-06-16T20:33:10.018705-03:00",
+  "note": "Snapshot de reversibilidade. NENHUMA config foi alterada nesta etapa (sem acesso a deploy/env do servidor DIAX).",
+  "provider_map_hardcoded": [
+    "Brevo",
+    "Mailjet",
+    "Resend",
+    "ElasticEmail",
+    "MailerSend",
+    "SendGrid"
+  ],
+  "broken_in_prod": [
+    "ElasticEmail",
+    "MailerSend"
+  ],
+  "working_in_prod": [
+    "Brevo",
+    "Mailjet",
+    "Resend",
+    "SendGrid"
+  ],
+  "disable_mechanism": "NAO ha API/DB/env toggle acessivel; exige editar ProviderMap/credenciais no servidor DIAX + redeploy",
+  "live_providers": [
+    {
+      "provider": "Brevo",
+      "sentToday": 5,
+      "dailyLimit": 100,
+      "dailyRemaining": 95,
+      "dailyUsagePercent": 5,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 2,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "Mailjet",
+      "sentToday": 5,
+      "dailyLimit": 100,
+      "dailyRemaining": 95,
+      "dailyUsagePercent": 5,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 0,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "Resend",
+      "sentToday": 5,
+      "dailyLimit": 100,
+      "dailyRemaining": 95,
+      "dailyUsagePercent": 5,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 0,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "ElasticEmail",
+      "sentToday": 0,
+      "dailyLimit": 100,
+      "dailyRemaining": 100,
+      "dailyUsagePercent": 0,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 5,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "MailerSend",
+      "sentToday": 0,
+      "dailyLimit": 100,
+      "dailyRemaining": 100,
+      "dailyUsagePercent": 0,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 5,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "SendGrid",
+      "sentToday": 4,
+      "dailyLimit": 100,
+      "dailyRemaining": 96,
+      "dailyUsagePercent": 4,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 0,
+      "failedToday": 0,
+      "health": "ok"
+    }
+  ],
+  "campaign": {
+    "status": 3,
+    "sentCount": 19,
+    "deliveredCount": 3,
+    "failedCount": 20,
+    "bounceCount": 0,
+    "unsubscribeCount": 0,
+    "spamCount": null,
+    "totalRecipients": 29
+  },
+  "recipient_status": {
+    "Queued": 10,
+    "Sent": 19
+  },
+  "duplicates": 0
+}

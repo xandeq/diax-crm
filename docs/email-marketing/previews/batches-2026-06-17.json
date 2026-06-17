@@ -1,0 +1,696 @@
+{
+  "contabilidade": {
+    "service": "Software sob demanda",
+    "count": 20,
+    "leads": [
+      {
+        "id": "8d1d57ba-5b1b-4885-88b1-4b7054364934",
+        "email": "contato@conorcontabilidade.com.br",
+        "company": "Conor Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "d263b819-d1a0-4edc-8b52-2b5a51bb3cd9",
+        "email": "contabilidade@mobibrasil.com",
+        "company": "Mobibrasil",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "3fd154c5-0cd1-40d3-9bb3-3e2083c4b4f6",
+        "email": "______________________________________ouvidoriaouvidoria@santoscontabilidade.com.br",
+        "company": "Santos Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "b9ddc99d-fa6d-43f4-b39f-6b20ca3887c7",
+        "email": "contabilidade@paramountcontab.com.br",
+        "company": "Paramount Contabilidade Em Santos",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "feba7b3f-e110-4d8e-bb2a-f941fb45233f",
+        "email": "%20contato@contabilidadebergamini.com.br",
+        "company": "Bergamini",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "7836d10f-68fa-4d86-9436-ff1198759cc2",
+        "email": "atendimentocontato@contaloliveira.com.br",
+        "company": "Contal Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "53ec8b16-2b73-4c27-95bd-05ccc7871f77",
+        "email": "pioneiro@pioneirocontabilidade.com.br",
+        "company": "Pioneiro Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "25808a0c-0190-4c04-a517-db4bd66d2c1c",
+        "email": "contato@lottuscontabilidade-es.com.br",
+        "company": "Lottus Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "798e5c67-506f-49e2-b4cd-01eb6dbe1597",
+        "email": "%20tononi@tononicontabilidade.com.br",
+        "company": "Tononi Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "e3246aad-f2ae-4834-8225-63200b7d7dcb",
+        "email": "cca@ccacontabilidade.com",
+        "company": "CCA Soluções Contábeis",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "4199394b-a2f6-4919-a15d-bb6449cf9d17",
+        "email": "ig_wwwinstagramcomcontabilidademp@instagram.local",
+        "company": "Lead Local_Business_Data",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "31f76a7c-8c3f-4195-8661-89340c091a23",
+        "email": "comercial@triangulocontabil.com.br",
+        "company": "Triângulo Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "a68ac74b-4bb9-4d4e-844f-bcdb63d581c5",
+        "email": "contato@contabilmonteirohenrique.com.br",
+        "company": "Contabilidade Monteiro Henrique",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "a6818918-c062-4ad2-b8d6-447906553b36",
+        "email": "contato@executacontabilidade.com",
+        "company": "Escritóório Contábil",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "685c899e-d064-4bdc-b903-1d563cc1f2a3",
+        "email": "li_nformatizecontabilidadeeservicos@linkedin.local",
+        "company": "Informatize Contabilidade E Serviços",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "e861cdfb-51e1-4e42-a899-97d8b5517166",
+        "email": "eventos@cfc.org.br",
+        "company": "::Conselho Federal De Contabilidade::",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "2cbc8571-80a3-4a11-bd5b-f9b47bf26df9",
+        "email": "contato@montcon.com.br",
+        "company": "Montcon Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "658a56d0-b4e1-4824-8823-77bd95d0c5ff",
+        "email": "contato@pilotiscontabilidade.com",
+        "company": "Pilotis Contabilidade E Gestão Financeira",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "b00d878f-ba73-4206-97bf-25f1492b71a6",
+        "email": "comercial@c-controll.com.br",
+        "company": "C-Controll Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "2ba12991-0fc6-4e59-8279-bddbf9c8a68d",
+        "email": "decivan@martinscontabilidademt.com.br",
+        "company": "Martins Contabilidade",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      }
+    ],
+    "campaignId": "5551a4fd-5e5a-41ae-b97c-53bcc748c552"
+  },
+  "advocacia": {
+    "service": "Sites",
+    "count": 20,
+    "leads": [
+      {
+        "id": "b0d9473f-603f-4700-ada0-2701c3300fe2",
+        "email": "contato@ferianefaccim.adv.br",
+        "company": "Feriane & Faccim Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "64175d99-88ae-4421-b1d1-2961bf38bf0b",
+        "email": "contatos@eronpereira.adv.br",
+        "company": "Escritóã³rio De Advocacia Em São Bernardo Do Campo",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "9bbff2e7-9867-4091-a701-471325ae0c17",
+        "email": "bicalho@bicalhoadvocacia.com.br",
+        "company": "Escritóã³rio De Advocacia Em São Paulo",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "d06dab81-8c17-42d8-b366-c528b2f2a2e4",
+        "email": "paula@scarppatiebarbozadv.com.br",
+        "company": "Scarppati E Barboza Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "32e83c83-1873-4b6b-932f-7efd1ee70e26",
+        "email": "contato@rcadvogados.adv.br",
+        "company": "Resende & Cetto Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "731cec5d-7fa1-44b5-a218-002d376787c7",
+        "email": "mario@solimene.adv.br",
+        "company": "Solimene Sociedade De Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "6c0c94fb-19f9-499a-9789-120b71e3a0d2",
+        "email": "el.ramires@adv.oabsp.org.br",
+        "company": "Advogado, Escritóório De Advocacia Em Itu",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "40c1b734-69a8-440b-a74d-bbaa9c6efdbe",
+        "email": "geral@advocaciamaciel.adv.br",
+        "company": "Advocacia Maciel",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "a652f1ce-98b8-4b0b-a86e-073e89082f36",
+        "email": "anapaula@catoiaadvocacia.com.br",
+        "company": "Catoia Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "a53e174c-f320-492c-a8af-2a75421f913e",
+        "email": "advocacia@vervloet.adv.br",
+        "company": "Vervloet & Malanchini Advogados",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "363ceac6-8985-44ab-ba60-d7f59347cc7b",
+        "email": "contato@advocaciaschettini.com.br",
+        "company": "Advocacia Schettini",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "86b43211-931a-4cd5-b413-74be90fe089b",
+        "email": "advocacia@ruydearaujojr.com.br",
+        "company": "Ruy De Araújo Jr Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "23ee5948-73a0-4625-9249-e95573c87327",
+        "email": "ouvidoria@galvaoesilva.com",
+        "company": "Galvão & Silva Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "92a222b0-bc12-4df9-ba89-1bce2cf94cae",
+        "email": "advocacia@ribeirofialho.com.br",
+        "company": "Ribeiro Fialho Advocacia – Viabilizando Negócios E Transformando Realidades",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "7618dc48-d933-44de-8043-e290fe13c7f8",
+        "email": "contato@carloslazaroadvocacia.com.br",
+        "company": "Carlos Lazaro Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "d9c4798b-727e-4639-8fa7-03956825a251",
+        "email": "contato@santoscamara.com.br",
+        "company": "Santos Câmara Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "dd2ab7be-ec91-4e69-9eb3-bb6d0b4445bc",
+        "email": "contato@leiteadv.com",
+        "company": "Leite Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "86ae64bc-2576-48b1-8e39-925ad69abca4",
+        "email": "contato@ferrazesoranz.com",
+        "company": "Escritóório De Advocacia Télvio Valim",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "2172adf0-032b-4582-99a0-76b555500e9f",
+        "email": "wilton@silvafilhoadvocacia.com.br",
+        "company": "Silva Filho Advocacia",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "8b39acc9-723e-4735-a5da-e25f3bbbdae2",
+        "email": "contato@santosfaria.com.br",
+        "company": "Escritóório De Advocacia No Espírito Santo",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "SendGrid"
+      }
+    ],
+    "campaignId": "ea70f7b8-7741-4c5c-92a6-8d46f6b4f454"
+  },
+  "academia": {
+    "service": "Apps",
+    "count": 15,
+    "leads": [
+      {
+        "id": "59d75e5a-b82c-4678-b9a4-42e63d45918b",
+        "email": "atendimento@academiaforeveryoung.com.br",
+        "company": "Foreveryoung",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "a34963b0-9219-442e-aa3d-3f142775b101",
+        "email": "14h00vitoriaespiritosanto@skyfitacademia.com.br",
+        "company": "Skyfit Academia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "eeb82497-78d7-4d4d-b0a8-6b8a01702135",
+        "email": "limeiracentro@panobiancoacademia.com.br",
+        "company": "Panobianco",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "8f42d717-55d1-4541-9b9f-0d1f90a816f9",
+        "email": "contato@academiaonegym.com.br",
+        "company": "Academia One Gym",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "af3b5ade-c5de-419b-9284-971ba71303bc",
+        "email": "totalhealth.com.brsac@totalhealth.com.br",
+        "company": "Biotech Prime Academia",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "0af5e330-37d0-4119-a656-744bc52a0f72",
+        "email": "atendimento@academiaone.com.br",
+        "company": "Academia One",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "c05b001d-218d-490c-85c8-11cb64ad49be",
+        "email": "contato@academiasaudeesporte.com.br",
+        "company": "Saúde Esporte Club",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "306958aa-a183-4027-bc10-848bb8eca916",
+        "email": "webmaster@academiasbrasil.com",
+        "company": "Account Suspended",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "9d42c1cd-e3f8-43a2-af39-00590f90f06a",
+        "email": "contato@newvalue.com.br",
+        "company": "Selfit Academias",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "1c182e75-3b32-459c-b68e-30c99d57db5d",
+        "email": "sac@academiagavioes.com.br",
+        "company": "Joinville",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "f39a05e6-1d18-4ff6-a1c5-d6fd46ad8519",
+        "email": "contato@academiaantoniodesouza.com.br",
+        "company": "Academia Antonio De Souza",
+        "corporate": true,
+        "never": true,
+        "score": 3,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "efbc9ff5-fcab-4860-a971-45f7ee926aff",
+        "email": "ig_ewfitacademiavilavelhahlptbr@instagram.local",
+        "company": "New Fit Academia Vila Velha",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "13c5d8c4-8ba3-4fd6-a3f7-ecc1f592fcd0",
+        "email": "sac@positivaclub.com.br",
+        "company": "Academia Positiva Club",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "e67d12c5-2cf1-4944-a411-cdb756d28971",
+        "email": "contato@academiaupfitness.com.br",
+        "company": "Contato",
+        "corporate": true,
+        "never": false,
+        "score": 2,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "44480b3c-94a4-4af7-95bd-fa6feada8a3b",
+        "email": "marketing@ultraacademia.com.br",
+        "company": "Ultra Academia",
+        "corporate": true,
+        "never": false,
+        "score": 2,
+        "assignedProvider": "Resend"
+      }
+    ],
+    "campaignId": "190abfed-c03e-4699-8f11-6600f6ddc244"
+  },
+  "imobiliaria": {
+    "service": "Landing pages",
+    "count": 19,
+    "leads": [
+      {
+        "id": "c5a1b2ab-edc6-44a4-8eff-1b943710de0a",
+        "email": "atendimento@jomarimobiliaria.com.br",
+        "company": "Liviamachado",
+        "corporate": true,
+        "never": true,
+        "score": 4,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "5270f106-f53e-480c-b40a-a8aa271fb1b8",
+        "email": "cambe@imobiliariacasagrande.com.br",
+        "company": "Imobiliaria Casa Grande",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "673fa6ee-35dd-44ea-9189-b11208043934",
+        "email": "contato@imoveismatriz.com.br",
+        "company": "Imobiliaria Matriz",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "fcebe0e6-3446-45d8-b993-61696149e73a",
+        "email": "alexribeiro@imobiliariaaxe.com.br",
+        "company": "Axe Negócios Imobiliários",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "99de5bff-7947-476e-9bea-1d1d333ca81f",
+        "email": "atendimento@romaimoveis.com.br",
+        "company": "Imobiliaria Roma Imóveis",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "5cef5e98-fed8-45ae-be25-dfd4ad5e5662",
+        "email": "99629-0018e-mailcontato@imobiliariahabitat.com.br",
+        "company": "Imobiliária Habitat",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "de2d22c0-2570-4bef-bfe9-13dc32eaf2b6",
+        "email": "vendas@imobiliariarima.com.br",
+        "company": "Imobiliária Rima",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "fae5b395-df16-4590-9b16-797d89026022",
+        "email": "contato@imobiliariamaster.com.br",
+        "company": "Encontre Seu Imóvel Na Imobiliária Master",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "d038fd12-fa13-4279-ae68-90526abe9f35",
+        "email": "recepcao@chaleimobiliaria.com.br",
+        "company": "Chalé Imóveis",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "29ba3b9a-8370-425d-a542-97535bdd14fa",
+        "email": "contato@imobiliariabarrasul.com",
+        "company": "Encontre Seu Imóvel Na Imobiliária Barra Sul",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "20ab836e-33b9-48fb-bc91-60f8c836dce1",
+        "email": "dual@dualimobiliaria.com.br",
+        "company": "Dual Imobiliária",
+        "corporate": true,
+        "never": false,
+        "score": 3,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "d9973fbb-6a3b-414c-a722-ee9fe2920f5e",
+        "email": "imobiliarianiederauer@gmail.com",
+        "company": "Imobiliária Niederauer, Em SANTANA DO LIVRAMENTO",
+        "corporate": false,
+        "never": true,
+        "score": 2,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "f5b49677-53ba-4bcc-8d91-4b89bf6b7080",
+        "email": "imobiliariairulegui@gmail.com",
+        "company": "Irulegui",
+        "corporate": false,
+        "never": true,
+        "score": 1,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "3c3d8c86-b824-4482-9b69-e3ae189dd75a",
+        "email": "imobiliariainhome@gmail.com",
+        "company": "Imobiliaria In Home",
+        "corporate": false,
+        "never": false,
+        "score": 1,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "f72fef8e-a649-4d2a-98b0-f439e0001e10",
+        "email": "imobiliariacentral@uol.com.br",
+        "company": "Central",
+        "corporate": false,
+        "never": false,
+        "score": 1,
+        "assignedProvider": "Resend"
+      },
+      {
+        "id": "8739b9fe-4e8a-4f66-9c5d-e5908984e889",
+        "email": "grupobauen.assessoria@gmail.com",
+        "company": "Imobiliaria Bauen",
+        "corporate": false,
+        "never": false,
+        "score": 1,
+        "assignedProvider": "SendGrid"
+      },
+      {
+        "id": "bb20872c-0303-4860-9ad5-c93a3a966001",
+        "email": "mapawhatsappimobiliariapaulogomes@hotmail.com",
+        "company": "Imobiliária Paulo Gomes",
+        "corporate": false,
+        "never": false,
+        "score": 1,
+        "assignedProvider": "Brevo"
+      },
+      {
+        "id": "ffde017f-8035-4418-9786-66ac8e9ae2e9",
+        "email": "imobiliaria7ararangua@gmail.com",
+        "company": "Imobiliária Sete",
+        "corporate": false,
+        "never": false,
+        "score": 1,
+        "assignedProvider": "Mailjet"
+      },
+      {
+        "id": "43a95ff2-7384-4d2a-b91e-a89fe52c6e22",
+        "email": "imobiliariacidade3p@hotmail.com",
+        "company": "Imobiliária iCidade3p, Imobiliária em Três Passos",
+        "corporate": false,
+        "never": false,
+        "score": 0,
+        "assignedProvider": "Resend"
+      }
+    ],
+    "campaignId": "3243145d-5eaf-4a4f-81db-1c0504c80ee7"
+  }
+}

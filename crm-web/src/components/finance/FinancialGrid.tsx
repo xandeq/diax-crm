@@ -32,6 +32,19 @@ interface FinancialGridProps<TData, TValue> {
   getRowId?: (row: TData) => string;
 }
 
+const getHeaderLabel = (column: any) => {
+  const header = column.columnDef.header;
+  if (typeof header === 'string') return header;
+  
+  switch (column.id) {
+    case 'selection': return 'Selecionar';
+    case 'date': return 'Data';
+    case 'amount': return 'Valor';
+    case 'actions': return 'Ações';
+    default: return '';
+  }
+};
+
 export function FinancialGrid<TData, TValue>({
   columns,
   data,
@@ -60,14 +73,14 @@ export function FinancialGrid<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
-        <Table>
-          <TableHeader style={{ background: 'rgba(255,255,255,0.04)' }}>
+      <div className="rounded-xl overflow-hidden border border-white/5 bg-white/[0.03]">
+        <Table className="responsive-table">
+          <TableHeader className="bg-white/[0.04]">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-white/5">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="font-semibold py-4" style={{ color: '#9CA3AF' }}>
+                    <TableHead key={header.id} className="font-bold py-4 text-zinc-400">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -84,9 +97,9 @@ export function FinancialGrid<TData, TValue>({
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-64">
-                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                      <p>Carregando dados...</p>
+                   <div className="flex flex-col items-center justify-center gap-2 text-zinc-400">
+                      <Loader2 className="h-8 w-8 animate-spin text-[#00D4AA]" />
+                      <p className="font-semibold text-sm">Carregando dados...</p>
                    </div>
                 </TableCell>
               </TableRow>
@@ -94,11 +107,15 @@ export function FinancialGrid<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="transition-colors last:border-0"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                  className="transition-colors border-b border-white/5 last:border-0 hover:bg-white/[0.02]"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-4">
+                    <TableCell
+                      key={cell.id}
+                      className="py-4"
+                      data-label={getHeaderLabel(cell.column)}
+                      data-checkbox={cell.column.id === 'selection' ? 'true' : undefined}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -106,7 +123,7 @@ export function FinancialGrid<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-64 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-64 text-center text-zinc-400 font-semibold">
                   Nenhum registro encontrado.
                 </TableCell>
               </TableRow>
@@ -116,21 +133,20 @@ export function FinancialGrid<TData, TValue>({
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-2">
-        <div className="text-sm font-medium" style={{ color: '#9CA3AF' }}>
-           Página <span style={{ color: '#F9FAFB' }}>{page}</span> de <span style={{ color: '#F9FAFB' }}>{pageCount || 1}</span>
+        <div className="text-sm font-semibold text-zinc-400">
+           Página <span className="text-zinc-200">{page}</span> de <span className="text-zinc-200">{pageCount || 1}</span>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium" style={{ color: '#9CA3AF' }}>Linhas por página</p>
+            <p className="text-sm font-semibold text-zinc-400">Linhas por página</p>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="h-9 w-16 rounded-lg px-2 py-1 text-sm outline-none transition-all"
-              style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
+              className="h-9 w-16 rounded-lg px-2 py-1 text-sm outline-none transition-all border border-white/10 bg-white/5 text-zinc-300"
             >
               {[10, 20, 50].map((size) => (
-                <option key={size} value={size}>
+                <option key={size} value={size} className="bg-[#0B1510] text-zinc-300">
                   {size}
                 </option>
               ))}
@@ -141,7 +157,7 @@ export function FinancialGrid<TData, TValue>({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 p-0 rounded-lg"
+              className="h-9 w-9 p-0 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-zinc-100"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1 || loading}
             >
@@ -150,7 +166,7 @@ export function FinancialGrid<TData, TValue>({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 w-9 p-0 rounded-lg"
+              className="h-9 w-9 p-0 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-zinc-100"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= pageCount || loading}
             >

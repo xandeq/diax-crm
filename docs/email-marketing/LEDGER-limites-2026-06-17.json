@@ -1,0 +1,92 @@
+{
+  "updated_at": "2026-06-17T09:13:31.293671-03:00",
+  "date": "2026-06-17",
+  "providers": {
+    "Brevo": {
+      "dailyLimit": 100,
+      "sentToday": 13,
+      "dailyRemaining": 87,
+      "hourlyRemaining": 17
+    },
+    "Mailjet": {
+      "dailyLimit": 100,
+      "sentToday": 15,
+      "dailyRemaining": 85,
+      "hourlyRemaining": 15
+    },
+    "Resend": {
+      "dailyLimit": 100,
+      "sentToday": 13,
+      "dailyRemaining": 87,
+      "hourlyRemaining": 17
+    },
+    "SendGrid": {
+      "dailyLimit": 100,
+      "sentToday": 15,
+      "dailyRemaining": 85,
+      "hourlyRemaining": 15
+    }
+  },
+  "forbidden": [
+    "ElasticEmail",
+    "MailerSend"
+  ],
+  "batches_done": [
+    {
+      "seg": "clinica",
+      "service": "Sites",
+      "sent": 20,
+      "time": "06:43"
+    },
+    {
+      "seg": "contabilidade",
+      "service": "Software",
+      "sent": 20,
+      "time": "09:04:34",
+      "campaignId": "5551a4fd-5e5a-41ae-b97c-53bcc748c552"
+    },
+    {
+      "seg": "advocacia",
+      "service": "Sites",
+      "sent": 20,
+      "time": "09:08:03",
+      "campaignId": "ea70f7b8-7741-4c5c-92a6-8d46f6b4f454"
+    },
+    {
+      "seg": "academia",
+      "service": "Apps",
+      "sent": 15,
+      "time": "09:13:31",
+      "campaignId": "190abfed-c03e-4699-8f11-6600f6ddc244"
+    },
+    {
+      "seg": "imobiliaria",
+      "service": "Landing pages",
+      "sent": 19,
+      "time": "09:13:31",
+      "campaignId": "3243145d-5eaf-4a4f-81db-1c0504c80ee7"
+    }
+  ],
+  "batches_planned": [
+    {
+      "seg": "contabilidade",
+      "service": "Software",
+      "qty": 20
+    },
+    {
+      "seg": "advocacia",
+      "service": "Sites",
+      "qty": 20
+    },
+    {
+      "seg": "academia",
+      "service": "Apps",
+      "qty": 15
+    },
+    {
+      "seg": "imobiliaria",
+      "service": "Landing",
+      "qty": 19
+    }
+  ]
+}

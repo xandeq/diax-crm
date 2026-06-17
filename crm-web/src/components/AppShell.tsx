@@ -7,10 +7,25 @@ import {
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, Menu, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
-  Wallet, Zap, Cpu, Newspaper
+  Wallet, Zap, Cpu, Newspaper, Home
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type NavChild = { label: string; href: string; badge?: string };
 type NavItem = { icon: React.ElementType; label: string; href?: string; children?: NavChild[]; badge?: string };
@@ -119,7 +134,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password'];
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/landing'];
 
 const SHELL_CSS = `
   .sh-wrap {
@@ -156,7 +171,7 @@ const SHELL_CSS = `
   .sh-item {
     display: flex; align-items: center; gap: 9px;
     padding: 8px 10px; border-radius: 9px;
-    cursor: pointer; transition: background .12s;
+    cursor: pointer; transition: color var(--diax-transition-fast), background var(--diax-transition-fast);
     color: #9CA3AF; font-size: 13px; font-weight: 500;
     text-decoration: none; width: 100%;
   }
@@ -168,20 +183,36 @@ const SHELL_CSS = `
     background: #10B981; color: #fff; flex-shrink: 0;
   }
   .sh-group { position: relative; }
-  .sh-flyout {
-    position: fixed; left: 220px; width: 210px;
-    background: #0D1F18;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px; padding: 6px;
-    z-index: 200; box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  .sh-sub-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-left: 14px;
+    margin-top: 2px;
+    margin-bottom: 6px;
+    border-left: 1px solid rgba(255,255,255,0.06);
+    margin-left: 16px;
   }
-  .sh-flyout-item {
-    display: block; padding: 7px 10px; border-radius: 7px;
-    font-size: 12px; color: #9CA3AF; cursor: pointer;
-    text-decoration: none; transition: background .1s, color .1s;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  .sh-sub-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 7px;
+    color: #8E8E99;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color var(--diax-transition-fast), background var(--diax-transition-fast);
   }
-  .sh-flyout-item:hover { background: rgba(255,255,255,0.07); color: #F9FAFB; }
+  .sh-sub-item:hover {
+    background: rgba(255,255,255,0.04);
+    color: #F9FAFB;
+  }
+  .sh-sub-item.active {
+    color: #10B981;
+    background: rgba(16,185,129,0.08);
+    font-weight: 600;
+  }
   .sh-user {
     padding: 11px 14px;
     border-top: 1px solid rgba(255,255,255,0.06);
@@ -203,9 +234,16 @@ const SHELL_CSS = `
   .sh-search {
     flex: 1; max-width: 340px;
     display: flex; align-items: center; gap: 8px;
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px; padding: 7px 13px;
-    color: #9CA3AF; font-size: 13px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 6px 12px;
+    color: #9CA3AF; font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sh-search:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #F9FAFB;
   }
   .sh-content {
     flex: 1; overflow-y: auto;
@@ -252,52 +290,153 @@ const SHELL_CSS = `
 `;
 
 function NavItemEl({ item, pathname }: { item: NavItem; pathname: string }) {
-  const [flyoutOpen, setFlyoutOpen] = useState(false);
-  const [flyoutTop, setFlyoutTop] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const isActive = pathname === item.href || (item.href && pathname.startsWith(item.href) && item.href !== '/');
   const hasChildren = !!item.children?.length;
+  
+  // Check if any of the child hrefs is currently active
+  const isChildActive = hasChildren && item.children!.some(c => {
+    if (c.href === '/') return pathname === '/';
+    return pathname.startsWith(c.href);
+  });
+  
+  const isActive = pathname === item.href || (item.href && pathname.startsWith(item.href) && item.href !== '/');
+  
+  const [open, setOpen] = useState(isChildActive);
 
-  const handleEnter = () => {
-    if (hasChildren && ref.current) {
-      setFlyoutTop(ref.current.getBoundingClientRect().top);
-      setFlyoutOpen(true);
+  // Auto-expand if the path segment changes and matches a child
+  useEffect(() => {
+    if (isChildActive) {
+      setOpen(true);
     }
-  };
+  }, [pathname, isChildActive]);
 
   return (
-    <div ref={ref} className="sh-group" onMouseEnter={handleEnter} onMouseLeave={() => setFlyoutOpen(false)}>
+    <div className="sh-group">
       {hasChildren ? (
-        <div className={`sh-item ${isActive ? 'active' : ''}`} style={{ justifyContent: 'space-between' }}>
-          <item.icon size={14} style={{ flexShrink: 0 }} />
-          <span className="sh-item-label">{item.label}</span>
-          <ChevronRight size={11} style={{ flexShrink: 0, opacity: .4 }} />
-        </div>
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className={`sh-item ${isChildActive ? 'active' : ''}`}
+            style={{ display: 'flex', width: '100%', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', justifyContent: 'space-between', alignItems: 'center' }}
+          >
+            <div className="flex items-center gap-[9px] overflow-hidden">
+              <item.icon size={14} style={{ flexShrink: 0 }} />
+              <span className="sh-item-label">{item.label}</span>
+            </div>
+            <ChevronRight 
+              size={12} 
+              className="transition-transform duration-200" 
+              style={{ flexShrink: 0, opacity: .5, transform: open ? 'rotate(90deg)' : 'none' }} 
+            />
+          </button>
+          {open && (
+            <div className="sh-sub-menu">
+              {item.children!.map(child => {
+                const isSubActive = pathname === child.href || (child.href !== '/' && pathname.startsWith(child.href));
+                return (
+                  <Link 
+                    key={child.href} 
+                    href={child.href} 
+                    className={`sh-sub-item ${isSubActive ? 'active' : ''}`}
+                  >
+                    {child.label}
+                    {child.badge && <span className="sh-badge" style={{ marginLeft: 6 }}>{child.badge}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </>
       ) : (
-        <a href={item.href} className={`sh-item ${isActive ? 'active' : ''}`}>
+        <Link href={item.href || '#'} className={`sh-item ${isActive ? 'active' : ''}`}>
           <item.icon size={14} style={{ flexShrink: 0 }} />
           <span className="sh-item-label">{item.label}</span>
           {item.badge && <span className="sh-badge">{item.badge}</span>}
-        </a>
-      )}
-      {flyoutOpen && hasChildren && (
-        <div className="sh-flyout" style={{ top: flyoutTop }}>
-          {item.children!.map(child => (
-            <a key={child.href} href={child.href} className="sh-flyout-item">
-              {child.label}
-              {child.badge && <span className="sh-badge" style={{ marginLeft: 6 }}>{child.badge}</span>}
-            </a>
-          ))}
-        </div>
+        </Link>
       )}
     </div>
   );
 }
 
+const ROUTE_LABELS: Record<string, string> = {
+  dashboard: 'Dashboard',
+  'daily-briefings': 'Daily Briefings',
+  customers: 'Clientes',
+  leads: 'Leads',
+  import: 'Importar',
+  helpdesk: 'Helpdesk',
+  outreach: 'Outreach',
+  'email-marketing': 'Email Marketing',
+  pro: 'PRO',
+  campanhas: 'Campanhas',
+  campaigns: 'Campanhas',
+  ads: 'Meta Ads',
+  analytics: 'Analytics',
+  'google-analytics': 'Google Analytics',
+  finance: 'Finanças',
+  'morning-briefing': 'Morning Briefing',
+  'personal-control': 'Planilha Financeira',
+  transactions: 'Transações',
+  incomes: 'Receitas',
+  expenses: 'Despesas',
+  transfers: 'Transferências',
+  imports: 'Importar',
+  'credit-cards': 'Cartões de Crédito',
+  accounts: 'Contas',
+  planner: 'Planejador',
+  goals: 'Metas',
+  recurring: 'Recorrentes',
+  'tax-documents': 'Imposto de Renda',
+  'ai-chat': 'Claude Chat',
+  tools: 'Ferramentas',
+  'anthropic-proxy': 'Anthropic Proxy',
+  utilities: 'Utilitários',
+  'image-generation': 'Geração de Imagens',
+  'prompt-generator': 'Gerador de Prompts',
+  'humanize-text': 'Humanizar Texto',
+  'email-subject-optimizer': 'Otimizador de Email',
+  'lead-persona-generator': 'Gerador de Personas',
+  'outreach-ab-test': 'Teste A/B',
+  'social-batch-generator': 'Batch Social Media',
+  'customer-insights': 'Insights',
+  agenda: 'Agenda',
+  tasks: 'Tarefas',
+  household: 'Pessoal',
+  checklists: 'Listas e Compras',
+  snippets: 'Snippets',
+  'html-extractor': 'HTML → Texto',
+  'html-url-extractor': 'HTML → Links',
+  'apps-inventory': 'Inventário de Apps',
+  status: 'Status',
+  users: 'Usuários',
+  admin: 'Admin',
+  groups: 'Grupos',
+  ai: 'Provedores IA',
+  blog: 'Blog',
+  new: 'Novo',
+  edit: 'Editar',
+  logs: 'Logs do Sistema',
+  monitoring: 'Erros',
+};
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Handle Ctrl+K / Cmd+K keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // fecha o drawer ao navegar
   useEffect(() => { setMenuOpen(false); }, [pathname]);
@@ -309,6 +448,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     ? user.email.substring(0, 2).toUpperCase()
     : 'AQ';
 
+  // Dynamic breadcrumbs calculation
+  const pathSegments = pathname.split('/').filter(Boolean);
+  const breadcrumbs = pathSegments.map((segment, index) => {
+    const href = '/' + pathSegments.slice(0, index + 1).join('/');
+    const label = ROUTE_LABELS[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+    const isLast = index === pathSegments.length - 1;
+
+    return (
+      <div key={href} className="flex items-center gap-1">
+        <ChevronRight size={10} className="text-slate-600 shrink-0" />
+        {isLast ? (
+          <span className="text-xs font-semibold text-emerald-400 select-none">{label}</span>
+        ) : (
+          <Link href={href} className="text-xs text-slate-400 hover:text-slate-200 transition-colors">
+            {label}
+          </Link>
+        )}
+      </div>
+    );
+  });
+
+  const commandItems = [
+    { label: 'Ir para Dashboard', href: '/dashboard', category: 'Navegação' },
+    { label: 'Ir para Daily Briefings', href: '/daily-briefings', category: 'Navegação' },
+    { label: 'Ir para Clientes', href: '/customers', category: 'Navegação' },
+    { label: 'Ir para Leads', href: '/leads', category: 'Navegação' },
+    { label: 'Ir para Helpdesk', href: '/helpdesk', category: 'Navegação' },
+    { label: 'Ir para Outreach', href: '/outreach', category: 'Navegação' },
+    { label: 'Ir para Email Marketing', href: '/email-marketing', category: 'Navegação' },
+    { label: 'Ir para Planilha Financeira', href: '/finance/personal-control', category: 'Finanças' },
+    { label: 'Ir para Transações', href: '/finance/transactions', category: 'Finanças' },
+    { label: 'Ir para Claude Chat', href: '/ai-chat', category: 'IA' },
+    { label: 'Criar Novo Lead', href: '/leads', category: 'Ações' }
+  ];
+
+  const filteredCommands = searchQuery
+    ? commandItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    : commandItems;
+
   return (
     <>
       <style>{SHELL_CSS}</style>
@@ -316,13 +494,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className={`sh-backdrop ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
         {/* Sidebar */}
         <nav className={`sh-sidebar ${menuOpen ? 'open' : ''}`}>
-          <div className="sh-logo">
+          <Link href="/dashboard" className="sh-logo hover:opacity-90 transition-opacity decoration-none">
             <div className="sh-logo-icon">D</div>
             <div>
               <div className="sh-logo-text">DIAX CRM</div>
               <div className="sh-logo-sub">Pro · v5</div>
             </div>
-          </div>
+          </Link>
 
           <div className="sh-nav">
             {navGroups.map(group => (
@@ -336,14 +514,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="sh-user">
-            <div className="sh-avatar">{initials}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#F9FAFB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.email?.split('@')[0] ?? 'Admin'}
-              </div>
-              <div style={{ fontSize: 10, color: '#6B7280' }}>Admin</div>
-            </div>
-            <div className="sh-live" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="flex items-center gap-2.5 w-full text-left p-1 rounded-lg hover:bg-white/5 transition-colors focus-visible:ring-1 focus-visible:ring-ring outline-none cursor-pointer">
+                  <div className="sh-avatar">{initials}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#F9FAFB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user?.email?.split('@')[0] ?? 'Admin'}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#6B7280' }}>Admin</div>
+                  </div>
+                  <div className="sh-live" style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="right" className="w-56 bg-[#0D1F18] border-white/10 text-slate-200">
+                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/5" />
+                <DropdownMenuItem asChild>
+                  <Link href="/users" className="flex items-center gap-2 cursor-pointer focus:bg-white/10 w-full">
+                    <Users size={14} /> Usuários
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/groups" className="flex items-center gap-2 cursor-pointer focus:bg-white/10 w-full">
+                    <Shield size={14} /> Grupos & Permissões
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/tools/status" className="flex items-center gap-2 cursor-pointer focus:bg-white/10 w-full">
+                    <Activity size={14} /> Status das Apps
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-white/5" />
+                <DropdownMenuItem onClick={logout} className="flex items-center gap-2 cursor-pointer text-red-400 focus:bg-red-950 focus:text-red-300">
+                  <LogOut size={14} /> Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </nav>
 
@@ -354,15 +561,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button className="sh-menu-btn" onClick={() => setMenuOpen(o => !o)} aria-label="Abrir menu" aria-expanded={menuOpen}>
               <Menu size={19} />
             </button>
-            <div className="sh-search">
+
+            {/* Breadcrumbs */}
+            <div className="hidden sm:flex items-center gap-1 select-none">
+              <Link href="/dashboard" className="text-slate-400 hover:text-slate-200 transition-colors">
+                <Home size={13} />
+              </Link>
+              {breadcrumbs}
+            </div>
+
+            {/* Search Input trigger */}
+            <button 
+              onClick={() => setSearchOpen(true)}
+              className="sh-search text-left focus:outline-none focus:ring-1 focus:ring-ring select-none"
+            >
               <Search size={13} />
               <span>Buscar…</span>
               <span className="sh-kbd" style={{ marginLeft: 'auto', fontSize: 11, opacity: .4 }}>⌘K</span>
-            </div>
+            </button>
+
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <a href="/leads/" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 9, background: '#10B981', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+              <Link href="/leads/" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 9, background: '#10B981', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
                 <Plus size={13} /> Novo Lead
-              </a>
+              </Link>
               <Bell size={16} color="#6B7280" style={{ cursor: 'pointer' }} />
               <button
                 onClick={logout}
@@ -382,6 +603,50 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </div>
+
+      {/* Command Search Dialog */}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="max-w-md bg-[#0D1F18] border-white/10 text-slate-200 p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b border-white/5">
+            <DialogTitle className="text-sm font-semibold text-slate-300">Buscar no CRM</DialogTitle>
+          </DialogHeader>
+          <div className="p-3">
+            <div className="relative flex items-center mb-4">
+              <Search className="absolute left-3 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Digite para buscar..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500 text-white placeholder-slate-500"
+                autoFocus
+              />
+            </div>
+            <div className="max-h-60 overflow-y-auto space-y-3 pr-1">
+              {filteredCommands.length > 0 ? (
+                Array.from(new Set(filteredCommands.map(c => c.category))).map(cat => (
+                  <div key={cat} className="space-y-1">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">{cat}</div>
+                    {filteredCommands.filter(c => c.category === cat).map(cmd => (
+                      <Link
+                        key={cmd.label}
+                        href={cmd.href}
+                        onClick={() => setSearchOpen(false)}
+                        className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-white/5 text-sm transition-colors text-slate-300 hover:text-white"
+                      >
+                        <span>{cmd.label}</span>
+                        <ChevronRight size={12} className="opacity-40" />
+                      </Link>
+                    ))}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-sm text-slate-500">Nenhum resultado encontrado</div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

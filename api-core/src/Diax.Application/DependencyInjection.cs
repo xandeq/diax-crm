@@ -87,6 +87,7 @@ public static class DependencyInjection
         // ===== AGENTES DE IA =====
         services.AddScoped<ICommercialAgentService, CommercialAgentService>();
         services.AddScoped<EmailMarketingService>();
+        services.AddSingleton<IPilotCircuitBreaker, PilotCircuitBreaker>();
         services.AddScoped<OutreachService>();
         services.AddScoped<ILeadNormalizationService, LeadNormalizationService>();
         services.AddSingleton<IEmailTemplateEngine, EmailTemplateEngine>();

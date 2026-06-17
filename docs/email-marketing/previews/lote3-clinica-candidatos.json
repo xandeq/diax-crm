@@ -1,0 +1,207 @@
+{
+  "lote": "clinica-sites-lote3",
+  "status": "SELECIONADO_NAO_ENVIAR",
+  "count": 20,
+  "candidatos": [
+    {
+      "id": "39b92257-d101-476a-b5f8-1dbca454c8b1",
+      "company": "Clinica Vida",
+      "email": "supervisao@clinicavida.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Brevo"
+    },
+    {
+      "id": "90c29740-edbf-4491-aa2b-be97890ff562",
+      "company": "Clinica Idem",
+      "email": "marcacao@clinicaidem.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Mailjet"
+    },
+    {
+      "id": "27b6a5c5-2f95-4942-9682-cbeea9341c61",
+      "company": "Clínica Holos",
+      "email": "atendimento@clinicaholos.com",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Resend"
+    },
+    {
+      "id": "afe3a738-64f5-4929-9de2-ea6a5bec9aa6",
+      "company": "Clinica Bahiamed",
+      "email": "comercial@clinicabahiamed.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "SendGrid"
+    },
+    {
+      "id": "fa7b2574-322a-45a3-906b-9de8058701d2",
+      "company": "Clinica Senise",
+      "email": "sticadrluis.cirurgiaplastica@clinicasenise.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Brevo"
+    },
+    {
+      "id": "df2c1f48-5694-415c-9eb0-532e423e7c66",
+      "company": "Cdc",
+      "email": "administracao@clinicacdc.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Mailjet"
+    },
+    {
+      "id": "51532d21-5548-44e1-8af2-a494104ddc6b",
+      "company": "Multimed",
+      "email": "administrativo@clinicamultimed.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Resend"
+    },
+    {
+      "id": "effee8b6-8ae9-44e6-b824-fb0436420441",
+      "company": "Clínica Dircksen",
+      "email": "clinicadircksen@clinicadircksen.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "SendGrid"
+    },
+    {
+      "id": "100dcf3e-74ff-46a0-aa89-29dc78ec6796",
+      "company": "Clínica Fogaça",
+      "email": "contato@clinicafogacaflorianopolis.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Brevo"
+    },
+    {
+      "id": "02cb1e13-cbb4-45bf-ac8e-5fd7c7591dac",
+      "company": "Florianópolis Clínicas",
+      "email": "atendimento@florianopolisclinicas.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Mailjet"
+    },
+    {
+      "id": "ddaae8d0-4848-47b7-93ee-79cf03b68c61",
+      "company": "Dr. Maria Del Carmen",
+      "email": "mari@clinicamulhera.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Resend"
+    },
+    {
+      "id": "4b8c633e-f1e9-4a43-9f5b-b84b9bb277cb",
+      "company": "Clínica Bárbara Monteiro",
+      "email": "contato@clinicabarbaramonteiro.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "SendGrid"
+    },
+    {
+      "id": "48bcd25e-09b5-4ab6-b31c-7b86c2b56021",
+      "company": "Clinica Coolmeia",
+      "email": "contato@clinicacoolmeia.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Brevo"
+    },
+    {
+      "id": "21d510c9-c9b8-4c62-96cb-e972bc074020",
+      "company": "Clínica Oculare",
+      "email": "atendimento@clinicaoculare.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Mailjet"
+    },
+    {
+      "id": "da5538e6-6768-4f94-b1b1-1fd4e2fbf2c2",
+      "company": "Clínica CAM Em Salvador E Lauro De Freitas",
+      "email": "ouvidoriagrupocam@oncoclinicas.com",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Resend"
+    },
+    {
+      "id": "ee8f3a70-857a-4875-b59e-65be84a5ea2d",
+      "company": "Clínica Florence",
+      "email": "contato@clinicaflorence.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "SendGrid"
+    },
+    {
+      "id": "88c0b531-537a-48af-bc1b-c211110d044a",
+      "company": "Clínica ADS",
+      "email": "ondinasalvadorbahia40170-130brasilwww.clinicaads.com.brsac@clinicaads.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Brevo"
+    },
+    {
+      "id": "3ba90d96-e3a6-45c2-aa56-210188e72674",
+      "company": "Santa Clara",
+      "email": "conversa@clinica.staclaramenuespecialidadesortopedianeurologiacardiologiapediatriaurologiapsicologiaespecialistasconv",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Mailjet"
+    },
+    {
+      "id": "1dc62f23-fe41-4daf-8be9-0445e57091b0",
+      "company": "Clã­Nica Bella Linea",
+      "email": "contato@clinicabellalinea.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "Resend"
+    },
+    {
+      "id": "d2ea44ea-4881-4217-a787-412c437b1555",
+      "company": "Clínica CED",
+      "email": "atendimento@clinicaced.com",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4,
+      "assignedProvider": "SendGrid"
+    }
+  ]
+}

@@ -470,9 +470,9 @@ export default function LeadsPage() {
           <div className="flex items-center gap-3">
             <Avatar name={row.name} />
             <div className="min-w-0">
-              <p className="font-medium text-slate-900 truncate">{row.name}</p>
+              <p className="font-medium text-zinc-100 truncate">{row.name}</p>
               {row.companyName && (
-                <p className="text-xs text-slate-500 truncate">{row.companyName}</p>
+                <p className="text-xs text-zinc-400 truncate">{row.companyName}</p>
               )}
             </div>
           </div>
@@ -483,8 +483,8 @@ export default function LeadsPage() {
         header: 'Email',
         sortable: true,
         cell: (row) => (
-          <span className="text-sm text-slate-600 truncate block max-w-[220px]">
-            {row.email || <span className="text-slate-400 italic">Sem email</span>}
+          <span className="text-sm text-zinc-300 truncate block max-w-[220px]">
+            {row.email || <span className="text-zinc-500 italic">Sem email</span>}
           </span>
         ),
       },
@@ -493,10 +493,10 @@ export default function LeadsPage() {
         header: 'Telefone',
         cell: (row) => (
           <div>
-            <span className="text-sm text-slate-600">{normalizePhoneBR(row.phone) || '–'}</span>
+            <span className="text-sm text-zinc-300">{normalizePhoneBR(row.phone) || '–'}</span>
             {row.whatsApp && (
-              <span className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
-                <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full" />
+              <span className="text-xs text-emerald-400 flex items-center gap-1 mt-0.5">
+                <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                 WA: {normalizePhoneBR(row.whatsApp)}
               </span>
             )}
@@ -549,7 +549,7 @@ export default function LeadsPage() {
         header: 'Criado em',
         sortable: true,
         cell: (row) => (
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-zinc-400">
             {new Date(row.createdAt).toLocaleDateString('pt-BR')}
           </span>
         ),
@@ -561,7 +561,7 @@ export default function LeadsPage() {
         cell: (row) => {
           const lastActivity = row.lastContactAt || row.lastEmailSentAt;
           if (!lastActivity) {
-            return <span className="text-sm text-slate-400">Nunca</span>;
+            return <span className="text-sm text-zinc-500">Nunca</span>;
           }
           const lastActivityDate = new Date(lastActivity);
           const now = new Date();
@@ -576,7 +576,7 @@ export default function LeadsPage() {
 
           return (
             <div className="text-sm" title={lastActivityDate.toLocaleString('pt-BR')}>
-              <span className="text-slate-600">📧 {displayText}</span>
+              <span className="text-zinc-300">📧 {displayText}</span>
             </div>
           );
         },
@@ -590,7 +590,7 @@ export default function LeadsPage() {
           <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => handleOpenEdit(row)}
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-700 transition-colors"
+              className="p-1.5 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-zinc-100 transition-colors"
               title="Editar"
             >
               <Edit2 className="h-4 w-4" />
@@ -598,7 +598,7 @@ export default function LeadsPage() {
             {row.status !== CustomerStatus.Customer && (
               <button
                 onClick={() => handleConvert(row)}
-                className="p-1.5 hover:bg-green-50 rounded-lg text-green-600 hover:text-green-700 transition-colors"
+                className="p-1.5 hover:bg-emerald-500/10 rounded-lg text-emerald-400 hover:text-emerald-300 transition-colors"
                 title="Converter para Cliente"
               >
                 <CheckCircle className="h-4 w-4" />
@@ -607,28 +607,28 @@ export default function LeadsPage() {
             <button
               onClick={() => handleWhatsApp(row)}
               disabled={!row.phone && !row.whatsApp}
-              className="p-1.5 hover:bg-green-50 rounded-lg text-green-600 hover:text-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 hover:bg-emerald-500/10 rounded-lg text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="WhatsApp"
             >
               <MessageCircle className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleEmail(row)}
-              className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 hover:text-blue-700 transition-colors"
+              className="p-1.5 hover:bg-blue-500/10 rounded-lg text-blue-400 hover:text-blue-300 transition-colors"
               title="Enviar Email"
             >
               <Mail className="h-4 w-4" />
             </button>
             <button
               onClick={() => setTimelineLead(row)}
-              className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-600 hover:text-indigo-700 transition-colors"
+              className="p-1.5 hover:bg-indigo-500/10 rounded-lg text-indigo-400 hover:text-indigo-300 transition-colors"
               title="Histórico"
             >
               <Activity className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(row.id)}
-              className="p-1.5 hover:bg-red-50 rounded-lg text-red-500 hover:text-red-700 transition-colors"
+              className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-400 hover:text-red-300 transition-colors"
               title="Excluir"
             >
               <Trash2 className="h-4 w-4" />
@@ -673,20 +673,20 @@ export default function LeadsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-display text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight font-display text-zinc-100">
             Leads
           </h1>
-          <p className="text-slate-500">Gerencie seus potenciais clientes.</p>
+          <p className="text-zinc-400">Gerencie seus potenciais clientes.</p>
         </div>
         <div className="flex gap-2">
           {/* View toggle */}
-          <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+          <div className="flex rounded-lg border border-white/10 overflow-hidden bg-white/5">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors ${
+              className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-all duration-200 ${
                 viewMode === 'table'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-50'
+                  ? 'bg-[#00D4AA]/25 text-[#00D4AA]'
+                  : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
               }`}
               title="Visualização em tabela"
             >
@@ -694,10 +694,10 @@ export default function LeadsPage() {
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors border-l border-slate-200 ${
+              className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-all duration-200 border-l border-white/10 ${
                 viewMode === 'kanban'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-50'
+                  ? 'bg-[#00D4AA]/25 text-[#00D4AA]'
+                  : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
               }`}
               title="Visualização Kanban"
             >
@@ -707,39 +707,39 @@ export default function LeadsPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="border-white/10 text-zinc-300 hover:bg-white/5">
                 <Download className="mr-2 h-4 w-4" /> Exportar
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Página Atual</DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleExport}>
+            <DropdownMenuContent align="end" className="w-56 bg-zinc-950 border-white/10 text-zinc-300">
+              <DropdownMenuLabel className="text-zinc-400">Página Atual</DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleExport} className="focus:bg-white/5 focus:text-zinc-100 cursor-pointer">
                 Formato CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportJson}>
+              <DropdownMenuItem onClick={handleExportJson} className="focus:bg-white/5 focus:text-zinc-100 cursor-pointer">
                 Formato JSON
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Todos (da base)</DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleExportAllCsv}>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuLabel className="text-zinc-400">Todos (da base)</DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleExportAllCsv} className="focus:bg-white/5 focus:text-zinc-100 cursor-pointer">
                 Todos formato CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportAllJson}>
+              <DropdownMenuItem onClick={handleExportAllJson} className="focus:bg-white/5 focus:text-zinc-100 cursor-pointer">
                 Todos formato JSON
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" onClick={handleBulkSanitize} disabled={submitting} title="Limpar, padronizar e mesclar duplicatas inteligentemente">
+          <Button variant="outline" onClick={handleBulkSanitize} disabled={submitting} className="border-white/10 text-zinc-300 hover:bg-white/5" title="Limpar, padronizar e mesclar duplicatas inteligentemente">
             <Wand2 className="mr-2 h-4 w-4" /> Limpar Base
           </Button>
 
           <Link href="/leads/import">
-            <Button variant="outline">
+            <Button variant="outline" className="border-white/10 text-zinc-300 hover:bg-white/5">
               <Upload className="mr-2 h-4 w-4" /> Importar
             </Button>
           </Link>
-          <Button onClick={handleOpenCreate}>
+          <Button onClick={handleOpenCreate} className="bg-[#00D4AA] hover:bg-[#00B894] text-[#0B1410] font-semibold">
             <Plus className="mr-2 h-4 w-4" /> Novo Lead
           </Button>
         </div>
@@ -749,10 +749,10 @@ export default function LeadsPage() {
       <div className="space-y-3">
         <div className="flex gap-3 items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <Input
               placeholder="Buscar por nome, email ou empresa..."
-              className="pl-10 h-10"
+              className="pl-10 h-10 border-white/10 bg-white/5 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-[#00D4AA]"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -760,12 +760,16 @@ export default function LeadsPage() {
           <Button
             variant="outline"
             onClick={() => setShowAdvancedFilters((v) => !v)}
-            className={`shrink-0 ${advancedFilterCount > 0 ? 'border-slate-900 text-slate-900' : ''}`}
+            className={`shrink-0 transition-colors ${
+              advancedFilterCount > 0 
+                ? 'border-[#00D4AA] text-[#00D4AA] bg-[#00D4AA]/5 hover:bg-[#00D4AA]/10' 
+                : 'border-white/10 text-zinc-300 hover:bg-white/5'
+            }`}
           >
             <Filter className="h-4 w-4 mr-1.5" />
             Filtros
             {advancedFilterCount > 0 && (
-              <span className="ml-1.5 bg-slate-900 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="ml-1.5 bg-[#00D4AA] text-[#0B1410] text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center">
                 {advancedFilterCount}
               </span>
             )}
@@ -779,7 +783,7 @@ export default function LeadsPage() {
             <Button
               variant="ghost"
               onClick={clearFilters}
-              className="text-slate-500 hover:text-slate-700 shrink-0"
+              className="text-zinc-400 hover:text-zinc-200 shrink-0 hover:bg-white/5"
             >
               <X className="h-4 w-4 mr-1.5" />
               Limpar
@@ -801,11 +805,11 @@ export default function LeadsPage() {
 
         {/* Advanced Filters Panel */}
         {showAdvancedFilters && (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="bg-white/[0.02] border border-white/10 rounded-lg p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Has Email */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Possui Email</label>
+                <label className="text-sm font-medium text-zinc-300">Possui Email</label>
                 <div className="flex gap-2">
                   <FilterChip
                     label="Qualquer"
@@ -827,7 +831,7 @@ export default function LeadsPage() {
 
               {/* Has WhatsApp */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Possui WhatsApp</label>
+                <label className="text-sm font-medium text-zinc-300">Possui WhatsApp</label>
                 <div className="flex gap-2">
                   <FilterChip
                     label="Qualquer"
@@ -849,7 +853,7 @@ export default function LeadsPage() {
 
               {/* Person Type */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Tipo Pessoa</label>
+                <label className="text-sm font-medium text-zinc-300">Tipo Pessoa</label>
                 <div className="flex gap-2">
                   <FilterChip
                     label="Todos"
@@ -871,10 +875,10 @@ export default function LeadsPage() {
             </div>
 
             {/* Origem + Segmento filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
               {/* Origem */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Origem</label>
+                <label className="text-sm font-medium text-zinc-300">Origem</label>
                 <div className="flex gap-2 flex-wrap">
                   {SOURCE_FILTER_OPTIONS.map((opt) => (
                     <FilterChip
@@ -889,7 +893,7 @@ export default function LeadsPage() {
 
               {/* Segmento */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Segmento</label>
+                <label className="text-sm font-medium text-zinc-300">Segmento</label>
                 <div className="flex gap-2 flex-wrap">
                   {SEGMENT_FILTER_OPTIONS.map((opt) => (
                     <FilterChip
@@ -904,9 +908,9 @@ export default function LeadsPage() {
             </div>
 
             {/* Sem email enviado + Importado após */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Emails enviados</label>
+                <label className="text-sm font-medium text-zinc-300">Emails enviados</label>
                 <div className="flex gap-2">
                   <FilterChip
                     label="Todos"
@@ -922,18 +926,18 @@ export default function LeadsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Importado após</label>
+                <label className="text-sm font-medium text-zinc-300">Importado após</label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="date"
-                    className="h-8 text-sm w-40"
+                    className="h-8 text-sm w-40 border-white/10 bg-white/5 text-zinc-300 focus-visible:ring-[#00D4AA]"
                     value={createdAfterFilter}
                     onChange={(e) => setCreatedAfterFilter(e.target.value)}
                   />
                   {createdAfterFilter && (
                     <button
                       onClick={() => setCreatedAfterFilter('')}
-                      className="text-slate-400 hover:text-slate-600"
+                      className="text-zinc-400 hover:text-zinc-200"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -1047,10 +1051,10 @@ export default function LeadsPage() {
                 <div className="flex items-center gap-3 mt-3">
                   <Avatar name={timelineLead.name} size="sm" />
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-zinc-100">
                       {timelineLead.name}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-zinc-400">
                       {timelineLead.email || timelineLead.companyName || ''}
                     </p>
                   </div>

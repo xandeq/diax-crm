@@ -1,0 +1,28 @@
+{
+  "snapshot_at": "2026-06-16T20:37:34.636101-03:00",
+  "action_attempted": "Opção A (desabilitar ElasticEmail+MailerSend)",
+  "action_result": "NAO EXECUTAVEL via acesso disponivel (so HTTP API); nenhuma config alterada",
+  "campaign": {
+    "status": 3,
+    "sentCount": 19,
+    "deliveredCount": 3,
+    "failedCount": 20,
+    "bounceCount": 0,
+    "unsubscribeCount": 0,
+    "spamCount": null,
+    "totalRecipients": 29
+  },
+  "recipient_status": {
+    "Queued": 10,
+    "Sent": 19
+  },
+  "duplicates": 0,
+  "blockers": [
+    "ProviderMap hardcoded",
+    "sem endpoint enable/disable",
+    "sem connection string DIAX (sem DB)",
+    "queue-with-assignment duplicaria"
+  ],
+  "fix_requires": "acesso ao servidor DIAX prod: injetar ELASTICEMAIL_API_KEY + MAILERSEND_API_TOKEN no env (ou remover do ProviderMap) + restart",
+  "deliverability": "saudavel: 0 bounce / 0 spam / 0 unsub / 0 duplicado"
+}

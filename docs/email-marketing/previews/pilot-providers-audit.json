@@ -1,0 +1,111 @@
+{
+  "audit_at": "2026-06-16T20:20:01.837400-03:00",
+  "campaign": {
+    "status": 3,
+    "sentCount": 19,
+    "deliveredCount": 3,
+    "failedCount": 20,
+    "bounceCount": 0,
+    "unsubscribeCount": 0,
+    "openCount": 0,
+    "clickCount": 0,
+    "totalRecipients": 29
+  },
+  "recipient_status": {
+    "Queued": 10,
+    "Sent": 19
+  },
+  "real_errors": 0,
+  "providers": [
+    {
+      "provider": "Brevo",
+      "sentToday": 5,
+      "dailyLimit": 100,
+      "dailyRemaining": 95,
+      "dailyUsagePercent": 5,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 2,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "Mailjet",
+      "sentToday": 5,
+      "dailyLimit": 100,
+      "dailyRemaining": 95,
+      "dailyUsagePercent": 5,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 0,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "Resend",
+      "sentToday": 5,
+      "dailyLimit": 100,
+      "dailyRemaining": 95,
+      "dailyUsagePercent": 5,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 0,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "ElasticEmail",
+      "sentToday": 0,
+      "dailyLimit": 100,
+      "dailyRemaining": 100,
+      "dailyUsagePercent": 0,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 5,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "MailerSend",
+      "sentToday": 0,
+      "dailyLimit": 100,
+      "dailyRemaining": 100,
+      "dailyUsagePercent": 0,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 5,
+      "failedToday": 0,
+      "health": "ok"
+    },
+    {
+      "provider": "SendGrid",
+      "sentToday": 4,
+      "dailyLimit": 100,
+      "dailyRemaining": 96,
+      "dailyUsagePercent": 4,
+      "sentThisHour": 0,
+      "hourlyLimit": 25,
+      "hourlyRemaining": 25,
+      "queuedCount": 0,
+      "failedToday": 0,
+      "health": "ok"
+    }
+  ],
+  "diagnosis": {
+    "failed_count": 20,
+    "attempts_per_stuck": 2,
+    "stuck_count": 10,
+    "root_cause": "10 itens roteados p/ ElasticEmail+MailerSend (sentToday=0, queued=5 cada) que nao enviam neste ambiente DIAX (provavel credencial/config ausente). Brevo/Mailjet/Resend/SendGrid enviaram 19 OK.",
+    "NOT": "nao e dominio/spam/conteudo: 0 bounce, 0 spam, 0 unsub, 3 delivered confirmados",
+    "stop_criteria_triggered": [
+      "erro repetido de provider",
+      "failed rate critico apos retry (20)"
+    ],
+    "decision": "PAUSAR escalada; NAO preparar/enviar novo lote; NAO reenviar manual; recomendar correcao de provider sob autorizacao"
+  }
+}

@@ -43,26 +43,28 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
     });
   };
 
+  const selectClass = "w-full h-10 px-3 rounded-md border border-white/10 bg-white/5 text-sm text-zinc-300 focus:outline-none focus:border-[#00D4AA]/50 focus:ring-1 focus:ring-[#00D4AA]/50 transition-all duration-200";
+
   return (
-    <div className="rounded-lg p-4 mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+    <div className="rounded-xl p-4 mb-4 border border-white/10 bg-white/[0.02] backdrop-blur-md">
       <div className="flex items-center justify-between">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2 text-sm font-medium"
+          className="flex items-center gap-2 text-sm font-semibold cursor-pointer select-none transition-colors hover:text-zinc-100"
           style={{ color: '#D1D5DB' }}
         >
-          <Filter className="h-4 w-4" />
+          <Filter className="h-4 w-4 text-[#00D4AA]" />
           Filtros
           {activeFiltersCount > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
+            <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#00D4AA]/15 text-[#00D4AA] border border-[#00D4AA]/20">
               {activeFiltersCount}
             </span>
           )}
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          {expanded ? <ChevronUp className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
         </button>
 
         {activeFiltersCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+          <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-zinc-400 hover:text-zinc-100 hover:bg-white/5">
             <X className="h-4 w-4 mr-1" />
             Limpar filtros
           </Button>
@@ -71,8 +73,8 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
 
       {expanded && (
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <Label htmlFor="startDate">Data inicial</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="startDate" className="text-zinc-400 font-semibold">Data inicial</Label>
             <Input
               id="startDate"
               type="datetime-local"
@@ -81,8 +83,8 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
             />
           </div>
 
-          <div>
-            <Label htmlFor="endDate">Data final</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="endDate" className="text-zinc-400 font-semibold">Data final</Label>
             <Input
               id="endDate"
               type="datetime-local"
@@ -91,44 +93,44 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
             />
           </div>
 
-          <div>
-            <Label htmlFor="level">Nível</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="level" className="text-zinc-400 font-semibold">Nível</Label>
             <select
               id="level"
-              className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              className={selectClass}
               value={filters.level ?? ''}
               onChange={(e) => onFilterChange({
                 ...filters,
                 level: e.target.value ? Number(e.target.value) as LogLevel : undefined
               })}
             >
-              <option value="">Todos</option>
+              <option value="" className="bg-[#0C1712] text-zinc-300">Todos</option>
               {Object.entries(logLevelLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+                <option key={value} value={value} className="bg-[#0C1712] text-zinc-300">{label}</option>
               ))}
             </select>
           </div>
 
-          <div>
-            <Label htmlFor="category">Categoria</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="category" className="text-zinc-400 font-semibold">Categoria</Label>
             <select
               id="category"
-              className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              className={selectClass}
               value={filters.category ?? ''}
               onChange={(e) => onFilterChange({
                 ...filters,
                 category: e.target.value ? Number(e.target.value) as LogCategory : undefined
               })}
             >
-              <option value="">Todas</option>
+              <option value="" className="bg-[#0C1712] text-zinc-300">Todas</option>
               {Object.entries(logCategoryLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+                <option key={value} value={value} className="bg-[#0C1712] text-zinc-300">{label}</option>
               ))}
             </select>
           </div>
 
-          <div>
-            <Label htmlFor="searchTerm">Buscar na mensagem</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="searchTerm" className="text-zinc-400 font-semibold">Buscar na mensagem</Label>
             <Input
               id="searchTerm"
               placeholder="Texto da mensagem..."
@@ -137,8 +139,8 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
             />
           </div>
 
-          <div>
-            <Label htmlFor="userId">ID do usuário</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="userId" className="text-zinc-400 font-semibold">ID do usuário</Label>
             <Input
               id="userId"
               placeholder="UUID do usuário..."
@@ -147,8 +149,8 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
             />
           </div>
 
-          <div>
-            <Label htmlFor="correlationId">Correlation ID</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="correlationId" className="text-zinc-400 font-semibold">Correlation ID</Label>
             <Input
               id="correlationId"
               placeholder="Correlation ID..."
@@ -157,8 +159,8 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
             />
           </div>
 
-          <div>
-            <Label htmlFor="requestPath">Caminho da requisição</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="requestPath" className="text-zinc-400 font-semibold">Caminho da requisição</Label>
             <Input
               id="requestPath"
               placeholder="/api/v1/..."
@@ -168,7 +170,7 @@ export function LogFilters({ filters, onFilterChange, onApply }: LogFiltersProps
           </div>
 
           <div className="md:col-span-2 lg:col-span-4 flex justify-end">
-            <Button onClick={onApply}>
+            <Button onClick={onApply} className="bg-[#00D4AA] text-[#050B08] hover:bg-[#00bda0] font-bold">
               Aplicar filtros
             </Button>
           </div>

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-const publicRoutes = ['/login', '/register', '/forgot-password'];
+const publicRoutes = ['/login', '/register', '/forgot-password', '/landing'];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -13,7 +13,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading) {
-      const isPublicRoute = publicRoutes.includes(pathname);
+      const isPublicRoute = publicRoutes.some(r => pathname.startsWith(r));
       
       if (!isAuthenticated && !isPublicRoute) {
         router.replace('/login');

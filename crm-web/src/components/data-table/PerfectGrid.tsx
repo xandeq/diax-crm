@@ -119,24 +119,24 @@ export function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md'
 
 // ── Status Badge ─────────────────────────────────────────────────────────────
 
-const STATUS_CONFIGS: Record<number, { bg: string; text: string; dot: string; label: string }> = {
-  0: { bg: 'bg-sky-50', text: 'text-sky-700', dot: 'bg-sky-500', label: 'Lead' },
-  1: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Contatado' },
-  2: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Qualificado' },
-  3: { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500', label: 'Negociando' },
-  4: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Cliente' },
-  5: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', label: 'Inativo' },
-  6: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500', label: 'Churn' },
+const STATUS_CONFIGS: Record<number, { bg: string; text: string; dot: string; border: string; label: string }> = {
+  0: { bg: 'bg-sky-500/10', text: 'text-sky-400', dot: 'bg-sky-400', border: 'border-sky-500/20', label: 'Lead' },
+  1: { bg: 'bg-amber-500/10', text: 'text-amber-400', dot: 'bg-amber-400', border: 'border-amber-500/20', label: 'Contatado' },
+  2: { bg: 'bg-[#00D4AA]/10', text: 'text-[#00D4AA]', dot: 'bg-[#00D4AA]', border: 'border-[#00D4AA]/20', label: 'Qualificado' },
+  3: { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400', border: 'border-orange-500/20', label: 'Negociando' },
+  4: { bg: 'bg-teal-500/10', text: 'text-teal-400', dot: 'bg-teal-400', border: 'border-teal-500/20', label: 'Cliente' },
+  5: { bg: 'bg-zinc-500/10', text: 'text-zinc-400', dot: 'bg-zinc-400', border: 'border-zinc-500/20', label: 'Inativo' },
+  6: { bg: 'bg-rose-500/10', text: 'text-rose-400', dot: 'bg-rose-400', border: 'border-rose-500/20', label: 'Churn' },
 };
 
 export function StatusBadge({ status }: { status: number }) {
   const config = STATUS_CONFIGS[status];
-  if (!config) return <span className="text-slate-400">-</span>;
+  if (!config) return <span className="text-zinc-500">-</span>;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${config.bg} ${config.text} ${config.border}`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${config.dot} animate-pulse`} />
       {config.label}
     </span>
   );
@@ -159,15 +159,15 @@ export function FilterChip({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+      className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4AA] ${
         active
-          ? 'bg-slate-900 text-white shadow-sm'
-          : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+          ? 'bg-[#00D4AA]/25 text-[#00D4AA] border border-[#00D4AA]/30 shadow-[0_0_12px_rgba(0,212,170,0.15)]'
+          : 'bg-white/5 border border-white/10 text-zinc-400 hover:bg-white/8 hover:border-white/20 hover:text-zinc-200'
       }`}
     >
       {label}
       {count !== undefined && (
-        <span className={`ml-1.5 text-xs ${active ? 'text-slate-400' : 'text-slate-400'}`}>
+        <span className={`ml-1.5 text-xs ${active ? 'text-[#00D4AA]/70' : 'text-zinc-500'}`}>
           {count}
         </span>
       )}
@@ -177,21 +177,21 @@ export function FilterChip({
 
 // ── Segment Badge ────────────────────────────────────────────────────────────
 
-const SEGMENT_CONFIGS: Record<number, { bg: string; text: string; dot: string; label: string }> = {
-  2: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500', label: 'Hot' },
-  1: { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500', label: 'Warm' },
-  0: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Cold' },
+const SEGMENT_CONFIGS: Record<number, { bg: string; text: string; dot: string; border: string; label: string }> = {
+  2: { bg: 'bg-rose-500/10', text: 'text-rose-400', dot: 'bg-rose-400', border: 'border-rose-500/20', label: 'Hot' },
+  1: { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400', border: 'border-orange-500/20', label: 'Warm' },
+  0: { bg: 'bg-sky-500/10', text: 'text-sky-400', dot: 'bg-sky-400', border: 'border-sky-500/20', label: 'Cold' },
 };
 
 export function SegmentBadge({ segment }: { segment?: number | null }) {
   if (segment === undefined || segment === null) {
-    return <span className="text-xs text-slate-400 italic">Não segmentado</span>;
+    return <span className="text-xs text-zinc-500 italic">Não segmentado</span>;
   }
   const config = SEGMENT_CONFIGS[segment];
-  if (!config) return <span className="text-xs text-slate-400">–</span>;
+  if (!config) return <span className="text-xs text-zinc-500">–</span>;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${config.bg} ${config.text} ${config.border}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
       {config.label}
@@ -216,14 +216,14 @@ export function ChannelIcons({
   const showWhatsApp = hasWhatsApp && !whatsAppOptOut;
 
   if (!showEmail && !showWhatsApp) {
-    return <span className="text-xs text-slate-400 italic">Nenhum</span>;
+    return <span className="text-xs text-zinc-500 italic">Nenhum</span>;
   }
 
   return (
     <div className="flex items-center gap-1.5">
       {showEmail && (
         <span
-          className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-50 text-blue-600"
+          className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20"
           title={emailOptOut ? 'Email (opt-out)' : 'Email disponível'}
         >
           <Mail className="h-3.5 w-3.5" />
@@ -231,7 +231,7 @@ export function ChannelIcons({
       )}
       {showWhatsApp && (
         <span
-          className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-50 text-green-600"
+          className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#00D4AA]/10 text-[#00D4AA] border border-[#00D4AA]/20"
           title={whatsAppOptOut ? 'WhatsApp (opt-out)' : 'WhatsApp disponível'}
         >
           <MessageCircle className="h-3.5 w-3.5" />
@@ -244,27 +244,27 @@ export function ChannelIcons({
 // ── Source Label ──────────────────────────────────────────────────────────────
 
 const SOURCE_LABELS: Record<number, { label: string; color: string }> = {
-  0: { label: 'Não especificado', color: 'text-slate-400' },
-  1: { label: 'Manual', color: 'text-slate-600' },
-  2: { label: 'Website', color: 'text-indigo-600' },
-  3: { label: 'Indicação', color: 'text-emerald-600' },
-  4: { label: 'Scraping', color: 'text-amber-600' },
-  5: { label: 'Redes Sociais', color: 'text-pink-600' },
-  6: { label: 'E-mail Marketing', color: 'text-blue-600' },
-  7: { label: 'Anúncios Pagos', color: 'text-purple-600' },
-  8: { label: 'Evento', color: 'text-cyan-600' },
-  9: { label: 'Parceria', color: 'text-teal-600' },
-  10: { label: 'Importação', color: 'text-orange-600' },
-  11: { label: 'Google Maps', color: 'text-red-600' },
+  0: { label: 'Não especificado', color: 'text-zinc-500' },
+  1: { label: 'Manual', color: 'text-zinc-400' },
+  2: { label: 'Website', color: 'text-indigo-400' },
+  3: { label: 'Indicação', color: 'text-emerald-400' },
+  4: { label: 'Scraping', color: 'text-amber-400' },
+  5: { label: 'Redes Sociais', color: 'text-pink-400' },
+  6: { label: 'E-mail Marketing', color: 'text-sky-400' },
+  7: { label: 'Anúncios Pagos', color: 'text-violet-400' },
+  8: { label: 'Evento', color: 'text-cyan-400' },
+  9: { label: 'Parceria', color: 'text-teal-400' },
+  10: { label: 'Importação', color: 'text-orange-400' },
+  11: { label: 'Google Maps', color: 'text-rose-400' },
 };
 
 export function SourceLabel({ source, sourceDescription }: { source?: number; sourceDescription?: string }) {
   if (source === undefined || source === null) {
-    return <span className="text-xs text-slate-400">–</span>;
+    return <span className="text-xs text-zinc-500">–</span>;
   }
   const config = SOURCE_LABELS[source];
   const label = sourceDescription || config?.label || 'Desconhecido';
-  const color = config?.color || 'text-slate-500';
+  const color = config?.color || 'text-zinc-400';
   return (
     <span className={`text-sm font-medium ${color}`}>
       {label}
@@ -299,47 +299,45 @@ export const SEGMENT_FILTER_OPTIONS = [
 // ── Skeleton Row ─────────────────────────────────────────────────────────────
 
 function SkeletonRow({
-  columnCount,
+  columns,
   hasCheckbox,
   index,
 }: {
-  columnCount: number;
+  columns: GridColumn<any>[];
   hasCheckbox: boolean;
   index: number;
 }) {
   return (
-    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <tr className="border-b border-white/5">
       {hasCheckbox && (
-        <td className="px-5 py-4 w-12">
-          <div className="h-4 w-4 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.1)' }} />
+        <td className="px-5 py-4 w-12" data-checkbox="true">
+          <div className="h-4 w-4 rounded shimmer-bg" style={{ animationDelay: `${index * 80}ms` }} />
         </td>
       )}
-      {Array.from({ length: columnCount }).map((_, j) => (
-        <td key={j} className="px-5 py-4">
+      {columns.map((col, j) => (
+        <td key={col.id} className="px-5 py-4" data-label={col.header}>
           {j === 0 ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 justify-end md:justify-start">
               <div
-                className="h-9 w-9 rounded-full animate-pulse shrink-0"
-                style={{ animationDelay: `${index * 80}ms`, background: 'rgba(255,255,255,0.1)' }}
+                className="h-9 w-9 rounded-full shimmer-bg shrink-0"
+                style={{ animationDelay: `${index * 80}ms` }}
               />
-              <div className="space-y-1.5 flex-1">
+              <div className="space-y-1.5 flex-1 text-right md:text-left">
                 <div
-                  className="h-3.5 rounded animate-pulse"
-                  style={{ width: `${55 + (index * 7) % 30}%`, animationDelay: `${index * 80}ms`, background: 'rgba(255,255,255,0.1)' }}
+                  className="h-3.5 rounded shimmer-bg w-24 md:w-32 ml-auto md:ml-0"
+                  style={{ animationDelay: `${index * 80}ms` }}
                 />
                 <div
-                  className="h-3 rounded animate-pulse"
-                  style={{ width: `${35 + (index * 11) % 25}%`, animationDelay: `${index * 80 + 40}ms`, background: 'rgba(255,255,255,0.07)' }}
+                  className="h-3 rounded shimmer-bg w-16 md:w-20 ml-auto md:ml-0"
+                  style={{ animationDelay: `${index * 80 + 40}ms` }}
                 />
               </div>
             </div>
           ) : (
             <div
-              className="h-3.5 rounded animate-pulse"
+              className="h-3.5 rounded shimmer-bg w-16 md:w-24 ml-auto md:ml-0"
               style={{
-                width: `${45 + ((index + j) * 13) % 40}%`,
-                animationDelay: `${(index * columnCount + j) * 40}ms`,
-                background: 'rgba(255,255,255,0.1)',
+                animationDelay: `${(index * columns.length + j) * 40}ms`,
               }}
             />
           )}
@@ -364,17 +362,17 @@ function EmptyState({
 }) {
   return (
     <tr>
-      <td colSpan={columnCount} className="py-20 text-center">
-        <div className="flex flex-col items-center gap-3">
-          {icon || <SearchX className="h-12 w-12 text-slate-300" />}
-          <div className="space-y-1">
-            <p className="font-medium text-slate-600">
-              {title || 'Nenhum resultado encontrado'}
-            </p>
-            <p className="text-sm text-slate-400 max-w-sm mx-auto">
-              {description || 'Tente limpar os filtros ou buscar por outro termo.'}
-            </p>
+      <td colSpan={columnCount} className="p-8">
+        <div className="flex flex-col items-center justify-center text-center p-12 rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.02] transition-colors max-w-lg mx-auto my-4">
+          <div className="p-4 rounded-full bg-[#00D4AA]/10 text-[#00D4AA] mb-4 shadow-[0_0_15px_rgba(0,212,170,0.1)]">
+            {icon || <SearchX className="h-8 w-8" />}
           </div>
+          <h3 className="text-lg font-semibold text-zinc-200 mb-1">
+            {title || 'Nenhum resultado encontrado'}
+          </h3>
+          <p className="text-sm text-zinc-400 max-w-xs leading-relaxed">
+            {description || 'Tente limpar os filtros ativos ou buscar por outro termo para encontrar o que procura.'}
+          </p>
         </div>
       </td>
     </tr>
@@ -398,7 +396,7 @@ function SortHeader({
 }) {
   if (!sortable) {
     return (
-      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
         {label}
       </span>
     );
@@ -408,17 +406,17 @@ function SortHeader({
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-900 transition-colors group"
+      className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-100 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4AA] rounded px-1 -mx-1"
     >
       {label}
       {active ? (
         direction === 'asc' ? (
-          <ArrowUp className="h-3.5 w-3.5 text-slate-900" />
+          <ArrowUp className="h-3.5 w-3.5 text-[#00D4AA]" />
         ) : (
-          <ArrowDown className="h-3.5 w-3.5 text-slate-900" />
+          <ArrowDown className="h-3.5 w-3.5 text-[#00D4AA]" />
         )
       ) : (
-        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-40 transition-opacity" />
+        <ArrowUpDown className="h-3.5 w-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />
       )}
     </button>
   );
@@ -491,12 +489,14 @@ export function PerfectGrid<T>({
   const to = Math.min(page * pageSize, totalCount);
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+    <div className="rounded-xl overflow-hidden border border-white/10 bg-white/[0.02] backdrop-blur-md">
+
+
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full responsive-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
+            <tr className="border-b border-white/10 bg-white/[0.03]">
               {selectable && (
                 <th className="w-12 px-5 py-3.5">
                   <Checkbox
@@ -527,7 +527,7 @@ export function PerfectGrid<T>({
               Array.from({ length: Math.min(pageSize, 8) }).map((_, i) => (
                 <SkeletonRow
                   key={i}
-                  columnCount={columns.length}
+                  columns={columns}
                   hasCheckbox={selectable}
                   index={i}
                 />
@@ -547,15 +547,17 @@ export function PerfectGrid<T>({
                   <tr
                     key={id}
                     onClick={() => onRowClick?.(row)}
-                    className={['transition-colors', onRowClick ? 'cursor-pointer' : ''].join(' ')}
-                    style={{
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      background: isSelected ? 'rgba(16,185,129,0.08)' : undefined,
-                    }}
+                    data-selected={isSelected}
+                    className={[
+                      'transition-all duration-200 border-b border-white/5 hover:bg-white/[0.04]',
+                      isSelected ? 'bg-[#00D4AA]/5' : '',
+                      onRowClick ? 'cursor-pointer' : '',
+                    ].join(' ')}
                   >
                     {selectable && (
                       <td
                         className="w-12 px-5 py-4"
+                        data-checkbox="true"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Checkbox
@@ -568,6 +570,7 @@ export function PerfectGrid<T>({
                     {columns.map((col) => (
                       <td
                         key={col.id}
+                        data-label={col.header}
                         className={`px-5 py-4 ${col.className || ''}`}
                       >
                         {col.cell(row)}
@@ -583,27 +586,26 @@ export function PerfectGrid<T>({
 
       {/* Pagination */}
       {!loading && totalCount > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5 border-t border-white/[0.08] bg-white/[0.02]">
           <div className="flex items-center gap-4 flex-wrap">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-zinc-400">
               Mostrando{' '}
-              <span className="font-semibold text-slate-900">{from}</span> a{' '}
-              <span className="font-semibold text-slate-900">{to}</span> de{' '}
-              <span className="font-semibold text-slate-900">{totalCount}</span>{' '}
+              <span className="font-semibold text-zinc-100">{from}</span> a{' '}
+              <span className="font-semibold text-zinc-100">{to}</span> de{' '}
+              <span className="font-semibold text-zinc-100">{totalCount}</span>{' '}
               {itemLabel}
             </p>
             {selectable && selectedRows && selectedRows.length > 0 && (
-              <span className="text-sm text-blue-600 font-medium">
+              <span className="text-sm text-[#00D4AA] font-medium">
                 ({selectedRows.length} selecionado{selectedRows.length > 1 ? 's' : ''})
               </span>
             )}
             <div className="flex items-center gap-1.5">
-              <span className="text-sm text-slate-500">Exibir</span>
+              <span className="text-sm text-zinc-500">Exibir</span>
               <select
                 value={pageSize}
                 onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                className="h-8 rounded-md px-2 text-sm cursor-pointer focus:outline-none"
-                style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
+                className="h-8 rounded-md px-2 text-sm cursor-pointer focus:outline-none border border-white/10 bg-white/5 text-zinc-300 focus:border-[#00D4AA]/50"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -619,7 +621,7 @@ export function PerfectGrid<T>({
               size="sm"
               onClick={() => onPageChange(1)}
               disabled={page <= 1}
-              className="h-9 px-2"
+              className="h-9 px-2 border-white/10 text-zinc-300 hover:bg-white/5"
               title="Primeira página"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -630,7 +632,7 @@ export function PerfectGrid<T>({
               size="sm"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="h-9 px-2"
+              className="h-9 px-2 border-white/10 text-zinc-300 hover:bg-white/5"
               title="Anterior"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -645,17 +647,16 @@ export function PerfectGrid<T>({
                   const val = parseInt(e.target.value, 10);
                   if (val >= 1 && val <= totalPages) onPageChange(val);
                 }}
-                className="h-8 w-14 rounded-md px-2 text-sm text-center tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: '#D1D5DB' }}
+                className="h-8 w-14 rounded-md px-2 text-sm text-center tabular-nums focus:outline-none border border-white/10 bg-white/5 text-zinc-300 focus:border-[#00D4AA]/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
-              <span className="text-sm text-slate-500">/ {totalPages}</span>
+              <span className="text-sm text-zinc-500">/ {totalPages}</span>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="h-9 px-2"
+              className="h-9 px-2 border-white/10 text-zinc-300 hover:bg-white/5"
               title="Próximo"
             >
               <ChevronRight className="h-4 w-4" />
@@ -665,7 +666,7 @@ export function PerfectGrid<T>({
               size="sm"
               onClick={() => onPageChange(totalPages)}
               disabled={page >= totalPages}
-              className="h-9 px-2"
+              className="h-9 px-2 border-white/10 text-zinc-300 hover:bg-white/5"
               title="Última página"
             >
               <ChevronRight className="h-4 w-4" />

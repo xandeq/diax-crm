@@ -46,19 +46,19 @@ import { toast } from 'sonner';
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const CAMPAIGN_STATUS: Record<number, { label: string; className: string }> = {
-  0: { label: 'Rascunho',  className: 'bg-slate-100 text-slate-600 border-slate-200' },
-  1: { label: 'Agendada',  className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  2: { label: 'Enviando',  className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  3: { label: 'Concluída', className: 'bg-green-100 text-green-700 border-green-200' },
-  4: { label: 'Cancelada', className: 'bg-red-100 text-red-700 border-red-200' },
-  5: { label: 'Falhou',    className: 'bg-red-100 text-red-700 border-red-200' },
+  0: { label: 'Rascunho',  className: 'bg-zinc-500/10 text-zinc-300 border-zinc-500/20' },
+  1: { label: 'Agendada',  className: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' },
+  2: { label: 'Enviando',  className: 'bg-amber-500/10 text-amber-300 border-amber-500/20' },
+  3: { label: 'Concluída', className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' },
+  4: { label: 'Cancelada', className: 'bg-rose-500/10 text-rose-300 border-rose-500/20' },
+  5: { label: 'Falhou',    className: 'bg-red-500/10 text-red-300 border-red-500/20' },
 };
 
 const RECIPIENT_STATUS: Record<number, { label: string; className: string }> = {
-  0: { label: 'Na fila',     className: 'bg-slate-100 text-slate-600 border-slate-200' },
-  1: { label: 'Processando', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  2: { label: 'Enviado',     className: 'bg-green-100 text-green-700 border-green-200' },
-  3: { label: 'Falhou',      className: 'bg-red-100 text-red-700 border-red-200' },
+  0: { label: 'Na fila',     className: 'bg-zinc-500/10 text-zinc-300 border-zinc-500/20' },
+  1: { label: 'Processando', className: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' },
+  2: { label: 'Enviado',     className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' },
+  3: { label: 'Falhou',      className: 'bg-rose-500/10 text-rose-300 border-rose-500/20' },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -87,16 +87,15 @@ interface FunnelStep {
   rateLabel: string;
   rateValue: string;
   colorClass: string;
-  iconBg: string;
 }
 
 function FunnelCard({ step }: { step: FunnelStep }) {
   return (
-    <div className={`flex flex-1 flex-col items-center gap-1 rounded-xl border px-4 py-5 text-center ${step.colorClass}`}>
+    <div className={`flex flex-1 flex-col items-center gap-1 rounded-xl border px-4 py-5 text-center transition-all duration-200 hover:scale-[1.02] ${step.colorClass}`}>
       <div className="text-3xl font-bold tabular-nums">{step.value.toLocaleString('pt-BR')}</div>
-      <div className="text-sm font-medium">{step.label}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{step.rateLabel}</div>
-      <div className="text-xs font-semibold">{step.rateValue}</div>
+      <div className="text-sm font-semibold">{step.label}</div>
+      <div className="mt-1 text-xs opacity-60">{step.rateLabel}</div>
+      <div className="text-xs font-bold">{step.rateValue}</div>
     </div>
   );
 }
@@ -179,9 +178,9 @@ function RecipientTable({
         <div className="flex justify-end">
           <Button
             size="sm"
-            variant="outline"
             onClick={handleCreateRemarketing}
             disabled={creatingRemarketing || totalCount === 0}
+            className="bg-[#00D4AA] text-[#050B08] hover:bg-[#00bda0] font-semibold text-xs"
           >
             {creatingRemarketing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -195,18 +194,23 @@ function RecipientTable({
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span className="flex-1">{error}</span>
-          <Button variant="outline" size="sm" onClick={() => load(page)} className="border-red-300 text-red-700">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => load(page)}
+            className="border-red-500/30 text-red-300 hover:bg-red-500/20"
+          >
             Tentar novamente
           </Button>
         </div>
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
+      <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.01]">
+        <Table className="responsive-table">
           <TableHeader>
             <TableRow>
               <TableHead className="pl-4">Nome</TableHead>
@@ -222,19 +226,19 @@ function RecipientTable({
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-44" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                  {showErrorColumn && <TableCell><Skeleton className="h-4 w-40" /></TableCell>}
+                  <TableCell><Skeleton className="h-4 w-32 shimmer-bg" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-44 shimmer-bg" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20 rounded-full shimmer-bg" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28 shimmer-bg" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28 shimmer-bg" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28 shimmer-bg" /></TableCell>
+                  {showErrorColumn && <TableCell><Skeleton className="h-4 w-40 shimmer-bg" /></TableCell>}
                 </TableRow>
               ))
             ) : recipients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={showErrorColumn ? 7 : 6} className="py-12 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2 text-zinc-500">
                     <Users className="h-8 w-8 opacity-25" />
                     <p className="text-sm">Nenhum destinatário neste grupo.</p>
                   </div>
@@ -244,34 +248,34 @@ function RecipientTable({
               recipients.map((r) => {
                 const statusCfg = RECIPIENT_STATUS[r.status] ?? RECIPIENT_STATUS[0];
                 return (
-                  <TableRow key={r.id} className="hover:bg-slate-50/60">
-                    <TableCell className="pl-4 font-medium text-slate-900 max-w-[160px]">
+                  <TableRow key={r.id} className="hover:bg-white/[0.04]">
+                    <TableCell className="pl-4 font-semibold text-zinc-100 max-w-[160px]" data-label="Nome">
                       <span className="truncate block" title={r.recipientName}>
                         {r.recipientName}
                       </span>
                     </TableCell>
-                    <TableCell className="text-slate-600 max-w-[200px]">
+                    <TableCell className="text-zinc-300 max-w-[200px]" data-label="E-mail">
                       <span className="truncate block text-sm" title={r.recipientEmail}>
                         {r.recipientEmail}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-xs ${statusCfg.className}`}>
+                    <TableCell data-label="Status">
+                      <Badge variant="outline" className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusCfg.className}`}>
                         {statusCfg.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500 whitespace-nowrap">
+                    <TableCell className="text-sm text-zinc-400 whitespace-nowrap" data-label="Enviado em">
                       {formatDate(r.sentAt)}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500 whitespace-nowrap">
+                    <TableCell className="text-sm text-zinc-400 whitespace-nowrap" data-label="Entregue em">
                       {formatDate(r.deliveredAt)}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500 whitespace-nowrap">
+                    <TableCell className="text-sm text-zinc-400 whitespace-nowrap" data-label="Aberto em">
                       {r.openedAt ? (
-                        <span>
+                        <span className="inline-flex items-center">
                           {formatDate(r.openedAt)}
                           {r.readCount > 1 && (
-                            <span className="ml-1 text-xs font-medium text-amber-600">
+                            <span className="ml-1 text-xs font-bold text-amber-400">
                               ({r.readCount}x)
                             </span>
                           )}
@@ -279,7 +283,7 @@ function RecipientTable({
                       ) : '-'}
                     </TableCell>
                     {showErrorColumn && (
-                      <TableCell className="text-sm text-red-600 max-w-[200px]">
+                      <TableCell className="text-sm text-rose-400 max-w-[200px]" data-label="Erro">
                         <span className="truncate block" title={r.lastError ?? ''}>
                           {r.lastError ?? '-'}
                         </span>
@@ -296,14 +300,28 @@ function RecipientTable({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-1">
-          <span className="text-sm text-muted-foreground">
-            Página {page} de {totalPages} &middot; {totalCount} destinatário{totalCount !== 1 ? 's' : ''}
+          <span className="text-sm text-zinc-400">
+            Página <span className="font-semibold text-zinc-100">{page}</span> de <span className="font-semibold text-zinc-100">{totalPages}</span> &middot; {totalCount} destinatário{totalCount !== 1 ? 's' : ''}
           </span>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1 || loading}
+              onClick={() => setPage(p => p - 1)}
+              className="border-white/10 hover:bg-white/5 text-zinc-300 h-9 w-9 p-0"
+              title="Página Anterior"
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" disabled={page >= totalPages || loading} onClick={() => setPage(p => p + 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage(p => p + 1)}
+              className="border-white/10 hover:bg-white/5 text-zinc-300 h-9 w-9 p-0"
+              title="Próxima Página"
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -347,40 +365,35 @@ export default function CampaignReportClient() {
           value: campaign.totalRecipients,
           rateLabel: 'destinatários',
           rateValue: '100%',
-          colorClass: 'border-slate-200 bg-slate-50 text-slate-800',
-          iconBg: 'bg-slate-200',
+          colorClass: 'border-white/10 bg-white/[0.02] text-zinc-100',
         },
         {
           label: 'Enviados',
           value: campaign.sentCount,
           rateLabel: 'do total',
           rateValue: pct(campaign.sentCount, campaign.totalRecipients),
-          colorClass: 'border-blue-200 bg-blue-50 text-blue-900',
-          iconBg: 'bg-blue-200',
+          colorClass: 'border-blue-500/20 bg-blue-500/5 text-blue-300',
         },
         {
           label: 'Entregues',
           value: campaign.deliveredCount,
           rateLabel: 'dos enviados',
           rateValue: pct(campaign.deliveredCount, campaign.sentCount),
-          colorClass: 'border-green-200 bg-green-50 text-green-900',
-          iconBg: 'bg-green-200',
+          colorClass: 'border-[#00D4AA]/20 bg-[#00D4AA]/5 text-[#00D4AA]',
         },
         {
           label: 'Abertos',
           value: campaign.openCount,
           rateLabel: 'dos entregues',
           rateValue: pct(campaign.openCount, campaign.deliveredCount),
-          colorClass: 'border-amber-200 bg-amber-50 text-amber-900',
-          iconBg: 'bg-amber-200',
+          colorClass: 'border-amber-500/20 bg-amber-500/5 text-amber-300',
         },
         {
           label: 'Cliques',
           value: campaign.clickCount,
           rateLabel: 'dos entregues',
           rateValue: pct(campaign.clickCount, campaign.deliveredCount),
-          colorClass: 'border-purple-200 bg-purple-50 text-purple-900',
-          iconBg: 'bg-purple-200',
+          colorClass: 'border-purple-500/20 bg-purple-500/5 text-purple-300',
         },
       ]
     : [];
@@ -395,30 +408,33 @@ export default function CampaignReportClient() {
 
   const statusCfg = campaign ? (CAMPAIGN_STATUS[campaign.status] ?? CAMPAIGN_STATUS[0]) : null;
 
-  // ── Render ───────────────────────────────────────────────────────────────────
-
   return (
     <div className="space-y-6 px-4 py-5 sm:px-6 max-w-7xl mx-auto">
 
       {/* Header */}
       <div>
         <Link href="/campanhas">
-          <Button variant="ghost" size="sm" className="mb-3 -ml-2 text-slate-500 hover:text-slate-800">
+          <Button variant="ghost" size="sm" className="mb-3 -ml-2 text-zinc-400 hover:text-zinc-100 hover:bg-white/5">
             <ArrowLeft className="h-4 w-4 mr-1.5" />
-            Campanhas
+            Voltar para Campanhas
           </Button>
         </Link>
 
         {loading ? (
           <div className="space-y-2">
-            <Skeleton className="h-8 w-72" />
-            <Skeleton className="h-4 w-96" />
+            <Skeleton className="h-8 w-72 shimmer-bg" />
+            <Skeleton className="h-4 w-96 shimmer-bg" />
           </div>
         ) : error ? (
-          <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <span className="flex-1">{error}</span>
-            <Button variant="outline" size="sm" onClick={load} className="border-red-300 text-red-700">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={load}
+              className="border-red-500/30 text-red-300 hover:bg-red-500/20"
+            >
               Tentar novamente
             </Button>
           </div>
@@ -426,22 +442,28 @@ export default function CampaignReportClient() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
                   {campaign.name}
                 </h1>
                 {statusCfg && (
-                  <Badge variant="outline" className={`text-xs font-medium ${statusCfg.className}`}>
+                  <Badge variant="outline" className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusCfg.className}`}>
                     {statusCfg.label}
                   </Badge>
                 )}
               </div>
-              <p className="mt-1 text-slate-500 text-sm">{campaign.subject}</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-zinc-400 text-sm">{campaign.subject}</p>
+              <p className="mt-1 text-xs text-zinc-500">
                 Criado em {formatDate(campaign.createdAt)}
                 {campaign.updatedAt && ` · Atualizado em ${formatDate(campaign.updatedAt)}`}
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={load} title="Recarregar">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={load}
+              title="Recarregar"
+              className="border-white/10 hover:bg-white/5 text-zinc-300"
+            >
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -450,12 +472,12 @@ export default function CampaignReportClient() {
 
       {/* Funnel */}
       {!loading && !error && campaign && (
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-2">
-            <Send className="h-4 w-4" />
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+            <Send className="h-4 w-4 text-[#00D4AA]" />
             Funil de Entrega
           </h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {funnelSteps.map((step) => (
               <FunnelCard key={step.label} step={step} />
             ))}
@@ -465,12 +487,12 @@ export default function CampaignReportClient() {
 
       {/* Funnel skeleton */}
       {loading && (
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center gap-2 rounded-xl border p-5">
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-3 w-12" />
+            <div key={i} className="flex flex-col items-center gap-2 rounded-xl border border-white/10 p-5 bg-white/[0.01]">
+              <Skeleton className="h-8 w-16 shimmer-bg" />
+              <Skeleton className="h-4 w-20 shimmer-bg" />
+              <Skeleton className="h-3 w-12 shimmer-bg" />
             </div>
           ))}
         </div>
@@ -478,32 +500,44 @@ export default function CampaignReportClient() {
 
       {/* Tabs */}
       {!loading && !error && campaign && (
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-2">
-            <Users className="h-4 w-4" />
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+            <Users className="h-4 w-4 text-[#00D4AA]" />
             Destinatários
           </h2>
-          <Card>
+          <Card className="border border-white/10 bg-white/[0.02]">
             <CardContent className="p-4 sm:p-6">
               <Tabs defaultValue="todos">
-                <TabsList className="mb-4 flex-wrap h-auto gap-1">
-                  <TabsTrigger value="todos">
+                <TabsList className="mb-4 flex-wrap h-auto gap-1.5 p-1 bg-white/5 border border-white/5 rounded-lg">
+                  <TabsTrigger
+                    value="todos"
+                    className="px-3 py-1.5 text-xs rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-zinc-100 text-zinc-400 font-semibold"
+                  >
                     Todos ({countTodos})
                   </TabsTrigger>
-                  <TabsTrigger value="opened" className="text-green-700 data-[state=active]:bg-green-100">
+                  <TabsTrigger
+                    value="opened"
+                    className="px-3 py-1.5 text-xs rounded-md text-emerald-400 data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-300 font-semibold"
+                  >
                     <MousePointerClick className="mr-1 h-3.5 w-3.5" />
                     Abriram ({countAbriram})
                   </TabsTrigger>
-                  <TabsTrigger value="not_opened" className="text-slate-600">
-                    Nao Abriram ({countNaoAbriram})
+                  <TabsTrigger
+                    value="not_opened"
+                    className="px-3 py-1.5 text-xs rounded-md text-zinc-400 data-[state=active]:bg-white/10 data-[state=active]:text-zinc-200 font-semibold"
+                  >
+                    Não Abriram ({countNaoAbriram})
                   </TabsTrigger>
-                  <TabsTrigger value="problems" className="text-red-600 data-[state=active]:bg-red-50">
+                  <TabsTrigger
+                    value="problems"
+                    className="px-3 py-1.5 text-xs rounded-md text-rose-400 data-[state=active]:bg-rose-500/15 data-[state=active]:text-rose-300 font-semibold"
+                  >
                     <AlertCircle className="mr-1 h-3.5 w-3.5" />
                     Problemas ({countProblemas})
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="todos">
+                <TabsContent value="todos" className="mt-0">
                   <RecipientTable
                     campaignId={id}
                     filter={null}
@@ -513,7 +547,7 @@ export default function CampaignReportClient() {
                   />
                 </TabsContent>
 
-                <TabsContent value="opened">
+                <TabsContent value="opened" className="mt-0">
                   <RecipientTable
                     campaignId={id}
                     filter="opened"
@@ -523,7 +557,7 @@ export default function CampaignReportClient() {
                   />
                 </TabsContent>
 
-                <TabsContent value="not_opened">
+                <TabsContent value="not_opened" className="mt-0">
                   <RecipientTable
                     campaignId={id}
                     filter="not_opened"
@@ -533,7 +567,7 @@ export default function CampaignReportClient() {
                   />
                 </TabsContent>
 
-                <TabsContent value="problems">
+                <TabsContent value="problems" className="mt-0">
                   <RecipientTable
                     campaignId={id}
                     filter="problems"

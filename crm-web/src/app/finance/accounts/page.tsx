@@ -1,14 +1,29 @@
 'use client';
 
+import { FinanceNav } from '@/components/finance/FinanceNav';
 import { Button } from '@/components/ui/button';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useDeleteFinancialAccount, useFinancialAccounts } from '@/hooks/finance';
 import { AccountType } from '@/services/finance';
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { 
+  Landmark, 
+  Briefcase, 
+  PiggyBank, 
+  Coins, 
+  TrendingUp, 
+  Wallet, 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  Loader2,
+  XCircle
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/dashboard/EmptyState';
 
 const accountTypeLabels: Record<AccountType, string> = {
   [AccountType.Checking]: 'Conta Corrente',
@@ -17,6 +32,15 @@ const accountTypeLabels: Record<AccountType, string> = {
   [AccountType.Cash]: 'Dinheiro',
   [AccountType.Investment]: 'Investimento',
   [AccountType.DigitalWallet]: 'Carteira Digital',
+};
+
+const accountTypeIcons: Record<AccountType, any> = {
+  [AccountType.Checking]: Landmark,
+  [AccountType.Business]: Briefcase,
+  [AccountType.Savings]: PiggyBank,
+  [AccountType.Cash]: Coins,
+  [AccountType.Investment]: TrendingUp,
+  [AccountType.DigitalWallet]: Wallet,
 };
 
 export default function FinancialAccountsPage() {
@@ -29,7 +53,8 @@ export default function FinancialAccountsPage() {
     showConfirm('Tem certeza que deseja excluir esta conta? Esta ação não pode ser desfeita se houver transações vinculadas.', async () => {
       try {
         await deleteMutation.mutateAsync(id);
-      } catch {
+        toast.success('Conta excluída com sucesso');
+      } catch (err) {
         toast.error('Erro ao excluir conta. Verifique se não há transações vinculadas.');
       }
     });
@@ -37,95 +62,205 @@ export default function FinancialAccountsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <FinanceNav />
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+          <p className="text-zinc-400 text-sm animate-pulse">Carregando contas financeiras...</p>
+        </div>
       </div>
     );
   }
 
+  const activeAccounts = accounts.filter(a => a.isActive);
+  const inactiveAccounts = accounts.filter(a => !a.isActive);
+
   return (
-    <div className="p-8">
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
       {confirmDialogNode}
-      <div className="flex justify-between items-center mb-6">
+      <FinanceNav />
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Contas Financeiras</h1>
-          <p style={{ color: '#9CA3AF' }}>Gerencie suas contas bancárias e carteiras</p>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
+            <Landmark className="h-6 w-6 text-emerald-400" />
+            Contas Financeiras
+          </h1>
+          <p className="text-zinc-400 text-sm mt-1">Gerencie suas contas bancárias, investimentos e carteiras</p>
         </div>
         <Link href="/finance/accounts/new">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" />
+          <Button className="bg-[#00D4AA] text-[#0A130F] hover:bg-[#00B894] font-semibold transition-all duration-300 gap-2 rounded-xl">
+            <Plus className="h-4 w-4" />
             Nova Conta
           </Button>
         </Link>
       </div>
 
-      {isError && <div className="bg-red-100 text-red-700 p-4 rounded mb-6">Erro ao carregar contas</div>}
+      {isError && (
+        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl mb-6 flex items-center gap-2 text-sm">
+          <XCircle className="h-4 w-4 shrink-0" />
+          Erro ao carregar contas. Por favor, tente novamente.
+        </div>
+      )}
 
-      <div className="rounded-lg overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
-        <table className="min-w-full">
-          <thead style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Nome</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Tipo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Saldo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map((account) => (
-              <tr
-                key={account.id}
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: !account.isActive ? 0.6 : 1 }}
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium" style={{ color: '#F9FAFB' }}>{account.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm" style={{ color: '#9CA3AF' }}>{accountTypeLabels[account.accountType] ?? 'Desconhecido'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className={`text-sm font-medium ${account.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    account.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {account.isActive ? 'Ativa' : 'Inativa'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <Link href={`/finance/accounts/edit?id=${account.id}`} className="text-indigo-400 hover:text-indigo-300 mr-4">
-                    <Pencil className="h-4 w-4 inline" />
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(account.id)}
-                    disabled={deleteMutation.isPending}
-                    className="text-red-400 hover:text-red-300 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4 inline" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {accounts.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-4 text-center" style={{ color: '#9CA3AF' }}>
-                  Nenhuma conta encontrada
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {accounts.length === 0 ? (
+        <EmptyState
+          title="Nenhuma conta cadastrada"
+          description="Cadastre uma conta corrente, poupança, carteira digital ou conta de investimentos para gerenciar seu patrimônio."
+          icon={Landmark}
+          actionLabel="Nova Conta"
+          actionHref="/finance/accounts/new"
+        />
+      ) : (
+        <div className="space-y-8">
+          {activeAccounts.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                Contas Ativas
+                <span className="h-4 px-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] flex items-center justify-center font-semibold border border-emerald-500/20">
+                  {activeAccounts.length}
+                </span>
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {activeAccounts.map((account, index) => {
+                  const IconComponent = accountTypeIcons[account.accountType] ?? Landmark;
+                  return (
+                    <motion.div
+                      key={account.id}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                      className={cn(
+                        "relative overflow-hidden rounded-2xl p-5 transition-all duration-300",
+                        "bg-[#0a130f]/60 backdrop-blur-md border border-zinc-800/80 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-950/10"
+                      )}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
+                      
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-zinc-900/80 text-zinc-100 border border-zinc-800/60 flex items-center justify-center">
+                            <IconComponent className="h-5 w-5 text-[#00D4AA]" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-zinc-100 leading-none">{account.name}</h3>
+                            <span className="text-xs text-zinc-400 mt-1 block">
+                              {accountTypeLabels[account.accountType]}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Ativa</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 block mb-0.5">Saldo Disponível</span>
+                        <span className={cn(
+                          "text-2xl font-bold tracking-tight tabular-nums",
+                          account.balance >= 0 ? "text-emerald-400" : "text-rose-400"
+                        )}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-zinc-800/50">
+                        <Link href={`/finance/accounts/edit?id=${account.id}`} className="p-2 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-zinc-900/50 transition-colors">
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(account.id)}
+                          disabled={deleteMutation.isPending}
+                          className="p-2 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-900/50 transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-      <div className="mt-4">
-        <Button variant="outline" onClick={() => router.push('/finance')}>
-          Voltar
-        </Button>
-      </div>
+          {inactiveAccounts.length > 0 && (
+            <div className="space-y-4 pt-4 border-t border-zinc-800/60">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
+                Contas Inativas
+                <span className="h-4 px-1.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] flex items-center justify-center font-semibold border border-zinc-700/20">
+                  {inactiveAccounts.length}
+                </span>
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
+                {inactiveAccounts.map((account, index) => {
+                  const IconComponent = accountTypeIcons[account.accountType] ?? Landmark;
+                  return (
+                    <motion.div
+                      key={account.id}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      whileHover={{ y: -2 }}
+                      className={cn(
+                        "relative overflow-hidden rounded-2xl p-5 transition-all duration-300",
+                        "bg-[#0a130f]/30 border border-zinc-900 hover:border-zinc-800 hover:shadow-md"
+                      )}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-zinc-950 text-zinc-400 border border-zinc-900 flex items-center justify-center">
+                            <IconComponent className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-zinc-300 leading-none">{account.name}</h3>
+                            <span className="text-xs text-zinc-500 mt-1 block">
+                              {accountTypeLabels[account.accountType]}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Inativa</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-600 block mb-0.5">Saldo Disponível</span>
+                        <span className="text-xl font-bold tracking-tight tabular-nums text-zinc-400">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-zinc-900/50">
+                        <Link href={`/finance/accounts/edit?id=${account.id}`} className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50 transition-colors">
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(account.id)}
+                          disabled={deleteMutation.isPending}
+                          className="p-2 rounded-lg text-zinc-500 hover:text-rose-500 hover:bg-zinc-900/50 transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
 using Diax.Domain.Snippets;
 using Diax.Shared.Results;
+using Diax.Domain.Audit;
 
 namespace Diax.Application.EmailMarketing;
 
@@ -28,6 +29,8 @@ public class EmailMarketingService : IApplicationService
     private readonly IUserRepository _userRepository;
     private readonly IEmailSender _emailSender;
     private readonly IEmailSuppressionRepository _suppressionRepository;
+    private readonly IPilotCircuitBreaker _circuitBreaker;
+    private readonly IAuditLogRepository _auditLogRepository;
 
     public EmailMarketingService(
         IEmailQueueRepository emailQueueRepository,
@@ -39,7 +42,9 @@ public class EmailMarketingService : IApplicationService
         IUnitOfWork unitOfWork,
         IUserRepository userRepository,
         IEmailSender emailSender,
-        IEmailSuppressionRepository suppressionRepository)
+        IEmailSuppressionRepository suppressionRepository,
+        IPilotCircuitBreaker circuitBreaker,
+        IAuditLogRepository auditLogRepository)
     {
         _emailQueueRepository = emailQueueRepository;
         _emailCampaignRepository = emailCampaignRepository;
@@ -51,6 +56,8 @@ public class EmailMarketingService : IApplicationService
         _userRepository = userRepository;
         _emailSender = emailSender;
         _suppressionRepository = suppressionRepository;
+        _circuitBreaker = circuitBreaker;
+        _auditLogRepository = auditLogRepository;
     }
 
     public async Task<Result<PreviewCampaignResponse>> PreviewCampaignAsync(
@@ -123,6 +130,9 @@ public class EmailMarketingService : IApplicationService
         var userEmail = user.Email;
         var userName = userEmail;
 
+        // Log requested event
+        await LogPilotEventAsync("PilotSendTestRequested", "Success", campaignId, 1, true, null, cancellationToken);
+
         var templateResult = await ResolveCampaignTemplateSnapshotAsync(
             campaign,
             request.BodyHtmlOverride,
@@ -138,7 +148,16 @@ public class EmailMarketingService : IApplicationService
             ? campaign.Subject
             : request.SubjectOverride.Trim();
 
+        // Safe mock variables for test email
         var variables = BuildTemplateVariables("Teste", userEmail, "Empresa Teste", "Lead");
+        variables["nome"] = "Teste";
+        variables["empresa"] = "Empresa Teste";
+        variables["site"] = "www.empresateste.com.br";
+        variables["cidade"] = "São Paulo";
+        variables["ferramenta_atual"] = "Pipedrive";
+        variables["dor_principal"] = "falta de integração com o WhatsApp";
+        variables["cta_link"] = "https://diaxcrm.com.br/landing/agencias-digitais";
+        variables["unsubscribe_url"] = $"https://diaxcrm.com.br/api/v1/email-campaigns/unsubscribe?email={Uri.EscapeDataString(userEmail)}";
 
         var renderedSubject = "[TESTE] " + _emailTemplateEngine.Render(subjectTemplate, variables);
         var renderedBody = _emailTemplateEngine.Render(templateResult.Value.TemplateBody, variables);
@@ -155,9 +174,13 @@ public class EmailMarketingService : IApplicationService
         var sendResult = await _emailSender.SendAsync(message, cancellationToken);
         if (!sendResult.Success)
         {
+            await LogPilotEventAsync("PilotSendTestCompleted", "Failed", campaignId, 1, true, sendResult.ErrorMessage ?? "Erro de envio", cancellationToken);
             return Result.Failure(
                 Error.Validation("EmailSend", sendResult.ErrorMessage ?? "Falha ao enviar e-mail de teste."));
         }
+
+        // Log completed event
+        await LogPilotEventAsync("PilotSendTestCompleted", "Success", campaignId, 1, true, null, cancellationToken);
 
         return Result.Success();
     }
@@ -276,6 +299,13 @@ public class EmailMarketingService : IApplicationService
         }
 
         var campaign = campaignResult.Value;
+
+        var contentReadiness = ValidateContentReadiness(campaign);
+        if (contentReadiness.IsFailure)
+        {
+            return Result.Failure<EmailCampaignResponse>(contentReadiness.Error);
+        }
+
         var scheduledAt = NormalizeSchedule(request.ScheduledAt);
         if (scheduledAt <= DateTime.UtcNow)
         {
@@ -350,6 +380,23 @@ public class EmailMarketingService : IApplicationService
         }
 
         var campaign = campaignResult.Value;
+
+        if (_circuitBreaker.IsOpen)
+        {
+            await LogPilotEventAsync("PilotRealSendBlocked", "Blocked", campaignId, request.CustomerIds.Count, false, $"Circuit Breaker aberto: {_circuitBreaker.Reason}", cancellationToken);
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Validation("CircuitBreaker", $"Envios reais bloqueados pelo Circuit Breaker: {_circuitBreaker.Reason}"));
+        }
+
+        var readinessResult = ValidateReadiness(campaign);
+        await LogPilotEventAsync("PilotReadinessChecked", readinessResult.IsSuccess ? "Success" : "Failed", campaignId, request.CustomerIds.Count, false, readinessResult.IsSuccess ? null : readinessResult.Error.Message, cancellationToken);
+        if (readinessResult.IsFailure)
+        {
+            await LogPilotEventAsync("PilotReadinessBlocked", "Blocked", campaignId, request.CustomerIds.Count, false, readinessResult.Error.Message, cancellationToken);
+            await LogPilotEventAsync("PilotCampaignActivationBlocked", "Blocked", campaignId, request.CustomerIds.Count, false, readinessResult.Error.Message, cancellationToken);
+            return Result.Failure<QueueCampaignRecipientsResponse>(readinessResult.Error);
+        }
+
         if (campaign.Status is EmailCampaignStatus.Completed or EmailCampaignStatus.Cancelled)
         {
             return Result.Failure<QueueCampaignRecipientsResponse>(
@@ -382,6 +429,16 @@ public class EmailMarketingService : IApplicationService
         var skipped = new List<string>();
         var providerIndex = 0;
 
+        var customerIds = recipients.Select(c => c.Id).ToList();
+        var existingQueued = await _emailQueueRepository.FindAsync(
+            q => q.CampaignId == campaign.Id && q.CustomerId.HasValue && customerIds.Contains(q.CustomerId.Value),
+            cancellationToken);
+        
+        var existingQueuedCustomerIds = existingQueued
+            .Where(q => q.CustomerId.HasValue)
+            .Select(q => q.CustomerId!.Value)
+            .ToHashSet();
+
         foreach (var customer in recipients)
         {
             if (!IsValidEmail(customer.Email))
@@ -390,9 +447,21 @@ public class EmailMarketingService : IApplicationService
                 continue;
             }
 
+            if (customer.EmailOptOut)
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (opt-out ativo)");
+                continue;
+            }
+
             if (await _suppressionRepository.IsSuppressedAsync(_currentUserService.UserId!.Value, customer.Email, cancellationToken))
             {
                 skipped.Add($"{customer.Name} <{customer.Email}> (suprimido)");
+                continue;
+            }
+
+            if (existingQueuedCustomerIds.Contains(customer.Id))
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (já enfileirado ou enviado para esta campanha)");
                 continue;
             }
 
@@ -771,10 +840,44 @@ public class EmailMarketingService : IApplicationService
         var firstName = !string.IsNullOrEmpty(customer?.NormalizedName)
             ? customer!.NormalizedName.Split(' ')[0]
             : ExtractFirstName(queueItem.RecipientName);
-        var company = customer?.CompanyName;
+        var company = customer?.CompanyName ?? "sua agência";
         var leadStatus = customer?.Status.ToString() ?? CustomerStatus.Lead.ToString();
 
-        return BuildTemplateVariables(firstName, queueItem.RecipientEmail, company, leadStatus);
+        var dict = BuildTemplateVariables(firstName, queueItem.RecipientEmail, company, leadStatus);
+
+        // Custom variables for pro campaigns
+        dict["nome"] = firstName;
+        dict["empresa"] = company;
+        dict["site"] = customer?.Website ?? string.Empty;
+        dict["cidade"] = string.Empty; // Not in standard database schema
+
+        // Detect current tool from customer tags
+        var currentTool = "planilhas ou CRM";
+        if (customer?.Tags != null)
+        {
+            var tagsLower = customer.Tags.ToLowerInvariant();
+            if (tagsLower.Contains("pipedrive")) currentTool = "Pipedrive";
+            else if (tagsLower.Contains("rd station") || tagsLower.Contains("rdstation")) currentTool = "RD Station";
+            else if (tagsLower.Contains("notion")) currentTool = "Notion";
+            else if (tagsLower.Contains("planilha") || tagsLower.Contains("sheets")) currentTool = "planilhas";
+        }
+        dict["ferramenta_atual"] = currentTool;
+
+        // Detect main pain from customer tags
+        var mainPain = "descentralização de contatos comercial e financeiro";
+        if (customer?.Tags != null)
+        {
+            var tagsLower = customer.Tags.ToLowerInvariant();
+            if (tagsLower.Contains("whatsapp")) mainPain = "falta de integração com o WhatsApp";
+            else if (tagsLower.Contains("financeiro") || tagsLower.Contains("cobranca")) mainPain = "perda de tempo com cobranças manuais";
+        }
+        dict["dor_principal"] = mainPain;
+
+        // CTA Link and Unsubscribe URL
+        dict["cta_link"] = "https://diaxcrm.com.br/landing/agencias-digitais";
+        dict["unsubscribe_url"] = $"https://diaxcrm.com.br/api/v1/email-campaigns/unsubscribe?email={Uri.EscapeDataString(queueItem.RecipientEmail)}";
+
+        return dict;
     }
 
     private sealed record ResolvedCampaignTemplateSnapshot(string TemplateBody, string Source);
@@ -937,6 +1040,23 @@ public class EmailMarketingService : IApplicationService
         }
 
         var campaign = campaignResult.Value;
+
+        if (_circuitBreaker.IsOpen)
+        {
+            await LogPilotEventAsync("PilotRealSendBlocked", "Blocked", campaign.Id, request.Leads.Count, false, $"Circuit Breaker aberto: {_circuitBreaker.Reason}", cancellationToken);
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Validation("CircuitBreaker", $"Envios reais bloqueados pelo Circuit Breaker: {_circuitBreaker.Reason}"));
+        }
+
+        var readinessResult = ValidateReadiness(campaign);
+        await LogPilotEventAsync("PilotReadinessChecked", readinessResult.IsSuccess ? "Success" : "Failed", campaign.Id, request.Leads.Count, false, readinessResult.IsSuccess ? null : readinessResult.Error.Message, cancellationToken);
+        if (readinessResult.IsFailure)
+        {
+            await LogPilotEventAsync("PilotReadinessBlocked", "Blocked", campaign.Id, request.Leads.Count, false, readinessResult.Error.Message, cancellationToken);
+            await LogPilotEventAsync("PilotCampaignActivationBlocked", "Blocked", campaign.Id, request.Leads.Count, false, readinessResult.Error.Message, cancellationToken);
+            return Result.Failure<QueueCampaignRecipientsResponse>(readinessResult.Error);
+        }
+
         if (campaign.Status is EmailCampaignStatus.Completed or EmailCampaignStatus.Cancelled)
         {
             return Result.Failure<QueueCampaignRecipientsResponse>(
@@ -958,6 +1078,15 @@ public class EmailMarketingService : IApplicationService
         var queuedItems = new List<EmailQueueItem>();
         var skipped = new List<string>();
 
+        var existingQueued = await _emailQueueRepository.FindAsync(
+            q => q.CampaignId == campaign.Id && q.CustomerId.HasValue && customerIds.Contains(q.CustomerId.Value),
+            cancellationToken);
+        
+        var existingQueuedCustomerIds = existingQueued
+            .Where(q => q.CustomerId.HasValue)
+            .Select(q => q.CustomerId!.Value)
+            .ToHashSet();
+
         foreach (var leadDto in request.Leads)
         {
             if (!customers.TryGetValue(leadDto.CustomerId, out var customer))
@@ -969,6 +1098,12 @@ public class EmailMarketingService : IApplicationService
             if (!IsValidEmail(customer.Email))
             {
                 skipped.Add($"{customer.Name} (email inválido)");
+                continue;
+            }
+
+            if (existingQueuedCustomerIds.Contains(customer.Id))
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (já enfileirado ou enviado para esta campanha)");
                 continue;
             }
 
@@ -1017,5 +1152,158 @@ public class EmailMarketingService : IApplicationService
             EffectiveScheduledAt = scheduledAt,
             SkippedRecipients = skipped,
         };
+    }
+
+    public static Result ValidateContentReadiness(EmailCampaign campaign)
+    {
+        if (string.IsNullOrWhiteSpace(campaign.BodyHtml))
+        {
+            return Result.Failure(Error.Validation("ReadinessGate", "O conteúdo da campanha está em branco."));
+        }
+
+        // 1. Unsubscribe check
+        if (!campaign.BodyHtml.Contains("{{unsubscribe_url}}", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result.Failure(Error.Validation("ReadinessGate", "A campanha não possui a variável obrigatória de cancelamento de inscrição {{unsubscribe_url}} no rodapé."));
+        }
+
+        // 2. CTA and UTM check
+        if (campaign.BodyHtml.Contains("href=", StringComparison.OrdinalIgnoreCase) && 
+            !campaign.BodyHtml.Contains("utm_source=", StringComparison.OrdinalIgnoreCase))
+        {
+            return Result.Failure(Error.Validation("ReadinessGate", "Os links da campanha precisam conter parâmetros de tracking obrigatórios (UTMs)."));
+        }
+
+        return Result.Success();
+    }
+
+    public static Result ValidateReadiness(EmailCampaign campaign)
+    {
+        var contentResult = ValidateContentReadiness(campaign);
+        if (contentResult.IsFailure)
+        {
+            return contentResult;
+        }
+
+        // 3. Draft prevention for outbound campaigns
+        // Campanhas em estado Rascunho não podem ser disparadas para listas reais.
+        if (campaign.Status == EmailCampaignStatus.Draft)
+        {
+            return Result.Failure(Error.Validation("ReadinessGate", "A campanha está em estado Rascunho (Draft). Ative ou agende a campanha para permitir disparos de outbound."));
+        }
+
+        // Environment check
+        var allowedEnvs = new[] { "Development", "Production", "Test" };
+        var currentEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        if (!allowedEnvs.Contains(currentEnv, StringComparer.OrdinalIgnoreCase))
+        {
+            return Result.Failure(Error.Validation("ReadinessGate", $"Envios não são permitidos no ambiente atual: {currentEnv}"));
+        }
+
+        return Result.Success();
+    }
+
+    private async Task LogPilotEventAsync(
+        string action,
+        string result,
+        Guid campaignId,
+        int leadCount,
+        bool dryRun,
+        string? blockingReasons,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        string userEmail = "sistema";
+        if (userId.HasValue)
+        {
+            var user = await _userRepository.GetByIdAsync(userId.Value, cancellationToken);
+            if (user != null)
+            {
+                userEmail = user.Email;
+            }
+        }
+
+        var details = new
+        {
+            CampaignId = campaignId,
+            UserId = userId,
+            UserEmail = userEmail,
+            Action = action,
+            Result = result,
+            BlockingReasons = blockingReasons,
+            LeadCount = leadCount,
+            DryRun = dryRun,
+            Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development",
+            TimestampUtc = DateTime.UtcNow
+        };
+
+        var entry = AuditLogEntry.Create(
+            userId,
+            AuditAction.Custom,
+            "PilotCampaign",
+            campaignId.ToString(),
+            $"Pilot campaign event: {action} ({result})",
+            newValues: JsonSerializer.Serialize(details)
+        );
+
+        await _auditLogRepository.AddAsync(entry, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<Result<PilotStatusResponse>> GetPilotStatusAsync(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var campaignResult = await GetCampaignOwnedByCurrentUserAsync(campaignId, cancellationToken);
+        if (campaignResult.IsFailure)
+        {
+            return Result.Failure<PilotStatusResponse>(campaignResult.Error);
+        }
+
+        var campaign = campaignResult.Value;
+        var readiness = ValidateReadiness(campaign);
+
+        var auditEntries = await _auditLogRepository.GetByResourceAsync("PilotCampaign", campaignId.ToString(), cancellationToken);
+        var recentEvents = auditEntries
+            .OrderByDescending(a => a.TimestampUtc)
+            .Take(20)
+            .Select(a => {
+                try 
+                {
+                    var details = JsonSerializer.Deserialize<JsonElement>(a.NewValues ?? "{}");
+                    return new PilotEventDto
+                    {
+                        Action = details.TryGetProperty("Action", out var act) ? act.GetString() ?? a.Description : a.Description,
+                        Result = details.TryGetProperty("Result", out var res) ? res.GetString() ?? "" : "",
+                        BlockingReasons = details.TryGetProperty("BlockingReasons", out var blk) ? blk.GetString() : null,
+                        LeadCount = details.TryGetProperty("LeadCount", out var lc) ? lc.GetInt32() : 0,
+                        DryRun = details.TryGetProperty("DryRun", out var dr) ? dr.GetBoolean() : false,
+                        TimestampUtc = a.TimestampUtc,
+                        UserEmail = details.TryGetProperty("UserEmail", out var ue) ? ue.GetString() ?? "sistema" : "sistema"
+                    };
+                }
+                catch
+                {
+                    return new PilotEventDto
+                    {
+                        Action = a.Description,
+                        Result = a.Status.ToString(),
+                        TimestampUtc = a.TimestampUtc,
+                        UserEmail = "sistema"
+                    };
+                }
+            })
+            .ToList();
+
+        var response = new PilotStatusResponse
+        {
+            IsCircuitBreakerOpen = _circuitBreaker.IsOpen,
+            CircuitBreakerReason = _circuitBreaker.Reason,
+            CurrentErrorRate = _circuitBreaker.CurrentErrorRate,
+            WebhookFailureCount = _circuitBreaker.WebhookFailureCount,
+            CampaignReadinessPassed = readiness.IsSuccess,
+            CampaignReadinessError = readiness.IsFailure ? readiness.Error.Message : null,
+            RecentEvents = recentEvents
+        };
+
+        return Result.Success(response);
     }
 }

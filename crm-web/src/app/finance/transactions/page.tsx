@@ -5,7 +5,7 @@ import { FinancialToolbar } from '@/components/finance/FinancialToolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDisplayDate } from '@/lib/date-utils';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import {
     useDeleteTransaction,
     useDeleteTransactionsBulk,
@@ -34,25 +34,25 @@ const typeLabels: Record<TransactionType, string> = {
 };
 
 const typeColors: Record<TransactionType, string> = {
-  [TransactionType.Income]: 'text-green-600',
-  [TransactionType.Expense]: 'text-red-600',
-  [TransactionType.Transfer]: 'text-blue-600',
-  [TransactionType.Ignored]: 'text-gray-400',
+  [TransactionType.Income]: 'text-emerald-400',
+  [TransactionType.Expense]: 'text-rose-400',
+  [TransactionType.Transfer]: 'text-sky-400',
+  [TransactionType.Ignored]: 'text-zinc-500',
 };
 
 const typeBadgeColors: Record<TransactionType, string> = {
-  [TransactionType.Income]: 'bg-green-50 border-green-200 text-green-700',
-  [TransactionType.Expense]: 'bg-red-50 border-red-200 text-red-700',
-  [TransactionType.Transfer]: 'bg-blue-50 border-blue-200 text-blue-700',
-  [TransactionType.Ignored]: 'bg-gray-50 border-gray-200 text-gray-500',
+  [TransactionType.Income]: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+  [TransactionType.Expense]: 'bg-rose-500/10 border-rose-500/20 text-rose-400',
+  [TransactionType.Transfer]: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
+  [TransactionType.Ignored]: 'bg-zinc-800/50 border-zinc-700/50 text-zinc-400',
 };
 
 const TypeIcon = ({ type }: { type: TransactionType }) => {
   switch (type) {
-    case TransactionType.Income: return <ArrowUpCircle className="h-4 w-4 text-green-500" />;
-    case TransactionType.Expense: return <ArrowDownCircle className="h-4 w-4 text-red-500" />;
-    case TransactionType.Transfer: return <ArrowRightLeft className="h-4 w-4 text-blue-500" />;
-    case TransactionType.Ignored: return <EyeOff className="h-4 w-4 text-gray-400" />;
+    case TransactionType.Income: return <ArrowUpCircle className="h-4 w-4 text-emerald-400" />;
+    case TransactionType.Expense: return <ArrowDownCircle className="h-4 w-4 text-rose-400" />;
+    case TransactionType.Transfer: return <ArrowRightLeft className="h-4 w-4 text-sky-400" />;
+    case TransactionType.Ignored: return <EyeOff className="h-4 w-4 text-zinc-500" />;
   }
 };
 
@@ -68,15 +68,15 @@ function DeleteModal({ isOpen, onClose, onConfirm, loading, count }: DeleteModal
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="p-8 rounded-2xl max-w-md w-full mx-4" style={{ background: '#0D1F18', border: '1px solid rgba(255,255,255,0.12)' }}>
-        <h3 className="text-xl font-bold mb-2" style={{ color: '#F9FAFB' }}>Confirmar Exclusão</h3>
-        <p className="mb-8" style={{ color: '#9CA3AF' }}>
+      <div className="p-8 rounded-2xl max-w-md w-full mx-4 border border-white/10 bg-gradient-to-br from-[#0B1510] to-[#0F1A14]">
+        <h3 className="text-xl font-bold mb-2 text-zinc-100">Confirmar Exclusão</h3>
+        <p className="mb-8 text-zinc-400">
           Tem certeza que deseja excluir {count > 1 ? `estas ${count} transações` : 'esta transação'}?
           Esta ação pode impactar seu saldo bancário e não pode ser desfeita.
         </p>
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose} disabled={loading} className="px-6 rounded-xl">Cancelar</Button>
-          <Button onClick={onConfirm} disabled={loading} variant="destructive" className="px-6 rounded-xl">
+          <Button variant="ghost" onClick={onClose} disabled={loading} className="px-6 rounded-xl border border-white/5 hover:bg-white/5 text-zinc-300">Cancelar</Button>
+          <Button onClick={onConfirm} disabled={loading} variant="destructive" className="px-6 rounded-xl font-semibold">
             {loading ? 'Excluindo...' : 'Sim, Excluir'}
           </Button>
         </div>
@@ -95,18 +95,23 @@ function TypeFilterTabs({ activeType, onChange }: { activeType: TransactionType 
   ];
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/5 w-fit">
       {tabs.map(tab => {
         const isActive = activeType === tab.value;
         return (
           <Button
             key={tab.label}
-            variant={isActive ? 'default' : 'outline'}
+            variant="ghost"
             size="sm"
             onClick={() => onChange(tab.value)}
-            className={`gap-2 rounded-lg ${isActive ? 'bg-accent text-white' : ''}`}
+            className={cn(
+              "gap-2 px-3.5 py-1.5 h-9 rounded-lg text-xs font-semibold transition-all duration-200",
+              isActive
+                ? "bg-emerald-500/15 border border-emerald-500/25 text-[#00D4AA] shadow-sm shadow-emerald-500/5 hover:bg-emerald-500/20 hover:text-[#00D4AA]"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+            )}
           >
-            <tab.icon className="h-4 w-4" />
+            <tab.icon className="h-3.5 w-3.5" />
             {tab.label}
           </Button>
         );
@@ -176,7 +181,7 @@ export default function TransactionsPage() {
       header: ({ table }) => (
         <input
           type="checkbox"
-          className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+          className="h-4 w-4 rounded border-white/10 bg-white/5 text-accent focus:ring-accent focus:ring-offset-0"
           checked={table.getIsAllPageRowsSelected()}
           onChange={table.getToggleAllPageRowsSelectedHandler()}
         />
@@ -184,7 +189,7 @@ export default function TransactionsPage() {
       cell: ({ row }) => (
         <input
           type="checkbox"
-          className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+          className="h-4 w-4 rounded border-white/10 bg-white/5 text-accent focus:ring-accent focus:ring-offset-0"
           checked={row.getIsSelected()}
           onChange={row.getToggleSelectedHandler()}
         />
@@ -194,7 +199,7 @@ export default function TransactionsPage() {
       accessorKey: 'type',
       header: 'Tipo',
       cell: ({ row }) => (
-        <Badge variant="outline" className={`${typeBadgeColors[row.original.type]} rounded-lg font-medium gap-1.5`}>
+        <Badge variant="outline" className={`${typeBadgeColors[row.original.type]} rounded-lg font-semibold border gap-1.5`}>
           <TypeIcon type={row.original.type} />
           {typeLabels[row.original.type]}
         </Badge>
@@ -206,25 +211,25 @@ export default function TransactionsPage() {
         <Button
           variant="ghost"
           onClick={() => setFilters(f => ({ ...f, sortBy: 'date', sortDescending: f.sortBy === 'date' ? !f.sortDescending : true }))}
-          className="hover:bg-transparent p-0 flex items-center gap-2"
+          className="hover:bg-transparent p-0 flex items-center gap-2 text-zinc-400 font-semibold hover:text-zinc-200"
         >
           Data
           <ArrowUpDown className="h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => <span className="font-medium text-gray-600">{formatDisplayDate(row.original.date)}</span>,
+      cell: ({ row }) => <span className="font-medium text-zinc-400">{formatDisplayDate(row.original.date)}</span>,
     },
     {
       accessorKey: 'description',
       header: 'Descrição',
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-gray-900">{row.original.description}</span>
+          <span className="font-semibold text-zinc-100">{row.original.description}</span>
           {row.original.categoryName && (
-            <span className="text-xs text-gray-500 uppercase tracking-wider font-medium">{row.original.categoryName}</span>
+            <span className="text-xs text-zinc-400 uppercase tracking-wider font-semibold mt-0.5">{row.original.categoryName}</span>
           )}
           {row.original.rawDescription && row.original.rawDescription !== row.original.description && (
-            <span className="text-xs text-gray-400 italic truncate max-w-[250px]" title={row.original.rawDescription}>
+            <span className="text-xs text-zinc-500 italic truncate max-w-[250px]" title={row.original.rawDescription}>
               {row.original.rawDescription}
             </span>
           )}
@@ -236,14 +241,14 @@ export default function TransactionsPage() {
       header: 'Conta',
       cell: ({ row }) => (
         row.original.financialAccountName ? (
-          <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-700 font-medium rounded-lg">
+          <Badge variant="outline" className="bg-sky-500/10 border-sky-500/20 text-sky-400 font-semibold rounded-lg">
             {row.original.financialAccountName}
           </Badge>
         ) : row.original.creditCardName ? (
-          <Badge variant="outline" className="bg-purple-50/50 border-purple-100 text-purple-700 font-medium rounded-lg">
+          <Badge variant="outline" className="bg-purple-500/10 border-purple-500/20 text-purple-400 font-semibold rounded-lg">
             💳 {row.original.creditCardName}
           </Badge>
-        ) : <span className="text-gray-400">—</span>
+        ) : <span className="text-zinc-500">—</span>
       ),
     },
     {
@@ -252,7 +257,7 @@ export default function TransactionsPage() {
         <Button
           variant="ghost"
           onClick={() => setFilters(f => ({ ...f, sortBy: 'amount', sortDescending: f.sortBy === 'amount' ? !f.sortDescending : true }))}
-          className="hover:bg-transparent p-0 flex items-center gap-2"
+          className="hover:bg-transparent p-0 flex items-center gap-2 text-zinc-400 font-semibold hover:text-zinc-200"
         >
           Valor
           <ArrowUpDown className="h-4 w-4" />
@@ -270,9 +275,9 @@ export default function TransactionsPage() {
       cell: ({ row }) => {
         if (row.original.type !== TransactionType.Expense) return null;
         return row.original.status === TransactionStatus.Paid ? (
-          <Badge className="bg-green-100 text-green-700 border-green-200 rounded-lg">Pago</Badge>
+          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 rounded-lg font-semibold">Pago</Badge>
         ) : (
-          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 rounded-lg">Pendente</Badge>
+          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 rounded-lg font-semibold">Pendente</Badge>
         );
       },
     },
@@ -282,14 +287,14 @@ export default function TransactionsPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-2 text-right">
           <Link href={`/finance/transactions/edit?id=${row.original.id}`}>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-gray-400 hover:text-accent hover:bg-accent/10 rounded-lg">
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-400 hover:text-[#00D4AA] hover:bg-emerald-500/10 rounded-lg border border-transparent hover:border-emerald-500/20 transition-all duration-200">
               <Edit className="h-4 w-4" />
             </Button>
           </Link>
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+            className="h-9 w-9 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg border border-transparent hover:border-rose-500/20 transition-all duration-200"
             onClick={() => setDeleteId(row.original.id)}
           >
             <Trash2 className="h-4 w-4" />
@@ -311,13 +316,13 @@ export default function TransactionsPage() {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-            <div className="bg-indigo-100 p-2 rounded-xl">
-              <Receipt className="h-8 w-8 text-indigo-600" />
+          <h1 className="text-3xl font-extrabold text-zinc-100 tracking-tight flex items-center gap-3">
+            <div className="bg-indigo-500/10 p-2 rounded-xl border border-indigo-500/20">
+              <Receipt className="h-8 w-8 text-indigo-400" />
             </div>
             Transações
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-zinc-400 mt-1.5">
             Visão unificada de receitas, despesas, transferências e movimentações ignoradas.
           </p>
         </div>
@@ -335,9 +340,9 @@ export default function TransactionsPage() {
           )}
 
           <Link href="/finance/transactions/new">
-            <Button className="bg-accent hover:bg-accent-secondary text-white gap-2 px-6 h-12 shadow-md hover:shadow-lg transition-all rounded-xl">
+            <Button className="bg-[#00D4AA] hover:bg-[#00D4AA]/80 text-black gap-2 px-6 h-12 shadow-md hover:shadow-lg transition-all rounded-xl font-bold">
               <Plus size={20} strokeWidth={3} />
-              <span className="font-bold">Nova Transação</span>
+              <span>Nova Transação</span>
             </Button>
           </Link>
         </div>

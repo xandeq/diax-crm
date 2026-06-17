@@ -5,6 +5,11 @@ using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
 using Diax.Application.Customers.Services;
 using System.Text.Json;
+using System.Linq;
+using Diax.Domain.EmailMarketing;
+using Diax.Domain.Audit;
+using Diax.Domain.Auth;
+using Diax.Application.EmailMarketing;
 
 namespace Diax.Application.Customers;
 
@@ -17,17 +22,32 @@ public class CustomerImportService : IApplicationService
     private readonly ICustomerImportRepository _importRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILeadSanitizationService _sanitizationService;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IEmailSuppressionRepository _suppressionRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IPilotCircuitBreaker _circuitBreaker;
 
     public CustomerImportService(
         ICustomerRepository customerRepository,
         ICustomerImportRepository importRepository,
         IUnitOfWork unitOfWork,
-        ILeadSanitizationService sanitizationService)
+        ILeadSanitizationService sanitizationService,
+        ICurrentUserService currentUserService,
+        IEmailSuppressionRepository suppressionRepository,
+        IAuditLogRepository auditLogRepository,
+        IUserRepository userRepository,
+        IPilotCircuitBreaker circuitBreaker)
     {
         _customerRepository = customerRepository;
         _importRepository = importRepository;
         _unitOfWork = unitOfWork;
         _sanitizationService = sanitizationService;
+        _currentUserService = currentUserService;
+        _suppressionRepository = suppressionRepository;
+        _auditLogRepository = auditLogRepository;
+        _userRepository = userRepository;
+        _circuitBreaker = circuitBreaker;
     }
 
     /// <summary>
@@ -42,6 +62,255 @@ public class CustomerImportService : IApplicationService
         string fileName,
         CancellationToken cancellationToken = default)
     {
+        // 1. Limite de 10 leads para importação outbound real
+        if (request.Source == LeadSource.Import && !request.DryRun && request.Customers.Count > 10)
+        {
+            var limitError = new ImportError(0, "", "O lote de importação excede o limite máximo de 10 leads do piloto controlado.");
+            await LogPilotEventAsync("PilotImportBlocked", "Failed", null, request.Customers.Count, false, "O lote de importação excede o limite máximo de 10 leads do piloto controlado.", cancellationToken);
+            return new BulkImportResponse(
+                false,
+                request.Customers.Count,
+                0,
+                1,
+                0,
+                new List<ImportError> { limitError });
+        }
+
+        if (request.Source == LeadSource.Import && request.DryRun)
+        {
+            await LogPilotEventAsync("PilotDryRunStarted", "Success", null, request.Customers.Count, true, null, cancellationToken);
+        }
+
+        // Se for DryRun ou se for importação manual (LeadSource.Import), fazemos o passo de validação primeiro
+        if (request.DryRun || request.Source == LeadSource.Import)
+        {
+            var validationErrors = new List<ImportError>();
+            var valSkippedCount = 0;
+            var valSeenEmailsInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var valSeenPhonesInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < request.Customers.Count; i++)
+            {
+                var row = request.Customers[i];
+                try
+                {
+                    // A. Rejeitar sem origem
+                    if (request.Source == LeadSource.Unknown)
+                    {
+                        validationErrors.Add(new ImportError(
+                            i + 1,
+                            row.Email ?? row.Name ?? "",
+                            "Origem inválida ou não especificada. É obrigatório informar uma origem válida."));
+                        continue;
+                    }
+
+                    // B. Rejeitar e-mail inválido
+                    if (string.IsNullOrWhiteSpace(row.Email) || !IsValidEmail(row.Email))
+                    {
+                        validationErrors.Add(new ImportError(
+                            i + 1,
+                            row.Email ?? row.Name ?? "",
+                            "E-mail inválido ou ausente. Para campanhas frias, todos os leads precisam possuir e-mail válido."));
+                        continue;
+                    }
+
+                    // C. Exigir validation_status adequado (apenas para importações de listas frias/outbound)
+                    if (request.Source == LeadSource.Import)
+                    {
+                        if (string.IsNullOrWhiteSpace(row.ValidationStatus))
+                        {
+                            validationErrors.Add(new ImportError(
+                                i + 1,
+                                row.Email,
+                                "Validation status é obrigatório e deve ser um status válido (ex: 'valido', 'verificado')."));
+                            continue;
+                        }
+
+                        var statusLower = row.ValidationStatus.Trim().ToLowerInvariant();
+                        if (statusLower.Contains("invalid") || statusLower.Contains("inválido") || 
+                            statusLower.Contains("unknown") || statusLower.Contains("desconhecido") || 
+                            statusLower.Contains("disposable") || statusLower.Contains("descartável") ||
+                            statusLower.Contains("catch-all") || statusLower.Contains("catchall") ||
+                            statusLower.Contains("bounce"))
+                        {
+                            validationErrors.Add(new ImportError(
+                                i + 1,
+                                row.Email,
+                                $"Validation status inadequado: '{row.ValidationStatus}'."));
+                            continue;
+                        }
+                    }
+
+                    // D. Exigir consent_status (apenas para importações de listas frias/outbound)
+                    if (request.Source == LeadSource.Import)
+                    {
+                        if (string.IsNullOrWhiteSpace(row.ConsentStatus))
+                        {
+                            validationErrors.Add(new ImportError(
+                                i + 1,
+                                row.Email,
+                                "Consent status é obrigatório para importação outbound."));
+                            continue;
+                        }
+
+                        var consentLower = row.ConsentStatus.Trim().ToLowerInvariant();
+                        if (consentLower.Contains("recusado") || 
+                            consentLower.Contains("não consentido") || 
+                            consentLower.Contains("nao consentido") || 
+                            consentLower.Contains("opt-out") || 
+                            consentLower.Contains("optout"))
+                        {
+                            validationErrors.Add(new ImportError(
+                                i + 1,
+                                row.Email,
+                                "Consent status inválido ou recusado."));
+                            continue;
+                        }
+                    }
+
+                    // 1. Aplica o SanitizationService na linha
+                    var rawData = new RawLeadData(
+                        row.Name ?? "",
+                        row.Email,
+                        row.Phone,
+                        row.WhatsApp,
+                        row.CompanyName,
+                        row.Notes
+                    );
+
+                    var sanitized = _sanitizationService.SanitizeAndClassify(rawData);
+
+                    // Rejeitar se nome for inválido ou muito curto
+                    if (sanitized.ShouldReject)
+                    {
+                        validationErrors.Add(new ImportError(
+                            i + 1,
+                            row.Email ?? row.Name ?? "",
+                            sanitized.RejectionReason ?? "Dados inválidos"));
+                        continue;
+                    }
+
+                    var hasEmail = sanitized.IsEmailValid && !string.IsNullOrWhiteSpace(sanitized.Email);
+                    var primaryPhone = sanitized.WhatsApp ?? sanitized.Phone;
+
+                    Customer? existingCustomer = null;
+
+                    if (hasEmail)
+                    {
+                        // Dedup na memória
+                        if (!valSeenEmailsInBatch.Add(sanitized.Email!))
+                        {
+                            valSkippedCount++;
+                            validationErrors.Add(new ImportError(
+                                i + 1,
+                                sanitized.Email!,
+                                $"Duplicata no lote: email '{sanitized.Email}' aparece mais de uma vez"));
+                            continue;
+                        }
+
+                        // Busca customer existente no DB
+                        existingCustomer = await _customerRepository.GetByEmailAsync(sanitized.Email!, cancellationToken);
+                    }
+                    else if (primaryPhone != null)
+                    {
+                        // Dedup na memória pelo telefone
+                        if (!valSeenPhonesInBatch.Add(primaryPhone))
+                        {
+                            valSkippedCount++;
+                            validationErrors.Add(new ImportError(
+                                i + 1,
+                                sanitized.Name,
+                                $"Duplicata no lote: telefone '{primaryPhone}' aparece mais de uma vez"));
+                            continue;
+                        }
+
+                        // Busca customer existente pelo telefone
+                        existingCustomer = await _customerRepository.GetByPhoneAsync(primaryPhone, cancellationToken);
+                    }
+
+                    // E. Rejeitar opt-out ou bounced do banco/supressão
+                    if (existingCustomer != null && existingCustomer.EmailOptOut)
+                    {
+                        validationErrors.Add(new ImportError(
+                            i + 1,
+                            row.Email,
+                            "Lead rejeitado: Contato possui opt-out ativo."));
+                        continue;
+                    }
+
+                    // Para o piloto, se o contato já existe, rejeitar duplicata
+                    if (request.Source == LeadSource.Import && existingCustomer != null)
+                    {
+                        validationErrors.Add(new ImportError(
+                            i + 1,
+                            row.Email,
+                            $"Lead duplicado: O e-mail '{row.Email}' já está cadastrado no sistema."));
+                        continue;
+                    }
+
+                    if (_currentUserService.UserId.HasValue)
+                    {
+                        var isSuppressed = await _suppressionRepository.IsSuppressedAsync(
+                            _currentUserService.UserId.Value,
+                            row.Email.Trim().ToLowerInvariant(),
+                            cancellationToken);
+
+                        if (isSuppressed)
+                        {
+                            validationErrors.Add(new ImportError(
+                                i + 1,
+                                row.Email,
+                                "Lead rejeitado: E-mail na lista de supressão (unsubscribed ou bounced)."));
+                            continue;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    validationErrors.Add(new ImportError(
+                        i + 1,
+                        row.Email ?? "",
+                        $"Erro ao processar: {ex.Message}"));
+                }
+            }
+
+            // Se for DryRun, ou se houver qualquer erro/skip na validação da importação real de LeadSource.Import, retornamos e NÃO persistimos
+            if (request.DryRun || validationErrors.Any())
+            {
+                var isSuccess = !validationErrors.Any();
+                var total = request.Customers.Count;
+                var failed = validationErrors.Count - valSkippedCount;
+                var successed = total - validationErrors.Count;
+
+                if (request.Source == LeadSource.Import)
+                {
+                    if (request.DryRun)
+                    {
+                        if (validationErrors.Any())
+                        {
+                            await LogPilotEventAsync("PilotDryRunFailed", "Failed", null, total, true, $"Erros de validação: {string.Join(" | ", validationErrors.Select(e => e.ErrorMessage))}", cancellationToken);
+                        }
+                        else
+                        {
+                            await LogPilotEventAsync("PilotDryRunCompleted", "Success", null, total, true, null, cancellationToken);
+                        }
+                    }
+                    else if (validationErrors.Any())
+                    {
+                        await LogPilotEventAsync("PilotImportBlocked", "Failed", null, total, false, $"Importação real bloqueada devido a erros de validação: {string.Join(" | ", validationErrors.Select(e => e.ErrorMessage))}", cancellationToken);
+                    }
+                }
+
+                return new BulkImportResponse(
+                    isSuccess,
+                    total,
+                    successed,
+                    failed,
+                    valSkippedCount,
+                    validationErrors);
+            }
+        }
+
         // Cria registro de importação
         var import = new CustomerImport(fileName, ImportType.CSV, request.Customers.Count);
         await _importRepository.AddAsync(import, cancellationToken);
@@ -61,6 +330,53 @@ public class CustomerImportService : IApplicationService
 
             try
             {
+                // A. Rejeitar sem origem
+                if (request.Source == LeadSource.Unknown)
+                {
+                    errors.Add(new ImportError(
+                        i + 1,
+                        row.Email ?? row.Name ?? "",
+                        "Origem inválida ou não especificada. É obrigatório informar uma origem válida."));
+                    continue;
+                }
+
+                // B. Rejeitar e-mail inválido
+                if (string.IsNullOrWhiteSpace(row.Email) || !IsValidEmail(row.Email))
+                {
+                    errors.Add(new ImportError(
+                        i + 1,
+                        row.Email ?? row.Name ?? "",
+                        "E-mail inválido ou ausente. Para campanhas frias, todos os leads precisam possuir e-mail válido."));
+                    continue;
+                }
+
+                // C. Exigir validation_status adequado (apenas para importações de listas frias/outbound)
+                if (request.Source == LeadSource.Import)
+                {
+                    if (string.IsNullOrWhiteSpace(row.ValidationStatus))
+                    {
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Email,
+                            "Validation status é obrigatório e deve ser um status válido (ex: 'valido', 'verificado')."));
+                        continue;
+                    }
+
+                    var statusLower = row.ValidationStatus.Trim().ToLowerInvariant();
+                    if (statusLower.Contains("invalid") || statusLower.Contains("inválido") || 
+                        statusLower.Contains("unknown") || statusLower.Contains("desconhecido") || 
+                        statusLower.Contains("disposable") || statusLower.Contains("descartável") ||
+                        statusLower.Contains("catch-all") || statusLower.Contains("catchall") ||
+                        statusLower.Contains("bounce"))
+                    {
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Email,
+                            $"Validation status inadequado: '{row.ValidationStatus}'."));
+                        continue;
+                    }
+                }
+
                 // 1. Aplica o SanitizationService na linha
                 var rawData = new RawLeadData(
                     row.Name ?? "",
@@ -121,6 +437,33 @@ public class CustomerImportService : IApplicationService
                     existingCustomer = await _customerRepository.GetByPhoneAsync(primaryPhone, cancellationToken);
                 }
 
+                // D. Rejeitar opt-out ou bounced do banco/supressão
+                if (existingCustomer != null && existingCustomer.EmailOptOut)
+                {
+                    errors.Add(new ImportError(
+                        i + 1,
+                        row.Email,
+                        "Lead rejeitado: Contato possui opt-out ativo."));
+                    continue;
+                }
+
+                if (_currentUserService.UserId.HasValue)
+                {
+                    var isSuppressed = await _suppressionRepository.IsSuppressedAsync(
+                        _currentUserService.UserId.Value,
+                        row.Email.Trim().ToLowerInvariant(),
+                        cancellationToken);
+
+                    if (isSuppressed)
+                    {
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Email,
+                            "Lead rejeitado: E-mail na lista de supressão (unsubscribed ou bounced)."));
+                        continue;
+                    }
+                }
+
                 // Se NÃO existe, CRIAR um NOVO
                 if (existingCustomer == null)
                 {
@@ -130,7 +473,7 @@ public class CustomerImportService : IApplicationService
                         string.IsNullOrWhiteSpace(sanitized.CompanyName) ? PersonType.Individual : PersonType.Company,
                         request.Source);
 
-                    customer.UpdateContactInfo(sanitized.Phone, sanitized.WhatsApp);
+                    customer.UpdateContactInfo(sanitized.Phone, sanitized.WhatsApp, website: row.Website);
 
                     if (!string.IsNullOrWhiteSpace(sanitized.CompanyName))
                     {
@@ -141,11 +484,52 @@ public class CustomerImportService : IApplicationService
                             sanitized.CompanyName);
                     }
 
-                    if (!string.IsNullOrWhiteSpace(sanitized.Notes))
-                        customer.UpdateNotes(sanitized.Notes);
-
+                    // Build tags
+                    var tagsList = new List<string> { "pilot_candidate" };
                     if (!string.IsNullOrWhiteSpace(row.Tags))
-                        customer.UpdateTags(row.Tags);
+                    {
+                        tagsList.AddRange(row.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()));
+                    }
+
+                    // Map CurrentTool to tag
+                    if (!string.IsNullOrWhiteSpace(row.CurrentTool))
+                    {
+                        var tool = row.CurrentTool.Trim().ToLowerInvariant();
+                        if (tool.Contains("pipedrive")) tagsList.Add("pipedrive");
+                        else if (tool.Contains("rd station") || tool.Contains("rdstation")) tagsList.Add("rd station");
+                        else if (tool.Contains("notion")) tagsList.Add("notion");
+                        else if (tool.Contains("planilha") || tool.Contains("sheets")) tagsList.Add("planilha");
+                    }
+
+                    // Map MainPain to tag
+                    if (!string.IsNullOrWhiteSpace(row.MainPain))
+                    {
+                        var pain = row.MainPain.Trim().ToLowerInvariant();
+                        if (pain.Contains("whatsapp") || pain.Contains("whats")) tagsList.Add("whatsapp");
+                        else if (pain.Contains("financeiro") || pain.Contains("cobranca") || pain.Contains("cobrança")) tagsList.Add("financeiro");
+                    }
+
+                    // Map ValidationStatus and ConsentStatus to tags
+                    if (!string.IsNullOrWhiteSpace(row.ValidationStatus))
+                    {
+                        tagsList.Add($"validation_status_{row.ValidationStatus.Trim().ToLowerInvariant().Replace(" ", "_")}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(row.ConsentStatus))
+                    {
+                        tagsList.Add($"consent_status_{row.ConsentStatus.Trim().ToLowerInvariant().Replace(" ", "_")}");
+                    }
+
+                    var finalTags = string.Join(", ", tagsList.Distinct(StringComparer.OrdinalIgnoreCase));
+                    customer.UpdateTags(finalTags);
+
+                    // Build notes
+                    var extraNotes = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(sanitized.Notes)) extraNotes.Add(sanitized.Notes);
+                    if (!string.IsNullOrWhiteSpace(row.City)) extraNotes.Add($"Cidade: {row.City}");
+                    if (!string.IsNullOrWhiteSpace(row.ValidationStatus)) extraNotes.Add($"Validation Status: {row.ValidationStatus}");
+                    if (!string.IsNullOrWhiteSpace(row.ConsentStatus)) extraNotes.Add($"Consent Status: {row.ConsentStatus}");
+                    var finalNotes = string.Join("\n", extraNotes);
+                    customer.UpdateNotes(finalNotes);
 
                     customer.UpdateClassification(
                         sanitized.Quality,
@@ -179,17 +563,19 @@ public class CustomerImportService : IApplicationService
                         existingCustomer.UpdateBasicInfo(newName, existingCustomer.Email, newType, newCompany, existingCustomer.Document);
                     }
 
-                    // Atualiza Telefones se vazio
+                    // Atualiza Telefones e Website se vazio
                     var newPhone = existingCustomer.Phone;
                     var newWhatsApp = existingCustomer.WhatsApp;
+                    var newWebsite = existingCustomer.Website ?? row.Website;
                     bool contactUpdated = false;
 
                     if (string.IsNullOrWhiteSpace(newPhone) && !string.IsNullOrWhiteSpace(sanitized.Phone)) { newPhone = sanitized.Phone; contactUpdated = true; }
                     if (string.IsNullOrWhiteSpace(newWhatsApp) && !string.IsNullOrWhiteSpace(sanitized.WhatsApp)) { newWhatsApp = sanitized.WhatsApp; contactUpdated = true; }
+                    if (string.IsNullOrWhiteSpace(existingCustomer.Website) && !string.IsNullOrWhiteSpace(row.Website)) { newWebsite = row.Website; contactUpdated = true; }
 
-                    if (contactUpdated)
+                    if (contactUpdated || newWebsite != existingCustomer.Website)
                     {
-                        existingCustomer.UpdateContactInfo(newPhone, newWhatsApp, existingCustomer.SecondaryEmail, existingCustomer.Website);
+                        existingCustomer.UpdateContactInfo(newPhone, newWhatsApp, existingCustomer.SecondaryEmail, newWebsite);
                         wasUpdated = true;
                     }
 
@@ -204,10 +590,62 @@ public class CustomerImportService : IApplicationService
                         existingCustomer.IsEligibleForCampaigns && sanitized.IsEligibleForCampaigns // Mantem falso se qualquer um alertou
                     );
 
-                    // Adiciona nas notas os detalhes
-                    if (!string.IsNullOrWhiteSpace(sanitized.Notes))
+                    // Build tags for existing customer
+                    var existingTagsList = new List<string> { "pilot_candidate" };
+                    if (!string.IsNullOrWhiteSpace(existingCustomer.Tags))
                     {
-                        var appendedNotes = existingCustomer.Notes + $"\n [Enriquecimento {DateTime.Now:dd/MM}]: {sanitized.Notes}";
+                        existingTagsList.AddRange(existingCustomer.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()));
+                    }
+                    if (!string.IsNullOrWhiteSpace(row.Tags))
+                    {
+                        existingTagsList.AddRange(row.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()));
+                    }
+
+                    // Map CurrentTool to tag
+                    if (!string.IsNullOrWhiteSpace(row.CurrentTool))
+                    {
+                        var tool = row.CurrentTool.Trim().ToLowerInvariant();
+                        if (tool.Contains("pipedrive")) existingTagsList.Add("pipedrive");
+                        else if (tool.Contains("rd station") || tool.Contains("rdstation")) existingTagsList.Add("rd station");
+                        else if (tool.Contains("notion")) existingTagsList.Add("notion");
+                        else if (tool.Contains("planilha") || tool.Contains("sheets")) existingTagsList.Add("planilha");
+                    }
+
+                    // Map MainPain to tag
+                    if (!string.IsNullOrWhiteSpace(row.MainPain))
+                    {
+                        var pain = row.MainPain.Trim().ToLowerInvariant();
+                        if (pain.Contains("whatsapp") || pain.Contains("whats")) existingTagsList.Add("whatsapp");
+                        else if (pain.Contains("financeiro") || pain.Contains("cobranca") || pain.Contains("cobrança")) existingTagsList.Add("financeiro");
+                    }
+
+                    // Map ValidationStatus and ConsentStatus to tags
+                    if (!string.IsNullOrWhiteSpace(row.ValidationStatus))
+                    {
+                        existingTagsList.Add($"validation_status_{row.ValidationStatus.Trim().ToLowerInvariant().Replace(" ", "_")}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(row.ConsentStatus))
+                    {
+                        existingTagsList.Add($"consent_status_{row.ConsentStatus.Trim().ToLowerInvariant().Replace(" ", "_")}");
+                    }
+
+                    var finalTags = string.Join(", ", existingTagsList.Distinct(StringComparer.OrdinalIgnoreCase));
+                    if (finalTags != existingCustomer.Tags)
+                    {
+                        existingCustomer.UpdateTags(finalTags);
+                        wasUpdated = true;
+                    }
+
+                    // Adiciona nas notas os detalhes
+                    var extraNotes = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(sanitized.Notes)) extraNotes.Add(sanitized.Notes);
+                    if (!string.IsNullOrWhiteSpace(row.City)) extraNotes.Add($"Cidade: {row.City}");
+                    if (!string.IsNullOrWhiteSpace(row.ValidationStatus)) extraNotes.Add($"Validation Status: {row.ValidationStatus}");
+                    if (!string.IsNullOrWhiteSpace(row.ConsentStatus)) extraNotes.Add($"Consent Status: {row.ConsentStatus}");
+
+                    if (extraNotes.Any())
+                    {
+                        var appendedNotes = existingCustomer.Notes + $"\n [Enriquecimento {DateTime.Now:dd/MM}]: " + string.Join(" | ", extraNotes);
                         existingCustomer.UpdateNotes(appendedNotes);
                         wasUpdated = true;
                     }
@@ -222,7 +660,7 @@ public class CustomerImportService : IApplicationService
                         skippedCount++;
                         errors.Add(new ImportError(
                             i + 1,
-                            sanitized.Email ?? sanitized.Name,
+                            sanitized.Email ?? row.Email,
                             "Duplicata ignorada (nenhuma informação nova para enriquecer)."));
                     }
                 }
@@ -245,6 +683,11 @@ public class CustomerImportService : IApplicationService
 
         // Salva tudo no banco
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (request.Source == LeadSource.Import)
+        {
+            await LogPilotEventAsync("PilotImportCompleted", "Success", null, successCount, false, null, cancellationToken);
+        }
 
         return new BulkImportResponse(
             successCount > 0,
@@ -319,5 +762,52 @@ public class CustomerImportService : IApplicationService
             phone = phone.Substring(0, 50).Trim();
 
         return string.IsNullOrWhiteSpace(phone) ? null : phone;
+    }
+
+    private async Task LogPilotEventAsync(
+        string action,
+        string result,
+        Guid? campaignId,
+        int leadCount,
+        bool dryRun,
+        string? blockingReasons,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        string userEmail = "sistema";
+        if (userId.HasValue)
+        {
+            var user = await _userRepository.GetByIdAsync(userId.Value, cancellationToken);
+            if (user != null)
+            {
+                userEmail = user.Email;
+            }
+        }
+
+        var details = new
+        {
+            CampaignId = campaignId,
+            UserId = userId,
+            UserEmail = userEmail,
+            Action = action,
+            Result = result,
+            BlockingReasons = blockingReasons,
+            LeadCount = leadCount,
+            DryRun = dryRun,
+            Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development",
+            TimestampUtc = DateTime.UtcNow
+        };
+
+        var entry = AuditLogEntry.Create(
+            userId,
+            AuditAction.Custom,
+            "PilotCampaign",
+            campaignId?.ToString() ?? string.Empty,
+            $"Pilot campaign event: {action} ({result})",
+            newValues: JsonSerializer.Serialize(details)
+        );
+
+        await _auditLogRepository.AddAsync(entry, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

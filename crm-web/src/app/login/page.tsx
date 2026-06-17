@@ -310,7 +310,7 @@ export default function LoginPage() {
                 </motion.div>
 
                 {serverError && (
-                  <motion.div className="lg-server" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+                  <motion.div className="lg-server bg-destructive/10" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
                     <AlertCircle size={15} style={{ flexShrink: 0 }} />
                     {serverError}
                   </motion.div>

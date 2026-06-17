@@ -1,0 +1,198 @@
+{
+  "lote": "aq-restaurante-sites-lote2",
+  "status": "PREPARADO_NAO_ENVIAR",
+  "gate": "aguarda correcao de ElasticEmail+MailerSend (ou desabilitar) antes de qualquer envio",
+  "count": 20,
+  "excluded_29_used": 29,
+  "criterios": [
+    "email valido",
+    "empresa identificavel",
+    "nicho food",
+    "sem opt-out/churned",
+    "dedup email/dominio/empresa/telefone",
+    "pref corporativo",
+    "pref nunca-contatado"
+  ],
+  "candidatos": [
+    {
+      "id": "149d77bf-61b9-41b2-b469-40124460b561",
+      "company": "Padaria Vianney",
+      "email": "site@padariavianney.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4
+    },
+    {
+      "id": "4fcacc47-4fb8-49f5-b25a-e1c89a47431d",
+      "company": "Padaria Monte Libano Praia Do Canto",
+      "email": "encomendas@mlibano.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4
+    },
+    {
+      "id": "3defd761-4a85-49b0-bfb3-ae91ed6e8ebb",
+      "company": "FILONE Padaria Artesanal Delivery",
+      "email": "atendimento@filone.com.br",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4
+    },
+    {
+      "id": "5fcc13aa-4e60-4485-bf5f-47591678d1cd",
+      "company": "Belini Pães E Gastronomia",
+      "email": "site@grupobelini.com",
+      "corporate": true,
+      "never": true,
+      "hasPhone": true,
+      "score": 4
+    },
+    {
+      "id": "072dc462-01d8-4a4f-967e-5bab8005b1e0",
+      "company": "Mindful Eating: How Paying Attention To Food Can Transform Your Health",
+      "email": "info@teenswannaknow.com",
+      "corporate": true,
+      "never": true,
+      "hasPhone": false,
+      "score": 3
+    },
+    {
+      "id": "5c7a7158-f7a5-4185-b261-3a35672dcb83",
+      "company": "Madero: O Hambúrguer Do Madero Faz O Mundo Melhor",
+      "email": "emilia.silveira@restaurantemadero.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "9de4bf74-4ee5-4d23-91e5-5252648654a0",
+      "company": "DOM Restaurante",
+      "email": "comunicacao@domrestaurante.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "e43771c6-c994-41e8-971c-368324f832c2",
+      "company": "Mahai Praia Do Canto",
+      "email": "li_kedincomcompanyrestaurantemahai@linkedin.local",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "968b8442-7aa8-476d-8380-b5d9a2338f23",
+      "company": "Padaria Primícia dos Pães",
+      "email": "encomendasloja2@primiciadospaes.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "09613a24-9ff2-4c5b-8e2c-3b74b45e1c52",
+      "company": "A Fornada Padaria",
+      "email": "contato@afornadapadaria.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "eb9262d9-36f3-4ac5-b654-049eb744ab59",
+      "company": "Padaria Pampulha",
+      "email": "padaria@padariapampulha.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "84dbd5c6-475c-4bdb-8a77-fbe1779f5229",
+      "company": "Padaria Karoa",
+      "email": "contato@padariakaroa.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "151f85c9-66b1-4314-8270-850132ff61eb",
+      "company": "Casa Velha • Padaria • Confeitaria • Buffet • Kit Festa • Coffee Break",
+      "email": "adm@padariacasavelha.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "77f87cf3-ee1e-4cc9-a837-7acc02a37eb5",
+      "company": "Hospedagem E Gastronomia",
+      "email": "reservas@statuselegancehotel.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "2003703a-0599-44c5-a659-d1dfb455802c",
+      "company": "Foodbiz",
+      "email": "contato@institutofoodservicebrasil.org.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": true,
+      "score": 3
+    },
+    {
+      "id": "a11a6aef-9ed2-41ca-96d8-22c75f1c5227",
+      "company": "Restaurante Marius Degustare",
+      "email": "marketing@marius.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": false,
+      "score": 2
+    },
+    {
+      "id": "229f9b94-b7d1-4f59-b3cc-7e86a8fba61b",
+      "company": "Padaria Girassol",
+      "email": "contato@padariagirassol.com.br",
+      "corporate": true,
+      "never": false,
+      "hasPhone": false,
+      "score": 2
+    },
+    {
+      "id": "f4498157-18bf-4629-9996-3a228f999ad1",
+      "company": "Macaíba",
+      "email": "macaibadedetizadora@hotmail.com",
+      "corporate": false,
+      "never": true,
+      "hasPhone": true,
+      "score": 2
+    },
+    {
+      "id": "b933d288-6adc-4b94-baf6-e17d8a9346ab",
+      "company": "Formação Em Gastronomia",
+      "email": "agastronomica_site@yahoo.com",
+      "corporate": false,
+      "never": true,
+      "hasPhone": true,
+      "score": 2
+    },
+    {
+      "id": "2a2530ae-12ec-4e51-a4f0-14da7c18180b",
+      "company": "Love Burger",
+      "email": "wherebly.com@gmail.com",
+      "corporate": false,
+      "never": true,
+      "hasPhone": true,
+      "score": 2
+    }
+  ]
+}
