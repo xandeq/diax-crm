@@ -40,7 +40,7 @@ export function DashboardShell() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 p-1 sm:p-4 md:p-6 text-zinc-100 max-w-7xl mx-auto">
+    <div className="dsh flex flex-col gap-6 p-1 sm:p-4 md:p-6 text-zinc-100 max-w-[1600px] 2xl:max-w-[1750px] w-full mx-auto">
       {/* Background Mesh Gradient */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute inset-[-10%] bg-radial-gradient-aurora opacity-20 filter blur-[100px]" />

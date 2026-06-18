@@ -7,6 +7,8 @@ import { investiqService } from '@/services/personalControlService';
 import { getAdAccountSummary, getInsights } from '@/services/ads';
 import { apiFetch } from '@/services/api';
 import { FunnelCounts, AgendaItem, EmailMarketingStats } from '../types/dashboard.types';
+import { tasksService } from '@/services/tasks';
+import { checklistService } from '@/services/checklistService';
 
 export function useDashboardOverview() {
   return useQuery({
@@ -52,6 +54,8 @@ export function useDashboardOverview() {
         investiqResult,
         adsSummaryResult,
         adsInsightsResult,
+        tasksResult,
+        checklistsResult,
       ] = await Promise.allSettled([
         financeService.getPersonalFinanceMonth(yr, mo),
         financeService.getPersonalFinanceMonth(py, pm),
@@ -70,6 +74,8 @@ export function useDashboardOverview() {
         investiqService.getPortfolioSummary(),
         getAdAccountSummary(),
         getInsights({ datePreset: 'last_30d', level: 'campaign' }).catch(() => []),
+        tasksService.getAll({ status: 'Todo' }),
+        checklistService.getItems({ status: 0, pageSize: 10 }),
       ]);
 
       // Helper para extrair valor das settled promises
@@ -134,6 +140,9 @@ export function useDashboardOverview() {
       const investiq = getVal(investiqResult, null);
       const adsSummary = getVal(adsSummaryResult, null);
       const adsInsights = getVal(adsInsightsResult, []);
+      const tasks = getVal(tasksResult, []);
+      const checklistsPaged = getVal(checklistsResult, null);
+      const checklists = checklistsPaged?.items ?? [];
 
       return {
         funnel,
@@ -147,6 +156,8 @@ export function useDashboardOverview() {
         simulation,
         investiq,
         ads: adsSummary ? { summary: adsSummary, insights: adsInsights, period: 'últimos 30 dias' } : null,
+        tasks,
+        checklists,
       };
     },
     refetchOnWindowFocus: false,

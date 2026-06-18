@@ -10,6 +10,9 @@ async function run() {
   const context = await browser.newContext();
   const page = await context.newPage();
 
+  page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+  page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
+
   // Intercept all API calls to local/remote API endpoints and provide premium mock data
   console.log('Setting up API mocks...');
   await page.route('**/api/v1/**', async (route) => {

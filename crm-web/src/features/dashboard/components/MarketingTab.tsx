@@ -75,9 +75,9 @@ export function MarketingTab() {
       </div>
 
       {/* WhatsApp & Email Workers row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* WhatsApp Integration Status */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -115,7 +115,7 @@ export function MarketingTab() {
         </div>
 
         {/* Email Worker Safe Schedule */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-zinc-100 mb-1">Email Queue Worker</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Mecanismo de controle e batching de envios</p>
@@ -148,7 +148,7 @@ export function MarketingTab() {
         </div>
 
         {/* SMTP Providers Health */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-zinc-100 mb-1">SMTP Providers Health</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Saúde e limites operacionais dos provedores</p>
@@ -182,8 +182,8 @@ export function MarketingTab() {
       </div>
 
       {/* Campaigns list & Queue */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-sm font-bold text-zinc-100">Desempenho por Canal</h3>
@@ -219,7 +219,7 @@ export function MarketingTab() {
         </div>
 
         {/* Fila recente */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Envios Recentes</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Últimos itens processados na fila</p>
           

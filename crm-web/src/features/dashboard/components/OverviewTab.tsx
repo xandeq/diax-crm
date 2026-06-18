@@ -16,10 +16,11 @@ import { HealthBadge } from './HealthBadge';
 import {
   Activity, AlertTriangle, ArrowRight, CheckCircle, CreditCard, DollarSign,
   Gauge, Mail, Megaphone, PiggyBank, Repeat, ShieldAlert, Sparkles,
-  Target, TrendingDown, TrendingUp, Users, Wallet, Zap
+  Target, TrendingDown, TrendingUp, Users, Wallet, Zap, Calendar, ListChecks, Clock
 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { cn } from '@/lib/utils';
 
 const ApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -45,6 +46,7 @@ const S = (v: number) => Math.abs(v) >= 1_000_000 ? `R$ ${(v / 1_000_000).toFixe
 export function OverviewTab() {
   const { data, isLoading, isError, error, refetch } = useDashboardOverview();
   const [mounted, setMounted] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<'agenda' | 'tasks' | 'checklist'>('agenda');
 
   useEffect(() => {
     setMounted(true);
@@ -73,7 +75,7 @@ export function OverviewTab() {
 
   if (!data) return null;
 
-  const { funnel, curr, prev, trend, expenses, email, agenda } = data;
+  const { funnel, curr, prev, trend, expenses, email, agenda, tasks = [], checklists = [] } = data;
   const cs = curr?.summary;
   const income = cs?.totalIncome ?? 0;
   const expensesTotal = cs?.totalExpenses ?? 0;
@@ -162,8 +164,8 @@ export function OverviewTab() {
       </div>
 
       {/* Health Radar section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-sm font-bold text-zinc-100">Saúde do Negócio</h3>
@@ -192,7 +194,7 @@ export function OverviewTab() {
           )}
         </div>
 
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-zinc-100">Visão do Score</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Geral ponderado</p>
@@ -231,10 +233,11 @@ export function OverviewTab() {
       </div>
 
       {/* Finance and Funnel section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <ChartCard
           title="Receita vs Despesas"
           subtitle="Últimos 6 meses"
+          className="lg:col-span-7"
           loading={false}
           hasData={trend.length > 0}
           chartConfig={mounted ? {
@@ -262,6 +265,7 @@ export function OverviewTab() {
         <ChartCard
           title="Funil Comercial"
           subtitle="Distribuição dos contatos por etapa do funil"
+          className="lg:col-span-5"
           loading={false}
           hasData={true}
           chartConfig={mounted ? {
@@ -284,43 +288,179 @@ export function OverviewTab() {
         />
       </div>
 
-      {/* Mini Agenda and Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl space-y-4">
-          <h3 className="text-sm font-bold text-zinc-100">Próximos Compromissos</h3>
-          {agenda.length > 0 ? (
-            <div className="space-y-2.5">
-              {agenda.slice(0, 4).map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40">
-                  <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 text-[10px] font-mono font-bold text-teal-400 bg-teal-500/10 rounded-lg">
-                      {item.time}
-                    </span>
-                    <span className="text-xs font-bold text-zinc-100">{item.title}</span>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-zinc-600" />
-                </div>
-              ))}
+      {/* Mini Agenda, Tasks, Checklist Workspace & Actionable Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-2 border-b border-zinc-800/40">
+            <div>
+              <h3 className="text-sm font-bold text-zinc-100">Controle Pessoal & Operacional</h3>
+              <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Espaço unificado de produtividade e prioridades</p>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-zinc-500">
-              <span className="text-2xl mb-1">📅</span>
-              <span className="text-xs font-semibold">Sem compromissos marcados para hoje</span>
+            <div className="flex gap-1 bg-zinc-900/60 p-0.5 rounded-lg border border-zinc-800/60 text-[10px] font-bold self-end sm:self-center shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('agenda')}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-md transition-all cursor-pointer",
+                  activeSubTab === 'agenda' ? "bg-teal-500 text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+                )}
+              >
+                Agenda ({agenda.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('tasks')}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-md transition-all cursor-pointer",
+                  activeSubTab === 'tasks' ? "bg-teal-500 text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+                )}
+              >
+                Tarefas ({tasks.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('checklist')}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-md transition-all cursor-pointer",
+                  activeSubTab === 'checklist' ? "bg-teal-500 text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+                )}
+              >
+                Checklist ({checklists.length})
+              </button>
+            </div>
+          </div>
+
+          {activeSubTab === 'agenda' && (
+            <div className="space-y-2.5">
+              {agenda.length > 0 ? (
+                agenda.slice(0, 5).map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 text-[10px] font-mono font-bold text-teal-400 bg-teal-500/10 rounded-lg shrink-0">
+                        {item.time}
+                      </span>
+                      <span className="text-xs font-bold text-zinc-100">{item.title}</span>
+                    </div>
+                    <Link href="/agenda" className="text-zinc-500 hover:text-zinc-300">
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
+                  <Calendar className="h-8 w-8 stroke-[1.5] mb-2 text-zinc-600" />
+                  <span className="text-xs font-semibold">Sem compromissos agendados para hoje</span>
+                  <Link href="/agenda" className="mt-2.5 text-[10px] font-bold text-teal-400 hover:underline">
+                    Ir para Agenda
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeSubTab === 'tasks' && (
+            <div className="space-y-2.5">
+              {tasks.length > 0 ? (
+                tasks.slice(0, 5).map((task) => (
+                  <div key={task.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={cn(
+                        "px-2 py-0.5 text-[9px] font-bold uppercase rounded-md shrink-0",
+                        task.priority === 'Urgent' && "bg-red-500/15 text-red-400 border border-red-500/20",
+                        task.priority === 'High' && "bg-amber-500/15 text-amber-400 border border-amber-500/20",
+                        task.priority === 'Medium' && "bg-blue-500/15 text-blue-400 border border-blue-500/20",
+                        task.priority === 'Low' && "bg-zinc-800 text-zinc-400"
+                      )}>
+                        {task.priority === 'Urgent' ? 'Urgente' : task.priority === 'High' ? 'Alta' : task.priority === 'Medium' ? 'Média' : 'Baixa'}
+                      </span>
+                      <span className="text-xs font-bold text-zinc-100 truncate">{task.title}</span>
+                    </div>
+                    <Link href="/tasks" className="text-zinc-500 hover:text-zinc-300 shrink-0">
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
+                  <ListChecks className="h-8 w-8 stroke-[1.5] mb-2 text-zinc-600" />
+                  <span className="text-xs font-semibold">Todas as tarefas concluídas!</span>
+                  <Link href="/tasks" className="mt-2.5 text-[10px] font-bold text-teal-400 hover:underline">
+                    Criar Nova Tarefa
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeSubTab === 'checklist' && (
+            <div className="space-y-2.5">
+              {checklists.length > 0 ? (
+                checklists.slice(0, 5).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={cn(
+                        "w-2 h-2 rounded-full shrink-0",
+                        item.priority === 3 && "bg-red-500", // Urgent
+                        item.priority === 2 && "bg-amber-500", // High
+                        item.priority === 1 && "bg-blue-500", // Medium
+                        item.priority === 0 && "bg-zinc-500" // Low
+                      )} />
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-zinc-100 block truncate">{item.title}</span>
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">{item.categoryName || 'Geral'}</span>
+                      </div>
+                    </div>
+                    <Link href="/household/checklists" className="text-zinc-500 hover:text-zinc-300 shrink-0">
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
+                  <CheckCircle className="h-8 w-8 stroke-[1.5] mb-2 text-zinc-600" />
+                  <span className="text-xs font-semibold">Nenhum item pendente no checklist</span>
+                  <Link href="/household/checklists" className="mt-2.5 text-[10px] font-bold text-teal-400 hover:underline">
+                    Adicionar Item
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="lg:col-span-4 space-y-4">
           <InsightCard
             title="Gargalo comercial detectado"
-            description={totalLeads > 0 ? `Queda acentuada de ${worstDrop.v.toFixed(0)}% na etapa de ${worstDrop.lbl}. Considere disparar uma campanha específica para destravar.` : 'Pipeline comercial sem gargalos ativos.'}
+            badgeText="Funil de Leads"
+            context={totalLeads > 0 ? `Queda acentuada na transição de ${worstDrop.lbl}.` : "Pipeline sem leads suficientes."}
+            impact={totalLeads > 0 ? `${worstDrop.v.toFixed(0)}% de taxa de abandono identificada.` : "Impossibilidade de traçar taxas de conversão precisas."}
+            actionRecommended={totalLeads > 0 ? "Dispare follow-ups ou campanhas de reengajamento focadas." : "Cadastre ou importe novos leads para iniciar prospecção."}
+            actionText="Ver Leads Relacionados"
+            actionHref="/leads"
             color="amber"
           />
           <InsightCard
-            title="Caixa do mês atual"
-            description={cashFlow >= 0 ? `Saldo líquido de ${R(cashFlow)} no verde. Bom momento para investimentos em tráfego ou captação.` : `Fluxo de caixa no vermelho por ${R(Math.abs(cashFlow))}. Monitore despesas pendentes.`}
+            title="Fluxo de Caixa do Mês"
+            badgeText="Gestão Financeira"
+            context={cashFlow >= 0 ? `Saldo líquido operacional de ${R(cashFlow)} no azul.` : `Déficit líquido operacional de ${R(Math.abs(cashFlow))}.`}
+            impact={cashFlow >= 0 ? "Bons níveis de liquidez para alocação em tráfego ou CAC." : "Risco de redução de margens e saldo geral de contas."}
+            actionRecommended={cashFlow >= 0 ? "Excelente momento para escalar aquisição de leads." : "Estude renegociar despesas recorrentes e pagamentos pendentes."}
+            actionText="Ver Dashboard Financeiro"
+            actionHref="/finance"
             color={cashFlow >= 0 ? 'teal' : 'purple'}
           />
+          {tasks.length > 0 && (
+            <InsightCard
+              title="Ações Comerciais Pendentes"
+              badgeText="Controle de Tarefas"
+              context={`Existem ${tasks.length} tarefas de prospecção pendentes.`}
+              impact="Risco de perda de velocidade (timing) na negociação comercial."
+              actionRecommended="Conclua os contatos agendados para destravar negociações."
+              actionText="Gerenciar Minhas Tarefas"
+              actionHref="/tasks"
+              color="blue"
+            />
+          )}
         </div>
       </div>
     </div>

@@ -91,8 +91,8 @@ export function CrmTab() {
       </div>
 
       {/* Pipeline & Origin row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Conversão de Estágios</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Porcentagem de conversão entre etapas do pipeline</p>
           <div className="space-y-3">
@@ -114,7 +114,7 @@ export function CrmTab() {
           </div>
         </div>
 
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-5 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Origem dos Leads</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Canais de captação mais expressivos</p>
           {mounted && (
@@ -138,8 +138,8 @@ export function CrmTab() {
       </div>
 
       {/* Allocation by Segment and City */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Segmentação de Temperatura</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Distribuição de leads por interesse</p>
           <div className="space-y-4">
@@ -161,7 +161,7 @@ export function CrmTab() {
           </div>
         </div>
 
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Geografia de Prospecção</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Maiores pólos de captação (estimado)</p>
           {cityAllocation.length > 0 ? (
@@ -182,7 +182,7 @@ export function CrmTab() {
           )}
         </div>
 
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Leads Ociosos</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Leads ativos sem contato há mais de 7 dias</p>
           {staleLeads.length > 0 ? (
@@ -208,8 +208,8 @@ export function CrmTab() {
       </div>
 
       {/* Top Opportunities & Action table */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-sm font-bold text-zinc-100">Visão Geral Comercial</h3>
@@ -255,7 +255,7 @@ export function CrmTab() {
           </div>
         </div>
 
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Maiores Oportunidades</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Leads com alta intenção comercial</p>
           {topOpportunities.length > 0 ? (

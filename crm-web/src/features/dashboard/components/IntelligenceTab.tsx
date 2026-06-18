@@ -67,9 +67,9 @@ export function IntelligenceTab() {
 
       {/* Main HTML render container */}
       {activeBriefing ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* TL;DR & Core sections */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="lg:col-span-8 space-y-6">
             {/* TL;DR */}
             <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
               <div className="flex items-center gap-2 mb-4">
@@ -108,7 +108,7 @@ export function IntelligenceTab() {
           </div>
 
           {/* Copy Writing sections */}
-          <div className="space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             {/* WhatsApp Copy */}
             <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
               <div>

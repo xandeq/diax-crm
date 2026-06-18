@@ -73,9 +73,9 @@ export function OpsTab() {
       </div>
 
       {/* Hardware / Health row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* System Health Performance */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-zinc-100 mb-1">Status de Hardware</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Métricas estimadas de performance do servidor</p>
@@ -114,7 +114,7 @@ export function OpsTab() {
         </div>
 
         {/* n8n Status workflows */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-zinc-100 mb-1">Automações n8n</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Status de workflows de automação e webhooks</p>
@@ -135,7 +135,7 @@ export function OpsTab() {
         </div>
 
         {/* Google Scraping status */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-zinc-100 mb-1">Google Scraping status</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Informações da última captação de leads por robô</p>
@@ -163,9 +163,9 @@ export function OpsTab() {
       </div>
 
       {/* Audit logs & Application logs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Logs de aplicação */}
-        <div className="md:col-span-2 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-8 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-sm font-bold text-zinc-100">Atividades de Sistema</h3>
@@ -180,7 +180,7 @@ export function OpsTab() {
         </div>
 
         {/* Integrações ativas */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Integrações Conectadas</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Saúde dos SDKs e APIs de terceiros</p>
           

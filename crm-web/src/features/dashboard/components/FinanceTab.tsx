@@ -179,9 +179,9 @@ export function FinanceTab() {
       />
 
       {/* Credit cards & accounts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Contas bancárias */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-bold text-zinc-100">Contas Financeiras</h3>
             <Button asChild size="icon" variant="ghost" className="h-6 w-6 text-zinc-500 hover:text-zinc-300">
@@ -202,7 +202,7 @@ export function FinanceTab() {
         </div>
 
         {/* Cartões de crédito */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-bold text-zinc-100">Faturas & Cartões</h3>
             <Button asChild size="icon" variant="ghost" className="h-6 w-6 text-zinc-500 hover:text-zinc-300">
@@ -231,7 +231,7 @@ export function FinanceTab() {
         </div>
 
         {/* Metas financeiras */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-bold text-zinc-100">Metas Ativas</h3>
             <Button asChild size="icon" variant="ghost" className="h-6 w-6 text-zinc-500 hover:text-zinc-300">
@@ -262,9 +262,9 @@ export function FinanceTab() {
       </div>
 
       {/* Categories & Transactions row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Despesas por categoria */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-6 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Distribuição de Gastos</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Mapeamento de custos agrupados por categoria</p>
           <div className="space-y-3.5">
@@ -289,7 +289,7 @@ export function FinanceTab() {
         </div>
 
         {/* Transações recentes */}
-        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <div className="lg:col-span-6 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-sm font-bold text-zinc-100">Transações Recentes</h3>

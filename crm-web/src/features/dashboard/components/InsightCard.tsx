@@ -2,16 +2,22 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, TrendingUp } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface InsightCardProps {
   title: string;
-  description: string;
+  description?: string;
   badgeText?: string;
   color?: 'teal' | 'blue' | 'amber' | 'purple';
   onClick?: () => void;
   className?: string;
+  context?: string;
+  impact?: string;
+  actionRecommended?: string;
+  actionText?: string;
+  actionHref?: string;
 }
 
 export function InsightCard({
@@ -21,6 +27,11 @@ export function InsightCard({
   color = 'teal',
   onClick,
   className,
+  context,
+  impact,
+  actionRecommended,
+  actionText,
+  actionHref,
 }: InsightCardProps) {
   const colorMap = {
     teal: {
@@ -79,7 +90,46 @@ export function InsightCard({
       </div>
 
       <h4 className="text-sm font-bold text-zinc-100 mb-1.5">{title}</h4>
-      <p className="text-xs text-zinc-400 leading-relaxed font-medium">{description}</p>
+      
+      {description && <p className="text-xs text-zinc-400 leading-relaxed font-medium mb-3">{description}</p>}
+      
+      {(context || impact || actionRecommended) && (
+        <div className="space-y-2 mt-2">
+          {context && (
+            <div className="text-xs">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Contexto</span>
+              <span className="text-zinc-300 font-semibold">{context}</span>
+            </div>
+          )}
+          {impact && (
+            <div className="text-xs">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Impacto</span>
+              <span className="text-zinc-300 font-semibold">{impact}</span>
+            </div>
+          )}
+          {actionRecommended && (
+            <div className="text-xs">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Recomendação</span>
+              <span className="text-zinc-300 font-semibold">{actionRecommended}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {actionHref && actionText && (
+        <div className="mt-4">
+          <Link href={actionHref} className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border decoration-none",
+            color === 'teal' && "bg-teal-500/10 text-teal-400 border-teal-500/20 hover:bg-teal-500/20",
+            color === 'blue' && "bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20",
+            color === 'amber' && "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20",
+            color === 'purple' && "bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/20"
+          )}>
+            <span>{actionText}</span>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
     </motion.div>
   );
 }
