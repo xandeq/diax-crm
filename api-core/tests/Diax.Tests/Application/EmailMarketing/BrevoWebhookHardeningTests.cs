@@ -111,7 +111,7 @@ public class BrevoWebhookHardeningTests
     }
 
     [Fact]
-    public async Task HandleWebhook_ShouldTripCircuitBreaker_OnHardBounce()
+    public async Task HandleWebhook_ShouldOptOutAndRecordWebhookFailure_OnHardBounce()
     {
         // Arrange
         var campaignId = Guid.NewGuid();
@@ -139,11 +139,12 @@ public class BrevoWebhookHardeningTests
         // Assert
         Assert.IsType<OkResult>(result);
         
-        // Deve marcar o cliente com opt-out
+        // Deve marcar o cliente com opt-out (suprimir o e-mail morto)
         Assert.True(customer.EmailOptOut);
-        
-        // Deve acionar o circuit breaker abrindo o circuito
-        _circuitBreakerMock.Verify(c => c.Open(It.Is<string>(s => s.Contains("Bounce crítico"))), Times.Once);
+
+        // Deve registrar a falha de webhook (abre só após 3), NÃO abrir o breaker no 1º bounce
+        _circuitBreakerMock.Verify(c => c.RecordWebhookFailure(), Times.Once);
+        _circuitBreakerMock.Verify(c => c.Open(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

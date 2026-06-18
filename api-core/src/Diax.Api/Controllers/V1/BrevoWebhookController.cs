@@ -311,14 +311,18 @@ public class BrevoWebhookController : BaseApiController
             }
         }
  
-        // Hard bounces should opt-out the customer and trip circuit breaker
+        // Hard bounces should opt-out (suppress) the customer. They must NOT open the
+        // circuit breaker on the first occurrence — a single dead recipient is normal list
+        // attrition and halting all outbound is disproportionate. RecordWebhookFailure only
+        // trips the breaker after 3 bounces (and RecordSuccess resets the counter), so a real
+        // bad-list pattern is still caught while one-off bounces just get suppressed.
         if (payload.Event.Equals("hard_bounce", StringComparison.OrdinalIgnoreCase))
         {
             await HandleOptOutAsync(payload, "hard_bounce", cancellationToken);
-            
+
             var wasClosed = !_circuitBreaker.IsOpen;
-            _circuitBreaker.Open($"Bounce crítico (hard bounce) detectado para email: {payload.Email}");
-            
+            _circuitBreaker.RecordWebhookFailure();
+
             if (campaignId.HasValue && wasClosed && _circuitBreaker.IsOpen)
             {
                 await LogPilotEventAsync(
@@ -327,7 +331,7 @@ public class BrevoWebhookController : BaseApiController
                     campaignId.Value,
                     1,
                     false,
-                    $"Circuit Breaker aberto devido a hard bounce em: {payload.Email}",
+                    $"Circuit Breaker aberto após múltiplos hard bounces (último: {payload.Email})",
                     cancellationToken,
                     payload.MessageId);
             }
