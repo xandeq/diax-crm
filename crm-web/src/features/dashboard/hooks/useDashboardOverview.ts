@@ -56,6 +56,7 @@ export function useDashboardOverview() {
         adsInsightsResult,
         tasksResult,
         checklistsResult,
+        recentLeadsResult,
       ] = await Promise.allSettled([
         financeService.getPersonalFinanceMonth(yr, mo),
         financeService.getPersonalFinanceMonth(py, pm),
@@ -76,6 +77,7 @@ export function useDashboardOverview() {
         getInsights({ datePreset: 'last_30d', level: 'campaign' }).catch(() => []),
         tasksService.getAll({ status: 'Todo' }),
         checklistService.getItems({ status: 0, pageSize: 10 }),
+        getLeads({ page: 1, pageSize: 50, sortBy: 'CreatedAt', sortDescending: true }),
       ]);
 
       // Helper para extrair valor das settled promises
@@ -127,22 +129,33 @@ export function useDashboardOverview() {
         }));
 
       const email = getVal(emailResult, null);
-      const agendaRaw = getVal(agendaResult, []);
-      const agenda: AgendaItem[] = agendaRaw.map((a: any) => ({
+      const agendaRaw = getVal(agendaResult, null);
+      const agendaList = Array.isArray(agendaRaw) ? agendaRaw : [];
+      const agenda: AgendaItem[] = agendaList.map((a: any) => ({
         time: a?.startTime
           ? new Date(a.startTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
           : '--:--',
         title: a?.title ?? 'Compromisso',
       }));
 
-      const goals = getVal(goalsResult, []);
+      const goalsRaw = getVal(goalsResult, null);
+      const goals = Array.isArray(goalsRaw) ? goalsRaw : [];
+      
       const simulation = getVal(simulationResult, null);
       const investiq = getVal(investiqResult, null);
       const adsSummary = getVal(adsSummaryResult, null);
-      const adsInsights = getVal(adsInsightsResult, []);
-      const tasks = getVal(tasksResult, []);
+      
+      const adsInsightsRaw = getVal(adsInsightsResult, null);
+      const adsInsights = Array.isArray(adsInsightsRaw) ? adsInsightsRaw : [];
+      
+      const tasksRaw = getVal(tasksResult, null);
+      const tasks = Array.isArray(tasksRaw) ? tasksRaw : [];
+      
       const checklistsPaged = getVal(checklistsResult, null);
-      const checklists = checklistsPaged?.items ?? [];
+      const checklists = Array.isArray(checklistsPaged?.items) ? checklistsPaged.items : [];
+      
+      const recentLeadsPaged = getVal(recentLeadsResult, null);
+      const recentLeads = Array.isArray(recentLeadsPaged?.items) ? recentLeadsPaged.items : [];
 
       return {
         funnel,
@@ -158,6 +171,7 @@ export function useDashboardOverview() {
         ads: adsSummary ? { summary: adsSummary, insights: adsInsights, period: 'últimos 30 dias' } : null,
         tasks,
         checklists,
+        recentLeads,
       };
     },
     refetchOnWindowFocus: false,

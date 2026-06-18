@@ -12,7 +12,8 @@ import { HealthBadge } from './HealthBadge';
 import { Button } from '@/components/ui/button';
 import {
   Users, Target, AlertTriangle, UserCheck, Clock,
-  ArrowRight, Search, Globe, Laptop, Database, Edit, Trash
+  ArrowRight, Search, Globe, Laptop, Database, Edit, Trash,
+  MessageSquare, Mail, Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -88,6 +89,29 @@ export function CrmTab() {
         {kpis.map((k, idx) => (
           <MetricCard key={k.label} {...k} idx={idx} />
         ))}
+      </div>
+
+      {/* Valores do Funil Comercial */}
+      <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
+        <h3 className="text-sm font-bold text-zinc-100 mb-1">Valores do Funil Comercial</h3>
+        <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Valor potencial estimado retido por etapa de conversão</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: 'Leads', count: funnel.lead, value: funnel.lead * 1500, color: '#6366F1' },
+            { label: 'Contato', count: funnel.contacted, value: funnel.contacted * 3000, color: '#8B5CF6' },
+            { label: 'Qualificados', count: funnel.qualified, value: funnel.qualified * 5000, color: '#A78BFA' },
+            { label: 'Negociação', count: funnel.negotiating, value: funnel.negotiating * 10000, color: '#EC4899' },
+          ].map(stage => (
+            <div key={stage.label} className="p-3.5 bg-zinc-900/30 border border-zinc-850 rounded-xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: stage.color }} />
+              <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{stage.label}</div>
+              <div className="text-lg font-bold text-zinc-200 mt-1 font-mono">{stage.count} <span className="text-xs text-zinc-500 font-normal">leads</span></div>
+              <div className="text-xs font-bold text-teal-400 mt-0.5 font-mono">
+                {stage.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Pipeline & Origin row */}
@@ -182,28 +206,44 @@ export function CrmTab() {
           )}
         </div>
 
-        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
-          <h3 className="text-sm font-bold text-zinc-100 mb-1">Leads Ociosos</h3>
-          <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Leads ativos sem contato há mais de 7 dias</p>
-          {staleLeads.length > 0 ? (
-            <div className="space-y-2.5">
-              {staleLeads.slice(0, 4).map(lead => (
-                <div key={lead.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-zinc-900/20 border border-zinc-850">
-                  <div className="truncate pr-2 max-w-[70%]">
-                    <div className="font-bold text-zinc-200 truncate">{lead.name}</div>
-                    <div className="text-[10px] text-zinc-500 truncate">{lead.companyName || 'Sem empresa'}</div>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1 shrink-0">
-                    <Clock className="h-3 w-3" /> Sem contato
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-zinc-500">
-              <span className="text-xs font-semibold">Tudo em ordem: sem leads pendentes há muito tempo</span>
-            </div>
-          )}
+        <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-zinc-100 mb-1">Leads Ociosos</h3>
+            <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Leads ativos sem contato há mais de 7 dias</p>
+            {staleLeads.length > 0 ? (
+              <div className="space-y-2.5">
+                {staleLeads.slice(0, 5).map(lead => {
+                  const days = lead.lastContactAt
+                    ? Math.floor((Date.now() - new Date(lead.lastContactAt).getTime()) / (1000 * 60 * 60 * 24))
+                    : 7;
+                  const estValue = lead.status === 3 ? 10000 : lead.status === 2 ? 5000 : lead.status === 1 ? 3000 : 1500;
+                  const waNumber = (lead.whatsApp || lead.phone || '').replace(/\D/g, '');
+                  const waUrl = waNumber ? `https://wa.me/${waNumber}` : null;
+                  return (
+                    <div key={lead.id} className="p-2.5 bg-zinc-900/20 border border-zinc-850 rounded-xl flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-zinc-200 truncate text-xs">{lead.name}</div>
+                        <div className="text-[10px] text-zinc-500 truncate mt-0.5">
+                          {days}d ocioso · R$ {estValue.toLocaleString('pt-BR')}
+                        </div>
+                      </div>
+                      {waUrl && (
+                        <Button asChild size="icon" variant="ghost" className="h-7 w-7 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg shrink-0">
+                          <a href={waUrl} target="_blank" rel="noopener noreferrer" title="Cobrar contato no WhatsApp">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-zinc-500">
+                <span className="text-xs font-semibold">Tudo em ordem: sem leads pendentes há muito tempo</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -260,20 +300,43 @@ export function CrmTab() {
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Leads com alta intenção comercial</p>
           {topOpportunities.length > 0 ? (
             <div className="space-y-3">
-              {topOpportunities.slice(0, 5).map(lead => (
-                <div key={lead.id} className="p-3 bg-zinc-900/20 border border-zinc-850 rounded-xl flex items-center justify-between">
-                  <div className="max-w-[70%]">
-                    <div className="font-bold text-zinc-100 truncate">{lead.name}</div>
-                    <div className="text-[10px] text-zinc-500 truncate">{lead.email}</div>
+              {topOpportunities.slice(0, 5).map(lead => {
+                const waNumber = (lead.whatsApp || lead.phone || '').replace(/\D/g, '');
+                const waUrl = waNumber ? `https://wa.me/${waNumber}` : null;
+                const emailUrl = lead.email ? `mailto:${lead.email}` : null;
+                return (
+                  <div key={lead.id} className="p-3 bg-zinc-900/20 border border-zinc-850 rounded-xl flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-zinc-100 truncate text-xs">{lead.name}</div>
+                      <div className="text-[10px] text-zinc-500 truncate">{lead.companyName || lead.email}</div>
+                      <div className="text-[9px] font-bold text-emerald-400 mt-1 uppercase tracking-wider">
+                        Score: {lead.leadScore ?? 0} · {lead.status === 3 ? 'Negociação' : lead.status === 2 ? 'Qualificado' : lead.status === 1 ? 'Contato' : 'Lead'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {waUrl && (
+                        <Button asChild size="icon" variant="ghost" className="h-7 w-7 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg">
+                          <a href={waUrl} target="_blank" rel="noopener noreferrer" title="Enviar WhatsApp">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                      {emailUrl && (
+                        <Button asChild size="icon" variant="ghost" className="h-7 w-7 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg">
+                          <a href={emailUrl} title="Enviar E-mail">
+                            <Mail className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button asChild size="icon" variant="ghost" className="h-7 w-7 text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 rounded-lg">
+                        <Link href="/tasks" title="Criar Lembrete / Tarefa">
+                          <Plus className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-xs font-mono font-bold text-emerald-400">
-                      Score: {lead.leadScore}
-                    </span>
-                    <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-0.5">Hot</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-zinc-500">

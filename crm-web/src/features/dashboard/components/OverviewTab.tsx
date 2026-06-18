@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useDashboardOverview } from '../hooks/useDashboardOverview';
+import { useOpsDashboard } from '../hooks/useOpsDashboard';
 import { LoadingSkeleton, LoadingGrid } from './LoadingSkeleton';
 import { ErrorState } from './ErrorState';
 import { MetricCard } from '@/components/dashboard/MetricCard';
@@ -45,6 +46,7 @@ const S = (v: number) => Math.abs(v) >= 1_000_000 ? `R$ ${(v / 1_000_000).toFixe
 
 export function OverviewTab() {
   const { data, isLoading, isError, error, refetch } = useDashboardOverview();
+  const { data: opsData } = useOpsDashboard();
   const [mounted, setMounted] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'agenda' | 'tasks' | 'checklist'>('agenda');
 
@@ -75,7 +77,7 @@ export function OverviewTab() {
 
   if (!data) return null;
 
-  const { funnel, curr, prev, trend, expenses, email, agenda, tasks = [], checklists = [] } = data;
+  const { funnel, curr, prev, trend, expenses, email, agenda, tasks = [], checklists = [], recentLeads = [] } = data;
   const cs = curr?.summary;
   const income = cs?.totalIncome ?? 0;
   const expensesTotal = cs?.totalExpenses ?? 0;
@@ -90,12 +92,94 @@ export function OverviewTab() {
     ? ((expensesTotal - prev.summary.totalExpenses) / prev.summary.totalExpenses) * 100 
     : 0;
 
-  // KPIs
+  // --- COCKPIT & MONEY RADAR CALCULATIONS ---
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const staleLeads = recentLeads.filter((l: any) => {
+    if (l.status === 4 || l.status === 5 || l.status === 6) return false;
+    return !l.lastContactAt || new Date(l.lastContactAt) < sevenDaysAgo;
+  });
+
+  const getEstimatedValue = (status: number) => {
+    if (status === 3) return 10000; // Negotiating
+    if (status === 2) return 5000;  // Qualified
+    if (status === 1) return 3000;  // Contacted
+    return 1500;                    // Lead
+  };
+
+  const potentialPipelineValue = 
+    (funnel.lead * 1500) + 
+    (funnel.contacted * 3000) + 
+    (funnel.qualified * 5000) + 
+    (funnel.negotiating * 10000);
+
+  const staleValue = staleLeads.reduce((acc: number, l: any) => acc + getEstimatedValue(l.status), 0);
+
+  // Contas a receber/pagar pendentes reais do mês
+  const unpaidExpenses = curr?.expenses?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0) || 0;
+  const unpaidIncomes = curr?.incomes?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
+
+  const errorStats = opsData?.errorStats;
+
+  const betterChannel = openRate >= 20 ? 'E-mail Marketing' : 'WhatsApp Outreach';
+
+  // Prioridade número 1 do dia
+  let topPriorityTitle = "Sem pendências críticas";
+  let topPriorityHref = "/dashboard";
+  let topPriorityAction = "Verificar Status";
+
+  if (errorStats && errorStats.criticalToday > 0) {
+    topPriorityTitle = `Corrigir ${errorStats.criticalToday} Erro(s) Crítico(s) no Sistema`;
+    topPriorityHref = "/logs";
+    topPriorityAction = "Investigar";
+  } else if (staleLeads.length > 0) {
+    topPriorityTitle = `Follow-up com ${staleLeads[0].name} (${staleLeads[0].companyName || 'Lead Ocioso'})`;
+    topPriorityHref = "/leads";
+    topPriorityAction = "Enviar Mensagem";
+  } else if (tasks.filter((t: any) => t.priority === 'Urgent').length > 0) {
+    const urgentTask = tasks.find((t: any) => t.priority === 'Urgent');
+    if (urgentTask) {
+      topPriorityTitle = `Tarefa Urgente: ${urgentTask.title}`;
+      topPriorityHref = "/tasks";
+      topPriorityAction = "Concluir Tarefa";
+    }
+  } else if (unpaidExpenses > 0) {
+    topPriorityTitle = `Cobrança pendente: Pagar contas do mês`;
+    topPriorityHref = "/finance";
+    topPriorityAction = "Efetuar Pagamento";
+  }
+
+  // Foco Dinâmico do dia
+  let dayFocusTitle = "Foco em Prospecção & Vendas";
+  let dayFocusDesc = "O pipeline está ativo e com oportunidades abertas. Priorize iniciar contatos e fechar negócios hoje.";
+  let dayFocusBadge = "Comercial";
+  let dayFocusColor = "text-teal-400 bg-teal-500/10 border-teal-500/20";
+
+  const simulation = data.simulation;
+  if (cashFlow < 0 || simulation?.hasNegativeBalanceRisk) {
+    dayFocusTitle = "Foco em Controle de Caixa & Redução de Riscos";
+    dayFocusDesc = "Alerta: Despesas altas ou risco de caixa detectado para este mês. Foco total em cobrar entradas pendentes e conter gastos.";
+    dayFocusBadge = "Financeiro";
+    dayFocusColor = "text-red-400 bg-red-500/10 border-red-500/20";
+  } else if (errorStats && errorStats.criticalToday > 0) {
+    dayFocusTitle = "Foco em Estabilidade & Ops";
+    dayFocusDesc = "Erros críticos detectados na data de hoje. Priorize a correção e verificação de logs para evitar falhas em automações.";
+    dayFocusBadge = "Operações";
+    dayFocusColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
+  } else if (tasks.length > 5 || checklists.length > 8) {
+    dayFocusTitle = "Foco Operacional: Fila de Atividades";
+    dayFocusDesc = "Você tem um volume considerável de tarefas e itens de checklist pendentes. Limpe sua fila operacional para não acumular.";
+    dayFocusBadge = "Operações";
+    dayFocusColor = "text-blue-400 bg-blue-500/10 border-blue-500/20";
+  }
+
+  // KPIs (Money Radar metrics)
   const kpis = [
-    { label: 'Receita do Mês', value: income, prefix: 'R$ ', delta: revMoM !== 0 ? `${revMoM > 0 ? '+' : ''}${revMoM.toFixed(1)}%` : undefined, up: revMoM >= 0, spark: trend.map(t => t.income), color: C.primary, icon: <DollarSign size={14} /> },
-    { label: 'Total Despesas', value: expensesTotal, prefix: 'R$ ', delta: expMoM !== 0 ? `${expMoM > 0 ? '+' : ''}${expMoM.toFixed(1)}%` : undefined, up: expMoM <= 0, spark: trend.map(t => t.expense), color: C.warn, icon: <Wallet size={14} /> },
-    { label: 'Leads no Funil', value: totalLeads, spark: [funnel.lead, funnel.contacted, funnel.qualified, funnel.negotiating, funnel.customer], color: C.info, up: true, icon: <Users size={14} /> },
-    { label: 'Abertura Email', value: openRate, suffix: '%', color: C.accent, up: openRate >= 20, icon: <Mail size={14} /> },
+    { label: 'Receita Potencial Aberta', value: potentialPipelineValue, prefix: 'R$ ', spark: [funnel.lead, funnel.contacted, funnel.qualified, funnel.negotiating], color: C.primary, icon: <DollarSign size={14} /> },
+    { label: 'Valor Ocioso Parado', value: staleValue, prefix: 'R$ ', spark: staleLeads.length > 0 ? [staleLeads.length] : undefined, color: C.warn, icon: <AlertTriangle size={14} /> },
+    { label: 'Contas a Receber (Pendente)', value: unpaidIncomes, prefix: 'R$ ', color: C.success, icon: <TrendingUp size={14} /> },
+    { label: 'Contas a Pagar (Pendente)', value: unpaidExpenses, prefix: 'R$ ', color: C.loss, icon: <TrendingDown size={14} /> },
   ];
 
   // Radar Health
@@ -132,6 +216,106 @@ export function OverviewTab() {
       {/* Hero Header */}
       <DashboardHero data={data} loading={false} mounted={mounted} />
 
+      {/* Cockpit de Foco: O que Fazer Hoje */}
+      <div className="p-5 bg-zinc-950/40 border border-zinc-900/60 rounded-2xl backdrop-blur-xl relative overflow-hidden shadow-2xl">
+        {/* Glow effect */}
+        <div className="absolute -right-20 -top-20 w-80 h-80 bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+          {/* Foco Dinâmico */}
+          <div className="lg:col-span-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-teal-400 animate-pulse" />
+              <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Cockpit de Foco</h3>
+            </div>
+            
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2.5">
+                <span className={cn("px-2 py-0.5 text-[10px] font-bold uppercase rounded-md border shrink-0", dayFocusColor)}>
+                  {dayFocusBadge}
+                </span>
+                <h2 className="text-lg font-extrabold text-zinc-100">{dayFocusTitle}</h2>
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed max-w-xl">
+                {dayFocusDesc}
+              </p>
+            </div>
+
+            {/* Canal de Maior ROI Banner inside Foco */}
+            <div className="flex items-center gap-2 p-2 bg-zinc-900/30 border border-zinc-850 rounded-xl max-w-md">
+              <TrendingUp className="h-4 w-4 text-emerald-400 shrink-0" />
+              <span className="text-[10px] text-zinc-400 font-semibold">
+                Melhor desempenho atual: <strong className="text-zinc-200">{betterChannel}</strong> (conversão estimada de R$ {openRate >= 20 ? '0.15' : '0.45'} por envio).
+              </span>
+            </div>
+          </div>
+
+          {/* Ações Recomendadas / Next Best Actions */}
+          <div className="lg:col-span-6 space-y-3 border-t lg:border-t-0 lg:border-l border-zinc-800/60 pt-4 lg:pt-0 lg:pl-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Ações Prioritárias</h3>
+              <span className="text-[10px] font-bold text-teal-400 animate-pulse">P0</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* Prioridade Principal P0 */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-teal-500/5 border border-teal-500/10 hover:border-teal-500/30 transition-all">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-2 w-2 rounded-full bg-teal-400 animate-ping shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-wider block">Prioridade P0</span>
+                    <span className="text-xs font-bold text-zinc-200 block truncate">{topPriorityTitle}</span>
+                  </div>
+                </div>
+                <Link href={topPriorityHref} className="px-2.5 py-1 text-[10px] font-bold bg-teal-500 text-zinc-950 rounded-lg hover:bg-teal-400 transition-colors shrink-0">
+                  {topPriorityAction}
+                </Link>
+              </div>
+
+              {/* Sugestões Operacionais */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {staleLeads.length > 0 && (
+                  <Link href="/leads" className="p-2.5 bg-zinc-900/40 hover:bg-zinc-900/60 border border-zinc-850 rounded-xl flex items-center justify-between group transition-all">
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase">Leads Ociosos</span>
+                      <span className="text-xs font-bold text-zinc-300 block truncate">{staleLeads.length} leads sem contato</span>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-transform group-hover:translate-x-0.5 shrink-0" />
+                  </Link>
+                )}
+                {unpaidIncomes > 0 && (
+                  <Link href="/finance" className="p-2.5 bg-zinc-900/40 hover:bg-zinc-900/60 border border-zinc-850 rounded-xl flex items-center justify-between group transition-all">
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase">A Receber</span>
+                      <span className="text-xs font-bold text-zinc-300 block truncate">{R(unpaidIncomes)} pendentes</span>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-transform group-hover:translate-x-0.5 shrink-0" />
+                  </Link>
+                )}
+                {unpaidExpenses > 0 && (
+                  <Link href="/finance" className="p-2.5 bg-zinc-900/40 hover:bg-zinc-900/60 border border-zinc-850 rounded-xl flex items-center justify-between group transition-all">
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase">A Pagar</span>
+                      <span className="text-xs font-bold text-zinc-300 block truncate">{R(unpaidExpenses)} pendentes</span>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-transform group-hover:translate-x-0.5 shrink-0" />
+                  </Link>
+                )}
+                {errorStats && errorStats.totalToday > 0 && (
+                  <Link href="/logs" className="p-2.5 bg-zinc-900/40 hover:bg-zinc-900/60 border border-zinc-850 rounded-xl flex items-center justify-between group transition-all">
+                    <div className="min-w-0">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase">Erros de Sistema</span>
+                      <span className="text-xs font-bold text-zinc-300 block truncate">{errorStats.totalToday} falhas hoje</span>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-300 transition-transform group-hover:translate-x-0.5 shrink-0" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* CommandCenter */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
         {answers.map((a, i) => (
@@ -156,11 +340,17 @@ export function OverviewTab() {
         ))}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        {kpis.map((k, idx) => (
-          <MetricCard key={k.label} {...k} idx={idx} />
-        ))}
+      {/* Money Radar (Métricas Financeiras Potenciais) */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-zinc-100">Money Radar</h3>
+          <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Visão de valor potencial do pipeline e contas pendentes</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {kpis.map((k, idx) => (
+            <MetricCard key={k.label} {...k} idx={idx} />
+          ))}
+        </div>
       </div>
 
       {/* Health Radar section */}
@@ -433,7 +623,7 @@ export function OverviewTab() {
             title="Gargalo comercial detectado"
             badgeText="Funil de Leads"
             context={totalLeads > 0 ? `Queda acentuada na transição de ${worstDrop.lbl}.` : "Pipeline sem leads suficientes."}
-            impact={totalLeads > 0 ? `${worstDrop.v.toFixed(0)}% de taxa de abandono identificada.` : "Impossibilidade de traçar taxas de conversão precisas."}
+            impact={totalLeads > 0 ? `Estimado: -R$ ${staleValue.toLocaleString('pt-BR')} em receita potencial ociosa.` : "Impossibilidade de traçar taxas de conversão de leads."}
             actionRecommended={totalLeads > 0 ? "Dispare follow-ups ou campanhas de reengajamento focadas." : "Cadastre ou importe novos leads para iniciar prospecção."}
             actionText="Ver Leads Relacionados"
             actionHref="/leads"
@@ -443,7 +633,7 @@ export function OverviewTab() {
             title="Fluxo de Caixa do Mês"
             badgeText="Gestão Financeira"
             context={cashFlow >= 0 ? `Saldo líquido operacional de ${R(cashFlow)} no azul.` : `Déficit líquido operacional de ${R(Math.abs(cashFlow))}.`}
-            impact={cashFlow >= 0 ? "Bons níveis de liquidez para alocação em tráfego ou CAC." : "Risco de redução de margens e saldo geral de contas."}
+            impact={cashFlow >= 0 ? `Estimado: +R$ ${cashFlow.toLocaleString('pt-BR')} de saldo líquido operacional.` : `Estimado: -R$ ${Math.abs(cashFlow).toLocaleString('pt-BR')} de déficit operacional.`}
             actionRecommended={cashFlow >= 0 ? "Excelente momento para escalar aquisição de leads." : "Estude renegociar despesas recorrentes e pagamentos pendentes."}
             actionText="Ver Dashboard Financeiro"
             actionHref="/finance"
@@ -454,7 +644,7 @@ export function OverviewTab() {
               title="Ações Comerciais Pendentes"
               badgeText="Controle de Tarefas"
               context={`Existem ${tasks.length} tarefas de prospecção pendentes.`}
-              impact="Risco de perda de velocidade (timing) na negociação comercial."
+              impact={`Estimado: -R$ ${(tasks.length * 1500).toLocaleString('pt-BR')} em receita potencial em atraso.`}
               actionRecommended="Conclua os contatos agendados para destravar negociações."
               actionText="Gerenciar Minhas Tarefas"
               actionHref="/tasks"

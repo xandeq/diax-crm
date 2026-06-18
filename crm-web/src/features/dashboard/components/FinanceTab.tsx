@@ -88,10 +88,35 @@ export function FinanceTab() {
     accounts,
     goals,
     simulation,
+    curr,
     recentTransactions,
     openInvoicesTotal,
     alerts,
   } = data;
+
+  const getRiskForDays = (days: number) => {
+    if (!simulation || !simulation.dailyBalances) return 'no-data';
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() + days);
+    const hasNegative = simulation.dailyBalances.some((d: any) => {
+      const balanceDate = new Date(d.date);
+      return balanceDate <= limitDate && d.closingBalance < 0;
+    });
+    return hasNegative ? 'critical' : 'healthy';
+  };
+
+  const risk7 = getRiskForDays(7);
+  const risk15 = getRiskForDays(15);
+  const risk30 = getRiskForDays(30);
+
+  const saasKeywords = ["AWS", "Figma", "Brevo", "Vercel", "HostGator", "Google", "GitHub", "Vexor", "n8n", "Evolution", "Microsoft", "OpenAI", "Claude"];
+  const saasExpenses = curr?.expenses?.filter((t: any) => 
+    saasKeywords.some(keyword => t.description?.toLowerCase().includes(keyword.toLowerCase()))
+  ) || [];
+  const saasTotal = saasExpenses.reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0);
+
+  const unpaidExpenses = curr?.expenses?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0) || 0;
+  const unpaidIncomes = curr?.incomes?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
 
   const kpis = [
     { label: 'Saldo em Contas', value: accounts.reduce((acc, a) => acc + a.balance, 0), prefix: 'R$ ', color: C.primary, icon: <Landmark size={14} /> },
@@ -177,6 +202,65 @@ export function FinanceTab() {
           ) : undefined
         }
       />
+
+      {/* Controle de Risco de Caixa & Custos Operacionais */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Risco de Caixa */}
+        <div className="lg:col-span-6 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl space-y-4">
+          <div>
+            <h3 className="text-sm font-bold text-zinc-100">Análise de Risco de Caixa</h3>
+            <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Previsão temporal de liquidez baseada na simulação diária</p>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Próximos 7 dias', status: risk7 },
+              { label: 'Próximos 15 dias', status: risk15 },
+              { label: 'Próximos 30 dias', status: risk30 },
+            ].map((r, idx) => (
+              <div key={idx} className="p-3 bg-zinc-900/30 border border-zinc-850 rounded-xl text-center space-y-1.5">
+                <span className="text-[10px] font-bold text-zinc-400 block uppercase tracking-wider">{r.label}</span>
+                <HealthBadge 
+                  status={r.status === 'critical' ? 'critical' : r.status === 'healthy' ? 'healthy' : 'warning'} 
+                  label={r.status === 'critical' ? 'Crítico' : r.status === 'healthy' ? 'Sem Risco' : 'Sem Dados'} 
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Custos Operacionais & SaaS / Fluxo Pendente */}
+        <div className="lg:col-span-6 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <div>
+              <h3 className="text-sm font-bold text-zinc-100">Infraestrutura & SaaS</h3>
+              <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Total de despesas com ferramentas no mês</p>
+            </div>
+            <div className="p-3.5 bg-zinc-900/30 border border-zinc-850 rounded-xl relative overflow-hidden">
+              <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Investimento Total</div>
+              <div className="text-lg font-bold text-teal-400 mt-1 font-mono">{R(saasTotal)}</div>
+              <div className="text-[9px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{saasExpenses.length} ferramentas ativas</div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div>
+              <h3 className="text-sm font-bold text-zinc-100">Fluxo Pendente (Mês)</h3>
+              <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Valores lançados aguardando conciliação</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center p-2 bg-emerald-500/5 border border-emerald-500/10 rounded-lg text-xs">
+                <span className="font-semibold text-emerald-400">A Receber</span>
+                <span className="font-mono font-bold text-emerald-300">{R(unpaidIncomes)}</span>
+              </div>
+              <div className="flex justify-between items-center p-2 bg-red-500/5 border border-red-500/10 rounded-lg text-xs">
+                <span className="font-semibold text-red-400">A Pagar</span>
+                <span className="font-mono font-bold text-red-300">{R(unpaidExpenses)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Credit cards & accounts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

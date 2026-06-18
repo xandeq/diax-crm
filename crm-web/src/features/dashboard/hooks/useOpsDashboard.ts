@@ -22,10 +22,29 @@ export function useOpsDashboard() {
       const getVal = <T>(res: PromiseSettledResult<T>, fallback: T): T =>
         res.status === 'fulfilled' ? res.value : fallback;
 
-      const errorStats = getVal(errorStatsResult, { totalToday: 0, criticalToday: 0, unresolvedTotal: 0, byApp: [] });
-      const recentErrorsPaged = getVal(recentErrorsResult, { items: [], totalCount: 0 });
-      const logStats = getVal(logStatsResult, { debugCount: 0, informationCount: 0, warningCount: 0, errorCount: 0, criticalCount: 0, totalCount: 0 });
-      const recentLogsPaged = getVal(recentLogsResult, { items: [], totalCount: 0, page: 1, pageSize: 15, totalPages: 0 });
+      const errorStatsRaw = getVal(errorStatsResult, null);
+      const errorStats = {
+        totalToday: errorStatsRaw?.totalToday ?? 0,
+        criticalToday: errorStatsRaw?.criticalToday ?? 0,
+        unresolvedTotal: errorStatsRaw?.unresolvedTotal ?? 0,
+        byApp: Array.isArray(errorStatsRaw?.byApp) ? errorStatsRaw.byApp : []
+      };
+
+      const recentErrorsPaged = getVal(recentErrorsResult, null);
+      const recentErrors = Array.isArray(recentErrorsPaged?.items) ? recentErrorsPaged.items : [];
+
+      const logStatsRaw = getVal(logStatsResult, null);
+      const logStats = {
+        debugCount: logStatsRaw?.debugCount ?? 0,
+        informationCount: logStatsRaw?.informationCount ?? 0,
+        warningCount: logStatsRaw?.warningCount ?? 0,
+        errorCount: logStatsRaw?.errorCount ?? 0,
+        criticalCount: logStatsRaw?.criticalCount ?? 0,
+        totalCount: logStatsRaw?.totalCount ?? 0
+      };
+
+      const recentLogsPaged = getVal(recentLogsResult, null);
+      const recentLogs = Array.isArray(recentLogsPaged?.items) ? recentLogsPaged.items : [];
 
       // Sistema de Saúde
       const systemHealth = getMockSystemHealth();
@@ -54,9 +73,9 @@ export function useOpsDashboard() {
 
       return {
         errorStats,
-        recentErrors: recentErrorsPaged.items,
+        recentErrors,
         logStats,
-        recentLogs: recentLogsPaged.items,
+        recentLogs,
         systemHealth,
         n8nWorkflows,
         scrapingStatus,

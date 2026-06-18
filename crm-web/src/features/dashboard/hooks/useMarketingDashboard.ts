@@ -26,12 +26,17 @@ export function useMarketingDashboard() {
 
       const outreach = getVal(outreachResult, null);
       const whatsapp = getVal(whatsappResult, null);
-      const campaigns = getVal(campaignsResult, { items: [], totalCount: 0 });
-      const queue = getVal(queueResult, { items: [], page: 1, pageSize: 15, totalCount: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
-      const providerHealth = getVal(providerHealthResult, []);
+      
+      const campaignsPaged = getVal(campaignsResult, null);
+      const campaignsList = Array.isArray(campaignsPaged?.items) ? campaignsPaged.items : [];
+      
+      const queuePaged = getVal(queueResult, null);
+      const queueList = Array.isArray(queuePaged?.items) ? queuePaged.items : [];
+      
+      const providerHealthRaw = getVal(providerHealthResult, null);
+      const providerHealth = Array.isArray(providerHealthRaw) ? providerHealthRaw : [];
 
       // Calcular taxas agregadas
-      const campaignsList = campaigns.items;
       let totalSent = 0;
       let totalDelivered = 0;
       let totalOpened = 0;
@@ -63,7 +68,7 @@ export function useMarketingDashboard() {
       };
 
       // Fila de e-mails
-      const formattedQueue = queue.items.map(item => ({
+      const formattedQueue = queueList.map(item => ({
         id: item.id,
         recipientName: item.recipientName,
         recipientEmail: item.recipientEmail,

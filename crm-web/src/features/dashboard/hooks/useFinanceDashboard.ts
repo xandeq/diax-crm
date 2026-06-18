@@ -39,9 +39,16 @@ export function useFinanceDashboard() {
 
       const currMonth = getVal(currMonthResult, null);
       const prevMonth = getVal(prevMonthResult, null);
-      const creditCards = getVal(creditCardsResult, []);
-      const accounts = getVal(accountsResult, []);
-      const goals = getVal(goalsResult, []);
+      
+      const creditCardsRaw = getVal(creditCardsResult, null);
+      const creditCards = Array.isArray(creditCardsRaw) ? creditCardsRaw : [];
+      
+      const accountsRaw = getVal(accountsResult, null);
+      const accounts = Array.isArray(accountsRaw) ? accountsRaw : [];
+      
+      const goalsRaw = getVal(goalsResult, null);
+      const goals = Array.isArray(goalsRaw) ? goalsRaw : [];
+      
       const simulation = getVal(simulationResult, null);
 
       const cs = currMonth?.summary;
@@ -120,6 +127,7 @@ export function useFinanceDashboard() {
         accounts,
         goals,
         simulation,
+        curr: currMonth,
         recentTransactions,
         openInvoicesTotal,
         alerts,

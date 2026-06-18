@@ -3,15 +3,18 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useMarketingDashboard } from '../hooks/useMarketingDashboard';
+import { useBriefingDashboard } from '../hooks/useBriefingDashboard';
 import { LoadingSkeleton, LoadingGrid } from './LoadingSkeleton';
 import { ErrorState } from './ErrorState';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { HealthBadge } from './HealthBadge';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { 
   Mail, MessageSquare, Send, CheckCircle, AlertTriangle, 
-  Clock, ArrowRight, ShieldCheck, Database, Server, Smartphone 
+  Clock, ArrowRight, ShieldCheck, Database, Server, Smartphone,
+  Copy, Check, Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,7 +31,16 @@ const R = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency
 
 export function MarketingTab() {
   const { data, isLoading, isError, error, refetch } = useMarketingDashboard();
+  const { data: briefingData } = useBriefingDashboard();
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success('Copiado para a área de transferência!');
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -65,8 +77,30 @@ export function MarketingTab() {
     { label: 'Cliques Médios', value: stats.clickRate, suffix: '%', color: C.accent, icon: <CheckCircle size={14} /> },
   ];
 
+  const lowPerformanceAlerts = [];
+  if (stats.openRate < 15) {
+    lowPerformanceAlerts.push(`Alerta: Taxa de abertura de e-mail abaixo do esperado (${stats.openRate}%). Recomendamos otimizar assuntos e testar layouts.`);
+  }
+  if (outreach && outreach.failedInQueue !== undefined && outreach.failedInQueue > 5) {
+    lowPerformanceAlerts.push(`Crítico: Existem ${outreach.failedInQueue} disparos com falha na fila SMTP. Verifique as credenciais dos provedores.`);
+  }
+
+  const extracted = briefingData?.extracted;
+
   return (
     <div className="space-y-6">
+      {/* Alerts section */}
+      {lowPerformanceAlerts.length > 0 && (
+        <div className="space-y-2">
+          {lowPerformanceAlerts.map((alert, idx) => (
+            <div key={idx} className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-semibold">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{alert}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {kpis.map((k, idx) => (
@@ -180,6 +214,66 @@ export function MarketingTab() {
           </Button>
         </div>
       </div>
+
+      {/* Copies Recomendadas por Claude AI */}
+      {extracted && (
+        <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4.5 w-4.5 text-teal-400 animate-pulse" />
+            <div>
+              <h3 className="text-sm font-bold text-zinc-100">Copies Recomendadas do Dia</h3>
+              <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Geradas inteligentemente por Claude AI no último briefing</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* WhatsApp Copy */}
+            <div className="p-3.5 bg-zinc-900/30 border border-zinc-850 rounded-xl flex flex-col justify-between h-full">
+              <div>
+                <div className="flex justify-between items-center mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs font-bold text-zinc-200">WhatsApp Outreach Copy</span>
+                  </div>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-7 w-7 text-zinc-500 hover:text-zinc-300"
+                    onClick={() => copyToClipboard(extracted.whatsAppCopy, 'wa')}
+                  >
+                    {copiedKey === 'wa' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+                <div className="bg-zinc-950/40 p-3 rounded-lg border border-zinc-900 font-mono text-[10px] text-zinc-300 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto scrollbar-none">
+                  {extracted.whatsAppCopy}
+                </div>
+              </div>
+            </div>
+
+            {/* Email Copy */}
+            <div className="p-3.5 bg-zinc-900/30 border border-zinc-850 rounded-xl flex flex-col justify-between h-full">
+              <div>
+                <div className="flex justify-between items-center mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-pink-400" />
+                    <span className="text-xs font-bold text-zinc-200">Email Campaign Copy</span>
+                  </div>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-7 w-7 text-zinc-500 hover:text-zinc-300"
+                    onClick={() => copyToClipboard(extracted.emailCopy, 'email')}
+                  >
+                    {copiedKey === 'email' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+                <div className="bg-zinc-950/40 p-3 rounded-lg border border-zinc-900 font-mono text-[10px] text-zinc-300 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto scrollbar-none">
+                  {extracted.emailCopy}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Campaigns list & Queue */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useBriefingDashboard } from '../hooks/useBriefingDashboard';
+import { useDashboardOverview } from '../hooks/useDashboardOverview';
+import { InsightCard } from './InsightCard';
 import { LoadingSkeleton } from './LoadingSkeleton';
 import { ErrorState } from './ErrorState';
 import { Button } from '@/components/ui/button';
@@ -15,6 +17,7 @@ import Link from 'next/link';
 
 export function IntelligenceTab() {
   const { data, isLoading, isError, error, refetch } = useBriefingDashboard();
+  const { data: overviewData } = useDashboardOverview();
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,6 +25,38 @@ export function IntelligenceTab() {
     window.addEventListener('dashboard-sync', handleSync);
     return () => window.removeEventListener('dashboard-sync', handleSync);
   }, [refetch]);
+
+  const funnel = overviewData?.funnel || { lead: 0, contacted: 0, qualified: 0, negotiating: 0, customer: 0 };
+  const curr = overviewData?.curr;
+  const tasks = overviewData?.tasks || [];
+  const recentLeads = overviewData?.recentLeads || [];
+  const cashFlow = curr?.summary?.remainingBalance ?? 0;
+  const totalLeads = funnel.lead + funnel.contacted + funnel.qualified + funnel.negotiating;
+
+  const R = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const staleLeads = recentLeads.filter((l: any) => {
+    if (l.status === 4 || l.status === 5 || l.status === 6) return false;
+    return !l.lastContactAt || new Date(l.lastContactAt) < sevenDaysAgo;
+  });
+
+  const getEstimatedValue = (status: number) => {
+    if (status === 3) return 10000; // Negotiating
+    if (status === 2) return 5000;  // Qualified
+    if (status === 1) return 3000;  // Contacted
+    return 1500;                    // Lead
+  };
+
+  const staleValue = staleLeads.reduce((acc: number, l: any) => acc + getEstimatedValue(l.status), 0);
+
+  const worstDrop = [
+    { lbl: 'Lead→Contato', v: funnel.lead > 0 ? (1 - funnel.contacted / funnel.lead) * 100 : 0 },
+    { lbl: 'Contato→Qualif', v: funnel.contacted > 0 ? (1 - funnel.qualified / funnel.contacted) * 100 : 0 },
+    { lbl: 'Qualif.→Neg.', v: funnel.qualified > 0 ? (1 - funnel.negotiating / funnel.qualified) * 100 : 0 },
+  ].reduce((a, b) => a.v > b.v ? a : b, { lbl: 'None', v: 0 });
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -63,6 +98,46 @@ export function IntelligenceTab() {
         <Button asChild size="sm" className="h-9 bg-teal-500 hover:bg-teal-600 text-zinc-950 font-bold gap-1.5 border-none shadow-[0_4px_15px_rgba(20,184,166,0.25)]">
           <Link href="/daily-briefings">Histórico de Briefings</Link>
         </Button>
+      </div>
+
+      {/* Insights de IA Estruturados */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-zinc-100">Insights Estruturados de IA</h3>
+          <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Diagnósticos e impactos financeiros automáticos baseados nos dados reais</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <InsightCard
+            title="Gargalo comercial detectado"
+            badgeText="Funil de Leads"
+            context={totalLeads > 0 ? `Queda acentuada na transição de ${worstDrop.lbl}.` : "Pipeline sem leads suficientes."}
+            impact={totalLeads > 0 ? `Impacto: -R$ ${staleValue.toLocaleString('pt-BR')} em receita potencial ociosa.` : "Impossibilidade de traçar taxas de conversão de leads."}
+            actionRecommended={totalLeads > 0 ? "Dispare follow-ups ou campanhas de reengajamento focadas." : "Cadastre ou importe novos leads para iniciar prospecção."}
+            actionText="Ver Leads Relacionados"
+            actionHref="/leads"
+            color="amber"
+          />
+          <InsightCard
+            title="Fluxo de Caixa do Mês"
+            badgeText="Gestão Financeira"
+            context={cashFlow >= 0 ? `Saldo líquido operacional de ${R(cashFlow)} no azul.` : `Déficit líquido operacional de ${R(Math.abs(cashFlow))}.`}
+            impact={cashFlow >= 0 ? `Impacto: +R$ ${cashFlow.toLocaleString('pt-BR')} de saldo líquido operacional.` : `Impacto: -R$ ${Math.abs(cashFlow).toLocaleString('pt-BR')} de déficit operacional.`}
+            actionRecommended={cashFlow >= 0 ? "Excelente momento para escalar aquisição de leads." : "Estude renegociar despesas recorrentes e pagamentos pendentes."}
+            actionText="Ver Dashboard Financeiro"
+            actionHref="/finance"
+            color={cashFlow >= 0 ? 'teal' : 'purple'}
+          />
+          <InsightCard
+            title="Ações Comerciais Pendentes"
+            badgeText="Controle de Tarefas"
+            context={`Existem ${tasks.length} tarefas de prospecção pendentes.`}
+            impact={`Impacto: -R$ ${(tasks.length * 1500).toLocaleString('pt-BR')} em receita potencial em atraso.`}
+            actionRecommended="Conclua os contatos agendados para destravar negociações."
+            actionText="Gerenciar Minhas Tarefas"
+            actionHref="/tasks"
+            color="blue"
+          />
+        </div>
       </div>
 
       {/* Main HTML render container */}
