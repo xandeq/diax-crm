@@ -498,6 +498,7 @@ export function OverviewTab() {
             ],
             options: {
               chart: { toolbar: { show: false }, background: 'transparent' },
+              dataLabels: { enabled: false },
               colors: [C.primary, C.warn],
               stroke: { curve: 'smooth', width: [3, 2], dashArray: [0, 4] },
               fill: { type: ['gradient', 'none'], gradient: { opacityFrom: 0.2, opacityTo: 0 } },

@@ -174,6 +174,7 @@ export function FinanceTab() {
           series: [{ name: 'Saldo Projetado', data: forecastData }],
           options: {
             chart: { toolbar: { show: false }, background: 'transparent' },
+            dataLabels: { enabled: false },
             colors: [lowestBalance < 0 ? C.loss : C.primary],
             stroke: { curve: 'smooth', width: 3 },
             fill: { type: 'gradient', gradient: { opacityFrom: 0.25, opacityTo: 0 } },
@@ -396,8 +397,8 @@ export function FinanceTab() {
             </Button>
           </div>
           <div className="space-y-2.5">
-            {recentTransactionsSafe.slice(0, 5).map(t => (
-              <div key={t.id} className="p-2.5 bg-zinc-900/20 border border-zinc-850 rounded-lg flex items-center justify-between text-xs">
+            {recentTransactionsSafe.slice(0, 5).map((t, idx) => (
+              <div key={t.id || idx} className="p-2.5 bg-zinc-900/20 border border-zinc-850 rounded-lg flex items-center justify-between text-xs">
                 <div className="truncate pr-2 max-w-[70%]">
                   <div className="font-bold text-zinc-250 truncate">{t.description}</div>
                   <div className="text-[10px] text-zinc-500 truncate">{t.categoryName || 'Geral'}</div>
