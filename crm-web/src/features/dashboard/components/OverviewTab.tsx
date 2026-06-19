@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/dashboard/EmptyState';
 import { SpringMetric } from '@/components/dashboard/SpringMetric';
 import { InsightCard } from './InsightCard';
 import { HealthBadge } from './HealthBadge';
+import { Button } from '@/components/ui/button';
 import {
   Activity, AlertTriangle, ArrowRight, CheckCircle, CreditCard, DollarSign,
   Gauge, Mail, Megaphone, PiggyBank, Repeat, ShieldAlert, Sparkles,
@@ -78,12 +79,23 @@ export function OverviewTab() {
   if (!data) return null;
 
   const { funnel, curr, prev, trend, expenses, email, agenda, tasks = [], checklists = [], recentLeads = [] } = data;
-  const cs = curr?.summary;
-  const income = cs?.totalIncome ?? 0;
-  const expensesTotal = cs?.totalExpenses ?? 0;
-  const cashFlow = cs?.remainingBalance ?? 0;
-  const totalLeads = funnel.lead + funnel.contacted + funnel.qualified + funnel.negotiating;
-  const openRate = email?.openRate ?? 0;
+
+  // Defensive safeguards
+  const funnelSafe = funnel || { lead: 0, contacted: 0, qualified: 0, negotiating: 0, customer: 0 };
+  const emailSafe = email || { openRate: 0 };
+  const trendSafe = Array.isArray(trend) ? trend : [];
+  const agendaSafe = Array.isArray(agenda) ? agenda : [];
+  const tasksSafe = Array.isArray(tasks) ? tasks : [];
+  const checklistsSafe = Array.isArray(checklists) ? checklists : [];
+  const recentLeadsSafe = Array.isArray(recentLeads) ? recentLeads : [];
+  const expensesSafe = Array.isArray(expenses) ? expenses : [];
+
+  const cs = curr?.summary || { totalIncome: 0, totalExpenses: 0, remainingBalance: 0, availableToInvest: 0 };
+  const income = cs.totalIncome;
+  const expensesTotal = cs.totalExpenses;
+  const cashFlow = cs.remainingBalance;
+  const totalLeads = funnelSafe.lead + funnelSafe.contacted + funnelSafe.qualified + funnelSafe.negotiating;
+  const openRate = emailSafe.openRate;
 
   const revMoM = cs && prev?.summary && prev.summary.totalIncome > 0 
     ? ((income - prev.summary.totalIncome) / prev.summary.totalIncome) * 100 
@@ -96,7 +108,8 @@ export function OverviewTab() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const staleLeads = recentLeads.filter((l: any) => {
+  const staleLeads = recentLeadsSafe.filter((l: any) => {
+    if (!l) return false;
     if (l.status === 4 || l.status === 5 || l.status === 6) return false;
     return !l.lastContactAt || new Date(l.lastContactAt) < sevenDaysAgo;
   });
@@ -109,45 +122,67 @@ export function OverviewTab() {
   };
 
   const potentialPipelineValue = 
-    (funnel.lead * 1500) + 
-    (funnel.contacted * 3000) + 
-    (funnel.qualified * 5000) + 
-    (funnel.negotiating * 10000);
+    (funnelSafe.lead * 1500) + 
+    (funnelSafe.contacted * 3000) + 
+    (funnelSafe.qualified * 5000) + 
+    (funnelSafe.negotiating * 10000);
 
   const staleValue = staleLeads.reduce((acc: number, l: any) => acc + getEstimatedValue(l.status), 0);
 
   // Contas a receber/pagar pendentes reais do mês
-  const unpaidExpenses = curr?.expenses?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0) || 0;
-  const unpaidIncomes = curr?.incomes?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
+  const unpaidExpenses = Array.isArray(curr?.expenses) ? curr.expenses.filter((t: any) => t && t.status === 1).reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0) : 0;
+  const unpaidIncomes = Array.isArray(curr?.incomes) ? curr.incomes.filter((t: any) => t && t.status === 1).reduce((acc: number, t: any) => acc + t.amount, 0) : 0;
 
   const errorStats = opsData?.errorStats;
 
   const betterChannel = openRate >= 20 ? 'E-mail Marketing' : 'WhatsApp Outreach';
 
-  // Prioridade número 1 do dia
-  let topPriorityTitle = "Sem pendências críticas";
+  // Prioridade número 1 do dia com Módulo Relacionado
+  let topPriorityTitle = "Manter Pipeline Aquecido";
   let topPriorityHref = "/dashboard";
   let topPriorityAction = "Verificar Status";
+  let topPriorityReason = "Todas as operações estão rodando perfeitamente e as finanças estão sob controle.";
+  let topPriorityImpact = "Nenhum risco financeiro ou operacional detectado.";
+  let topPriorityActionDesc = "Acesse Outreach & Marketing e analise novas ideias de campanhas.";
+  let topPriorityModule = "Geral";
 
   if (errorStats && errorStats.criticalToday > 0) {
     topPriorityTitle = `Corrigir ${errorStats.criticalToday} Erro(s) Crítico(s) no Sistema`;
     topPriorityHref = "/logs";
     topPriorityAction = "Investigar";
+    topPriorityReason = "Falhas graves detectadas nas últimas 24 horas que podem impedir integrações essenciais.";
+    topPriorityImpact = "Risco de paralisação nas automações n8n e perda de leads capturados.";
+    topPriorityActionDesc = "Acesse a aba Monitoramento & Ops, investigue os logs e reinicie a fila.";
+    topPriorityModule = "Operações / Ops";
   } else if (staleLeads.length > 0) {
-    topPriorityTitle = `Follow-up com ${staleLeads[0].name} (${staleLeads[0].companyName || 'Lead Ocioso'})`;
+    const mainStaleLead = staleLeads[0];
+    const estVal = getEstimatedValue(mainStaleLead.status);
+    topPriorityTitle = `Follow-up: ${mainStaleLead.name} (${mainStaleLead.companyName || 'Lead Ocioso'})`;
     topPriorityHref = "/leads";
-    topPriorityAction = "Enviar Mensagem";
-  } else if (tasks.filter((t: any) => t.priority === 'Urgent').length > 0) {
-    const urgentTask = tasks.find((t: any) => t.priority === 'Urgent');
+    topPriorityAction = "Contatar";
+    topPriorityReason = `Lead qualificado sem contato há mais de 7 dias (${mainStaleLead.status === 3 ? 'Negociação' : mainStaleLead.status === 2 ? 'Qualificado' : 'Ativo'}).`;
+    topPriorityImpact = `Risco de perda de R$ ${estVal.toLocaleString('pt-BR')} em receita potencial ociosa.`;
+    topPriorityActionDesc = "Envie uma mensagem rápida por WhatsApp ou E-mail para reengajar o lead.";
+    topPriorityModule = "CRM / Comercial";
+  } else if (tasksSafe.filter((t: any) => t && t.priority === 'Urgent').length > 0) {
+    const urgentTask = tasksSafe.find((t: any) => t && t.priority === 'Urgent');
     if (urgentTask) {
       topPriorityTitle = `Tarefa Urgente: ${urgentTask.title}`;
       topPriorityHref = "/tasks";
-      topPriorityAction = "Concluir Tarefa";
+      topPriorityAction = "Resolver";
+      topPriorityReason = "Tarefa operacional ou comercial de prioridade crítica aguardando conclusão.";
+      topPriorityImpact = "Gargalo operacional no pipeline comercial ou entrega de serviço.";
+      topPriorityActionDesc = "Abra a central de tarefas e conclua o item antes do encerramento.";
+      topPriorityModule = "Operações / Agenda";
     }
   } else if (unpaidExpenses > 0) {
-    topPriorityTitle = `Cobrança pendente: Pagar contas do mês`;
+    topPriorityTitle = `Contas Pendentes: Liquidar Despesas`;
     topPriorityHref = "/finance";
     topPriorityAction = "Efetuar Pagamento";
+    topPriorityReason = "Despesas recorrentes ou pontuais em aberto vencendo no mês corrente.";
+    topPriorityImpact = `Acúmulo de passivos no valor de R$ ${unpaidExpenses.toLocaleString('pt-BR')} em aberto.`;
+    topPriorityActionDesc = "Acesse a aba Financeiro, confira as despesas pendentes e liquide a conta.";
+    topPriorityModule = "Financeiro / Caixa";
   }
 
   // Foco Dinâmico do dia
@@ -167,7 +202,7 @@ export function OverviewTab() {
     dayFocusDesc = "Erros críticos detectados na data de hoje. Priorize a correção e verificação de logs para evitar falhas em automações.";
     dayFocusBadge = "Operações";
     dayFocusColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
-  } else if (tasks.length > 5 || checklists.length > 8) {
+  } else if (tasksSafe.length > 5 || checklistsSafe.length > 8) {
     dayFocusTitle = "Foco Operacional: Fila de Atividades";
     dayFocusDesc = "Você tem um volume considerável de tarefas e itens de checklist pendentes. Limpe sua fila operacional para não acumular.";
     dayFocusBadge = "Operações";
@@ -176,15 +211,15 @@ export function OverviewTab() {
 
   // KPIs (Money Radar metrics)
   const kpis = [
-    { label: 'Receita Potencial Aberta', value: potentialPipelineValue, prefix: 'R$ ', spark: [funnel.lead, funnel.contacted, funnel.qualified, funnel.negotiating], color: C.primary, icon: <DollarSign size={14} /> },
+    { label: 'Receita Potencial Aberta', value: potentialPipelineValue, prefix: 'R$ ', spark: [funnelSafe.lead, funnelSafe.contacted, funnelSafe.qualified, funnelSafe.negotiating], color: C.primary, icon: <DollarSign size={14} /> },
     { label: 'Valor Ocioso Parado', value: staleValue, prefix: 'R$ ', spark: staleLeads.length > 0 ? [staleLeads.length] : undefined, color: C.warn, icon: <AlertTriangle size={14} /> },
     { label: 'Contas a Receber (Pendente)', value: unpaidIncomes, prefix: 'R$ ', color: C.success, icon: <TrendingUp size={14} /> },
     { label: 'Contas a Pagar (Pendente)', value: unpaidExpenses, prefix: 'R$ ', color: C.loss, icon: <TrendingDown size={14} /> },
   ];
 
   // Radar Health
-  const maxTrend = Math.max(0, ...trend.map(t => t.income));
-  const convRate = (totalLeads + funnel.customer) > 0 ? (funnel.customer / (totalLeads + funnel.customer)) * 100 : 0;
+  const maxTrend = trendSafe.length > 0 ? Math.max(0, ...trendSafe.map(t => t?.income || 0)) : 0;
+  const convRate = (totalLeads + funnelSafe.customer) > 0 ? (funnelSafe.customer / (totalLeads + funnelSafe.customer)) * 100 : 0;
   const healthMetrics = [
     { k: 'Receita', v: maxTrend > 0 ? Math.max(0, Math.min(100, (income / maxTrend) * 100)) : (income > 0 ? 100 : 0) },
     { k: 'Fluxo', v: income > 0 ? Math.max(0, Math.min(100, (cashFlow / income) * 100)) : (cashFlow >= 0 ? 60 : 0) },
@@ -198,17 +233,17 @@ export function OverviewTab() {
 
   // CommandCenter calculations
   const worstDrop = [
-    { lbl: 'Lead→Contato', v: funnel.lead > 0 ? (1 - funnel.contacted / funnel.lead) * 100 : 0 },
-    { lbl: 'Contato→Qualif', v: funnel.contacted > 0 ? (1 - funnel.qualified / funnel.contacted) * 100 : 0 },
-    { lbl: 'Qualif.→Neg.', v: funnel.qualified > 0 ? (1 - funnel.negotiating / funnel.qualified) * 100 : 0 },
+    { lbl: 'Lead→Contato', v: funnelSafe.lead > 0 ? (1 - funnelSafe.contacted / funnelSafe.lead) * 100 : 0 },
+    { lbl: 'Contato→Qualif', v: funnelSafe.contacted > 0 ? (1 - funnelSafe.qualified / funnelSafe.contacted) * 100 : 0 },
+    { lbl: 'Qualif.→Neg.', v: funnelSafe.qualified > 0 ? (1 - funnelSafe.negotiating / funnelSafe.qualified) * 100 : 0 },
   ].reduce((a, b) => a.v > b.v ? a : b, { lbl: 'None', v: 0 });
 
   const answers = [
     { q: 'O que funciona?', icon: <CheckCircle size={14} />, c: revMoM >= 0 ? C.primary : C.warn, text: revMoM > 0 ? `Receita +${revMoM.toFixed(1)}% vs mês ant.` : 'Receita estável', href: '/finance' },
     { q: 'O que está quebrado?', icon: <AlertTriangle size={14} />, c: worstDrop.v > 50 ? C.loss : C.warn, text: totalLeads > 0 ? `${worstDrop.v.toFixed(0)}% drop em ${worstDrop.lbl}` : 'Pipeline vazio', href: '/leads' },
-    { q: 'Onde perde dinheiro?', icon: <DollarSign size={14} />, c: cashFlow < 0 ? C.loss : C.warn, text: cashFlow < 0 ? `Fluxo negativo: ${S(cashFlow)}` : expenses.length > 0 ? `${expenses[0].name}: ${expenses[0].pct.toFixed(0)}% das despesas` : 'Verifique despesas', href: '/finance' },
+    { q: 'Onde perde dinheiro?', icon: <DollarSign size={14} />, c: cashFlow < 0 ? C.loss : C.warn, text: cashFlow < 0 ? `Fluxo negativo: ${S(cashFlow)}` : expensesSafe.length > 0 ? `${expensesSafe[0].name}: ${expensesSafe[0].pct.toFixed(0)}% das despesas` : 'Verifique despesas', href: '/finance' },
     { q: 'O que fazer agora?', icon: <Zap size={14} />, c: C.info, text: totalLeads > 0 ? `${totalLeads} leads aguardam ação` : 'Adicione leads', href: '/leads' },
-    { q: 'Qual ação gera receita?', icon: <Target size={14} />, c: C.primary, text: email && email.openRate > 0 ? `Email: ${email.openRate.toFixed(1)}% abertura` : convRate > 0 ? `Conversão: ${convRate.toFixed(1)}%` : 'Analise canais', href: '/outreach' },
+    { q: 'Qual ação gera receita?', icon: <Target size={14} />, c: C.primary, text: emailSafe.openRate > 0 ? `Email: ${emailSafe.openRate.toFixed(1)}% abertura` : convRate > 0 ? `Conversão: ${convRate.toFixed(1)}%` : 'Analise canais', href: '/outreach' },
   ];
 
   return (
@@ -258,18 +293,42 @@ export function OverviewTab() {
             </div>
 
             <div className="space-y-2.5">
-              {/* Prioridade Principal P0 */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-teal-500/5 border border-teal-500/10 hover:border-teal-500/30 transition-all">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-2 w-2 rounded-full bg-teal-400 animate-ping shrink-0" />
-                  <div className="min-w-0">
-                    <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-wider block">Prioridade P0</span>
-                    <span className="text-xs font-bold text-zinc-200 block truncate">{topPriorityTitle}</span>
+              {/* Prioridade Principal P0 Enriquecida */}
+              <div className="p-4 rounded-xl bg-teal-500/5 border border-teal-500/15 hover:border-teal-500/30 transition-all space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400"></span>
+                    </span>
+                    <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-wider">Ação Recomendada P0 ({topPriorityModule})</span>
                   </div>
+                  <span className="px-2 py-0.5 text-[9px] font-bold bg-teal-500/10 text-teal-300 border border-teal-500/20 rounded-md shrink-0">
+                    {topPriorityTitle.includes('Erro') ? 'Crítico' : 'Urgente'}
+                  </span>
                 </div>
-                <Link href={topPriorityHref} className="px-2.5 py-1 text-[10px] font-bold bg-teal-500 text-zinc-950 rounded-lg hover:bg-teal-400 transition-colors shrink-0">
-                  {topPriorityAction}
-                </Link>
+
+                <div className="space-y-1">
+                  <h4 className="text-xs font-extrabold text-zinc-150">{topPriorityTitle}</h4>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    <strong className="text-zinc-300">Motivo:</strong> {topPriorityReason}
+                  </p>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    <strong className="text-zinc-300">Impacto:</strong> <span className={cn(topPriorityImpact.includes('perda') || topPriorityImpact.includes('paralisação') || topPriorityImpact.includes('Gargalo') || topPriorityImpact.includes('Acúmulo') ? 'text-red-400 font-medium' : 'text-teal-400 font-medium')}>{topPriorityImpact}</span>
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-800/60">
+                  <span className="text-xs text-zinc-500 leading-relaxed">
+                    <strong className="text-zinc-400">Ação:</strong> {topPriorityActionDesc}
+                  </span>
+                  <Button asChild size="sm" className="h-8 bg-teal-400 hover:bg-teal-300 text-zinc-950 font-bold shrink-0 text-xs border-none shadow-[0_2px_10px_rgba(20,184,166,0.2)] cursor-pointer">
+                    <Link href={topPriorityHref} className="flex items-center gap-1">
+                      <span>{topPriorityAction}</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
               {/* Sugestões Operacionais */}
@@ -317,7 +376,7 @@ export function OverviewTab() {
       </div>
 
       {/* CommandCenter */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {answers.map((a, i) => (
           <Link key={i} href={a.href} className="group no-underline">
             <div
@@ -434,15 +493,15 @@ export function OverviewTab() {
             type: 'line',
             height: 250,
             series: [
-              { name: 'Receita', type: 'area', data: trend.map(t => Math.round(t.income)) },
-              { name: 'Despesas', type: 'line', data: trend.map(t => Math.round(t.expense)) },
+              { name: 'Receita', type: 'area', data: trendSafe.map(t => Math.round(t.income)) },
+              { name: 'Despesas', type: 'line', data: trendSafe.map(t => Math.round(t.expense)) },
             ],
             options: {
               chart: { toolbar: { show: false }, background: 'transparent' },
               colors: [C.primary, C.warn],
               stroke: { curve: 'smooth', width: [3, 2], dashArray: [0, 4] },
               fill: { type: ['gradient', 'none'], gradient: { opacityFrom: 0.2, opacityTo: 0 } },
-              xaxis: { categories: trend.map(t => t.label), labels: { style: { colors: C.muted } } },
+              xaxis: { categories: trendSafe.map(t => t.label), labels: { style: { colors: C.muted } } },
               yaxis: { labels: { style: { colors: C.muted }, formatter: (v: number) => `R$ ${(v / 1000).toFixed(0)}k` } },
               grid: { borderColor: C.grid, strokeDashArray: 4 },
               legend: { labels: { colors: C.text2 }, position: 'top', horizontalAlign: 'right' },
@@ -461,7 +520,7 @@ export function OverviewTab() {
           chartConfig={mounted ? {
             type: 'bar',
             height: 250,
-            series: [{ name: 'Contatos', data: [funnel.lead, funnel.contacted, funnel.qualified, funnel.negotiating, funnel.customer] }],
+            series: [{ name: 'Contatos', data: [funnelSafe.lead, funnelSafe.contacted, funnelSafe.qualified, funnelSafe.negotiating, funnelSafe.customer] }],
             options: {
               chart: { toolbar: { show: false }, background: 'transparent' },
               plotOptions: { bar: { horizontal: true, barHeight: '55%', borderRadius: 6, distributed: true } },
@@ -495,7 +554,7 @@ export function OverviewTab() {
                   activeSubTab === 'agenda' ? "bg-teal-500 text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-zinc-200"
                 )}
               >
-                Agenda ({agenda.length})
+                Agenda ({agendaSafe.length})
               </button>
               <button
                 type="button"
@@ -505,7 +564,7 @@ export function OverviewTab() {
                   activeSubTab === 'tasks' ? "bg-teal-500 text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-zinc-200"
                 )}
               >
-                Tarefas ({tasks.length})
+                Tarefas ({tasksSafe.length})
               </button>
               <button
                 type="button"
@@ -515,23 +574,23 @@ export function OverviewTab() {
                   activeSubTab === 'checklist' ? "bg-teal-500 text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-zinc-200"
                 )}
               >
-                Checklist ({checklists.length})
+                Checklist ({checklistsSafe.length})
               </button>
             </div>
           </div>
 
           {activeSubTab === 'agenda' && (
             <div className="space-y-2.5">
-              {agenda.length > 0 ? (
-                agenda.slice(0, 5).map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors">
-                    <div className="flex items-center gap-3">
+              {agendaSafe.length > 0 ? (
+                agendaSafe.slice(0, 5).map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <span className="px-2.5 py-1 text-[10px] font-mono font-bold text-teal-400 bg-teal-500/10 rounded-lg shrink-0">
                         {item.time}
                       </span>
-                      <span className="text-xs font-bold text-zinc-100">{item.title}</span>
+                      <span className="text-xs font-bold text-zinc-100 truncate flex-1">{item.title}</span>
                     </div>
-                    <Link href="/agenda" className="text-zinc-500 hover:text-zinc-300">
+                    <Link href="/agenda" className="text-zinc-500 hover:text-zinc-300 shrink-0 ml-2">
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
@@ -550,10 +609,10 @@ export function OverviewTab() {
 
           {activeSubTab === 'tasks' && (
             <div className="space-y-2.5">
-              {tasks.length > 0 ? (
-                tasks.slice(0, 5).map((task) => (
-                  <div key={task.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
+              {tasksSafe.length > 0 ? (
+                tasksSafe.slice(0, 5).map((task) => (
+                  <div key={task.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <span className={cn(
                         "px-2 py-0.5 text-[9px] font-bold uppercase rounded-md shrink-0",
                         task.priority === 'Urgent' && "bg-red-500/15 text-red-400 border border-red-500/20",
@@ -563,9 +622,9 @@ export function OverviewTab() {
                       )}>
                         {task.priority === 'Urgent' ? 'Urgente' : task.priority === 'High' ? 'Alta' : task.priority === 'Medium' ? 'Média' : 'Baixa'}
                       </span>
-                      <span className="text-xs font-bold text-zinc-100 truncate">{task.title}</span>
+                      <span className="text-xs font-bold text-zinc-100 truncate flex-1">{task.title}</span>
                     </div>
-                    <Link href="/tasks" className="text-zinc-500 hover:text-zinc-300 shrink-0">
+                    <Link href="/tasks" className="text-zinc-500 hover:text-zinc-300 shrink-0 ml-2">
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
@@ -584,10 +643,10 @@ export function OverviewTab() {
 
           {activeSubTab === 'checklist' && (
             <div className="space-y-2.5">
-              {checklists.length > 0 ? (
-                checklists.slice(0, 5).map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
+              {checklistsSafe.length > 0 ? (
+                checklistsSafe.slice(0, 5).map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/30 border border-zinc-800/40 hover:bg-zinc-900/50 transition-colors min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <span className={cn(
                         "w-2 h-2 rounded-full shrink-0",
                         item.priority === 3 && "bg-red-500", // Urgent
@@ -595,12 +654,12 @@ export function OverviewTab() {
                         item.priority === 1 && "bg-blue-500", // Medium
                         item.priority === 0 && "bg-zinc-500" // Low
                       )} />
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <span className="text-xs font-bold text-zinc-100 block truncate">{item.title}</span>
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">{item.categoryName || 'Geral'}</span>
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block truncate">{item.categoryName || 'Geral'}</span>
                       </div>
                     </div>
-                    <Link href="/household/checklists" className="text-zinc-500 hover:text-zinc-300 shrink-0">
+                    <Link href="/household/checklists" className="text-zinc-500 hover:text-zinc-300 shrink-0 ml-2">
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>

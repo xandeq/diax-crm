@@ -26,19 +26,20 @@ export function IntelligenceTab() {
     return () => window.removeEventListener('dashboard-sync', handleSync);
   }, [refetch]);
 
-  const funnel = overviewData?.funnel || { lead: 0, contacted: 0, qualified: 0, negotiating: 0, customer: 0 };
-  const curr = overviewData?.curr;
-  const tasks = overviewData?.tasks || [];
-  const recentLeads = overviewData?.recentLeads || [];
-  const cashFlow = curr?.summary?.remainingBalance ?? 0;
-  const totalLeads = funnel.lead + funnel.contacted + funnel.qualified + funnel.negotiating;
+  const funnelSafe = overviewData?.funnel || { lead: 0, contacted: 0, qualified: 0, negotiating: 0, customer: 0 };
+  const currSafe = overviewData?.curr;
+  const tasksSafe = Array.isArray(overviewData?.tasks) ? overviewData.tasks : [];
+  const recentLeadsSafe = Array.isArray(overviewData?.recentLeads) ? overviewData.recentLeads : [];
+  const cashFlow = currSafe?.summary?.remainingBalance ?? 0;
+  const totalLeads = funnelSafe.lead + funnelSafe.contacted + funnelSafe.qualified + funnelSafe.negotiating;
 
   const R = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const staleLeads = recentLeads.filter((l: any) => {
+  const staleLeads = recentLeadsSafe.filter((l: any) => {
+    if (!l) return false;
     if (l.status === 4 || l.status === 5 || l.status === 6) return false;
     return !l.lastContactAt || new Date(l.lastContactAt) < sevenDaysAgo;
   });
@@ -53,9 +54,9 @@ export function IntelligenceTab() {
   const staleValue = staleLeads.reduce((acc: number, l: any) => acc + getEstimatedValue(l.status), 0);
 
   const worstDrop = [
-    { lbl: 'Lead→Contato', v: funnel.lead > 0 ? (1 - funnel.contacted / funnel.lead) * 100 : 0 },
-    { lbl: 'Contato→Qualif', v: funnel.contacted > 0 ? (1 - funnel.qualified / funnel.contacted) * 100 : 0 },
-    { lbl: 'Qualif.→Neg.', v: funnel.qualified > 0 ? (1 - funnel.negotiating / funnel.qualified) * 100 : 0 },
+    { lbl: 'Lead→Contato', v: funnelSafe.lead > 0 ? (1 - funnelSafe.contacted / funnelSafe.lead) * 100 : 0 },
+    { lbl: 'Contato→Qualif', v: funnelSafe.contacted > 0 ? (1 - funnelSafe.qualified / funnelSafe.contacted) * 100 : 0 },
+    { lbl: 'Qualif.→Neg.', v: funnelSafe.qualified > 0 ? (1 - funnelSafe.negotiating / funnelSafe.qualified) * 100 : 0 },
   ].reduce((a, b) => a.v > b.v ? a : b, { lbl: 'None', v: 0 });
 
   const copyToClipboard = (text: string, key: string) => {
@@ -130,8 +131,8 @@ export function IntelligenceTab() {
           <InsightCard
             title="Ações Comerciais Pendentes"
             badgeText="Controle de Tarefas"
-            context={`Existem ${tasks.length} tarefas de prospecção pendentes.`}
-            impact={`Impacto: -R$ ${(tasks.length * 1500).toLocaleString('pt-BR')} em receita potencial em atraso.`}
+            context={`Existem ${tasksSafe.length} tarefas de prospecção pendentes.`}
+            impact={`Impacto: -R$ ${(tasksSafe.length * 1500).toLocaleString('pt-BR')} em receita potencial em atraso.`}
             actionRecommended="Conclua os contatos agendados para destravar negociações."
             actionText="Gerenciar Minhas Tarefas"
             actionHref="/tasks"

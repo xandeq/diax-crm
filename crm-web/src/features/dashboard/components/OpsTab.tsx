@@ -55,13 +55,22 @@ export function OpsTab() {
 
   const { errorStats, recentErrors, logStats, recentLogs, systemHealth, n8nWorkflows, scrapingStatus, activeIntegrations } = data;
 
-  const uptimeDays = Math.floor(systemHealth.uptimeSeconds / (24 * 3600));
-  const uptimeHours = Math.floor((systemHealth.uptimeSeconds % (24 * 3600)) / 3600);
+  // Defensive safeguards
+  const n8nWorkflowsSafe = Array.isArray(n8nWorkflows) ? n8nWorkflows : [];
+  const recentErrorsSafe = Array.isArray(recentErrors) ? recentErrors : [];
+  const recentLogsSafe = Array.isArray(recentLogs) ? recentLogs : [];
+  const activeIntegrationsSafe = Array.isArray(activeIntegrations) ? activeIntegrations : [];
+  const errorStatsSafe = errorStats || { totalToday: 0, criticalToday: 0, unresolvedTotal: 0 };
+  const systemHealthSafe = systemHealth || { cpuUsage: 0, memoryUsage: 0, memoryLimit: 1, responseTimeMs: 0, uptimeSeconds: 0 };
+  const scrapingStatusSafe = scrapingStatus || { isRunning: false, leadsFound: 0, leadsSanitized: 0 };
+
+  const uptimeDays = Math.floor(systemHealthSafe.uptimeSeconds / (24 * 3600));
+  const uptimeHours = Math.floor((systemHealthSafe.uptimeSeconds % (24 * 3600)) / 3600);
 
   const kpis = [
-    { label: 'Erros Hoje', value: errorStats.totalToday, color: errorStats.totalToday > 0 ? C.loss : C.success, icon: <AlertTriangle size={14} /> },
-    { label: 'Críticos Hoje', value: errorStats.criticalToday, color: errorStats.criticalToday > 0 ? C.loss : C.success, icon: <Activity size={14} /> },
-    { label: 'Erros Pendentes', value: errorStats.unresolvedTotal, color: errorStats.unresolvedTotal > 0 ? C.loss : C.success, icon: <Database size={14} /> },
+    { label: 'Erros Hoje', value: errorStatsSafe.totalToday, color: errorStatsSafe.totalToday > 0 ? C.loss : C.success, icon: <AlertTriangle size={14} /> },
+    { label: 'Críticos Hoje', value: errorStatsSafe.criticalToday, color: errorStatsSafe.criticalToday > 0 ? C.loss : C.success, icon: <Activity size={14} /> },
+    { label: 'Erros Pendentes', value: errorStatsSafe.unresolvedTotal, color: errorStatsSafe.unresolvedTotal > 0 ? C.loss : C.success, icon: <Database size={14} /> },
   ];
 
   return (
@@ -85,25 +94,25 @@ export function OpsTab() {
               <div className="space-y-1">
                 <div className="flex justify-between text-xs font-semibold text-zinc-300">
                   <span className="flex items-center gap-1.5"><Cpu className="h-3.5 w-3.5" /> CPU</span>
-                  <span className="font-mono">{systemHealth.cpuUsage}%</span>
+                  <span className="font-mono">{systemHealthSafe.cpuUsage}%</span>
                 </div>
                 <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden">
-                  <div className="bg-teal-400 h-full rounded-full" style={{ width: `${systemHealth.cpuUsage}%` }} />
+                  <div className="bg-teal-400 h-full rounded-full" style={{ width: `${systemHealthSafe.cpuUsage}%` }} />
                 </div>
               </div>
 
               <div className="space-y-1">
                 <div className="flex justify-between text-xs font-semibold text-zinc-300">
                   <span className="flex items-center gap-1.5"><HardDrive className="h-3.5 w-3.5" /> Memória</span>
-                  <span className="font-mono">{systemHealth.memoryUsage}MB / {systemHealth.memoryLimit}MB</span>
+                  <span className="font-mono">{systemHealthSafe.memoryUsage}MB / {systemHealthSafe.memoryLimit}MB</span>
                 </div>
                 <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden">
-                  <div className="bg-teal-400 h-full rounded-full" style={{ width: `${(systemHealth.memoryUsage / systemHealth.memoryLimit) * 100}%` }} />
+                  <div className="bg-teal-400 h-full rounded-full" style={{ width: `${(systemHealthSafe.memoryUsage / systemHealthSafe.memoryLimit) * 100}%` }} />
                 </div>
               </div>
 
               <div className="pt-2 flex justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                <span>Latency: {systemHealth.responseTimeMs}ms</span>
+                <span>Latency: {systemHealthSafe.responseTimeMs}ms</span>
                 <span>Uptime: {uptimeDays}d {uptimeHours}h</span>
               </div>
             </div>
@@ -121,7 +130,7 @@ export function OpsTab() {
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Status de workflows de automação e webhooks</p>
             
             <div className="space-y-2.5 max-h-36 overflow-y-auto scrollbar-none pr-1">
-              {n8nWorkflows.map(wf => (
+              {n8nWorkflowsSafe.map(wf => (
                 <div key={wf.id} className="flex justify-between items-center text-xs">
                   <span className="font-bold text-zinc-300 truncate max-w-[60%]">{wf.name}</span>
                   <HealthBadge status={wf.status === 'active' ? 'healthy' : 'error'} label={wf.status === 'active' ? 'Ativo' : 'Erro'} />
@@ -144,15 +153,15 @@ export function OpsTab() {
             <div className="space-y-3 mt-2">
               <div className="flex items-center justify-between text-xs font-semibold">
                 <span className="text-zinc-400">Status do Scraper</span>
-                <HealthBadge status={scrapingStatus.isRunning ? 'warning' : 'healthy'} label={scrapingStatus.isRunning ? 'Rodando' : 'Idle'} />
+                <HealthBadge status={scrapingStatusSafe.isRunning ? 'warning' : 'healthy'} label={scrapingStatusSafe.isRunning ? 'Rodando' : 'Idle'} />
               </div>
               <div className="flex items-center justify-between text-xs font-semibold">
                 <span className="text-zinc-400">Leads capturados</span>
-                <span className="font-mono text-zinc-150 font-bold">{scrapingStatus.leadsFound}</span>
+                <span className="font-mono text-zinc-150 font-bold">{scrapingStatusSafe.leadsFound}</span>
               </div>
               <div className="flex items-center justify-between text-xs font-semibold">
                 <span className="text-zinc-400">Leads higienizados</span>
-                <span className="font-mono text-emerald-400 font-bold">{scrapingStatus.leadsSanitized}</span>
+                <span className="font-mono text-emerald-400 font-bold">{scrapingStatusSafe.leadsSanitized}</span>
               </div>
             </div>
           </div>
@@ -171,6 +180,9 @@ export function OpsTab() {
             <div>
               <h3 className="text-sm font-bold text-zinc-100">Eventos de Erros no Sistema</h3>
               <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Filtragem inteligente de erros críticos vs. ruído benigno</p>
+              <p className="text-[10px] text-teal-400/80 font-medium mt-1">
+                * Falhas graves ou erros críticos listados aqui ativam imediatamente o alerta de prioridade máxima P0 no Cockpit de Foco da Visão Geral.
+              </p>
             </div>
             <Button asChild size="sm" variant="outline" className="h-8 border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-semibold text-xs">
               <Link href="/monitoring">Ir para Monitoramento</Link>
@@ -178,8 +190,8 @@ export function OpsTab() {
           </div>
 
           <div className="space-y-2.5 max-h-[300px] overflow-y-auto scrollbar-none pr-1">
-            {recentErrors && recentErrors.length > 0 ? (
-              recentErrors.map((err: any) => {
+            {recentErrorsSafe.length > 0 ? (
+              recentErrorsSafe.map((err: any) => {
                 const isNoise = err.message?.toLowerCase().includes('resizeobserver') || 
                                 err.message?.toLowerCase().includes('apexcharts') ||
                                 err.message?.toLowerCase().includes('resize observer');
@@ -194,7 +206,7 @@ export function OpsTab() {
                 const labelText = isNoise ? 'Ruído (Benigno)' : isCritical ? 'Crítico' : 'Erro';
 
                 return (
-                  <div key={err.id} className="p-3 bg-zinc-900/20 border border-zinc-850 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div key={err.id} className="p-3 bg-zinc-900/30 border border-zinc-850 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-full shrink-0 ${
@@ -206,7 +218,7 @@ export function OpsTab() {
                         </span>
                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider truncate">{err.appName}</span>
                       </div>
-                      <p className="text-xs font-bold text-zinc-200 mt-1.5 truncate leading-relaxed">{err.message}</p>
+                      <p className="text-xs font-bold text-zinc-250 mt-1.5 truncate leading-relaxed">{err.message}</p>
                     </div>
                     <div className="text-left sm:text-right shrink-0 text-[10px] text-zinc-500 font-semibold">
                       <div className="font-mono">{new Date(err.occurredAt).toLocaleTimeString('pt-BR')}</div>
@@ -258,7 +270,7 @@ export function OpsTab() {
           </div>
           
           <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-center mt-6">
-            Servidor principal: Online · Latência: {systemHealth.responseTimeMs}ms
+            Servidor principal: Online · Latência: {systemHealthSafe.responseTimeMs}ms
           </div>
         </div>
       </div>
@@ -277,7 +289,7 @@ export function OpsTab() {
             </Button>
           </div>
           
-          <RecentActivityTimeline logs={recentLogs} />
+          <RecentActivityTimeline logs={recentLogsSafe} />
         </div>
 
         {/* Integrações ativas */}
@@ -286,7 +298,7 @@ export function OpsTab() {
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Saúde dos SDKs e APIs de terceiros</p>
           
           <div className="space-y-3">
-            {activeIntegrations.map(integ => (
+            {activeIntegrationsSafe.map(integ => (
               <div key={integ.name} className="flex justify-between items-center text-xs p-2.5 bg-zinc-900/20 border border-zinc-850 rounded-lg">
                 <span className="font-bold text-zinc-200">{integ.name}</span>
                 <HealthBadge status="healthy" label="OK" />

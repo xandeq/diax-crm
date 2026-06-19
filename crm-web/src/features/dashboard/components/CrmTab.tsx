@@ -73,13 +73,25 @@ export function CrmTab() {
     cityAllocation,
   } = data;
 
-  const totalActiveLeads = funnel.lead + funnel.contacted + funnel.qualified + funnel.negotiating;
+  // Defensive safeguards
+  const funnelSafe = funnel || { lead: 0, contacted: 0, qualified: 0, negotiating: 0, customer: 0 };
+  const segmentsSafe = segments || { hot: 0, warm: 0, cold: 0 };
+  const sourcesSafe = sources || { manual: 0, scraping: 0, import: 0, googleMaps: 0 };
+  const avgLeadScoreSafe = typeof avgLeadScore === 'number' ? avgLeadScore : 0;
+  const stageConversionsSafe = Array.isArray(stageConversions) ? stageConversions : [];
+  const bottlenecksSafe = Array.isArray(bottlenecks) ? bottlenecks : [];
+  const recentLeadsSafe = Array.isArray(recentLeads) ? recentLeads : [];
+  const topOpportunitiesSafe = Array.isArray(topOpportunities) ? topOpportunities : [];
+  const staleLeadsSafe = Array.isArray(staleLeads) ? staleLeads : [];
+  const cityAllocationSafe = Array.isArray(cityAllocation) ? cityAllocation : [];
+
+  const totalActiveLeads = funnelSafe.lead + funnelSafe.contacted + funnelSafe.qualified + funnelSafe.negotiating;
 
   const kpis = [
     { label: 'Total Leads Ativos', value: totalActiveLeads, color: C.info, icon: <Users size={14} /> },
-    { label: 'Clientes Ganhos', value: funnel.customer, color: C.primary, icon: <UserCheck size={14} /> },
-    { label: 'Lead Score Médio', value: avgLeadScore, suffix: '/100', color: avgLeadScore >= 60 ? C.success : C.warn, icon: <Target size={14} /> },
-    { label: 'Gargalo no Funil', value: bottlenecks[0] ? bottlenecks[0].drop : 0, suffix: '% drop', color: bottlenecks[0]?.drop > 50 ? C.loss : C.warn, icon: <AlertTriangle size={14} /> },
+    { label: 'Clientes Ganhos', value: funnelSafe.customer, color: C.primary, icon: <UserCheck size={14} /> },
+    { label: 'Lead Score Médio', value: avgLeadScoreSafe, suffix: '/100', color: avgLeadScoreSafe >= 60 ? C.success : C.warn, icon: <Target size={14} /> },
+    { label: 'Gargalo no Funil', value: bottlenecksSafe[0] ? bottlenecksSafe[0].drop : 0, suffix: '% drop', color: bottlenecksSafe[0]?.drop > 50 ? C.loss : C.warn, icon: <AlertTriangle size={14} /> },
   ];
 
   return (
@@ -93,14 +105,21 @@ export function CrmTab() {
 
       {/* Valores do Funil Comercial */}
       <div className="p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
-        <h3 className="text-sm font-bold text-zinc-100 mb-1">Valores do Funil Comercial</h3>
-        <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Valor potencial estimado retido por etapa de conversão</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <h3 className="text-sm font-bold text-zinc-100 mb-1">Valores do Funil Comercial</h3>
+            <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">Valor potencial estimado retido por etapa de conversão</p>
+          </div>
+          <span className="text-[10px] text-teal-400 font-bold bg-teal-500/10 px-2.5 py-1 rounded-lg border border-teal-500/20 self-start sm:self-center shrink-0">
+            * Alimenta o Money Radar da Visão Geral
+          </span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Leads', count: funnel.lead, value: funnel.lead * 1500, color: '#6366F1' },
-            { label: 'Contato', count: funnel.contacted, value: funnel.contacted * 3000, color: '#8B5CF6' },
-            { label: 'Qualificados', count: funnel.qualified, value: funnel.qualified * 5000, color: '#A78BFA' },
-            { label: 'Negociação', count: funnel.negotiating, value: funnel.negotiating * 10000, color: '#EC4899' },
+            { label: 'Leads', count: funnelSafe.lead, value: funnelSafe.lead * 1500, color: '#6366F1' },
+            { label: 'Contato', count: funnelSafe.contacted, value: funnelSafe.contacted * 3000, color: '#8B5CF6' },
+            { label: 'Qualificados', count: funnelSafe.qualified, value: funnelSafe.qualified * 5000, color: '#A78BFA' },
+            { label: 'Negociação', count: funnelSafe.negotiating, value: funnelSafe.negotiating * 10000, color: '#EC4899' },
           ].map(stage => (
             <div key={stage.label} className="p-3.5 bg-zinc-900/30 border border-zinc-850 rounded-xl relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: stage.color }} />
@@ -120,7 +139,7 @@ export function CrmTab() {
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Conversão de Estágios</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Porcentagem de conversão entre etapas do pipeline</p>
           <div className="space-y-3">
-            {stageConversions.map((conv, idx) => (
+            {stageConversionsSafe.map((conv, idx) => (
               <div key={idx} className="p-3 bg-zinc-900/30 border border-zinc-850 rounded-xl flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-zinc-200">{conv.from}</span>
@@ -145,7 +164,7 @@ export function CrmTab() {
             <ApexChart
               type="donut"
               height={220}
-              series={[sources.manual, sources.scraping, sources.import, sources.googleMaps]}
+              series={[sourcesSafe.manual, sourcesSafe.scraping, sourcesSafe.import, sourcesSafe.googleMaps]}
               options={{
                 chart: { background: 'transparent' },
                 labels: ['Manual', 'Scraping', 'Importação', 'Google Maps'],
@@ -168,9 +187,9 @@ export function CrmTab() {
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Distribuição de leads por interesse</p>
           <div className="space-y-4">
             {[
-              { label: 'Hot (Alto interesse)', count: segments.hot, pct: totalActiveLeads > 0 ? (segments.hot / totalActiveLeads) * 100 : 0, color: '#EF4444' },
-              { label: 'Warm (Interesse médio)', count: segments.warm, pct: totalActiveLeads > 0 ? (segments.warm / totalActiveLeads) * 100 : 0, color: '#F59E0B' },
-              { label: 'Cold (Baixo interesse)', count: segments.cold, pct: totalActiveLeads > 0 ? (segments.cold / totalActiveLeads) * 100 : 0, color: '#3B82F6' },
+              { label: 'Hot (Alto interesse)', count: segmentsSafe.hot, pct: totalActiveLeads > 0 ? (segmentsSafe.hot / totalActiveLeads) * 100 : 0, color: '#EF4444' },
+              { label: 'Warm (Interesse médio)', count: segmentsSafe.warm, pct: totalActiveLeads > 0 ? (segmentsSafe.warm / totalActiveLeads) * 100 : 0, color: '#F59E0B' },
+              { label: 'Cold (Baixo interesse)', count: segmentsSafe.cold, pct: totalActiveLeads > 0 ? (segmentsSafe.cold / totalActiveLeads) * 100 : 0, color: '#3B82F6' },
             ].map(seg => (
               <div key={seg.label} className="space-y-1.5">
                 <div className="flex justify-between text-xs">
@@ -188,9 +207,9 @@ export function CrmTab() {
         <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Geografia de Prospecção</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Maiores pólos de captação (estimado)</p>
-          {cityAllocation.length > 0 ? (
+          {cityAllocationSafe.length > 0 ? (
             <div className="space-y-3">
-              {cityAllocation.map((city, idx) => (
+              {cityAllocationSafe.map((city, idx) => (
                 <div key={city.name} className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-zinc-300">{idx + 1}. {city.name}</span>
                   <span className="px-2 py-0.5 font-mono font-bold text-teal-400 bg-teal-500/10 rounded-full border border-teal-500/20">
@@ -210,9 +229,9 @@ export function CrmTab() {
           <div>
             <h3 className="text-sm font-bold text-zinc-100 mb-1">Leads Ociosos</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Leads ativos sem contato há mais de 7 dias</p>
-            {staleLeads.length > 0 ? (
+            {staleLeadsSafe.length > 0 ? (
               <div className="space-y-2.5">
-                {staleLeads.slice(0, 5).map(lead => {
+                {staleLeadsSafe.slice(0, 5).map(lead => {
                   const days = lead.lastContactAt
                     ? Math.floor((Date.now() - new Date(lead.lastContactAt).getTime()) / (1000 * 60 * 60 * 24))
                     : 7;
@@ -260,7 +279,7 @@ export function CrmTab() {
             </Button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs border-collapse responsive-table">
               <thead>
                 <tr className="border-b border-zinc-800/80 text-zinc-500 font-bold uppercase tracking-wider">
                   <th className="py-2.5">Nome</th>
@@ -271,17 +290,17 @@ export function CrmTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-900">
-                {recentLeads.slice(0, 6).map(lead => (
+                {recentLeadsSafe.slice(0, 6).map(lead => (
                   <tr key={lead.id} className="hover:bg-zinc-900/10">
-                    <td className="py-2.5 font-bold text-zinc-200">{lead.name}</td>
-                    <td className="py-2.5">
+                    <td className="py-2.5 font-bold text-zinc-200" data-label="Nome">{lead.name}</td>
+                    <td className="py-2.5" data-label="Status">
                       <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-zinc-800 text-zinc-400">
                         {lead.status === 4 ? 'Cliente' : lead.status === 0 ? 'Lead' : 'Em Contato'}
                       </span>
                     </td>
-                    <td className="py-2.5 text-zinc-400">{lead.companyName || '—'}</td>
-                    <td className="py-2.5 font-mono font-bold text-zinc-300">{lead.leadScore ?? '—'}</td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-2.5 text-zinc-400" data-label="Empresa">{lead.companyName || '—'}</td>
+                    <td className="py-2.5 font-mono font-bold text-zinc-300" data-label="Score">{lead.leadScore ?? '—'}</td>
+                    <td className="py-2.5 text-right" data-label="Ações">
                       <Button asChild size="icon" variant="ghost" className="h-7 w-7 text-zinc-400 hover:text-zinc-100">
                         <Link href={`/leads`}>
                           <ArrowRight className="h-3.5 w-3.5" />
@@ -298,9 +317,9 @@ export function CrmTab() {
         <div className="lg:col-span-4 p-5 bg-zinc-950/20 border border-zinc-900/80 rounded-2xl backdrop-blur-xl">
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Maiores Oportunidades</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Leads com alta intenção comercial</p>
-          {topOpportunities.length > 0 ? (
+          {topOpportunitiesSafe.length > 0 ? (
             <div className="space-y-3">
-              {topOpportunities.slice(0, 5).map(lead => {
+              {topOpportunitiesSafe.slice(0, 5).map(lead => {
                 const waNumber = (lead.whatsApp || lead.phone || '').replace(/\D/g, '');
                 const waUrl = waNumber ? `https://wa.me/${waNumber}` : null;
                 const emailUrl = lead.email ? `mailto:${lead.email}` : null;

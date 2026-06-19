@@ -94,6 +94,15 @@ export function FinanceTab() {
     alerts,
   } = data;
 
+  // Defensive safeguards
+  const accountsSafe = Array.isArray(accounts) ? accounts : [];
+  const creditCardsSafe = Array.isArray(creditCards) ? creditCards : [];
+  const nearClosingClosingCardsSafe = Array.isArray(nearClosingClosingCards) ? nearClosingClosingCards : [];
+  const goalsSafe = Array.isArray(goals) ? goals : [];
+  const categoryExpensesSafe = Array.isArray(categoryExpenses) ? categoryExpenses : [];
+  const recentTransactionsSafe = Array.isArray(recentTransactions) ? recentTransactions : [];
+  const alertsSafe = Array.isArray(alerts) ? alerts : [];
+
   const getRiskForDays = (days: number) => {
     if (!simulation || !simulation.dailyBalances) return 'no-data';
     const limitDate = new Date();
@@ -110,16 +119,16 @@ export function FinanceTab() {
   const risk30 = getRiskForDays(30);
 
   const saasKeywords = ["AWS", "Figma", "Brevo", "Vercel", "HostGator", "Google", "GitHub", "Vexor", "n8n", "Evolution", "Microsoft", "OpenAI", "Claude"];
-  const saasExpenses = curr?.expenses?.filter((t: any) => 
-    saasKeywords.some(keyword => t.description?.toLowerCase().includes(keyword.toLowerCase()))
-  ) || [];
+  const saasExpenses = Array.isArray(curr?.expenses) ? curr.expenses.filter((t: any) => 
+    t && saasKeywords.some(keyword => t.description?.toLowerCase().includes(keyword.toLowerCase()))
+  ) : [];
   const saasTotal = saasExpenses.reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0);
 
-  const unpaidExpenses = curr?.expenses?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0) || 0;
-  const unpaidIncomes = curr?.incomes?.filter((t: any) => t.status === 1).reduce((acc: number, t: any) => acc + t.amount, 0) || 0;
+  const unpaidExpenses = Array.isArray(curr?.expenses) ? curr.expenses.filter((t: any) => t && t.status === 1).reduce((acc: number, t: any) => acc + Math.abs(t.amount), 0) : 0;
+  const unpaidIncomes = Array.isArray(curr?.incomes) ? curr.incomes.filter((t: any) => t && t.status === 1).reduce((acc: number, t: any) => acc + t.amount, 0) : 0;
 
   const kpis = [
-    { label: 'Saldo em Contas', value: accounts.reduce((acc, a) => acc + a.balance, 0), prefix: 'R$ ', color: C.primary, icon: <Landmark size={14} /> },
+    { label: 'Saldo em Contas', value: accountsSafe.reduce((acc, a) => acc + (a?.balance || 0), 0), prefix: 'R$ ', color: C.primary, icon: <Landmark size={14} /> },
     { label: 'Receitas do Mês', value: income, prefix: 'R$ ', delta: revMoM !== 0 ? `${revMoM > 0 ? '+' : ''}${revMoM.toFixed(1)}%` : undefined, up: revMoM >= 0, color: C.success, icon: <DollarSign size={14} /> },
     { label: 'Despesas do Mês', value: expenses, prefix: 'R$ ', delta: expMoM !== 0 ? `${expMoM > 0 ? '+' : ''}${expMoM.toFixed(1)}%` : undefined, up: expMoM <= 0, color: C.warn, icon: <Wallet size={14} /> },
     { label: 'Fluxo de Caixa', value: Math.abs(cashFlow), prefix: cashFlow >= 0 ? 'R$ ' : 'R$ -', color: cashFlow >= 0 ? C.success : C.loss, icon: <PiggyBank size={14} /> },
@@ -135,9 +144,9 @@ export function FinanceTab() {
   return (
     <div className="space-y-6">
       {/* Alerts banner */}
-      {alerts.length > 0 && (
+      {alertsSafe.length > 0 && (
         <div className="space-y-2">
-          {alerts.map((alert, idx) => (
+          {alertsSafe.map((alert, idx) => (
             <div key={idx} className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-semibold">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>{alert}</span>
@@ -210,9 +219,12 @@ export function FinanceTab() {
           <div>
             <h3 className="text-sm font-bold text-zinc-100">Análise de Risco de Caixa</h3>
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Previsão temporal de liquidez baseada na simulação diária</p>
+            <p className="text-[10px] text-teal-400/80 font-medium mt-1">
+              * Projeções e faturas pendentes de CRM e despesas diárias retroalimentam este modelo preditivo.
+            </p>
           </div>
           
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { label: 'Próximos 7 dias', status: risk7 },
               { label: 'Próximos 15 dias', status: risk15 },
@@ -273,7 +285,7 @@ export function FinanceTab() {
             </Button>
           </div>
           <div className="space-y-2.5">
-            {accounts.map(acc => (
+            {accountsSafe.map(acc => (
               <div key={acc.id} className="p-3 bg-zinc-900/30 border border-zinc-850 rounded-xl flex justify-between items-center text-xs">
                 <div>
                   <div className="font-bold text-zinc-250">{acc.name}</div>
@@ -294,7 +306,7 @@ export function FinanceTab() {
             </Button>
           </div>
           <div className="space-y-2.5">
-            {nearClosingClosingCards.map(card => (
+            {nearClosingClosingCardsSafe.map(card => (
               <div key={card.id} className="p-3 bg-zinc-900/30 border border-zinc-850 rounded-xl flex justify-between items-center text-xs">
                 <div>
                   <div className="font-bold text-zinc-250">{card.name}</div>
@@ -323,7 +335,7 @@ export function FinanceTab() {
             </Button>
           </div>
           <div className="space-y-3">
-            {goals.slice(0, 3).map(goal => {
+            {goalsSafe.slice(0, 3).map(goal => {
               const pct = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
               return (
                 <div key={goal.id} className="space-y-1.5 text-xs">
@@ -352,7 +364,7 @@ export function FinanceTab() {
           <h3 className="text-sm font-bold text-zinc-100 mb-1">Distribuição de Gastos</h3>
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Mapeamento de custos agrupados por categoria</p>
           <div className="space-y-3.5">
-            {categoryExpenses.slice(0, 5).map((cat, idx) => (
+            {categoryExpensesSafe.slice(0, 5).map((cat, idx) => (
               <div key={cat.name} className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="font-bold text-zinc-300">{cat.name}</span>
@@ -384,10 +396,10 @@ export function FinanceTab() {
             </Button>
           </div>
           <div className="space-y-2.5">
-            {recentTransactions.slice(0, 5).map(t => (
+            {recentTransactionsSafe.slice(0, 5).map(t => (
               <div key={t.id} className="p-2.5 bg-zinc-900/20 border border-zinc-850 rounded-lg flex items-center justify-between text-xs">
                 <div className="truncate pr-2 max-w-[70%]">
-                  <div className="font-bold text-zinc-200 truncate">{t.description}</div>
+                  <div className="font-bold text-zinc-250 truncate">{t.description}</div>
                   <div className="text-[10px] text-zinc-500 truncate">{t.categoryName || 'Geral'}</div>
                 </div>
                 <div className="text-right shrink-0">

@@ -70,29 +70,39 @@ export function MarketingTab() {
 
   const { outreach, whatsapp, campaigns, queue, providerHealth, stats, nextSafeSendTime, channels } = data;
 
+  // Defensive safeguards
+  const campaignsSafe = Array.isArray(campaigns) ? campaigns : [];
+  const queueSafe = Array.isArray(queue) ? queue : [];
+  const providerHealthSafe = Array.isArray(providerHealth) ? providerHealth : [];
+  const channelsSafe = Array.isArray(channels) ? channels : [];
+  const statsSafe = stats || { totalSent: 0, openRate: 0, clickRate: 0 };
+  const whatsappSafe = whatsapp || { status: 'degraded', connected: false, instanceName: 'Evolution', sentToday: 0, queuedMessages: 0 };
+
   const kpis = [
-    { label: 'Emails Enviados', value: stats.totalSent, color: C.info, icon: <Mail size={14} /> },
-    { label: 'Campanhas Realizadas', value: campaigns.length, color: C.primary, icon: <Send size={14} /> },
-    { label: 'Abertura Média', value: stats.openRate, suffix: '%', color: stats.openRate >= 20 ? C.success : C.warn, icon: <CheckCircle size={14} /> },
-    { label: 'Cliques Médios', value: stats.clickRate, suffix: '%', color: C.accent, icon: <CheckCircle size={14} /> },
+    { label: 'Emails Enviados', value: statsSafe.totalSent, color: C.info, icon: <Mail size={14} /> },
+    { label: 'Campanhas Realizadas', value: campaignsSafe.length, color: C.primary, icon: <Send size={14} /> },
+    { label: 'Abertura Média', value: statsSafe.openRate, suffix: '%', color: statsSafe.openRate >= 20 ? C.success : C.warn, icon: <CheckCircle size={14} /> },
+    { label: 'Cliques Médios', value: statsSafe.clickRate, suffix: '%', color: C.accent, icon: <CheckCircle size={14} /> },
   ];
 
   const lowPerformanceAlerts = [];
-  if (stats.openRate < 15) {
-    lowPerformanceAlerts.push(`Alerta: Taxa de abertura de e-mail abaixo do esperado (${stats.openRate}%). Recomendamos otimizar assuntos e testar layouts.`);
+  if (statsSafe.openRate < 15) {
+    lowPerformanceAlerts.push(`Alerta: Taxa de abertura de e-mail abaixo do esperado (${statsSafe.openRate}%). Recomendamos otimizar assuntos e testar layouts.`);
   }
   if (outreach && outreach.failedInQueue !== undefined && outreach.failedInQueue > 5) {
     lowPerformanceAlerts.push(`Crítico: Existem ${outreach.failedInQueue} disparos com falha na fila SMTP. Verifique as credenciais dos provedores.`);
   }
+
+  const lowPerformanceAlertsSafe = lowPerformanceAlerts;
 
   const extracted = briefingData?.extracted;
 
   return (
     <div className="space-y-6">
       {/* Alerts section */}
-      {lowPerformanceAlerts.length > 0 && (
+      {lowPerformanceAlertsSafe.length > 0 && (
         <div className="space-y-2">
-          {lowPerformanceAlerts.map((alert, idx) => (
+          {lowPerformanceAlertsSafe.map((alert, idx) => (
             <div key={idx} className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-semibold">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>{alert}</span>
@@ -118,7 +128,7 @@ export function MarketingTab() {
                 <h3 className="text-sm font-bold text-zinc-100">WhatsApp Integration</h3>
                 <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Evolution API (Baileys v2)</p>
               </div>
-              <HealthBadge status={whatsapp.status} label={whatsapp.connected ? 'Conectado' : 'Desconectado'} />
+              <HealthBadge status={whatsappSafe.status} label={whatsappSafe.connected ? 'Conectado' : 'Desconectado'} />
             </div>
             
             <div className="space-y-3.5 mt-2">
@@ -126,18 +136,18 @@ export function MarketingTab() {
                 <Smartphone className="h-5 w-5 text-teal-400 shrink-0" />
                 <div>
                   <div className="text-xs font-bold text-zinc-300">Instância ativa</div>
-                  <div className="text-[10px] text-zinc-500 font-mono mt-0.5">{whatsapp.instanceName}</div>
+                  <div className="text-[10px] text-zinc-500 font-mono mt-0.5">{whatsappSafe.instanceName}</div>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 pt-1">
                 <div>
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Disparados hoje</div>
-                  <div className="text-lg font-bold text-zinc-200 font-mono mt-0.5">{whatsapp.sentToday}</div>
+                  <div className="text-lg font-bold text-zinc-200 font-mono mt-0.5">{whatsappSafe.sentToday}</div>
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Aguardando na fila</div>
-                  <div className="text-lg font-bold text-zinc-200 font-mono mt-0.5">{whatsapp.queuedMessages}</div>
+                  <div className="text-lg font-bold text-zinc-200 font-mono mt-0.5">{whatsappSafe.queuedMessages}</div>
                 </div>
               </div>
             </div>
@@ -188,8 +198,8 @@ export function MarketingTab() {
             <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Saúde e limites operacionais dos provedores</p>
             
             <div className="space-y-2 max-h-36 overflow-y-auto scrollbar-none pr-1">
-              {providerHealth.length > 0 ? (
-                providerHealth.map(prov => (
+              {providerHealthSafe.length > 0 ? (
+                providerHealthSafe.map(prov => (
                   <div key={prov.provider} className="flex justify-between items-center text-xs">
                     <span className="font-bold text-zinc-300 truncate max-w-[50%]">{prov.provider}</span>
                     <div className="flex items-center gap-2">
@@ -231,7 +241,7 @@ export function MarketingTab() {
               <div>
                 <div className="flex justify-between items-center mb-2.5">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-emerald-400" />
+                    <MessageSquare className="h-4.5 w-4.5 text-emerald-400" />
                     <span className="text-xs font-bold text-zinc-200">WhatsApp Outreach Copy</span>
                   </div>
                   <Button 
@@ -254,7 +264,7 @@ export function MarketingTab() {
               <div>
                 <div className="flex justify-between items-center mb-2.5">
                   <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-pink-400" />
+                    <Mail className="h-4.5 w-4.5 text-pink-400" />
                     <span className="text-xs font-bold text-zinc-200">Email Campaign Copy</span>
                   </div>
                   <Button 
@@ -282,10 +292,13 @@ export function MarketingTab() {
             <div>
               <h3 className="text-sm font-bold text-zinc-100">Desempenho por Canal</h3>
               <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mt-0.5">Retorno e atração estimados por via de outreach</p>
+              <p className="text-[10px] text-teal-400/80 font-medium mt-1">
+                * O volume e CTR destas campanhas impulsionam diretamente a captação de leads e a receita potencial aberta no CRM.
+              </p>
             </div>
           </div>
           <div className="space-y-4">
-            {channels.map((chan, idx) => (
+            {channelsSafe.map((chan, idx) => (
               <div key={idx} className="p-4 bg-zinc-900/30 border border-zinc-850 rounded-xl space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold text-zinc-200">{chan.channel}</span>
@@ -318,8 +331,8 @@ export function MarketingTab() {
           <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider mb-4">Últimos itens processados na fila</p>
           
           <div className="space-y-2.5 max-h-80 overflow-y-auto scrollbar-none pr-1">
-            {queue.length > 0 ? (
-              queue.slice(0, 5).map(item => (
+            {queueSafe.length > 0 ? (
+              queueSafe.slice(0, 5).map(item => (
                 <div key={item.id} className="p-2.5 bg-zinc-900/20 border border-zinc-850 rounded-lg flex items-center justify-between text-xs">
                   <div className="truncate pr-2 max-w-[70%]">
                     <div className="font-bold text-zinc-200 truncate">{item.recipientName || item.recipientEmail}</div>
