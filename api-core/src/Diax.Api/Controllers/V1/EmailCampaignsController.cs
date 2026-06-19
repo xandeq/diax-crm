@@ -172,4 +172,16 @@ public class EmailCampaignsController : BaseApiController
         var result = await _emailMarketingService.GetPilotStatusAsync(campaignId, cancellationToken);
         return HandleResult(result);
     }
+
+    /// <summary>
+    /// Reset manual do Circuit Breaker do piloto (admin). Fecha o circuito sem precisar
+    /// reiniciar a aplicação. Útil quando o breaker abriu por falhas transitórias.
+    /// </summary>
+    [HttpPost("pilot/reset")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ResetPilotCircuitBreaker()
+    {
+        var result = await _emailMarketingService.ResetCircuitBreakerAsync();
+        return HandleResult(result);
+    }
 }

@@ -1306,4 +1306,25 @@ public class EmailMarketingService : IApplicationService
 
         return Result.Success(response);
     }
+
+    /// <summary>
+    /// Reset manual (admin) do Circuit Breaker do piloto. Fecha o circuito e limpa a
+    /// janela de falhas, dispensando o restart da aplicação. Não há reabertura automática.
+    /// </summary>
+    public Task<Result<PilotResetResponse>> ResetCircuitBreakerAsync()
+    {
+        var wasOpen = _circuitBreaker.IsOpen;
+        var previousReason = _circuitBreaker.Reason;
+
+        _circuitBreaker.Reset();
+
+        var response = new PilotResetResponse
+        {
+            WasOpen = wasOpen,
+            PreviousReason = previousReason,
+            IsOpenNow = _circuitBreaker.IsOpen
+        };
+
+        return Task.FromResult(Result.Success(response));
+    }
 }

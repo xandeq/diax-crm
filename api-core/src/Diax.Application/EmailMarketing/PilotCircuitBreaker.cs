@@ -93,6 +93,15 @@ public class PilotCircuitBreaker : IPilotCircuitBreaker
 
     public void RecordFailure(string errorMsg)
     {
+        // Erros de rate-limit (HTTP 429) são transitórios: o provedor está
+        // momentaneamente saturado, não há problema de credencial nem de dado.
+        // Não contam para a taxa de erro nem abrem o circuito — o item volta para
+        // retry (e a rotação tende a usar outro provedor na próxima tentativa).
+        if (IsTransientRateLimit(errorMsg))
+        {
+            return;
+        }
+
         _recentSends.Enqueue(false);
         TrimSlidingWindow();
 
@@ -144,5 +153,24 @@ public class PilotCircuitBreaker : IPilotCircuitBreaker
         {
             _recentSends.TryDequeue(out _);
         }
+    }
+
+    /// <summary>
+    /// Detecta erros de limite de taxa (HTTP 429 / "Too Many Requests" / "rate limit"),
+    /// que são transitórios e não devem disparar o circuit breaker.
+    /// </summary>
+    private static bool IsTransientRateLimit(string errorMsg)
+    {
+        if (string.IsNullOrEmpty(errorMsg))
+        {
+            return false;
+        }
+
+        return errorMsg.Contains("429", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("too many requests", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("rate limit", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("rate_limit", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("ratelimit", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("too_many_requests", StringComparison.OrdinalIgnoreCase);
     }
 }
