@@ -81,6 +81,39 @@ public class BrevoWebhookHardeningTests
     }
 
     [Fact]
+    public async Task HandleWebhook_OpenedEvent_IncrementsCampaign_ViaQueueItemCampaignId_WhenTagIsNotGuid()
+    {
+        // Regressão: o Brevo às vezes ecoa o tag como array-string (["<guid>"]),
+        // que Guid.TryParse rejeita. O contador da campanha deve subir mesmo assim,
+        // resolvendo a campanha pelo CampaignId do item (como o fluxo de 'delivered').
+        var campaignId = Guid.NewGuid();
+        var payload = new BrevoWebhookPayload
+        {
+            Event = "opened",
+            Email = "lead@empresa.com.br",
+            MessageId = "msg-open-xyz",
+            Tag = "[\"" + campaignId + "\"]" // NÃO é um GUID puro
+        };
+
+        var queueItem = new EmailQueueItem(Guid.NewGuid(), "Lead", "lead@empresa.com.br", "Assunto", "Corpo", DateTime.UtcNow, Guid.NewGuid(), null, campaignId);
+        _queueRepoMock
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<EmailQueueItem, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<EmailQueueItem> { queueItem });
+
+        var campaign = new EmailCampaign(Guid.NewGuid(), "Campanha", "Assunto", "<p>Corpo</p>");
+        _campaignRepoMock
+            .Setup(c => c.GetByIdAsync(campaignId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(campaign);
+
+        var result = await _sut.HandleWebhook(payload, CancellationToken.None);
+
+        Assert.IsType<OkResult>(result);
+        _campaignRepoMock.Verify(c => c.GetByIdAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(1, campaign.OpenCount); // contador da campanha subiu
+        Assert.NotNull(queueItem.OpenedAt);  // abertura registrada no item
+    }
+
+    [Fact]
     public async Task HandleWebhook_ShouldBeIdempotent_ForOpenedEvent()
     {
         // Arrange

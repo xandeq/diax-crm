@@ -203,13 +203,15 @@ public class BrevoWebhookController : BaseApiController
 
         var queueItem = items.FirstOrDefault();
 
+        // Idempotência por item: só conta a PRIMEIRA abertura (open count = aberturas únicas).
+        if (queueItem != null && queueItem.OpenedAt.HasValue)
+        {
+            _logger.LogInformation("Opened event ignored (already opened): ProviderMessageId={MessageId}", payload.MessageId);
+            return;
+        }
+
         if (queueItem != null)
         {
-            if (queueItem.OpenedAt.HasValue)
-            {
-                _logger.LogInformation("Opened event ignored (already opened): ProviderMessageId={MessageId}", payload.MessageId);
-                return;
-            }
             queueItem.RecordOpen();
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             _logger.LogInformation(
@@ -217,10 +219,14 @@ public class BrevoWebhookController : BaseApiController
                 queueItem.Id, payload.MessageId, queueItem.ReadCount);
         }
 
-        // Try to find campaign by tag (which contains the campaign ID)
-        if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var campaignId))
+        // Incrementa o contador da campanha pelo CampaignId do item (robusto, igual ao
+        // fluxo de 'delivered'), com fallback para o tag por compatibilidade. O tag do
+        // Brevo nem sempre chega como GUID puro, então não dá para depender só dele.
+        var campaignId = queueItem?.CampaignId
+            ?? (Guid.TryParse(payload.Tag, out var tagId) ? tagId : (Guid?)null);
+        if (campaignId.HasValue)
         {
-            var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId, cancellationToken);
+            var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId.Value, cancellationToken);
             if (campaign != null)
             {
                 campaign.IncrementOpened();
@@ -229,20 +235,18 @@ public class BrevoWebhookController : BaseApiController
 
                 _logger.LogInformation(
                     "Open count incremented for CampaignId={CampaignId}, new OpenCount={OpenCount}",
-                    campaignId, campaign.OpenCount);
+                    campaignId.Value, campaign.OpenCount);
             }
             else
             {
-                _logger.LogWarning(
-                    "Campaign not found for opened event: CampaignId={CampaignId}",
-                    campaignId);
+                _logger.LogWarning("Campaign not found for opened event: CampaignId={CampaignId}", campaignId.Value);
             }
         }
         else
         {
             _logger.LogDebug(
-                "Opened event without valid campaign tag: email={Email}, tag={Tag}",
-                payload.Email, payload.Tag);
+                "Opened event sem campanha resolvível: email={Email}, messageId={MessageId}, tag={Tag}",
+                payload.Email, payload.MessageId, payload.Tag);
         }
     }
 
@@ -255,40 +259,48 @@ public class BrevoWebhookController : BaseApiController
         if (string.IsNullOrWhiteSpace(payload.MessageId))
             return;
 
-        // Try to find campaign by tag
-        if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var campaignId))
+        // Resolve a campanha pelo CampaignId do item (robusto), com fallback para o tag.
+        var items = await _emailQueueRepository.FindAsync(
+            q => q.ProviderMessageId == payload.MessageId, cancellationToken);
+        var queueItem = items.FirstOrDefault();
+        var campaignId = queueItem?.CampaignId
+            ?? (Guid.TryParse(payload.Tag, out var tagId) ? tagId : (Guid?)null);
+        if (!campaignId.HasValue)
         {
-            // Idempotency check: check if click already logged for this messageId
-            var logs = await _auditLogRepository.GetByResourceAsync("PilotCampaign", campaignId.ToString(), cancellationToken);
-            var alreadyClicked = logs.Any(l => l.Description.Contains("PilotEmailClicked") && l.NewValues != null && l.NewValues.Contains(payload.MessageId));
-            if (alreadyClicked)
-            {
-                _logger.LogInformation("Click event ignored (already clicked): ProviderMessageId={MessageId}", payload.MessageId);
-                return;
-            }
+            _logger.LogDebug("Click event sem campanha resolvível: messageId={MessageId}, tag={Tag}", payload.MessageId, payload.Tag);
+            return;
+        }
 
-            var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId, cancellationToken);
-            if (campaign != null)
-            {
-                campaign.IncrementClick();
-                await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
- 
-                // Log click audit event
-                await LogPilotEventAsync(
-                    "PilotEmailClicked",
-                    "Success",
-                    campaignId,
-                    1,
-                    false,
-                    $"Email click detectado para {payload.Email}. MsgId: {payload.MessageId}",
-                    cancellationToken,
-                    payload.MessageId);
+        // Idempotency check: check if click already logged for this messageId
+        var logs = await _auditLogRepository.GetByResourceAsync("PilotCampaign", campaignId.Value.ToString(), cancellationToken);
+        var alreadyClicked = logs.Any(l => l.Description.Contains("PilotEmailClicked") && l.NewValues != null && l.NewValues.Contains(payload.MessageId));
+        if (alreadyClicked)
+        {
+            _logger.LogInformation("Click event ignored (already clicked): ProviderMessageId={MessageId}", payload.MessageId);
+            return;
+        }
 
-                _logger.LogInformation(
-                    "Click count incremented for CampaignId={CampaignId}, new ClickCount={ClickCount}",
-                    campaignId, campaign.ClickCount);
-            }
+        var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId.Value, cancellationToken);
+        if (campaign != null)
+        {
+            campaign.IncrementClick();
+            await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Log click audit event
+            await LogPilotEventAsync(
+                "PilotEmailClicked",
+                "Success",
+                campaignId.Value,
+                1,
+                false,
+                $"Email click detectado para {payload.Email}. MsgId: {payload.MessageId}",
+                cancellationToken,
+                payload.MessageId);
+
+            _logger.LogInformation(
+                "Click count incremented for CampaignId={CampaignId}, new ClickCount={ClickCount}",
+                campaignId.Value, campaign.ClickCount);
         }
     }
 
