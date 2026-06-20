@@ -179,9 +179,9 @@ public class EmailCampaignsController : BaseApiController
     /// </summary>
     [HttpPost("pilot/reset")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> ResetPilotCircuitBreaker()
+    public async Task<IActionResult> ResetPilotCircuitBreaker(CancellationToken cancellationToken)
     {
-        var result = await _emailMarketingService.ResetCircuitBreakerAsync();
+        var result = await _emailMarketingService.ResetCircuitBreakerAsync(cancellationToken);
         return HandleResult(result);
     }
 }

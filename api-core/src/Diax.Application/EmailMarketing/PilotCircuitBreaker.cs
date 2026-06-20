@@ -93,10 +93,25 @@ public class PilotCircuitBreaker : IPilotCircuitBreaker
 
     public void RecordFailure(string errorMsg)
     {
-        // Erros de rate-limit (HTTP 429) são transitórios: o provedor está
-        // momentaneamente saturado, não há problema de credencial nem de dado.
-        // Não contam para a taxa de erro nem abrem o circuito — o item volta para
-        // retry (e a rotação tende a usar outro provedor na próxima tentativa).
+        errorMsg ??= string.Empty;
+
+        // Erros críticos (credencial/autenticação/bounce) abrem o circuito na hora —
+        // têm precedência sobre rate-limit, pois uma mensagem pode conter ambos
+        // (ex.: "429 ... invalid api key"). Nesse caso, vale o crítico.
+        if (IsCriticalError(errorMsg))
+        {
+            _recentSends.Enqueue(false);
+            TrimSlidingWindow();
+            lock (_lock)
+            {
+                Open($"Erro crítico de envio detectado: {errorMsg}");
+            }
+            return;
+        }
+
+        // Rate-limit (HTTP 429) é transitório: o provedor está momentaneamente saturado,
+        // não há problema de credencial nem de dado. Não conta para a taxa de erro nem
+        // abre o circuito — o item volta para retry (a rotação tende a trocar de provedor).
         if (IsTransientRateLimit(errorMsg))
         {
             return;
@@ -107,22 +122,16 @@ public class PilotCircuitBreaker : IPilotCircuitBreaker
 
         lock (_lock)
         {
-            // Se for erro crítico (Ex: bounce crítico ou autenticação) ou se passar da taxa de erro
-            if (errorMsg.Contains("bounce", StringComparison.OrdinalIgnoreCase) || 
-                errorMsg.Contains("unauthorized", StringComparison.OrdinalIgnoreCase) || 
-                errorMsg.Contains("autenticação", StringComparison.OrdinalIgnoreCase) || 
-                errorMsg.Contains("authentication", StringComparison.OrdinalIgnoreCase) ||
-                errorMsg.Contains("401", StringComparison.OrdinalIgnoreCase) ||
-                errorMsg.Contains("invalid api key", StringComparison.OrdinalIgnoreCase) ||
-                errorMsg.Contains("apikey", StringComparison.OrdinalIgnoreCase))
+            // Snapshot único (consistente) para taxa e contagem.
+            var snapshot = _recentSends.ToArray();
+            if (snapshot.Length >= 3)
             {
-                Open($"Erro crítico de envio detectado: {errorMsg}");
-                return;
-            }
-
-            if (CurrentErrorRate >= MaxErrorRatePercent && _recentSends.Count >= 3)
-            {
-                Open($"Taxa de erro excedeu o limite tolerado: {CurrentErrorRate:F1}%");
+                var failures = snapshot.Count(s => !s);
+                var errorRate = (double)failures / snapshot.Length * 100.0;
+                if (errorRate >= MaxErrorRatePercent)
+                {
+                    Open($"Taxa de erro excedeu o limite tolerado: {errorRate:F1}%");
+                }
             }
         }
     }
@@ -153,6 +162,21 @@ public class PilotCircuitBreaker : IPilotCircuitBreaker
         {
             _recentSends.TryDequeue(out _);
         }
+    }
+
+    /// <summary>
+    /// Detecta erros críticos (credencial/autenticação/bounce) que devem abrir o
+    /// circuito imediatamente, independentemente da taxa de erro.
+    /// </summary>
+    private static bool IsCriticalError(string errorMsg)
+    {
+        return errorMsg.Contains("bounce", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("unauthorized", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("autenticação", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("authentication", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("401", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("invalid api key", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("apikey", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

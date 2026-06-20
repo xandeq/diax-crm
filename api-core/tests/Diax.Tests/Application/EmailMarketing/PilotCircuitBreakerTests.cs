@@ -91,4 +91,54 @@ public class PilotCircuitBreakerTests
 
         Assert.True(breaker.IsOpen); // erros de autenticação são críticos e abrem na hora
     }
+
+    [Theory]
+    [InlineData("429 Too Many Requests - invalid api key")]
+    [InlineData("rate limit: unauthorized")]
+    [InlineData("429: authentication failed")]
+    public void CriticalError_TakesPrecedenceOverRateLimit(string msg)
+    {
+        var breaker = new PilotCircuitBreaker();
+
+        // Mensagem com token de rate-limit E de erro crítico: o crítico vence e abre.
+        breaker.RecordFailure(msg);
+
+        Assert.True(breaker.IsOpen);
+    }
+
+    [Fact]
+    public void TwoRealFailures_BelowWindowThreshold_DoNotOpen()
+    {
+        var breaker = new PilotCircuitBreaker();
+
+        // Menos de 3 envios na janela: nunca abre, mesmo a 100% de erro.
+        breaker.RecordFailure("connection refused");
+        breaker.RecordFailure("connection refused");
+
+        Assert.False(breaker.IsOpen);
+    }
+
+    [Fact]
+    public void RateLimit_DoesNotAddToWindow_VerifiedByErrorRate()
+    {
+        var breaker = new PilotCircuitBreaker();
+
+        breaker.RecordSuccess();
+        breaker.RecordSuccess();
+        breaker.RecordFailure("429 too many requests"); // ignorado, janela = [true, true]
+
+        Assert.Equal(0.0, breaker.CurrentErrorRate);
+        Assert.False(breaker.IsOpen);
+    }
+
+    [Fact]
+    public void RecordFailure_WithNull_DoesNotThrow()
+    {
+        var breaker = new PilotCircuitBreaker();
+
+        var ex = Record.Exception(() => breaker.RecordFailure(null!));
+
+        Assert.Null(ex);
+        Assert.False(breaker.IsOpen);
+    }
 }

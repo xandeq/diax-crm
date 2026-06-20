@@ -1311,12 +1311,23 @@ public class EmailMarketingService : IApplicationService
     /// Reset manual (admin) do Circuit Breaker do piloto. Fecha o circuito e limpa a
     /// janela de falhas, dispensando o restart da aplicação. Não há reabertura automática.
     /// </summary>
-    public Task<Result<PilotResetResponse>> ResetCircuitBreakerAsync()
+    public async Task<Result<PilotResetResponse>> ResetCircuitBreakerAsync(CancellationToken cancellationToken = default)
     {
         var wasOpen = _circuitBreaker.IsOpen;
         var previousReason = _circuitBreaker.Reason;
 
         _circuitBreaker.Reset();
+
+        // Auditoria: reabilitar envios reais após um trip é justamente o evento que
+        // mais importa rastrear (quem, quando, e qual era o motivo do bloqueio).
+        await LogPilotEventAsync(
+            "PilotCircuitBreakerReset",
+            "Reset",
+            Guid.Empty,
+            0,
+            false,
+            wasOpen ? $"Reset manual; motivo anterior: {previousReason}" : "Reset manual (circuito já estava fechado)",
+            cancellationToken);
 
         var response = new PilotResetResponse
         {
@@ -1325,6 +1336,6 @@ public class EmailMarketingService : IApplicationService
             IsOpenNow = _circuitBreaker.IsOpen
         };
 
-        return Task.FromResult(Result.Success(response));
+        return Result.Success(response);
     }
 }
