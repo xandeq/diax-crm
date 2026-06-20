@@ -91,7 +91,9 @@ public class BrevoEmailSender : IEmailSender
                     message.RecipientEmail,
                     result?.MessageId);
 
-                return EmailSendResult.Ok(result?.MessageId);
+                // Strip angle brackets that Brevo includes in the API response (<abc@smtp-relay.mailin.fr>)
+                // but omits in webhook events — keeping storage and lookup format consistent.
+                return EmailSendResult.Ok(result?.MessageId?.TrimStart('<').TrimEnd('>'));
             }
 
             _logger.LogWarning(

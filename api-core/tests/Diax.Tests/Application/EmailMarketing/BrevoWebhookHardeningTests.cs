@@ -51,6 +51,44 @@ public class BrevoWebhookHardeningTests
     }
 
     [Fact]
+    public async Task HandleWebhook_OpenedEvent_FindsQueueItem_WhenMessageIdHasAngleBrackets()
+    {
+        // Regressão: Brevo armazena MessageId com <> na API de envio mas omite no webhook.
+        // O handler deve casar ambos os formatos — sem isso openCount fica 0 sempre.
+        var campaignId = Guid.NewGuid();
+        var bareId = "202506191234.abc123@smtp-relay.mailin.fr";
+
+        var payload = new BrevoWebhookPayload
+        {
+            Event = "opened",
+            Email = "lead@empresa.com.br",
+            MessageId = bareId, // webhook envia SEM brackets
+            Tag = campaignId.ToString()
+        };
+
+        // Simula item armazenado COM brackets (comportamento do sender pré-fix)
+        var queueItem = new EmailQueueItem(Guid.NewGuid(), "Lead", "lead@empresa.com.br", "Assunto", "Corpo",
+            DateTime.UtcNow, Guid.NewGuid(), null, campaignId);
+        queueItem.MarkSent($"<{bareId}>");
+
+        _queueRepoMock
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<EmailQueueItem, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<EmailQueueItem> { queueItem });
+
+        var campaign = new EmailCampaign(Guid.NewGuid(), "Campanha", "Assunto", "<p>Corpo</p>");
+        _campaignRepoMock
+            .Setup(c => c.GetByIdAsync(campaignId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(campaign);
+
+        var result = await _sut.HandleWebhook(payload, CancellationToken.None);
+
+        Assert.IsType<OkResult>(result);
+        _campaignRepoMock.Verify(c => c.GetByIdAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(1, campaign.OpenCount);
+        Assert.NotNull(queueItem.OpenedAt);
+    }
+
+    [Fact]
     public async Task HandleWebhook_ShouldBeIdempotent_ForDeliveredEvent()
     {
         // Arrange

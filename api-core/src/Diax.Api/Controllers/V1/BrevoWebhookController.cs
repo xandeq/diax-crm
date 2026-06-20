@@ -151,8 +151,10 @@ public class BrevoWebhookController : BaseApiController
         if (string.IsNullOrWhiteSpace(payload.MessageId))
             return;
 
+        var normalized = NormalizeMessageId(payload.MessageId);
+        var bracketed = $"<{normalized}>";
         var items = await _emailQueueRepository.FindAsync(
-            q => q.ProviderMessageId == payload.MessageId,
+            q => q.ProviderMessageId == normalized || q.ProviderMessageId == bracketed,
             cancellationToken);
 
         var queueItem = items.FirstOrDefault();
@@ -197,8 +199,10 @@ public class BrevoWebhookController : BaseApiController
         if (string.IsNullOrWhiteSpace(payload.MessageId))
             return;
 
+        var normalized = NormalizeMessageId(payload.MessageId);
+        var bracketed = $"<{normalized}>";
         var items = await _emailQueueRepository.FindAsync(
-            q => q.ProviderMessageId == payload.MessageId,
+            q => q.ProviderMessageId == normalized || q.ProviderMessageId == bracketed,
             cancellationToken);
 
         var queueItem = items.FirstOrDefault();
@@ -260,8 +264,11 @@ public class BrevoWebhookController : BaseApiController
             return;
 
         // Resolve a campanha pelo CampaignId do item (robusto), com fallback para o tag.
+        var normalized = NormalizeMessageId(payload.MessageId);
+        var bracketed = $"<{normalized}>";
         var items = await _emailQueueRepository.FindAsync(
-            q => q.ProviderMessageId == payload.MessageId, cancellationToken);
+            q => q.ProviderMessageId == normalized || q.ProviderMessageId == bracketed,
+            cancellationToken);
         var queueItem = items.FirstOrDefault();
         var campaignId = queueItem?.CampaignId
             ?? (Guid.TryParse(payload.Tag, out var tagId) ? tagId : (Guid?)null);
@@ -399,6 +406,14 @@ public class BrevoWebhookController : BaseApiController
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
+
+    /// <summary>
+    /// Normaliza o MessageId removendo angle brackets que o Brevo inclui na API de envio
+    /// (<abc@smtp-relay.mailin.fr>) mas omite no evento de webhook (abc@smtp-relay.mailin.fr).
+    /// Garante lookup correto independente de como o ID foi armazenado.
+    /// </summary>
+    private static string NormalizeMessageId(string? messageId)
+        => messageId?.TrimStart('<').TrimEnd('>') ?? string.Empty;
 
     private async Task LogPilotEventAsync(
         string action,
