@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Diax.Domain.Common;
@@ -53,11 +54,19 @@ public class SendGridWebhookController : BaseApiController
 
     [HttpPost("")]
     [AllowAnonymous]
-    public async Task<IActionResult> HandleWebhook(
-        [FromBody] List<SendGridWebhookEvent> events,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> HandleWebhook(CancellationToken cancellationToken)
     {
-        // SendGrid signed webhook validation (optional — only if WebhookSecret configured)
+        // Read the raw body — required to verify the SendGrid signature over (timestamp + payload).
+        Request.EnableBuffering();
+        string rawBody;
+        using (var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
+        {
+            rawBody = await reader.ReadToEndAsync(cancellationToken);
+            Request.Body.Position = 0;
+        }
+
+        // SendGrid signed webhook validation. Enforced (fail-closed) when WebhookSecret (the ECDSA
+        // verification key) is configured; permissive only when it is left empty (deployment config gap).
         if (!string.IsNullOrWhiteSpace(_settings.WebhookSecret))
         {
             var signature = Request.Headers["X-Twilio-Email-Event-Webhook-Signature"].FirstOrDefault();
@@ -67,8 +76,26 @@ public class SendGridWebhookController : BaseApiController
                 _logger.LogWarning("SendGrid webhook sem assinatura obrigatória");
                 return Unauthorized();
             }
-            // Basic ECDSA verification skipped here for simplicity — log and proceed
-            _logger.LogDebug("SendGrid webhook signature present (full ECDSA verification not yet implemented)");
+            if (!VerifySignature(_settings.WebhookSecret, timestamp, rawBody, signature))
+            {
+                _logger.LogWarning("SendGrid webhook com assinatura inválida");
+                return Unauthorized();
+            }
+        }
+        else
+        {
+            _logger.LogDebug("SendGrid WebhookSecret não configurado — validação de assinatura ignorada.");
+        }
+
+        List<SendGridWebhookEvent>? events;
+        try
+        {
+            events = JsonSerializer.Deserialize<List<SendGridWebhookEvent>>(rawBody);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "SendGrid webhook com payload inválido");
+            return BadRequest();
         }
 
         foreach (var evt in events ?? [])
@@ -87,6 +114,35 @@ public class SendGridWebhookController : BaseApiController
         }
 
         return Ok();
+    }
+
+    /// <summary>
+    /// Verifies a SendGrid Event Webhook ECDSA signature. The signed payload is (timestamp + rawBody),
+    /// hashed with SHA-256; the verification key is the base64 SPKI public key from SendGrid.
+    /// Returns false (fail-closed) on any malformed key/signature or crypto error.
+    /// </summary>
+    public static bool VerifySignature(string publicKeyBase64, string timestamp, string rawBody, string signatureBase64)
+    {
+        try
+        {
+            var keyBytes = Convert.FromBase64String(publicKeyBase64);
+            using var ecdsa = ECDsa.Create();
+            ecdsa.ImportSubjectPublicKeyInfo(keyBytes, out _);
+
+            var payload = Encoding.UTF8.GetBytes(timestamp + rawBody);
+            var signatureBytes = Convert.FromBase64String(signatureBase64);
+
+            return ecdsa.VerifyData(
+                payload,
+                signatureBytes,
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.Rfc3279DerSequence);
+        }
+        catch (Exception)
+        {
+            // Malformed key, malformed signature, or unsupported curve → reject.
+            return false;
+        }
     }
 
     private async Task ProcessEventAsync(SendGridWebhookEvent evt, CancellationToken ct)
