@@ -23,14 +23,18 @@ namespace Diax.Infrastructure.Data.Migrations
                 name: "email_campaign_id1",
                 table: "email_optimizations");
 
-            migrationBuilder.AlterColumn<Guid>(
+            // SQL Server cannot convert bigint -> uniqueidentifier via ALTER COLUMN, so drop and
+            // re-add the column. Safe because email_optimizations.email_campaign_id is unused/empty
+            // (the EmailOptimization entity is never persisted; only a DbSet exists).
+            migrationBuilder.DropColumn(
+                name: "email_campaign_id",
+                table: "email_optimizations");
+
+            migrationBuilder.AddColumn<Guid>(
                 name: "email_campaign_id",
                 table: "email_optimizations",
                 type: "uniqueidentifier",
-                nullable: true,
-                oldClrType: typeof(long),
-                oldType: "bigint",
-                oldNullable: true);
+                nullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_email_optimizations_email_campaign_id",
@@ -56,14 +60,17 @@ namespace Diax.Infrastructure.Data.Migrations
                 name: "IX_email_optimizations_email_campaign_id",
                 table: "email_optimizations");
 
-            migrationBuilder.AlterColumn<long>(
+            // Reverse of the Up() drop/add: uniqueidentifier -> bigint is likewise not a valid
+            // ALTER COLUMN conversion on SQL Server, so drop and re-add.
+            migrationBuilder.DropColumn(
+                name: "email_campaign_id",
+                table: "email_optimizations");
+
+            migrationBuilder.AddColumn<long>(
                 name: "email_campaign_id",
                 table: "email_optimizations",
                 type: "bigint",
-                nullable: true,
-                oldClrType: typeof(Guid),
-                oldType: "uniqueidentifier",
-                oldNullable: true);
+                nullable: true);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "email_campaign_id1",
