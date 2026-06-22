@@ -72,7 +72,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               title="Copiar"
               initial={{ opacity: 0 }}
               whileHover={{ scale: 1.05 }}
-              className="absolute -bottom-7 left-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px]"
+              className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px]"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: '#9CA3AF' }}
             >
               {copied ? (

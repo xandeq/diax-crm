@@ -32,7 +32,7 @@ export function ChatMessages({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto scroll-smooth"
+      className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
       style={{
         scrollbarWidth: 'thin',
         scrollbarColor: 'rgba(255,255,255,0.08) transparent',
