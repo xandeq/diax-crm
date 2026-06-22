@@ -751,3 +751,60 @@
 }
 
 
+
+
+/* ── AI Chat: prose overrides for dark background ─────────────────────── */
+.ai-prose {
+  color: #D1D5DB;
+}
+.ai-prose p,
+.ai-prose li,
+.ai-prose blockquote {
+  color: #D1D5DB;
+}
+.ai-prose h1,
+.ai-prose h2,
+.ai-prose h3,
+.ai-prose h4 {
+  color: #F3F4F6;
+}
+.ai-prose code {
+  color: #6EE7B7;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.82em;
+}
+.ai-prose pre {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.ai-prose pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #D1D5DB;
+}
+.ai-prose strong {
+  color: #F9FAFB;
+  font-weight: 600;
+}
+.ai-prose a {
+  color: #6EE7B7;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ai-prose hr {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.ai-prose blockquote {
+  border-left-color: rgba(16, 185, 129, 0.4);
+  color: #9CA3AF;
+}
+.ai-prose ul > li::marker,
+.ai-prose ol > li::marker {
+  color: #6EE7B7;
+}

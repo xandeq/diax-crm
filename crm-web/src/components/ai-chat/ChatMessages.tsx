@@ -32,14 +32,18 @@ export function ChatMessages({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto"
+      className="flex-1 overflow-y-auto scroll-smooth"
+      style={{
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(255,255,255,0.08) transparent',
+      }}
     >
       {isEmpty ? (
         <div className="h-full">
           <WelcomeScreen onSuggestion={onSuggestion} />
         </div>
       ) : (
-        <div className="flex flex-col gap-6 px-6 py-6 pb-4 max-w-3xl mx-auto w-full">
+        <div className="flex flex-col gap-7 px-6 py-8 pb-6 max-w-3xl mx-auto w-full">
           {messages.map((msg) => (
             <MessageBubble key={msg.id} message={msg} />
           ))}
