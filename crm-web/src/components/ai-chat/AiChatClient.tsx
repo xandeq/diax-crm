@@ -374,12 +374,15 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
         ) : (
           <>
             {/* Chat header bar (mobile sidebar toggle + title) */}
-            <div className="flex items-center gap-2 px-3 py-2 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 flex-shrink-0"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
               <button
                 type="button"
                 onClick={() => setSidebarOpen((o) => !o)}
                 className="md:hidden p-1.5 rounded-lg transition-colors"
-                style={{ color: '#9CA3AF' }}
+                style={{ color: '#6B7280' }}
                 title="Conversas"
               >
                 {sidebarOpen ? (
@@ -388,9 +391,18 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
                   <PanelLeftOpen className="w-4 h-4" />
                 )}
               </button>
-              <span className="text-xs truncate flex-1 text-center md:text-left" style={{ color: '#6B7280' }}>
-                {currentConversation?.title ?? 'Nova conversa'}
+              <span className="text-xs truncate flex-1 text-center md:text-left font-medium" style={{ color: '#4B5563' }}>
+                {currentConversation?.title ?? ''}
               </span>
+              {/* Model badge */}
+              {currentConversation?.model && (
+                <span
+                  className="hidden md:inline-flex text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                  style={{ background: 'rgba(16,185,129,0.1)', color: '#6EE7B7', border: '1px solid rgba(16,185,129,0.2)' }}
+                >
+                  {currentConversation.model.split('-').slice(1, 3).join('-')}
+                </span>
+              )}
             </div>
             <ChatMessages
               messages={currentConversation?.messages ?? []}
