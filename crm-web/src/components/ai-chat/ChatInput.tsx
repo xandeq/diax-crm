@@ -82,12 +82,8 @@ export function ChatInput({
             placeholder="Mensagem… (Enter para enviar)"
             rows={1}
             disabled={disabled || isStreaming}
-            className="w-full resize-none bg-transparent text-sm focus:outline-none min-h-[24px] max-h-[200px] py-0 leading-relaxed placeholder:transition-colors"
-            style={{
-              color: '#F9FAFB',
-              // @ts-ignore
-              '--tw-placeholder-color': '#4B5563',
-            }}
+            className="w-full resize-none bg-transparent text-sm focus:outline-none min-h-[24px] max-h-[200px] py-0 leading-relaxed placeholder:text-zinc-400 placeholder:transition-colors"
+            style={{ color: '#F9FAFB' }}
           />
         </div>
 
@@ -161,7 +157,7 @@ export function ChatInput({
                 ? { background: 'rgba(255,255,255,0.1)', color: '#E5E7EB', cursor: 'pointer' }
                 : canSend
                   ? { background: '#10B981', color: '#fff', cursor: 'pointer', boxShadow: '0 0 12px rgba(16,185,129,0.4)' }
-                  : { background: 'rgba(255,255,255,0.06)', color: '#374151', cursor: 'not-allowed' }
+                  : { background: 'rgba(255,255,255,0.06)', color: '#6B7280', cursor: 'not-allowed' }
             }
           >
             {isStreaming ? (
@@ -173,7 +169,7 @@ export function ChatInput({
         </div>
       </div>
 
-      <p className="text-[10px] text-center mt-2" style={{ color: '#374151' }}>
+      <p className="text-[10px] text-center mt-2" style={{ color: '#6B7280' }}>
         Shift+Enter para nova linha · IA pode cometer erros — revise informações importantes
       </p>
     </div>
