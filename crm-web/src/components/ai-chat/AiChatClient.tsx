@@ -391,7 +391,7 @@ export default function AiChatClient({ initialConversationId }: AiChatClientProp
                   <PanelLeftOpen className="w-4 h-4" />
                 )}
               </button>
-              <span className="text-xs truncate flex-1 text-center md:text-left font-medium" style={{ color: '#4B5563' }}>
+              <span className="text-xs truncate flex-1 text-center md:text-left font-medium" style={{ color: '#9CA3AF' }}>
                 {currentConversation?.title ?? ''}
               </span>
               {/* Model badge */}

@@ -76,7 +76,7 @@ export function WelcomeScreen({ onSuggestion }: WelcomeScreenProps) {
           </h2>
           <p
             className="text-sm mt-1.5 max-w-[36ch] leading-relaxed"
-            style={{ color: '#6B7280' }}
+            style={{ color: '#9CA3AF' }}
           >
             Use Claude para criar, analisar, planejar e resolver qualquer tarefa do seu negócio.
           </p>
@@ -127,7 +127,7 @@ export function WelcomeScreen({ onSuggestion }: WelcomeScreenProps) {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
         className="text-[11px]"
-        style={{ color: '#374151' }}
+        style={{ color: '#6B7280' }}
       >
         Powered by Claude · Anthropic
       </motion.p>

@@ -46,7 +46,7 @@ export function ConversationSidebar({
           >
             <MessageSquare className="w-2.5 h-2.5" style={{ color: '#6EE7B7' }} />
           </div>
-          <span className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#6B7280' }}>
+          <span className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#9CA3AF' }}>
             Conversas
           </span>
         </div>
@@ -83,15 +83,15 @@ export function ConversationSidebar({
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <MessageSquare className="w-4 h-4" style={{ color: '#4B5563' }} />
+              <MessageSquare className="w-4 h-4" style={{ color: '#6B7280' }} />
             </div>
-            <p className="text-xs leading-snug" style={{ color: '#4B5563' }}>
+            <p className="text-xs leading-snug" style={{ color: '#9CA3AF' }}>
               Nenhuma conversa ainda.{' '}
               <button
                 type="button"
                 onClick={onNew}
                 className="underline underline-offset-2 transition-colors hover:opacity-80"
-                style={{ color: '#6B7280' }}
+                style={{ color: '#9CA3AF' }}
               >
                 Comece agora
               </button>
@@ -131,7 +131,7 @@ export function ConversationSidebar({
                   >
                     {conv.title}
                   </p>
-                  <p className="text-[10px] mt-0.5 truncate" style={{ color: '#4B5563' }}>
+                  <p className="text-[10px] mt-0.5 truncate" style={{ color: '#6B7280' }}>
                     {formatDistanceToNow(
                       new Date(conv.updatedAt ?? conv.createdAt),
                       { addSuffix: true, locale: ptBR },
