@@ -502,6 +502,18 @@ public class EmailMarketingService : IApplicationService
 
         await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
         await _emailQueueRepository.AddRangeAsync(queuedItems, cancellationToken);
+
+        // Registra envio em cada customer para habilitar dedup cross-day via LastEmailSentAt/EmailSentCount
+        var queuedCustomerIdsLegacy = queuedItems
+            .Where(i => i.CustomerId.HasValue)
+            .Select(i => i.CustomerId!.Value)
+            .ToHashSet();
+        foreach (var customer in recipients.Where(c => queuedCustomerIdsLegacy.Contains(c.Id)))
+        {
+            customer.RegisterEmailSent();
+            await _customerRepository.UpdateAsync(customer, cancellationToken);
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new QueueCampaignRecipientsResponse
@@ -1141,6 +1153,18 @@ public class EmailMarketingService : IApplicationService
 
         await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
         await _emailQueueRepository.AddRangeAsync(queuedItems, cancellationToken);
+
+        // Registra envio em cada customer para habilitar dedup cross-day via LastEmailSentAt/EmailSentCount
+        var queuedCustomerIds = queuedItems
+            .Where(i => i.CustomerId.HasValue)
+            .Select(i => i.CustomerId!.Value)
+            .ToHashSet();
+        foreach (var customer in customers.Values.Where(c => queuedCustomerIds.Contains(c.Id)))
+        {
+            customer.RegisterEmailSent();
+            await _customerRepository.UpdateAsync(customer, cancellationToken);
+        }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new QueueCampaignRecipientsResponse
