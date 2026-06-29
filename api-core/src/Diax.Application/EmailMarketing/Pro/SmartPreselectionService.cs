@@ -64,14 +64,14 @@ public class SmartPreselectionService : ISmartPreselectionService
             warnings.Add($"Apenas {selectedLeads.Count} lead(s) disponíveis (meta: {totalTarget}).");
         }
 
-        var providerCounts = new int[ProviderNames.Length];
+        var providerCounts = ProviderNames.ToDictionary(p => p, _ => 0);
         var result = new List<PreselectedLeadDto>();
 
         for (var i = 0; i < selectedLeads.Count; i++)
         {
             var lead = selectedLeads[i];
             var providerIndex = i % ProviderNames.Length;
-            providerCounts[providerIndex]++;
+            providerCounts[ProviderNames[providerIndex]]++;
 
             var firstName = !string.IsNullOrEmpty(lead.NormalizedName)
                 ? lead.NormalizedName.Split(' ')[0]
@@ -111,15 +111,10 @@ public class SmartPreselectionService : ISmartPreselectionService
 
         return new SmartPreselectResponse
         {
-            Leads              = result,
-            TotalSelected      = result.Count,
-            BrevoCount         = providerCounts[0],
-            MailjetCount       = providerCounts[1],
-            ResendCount        = providerCounts[2],
-            ElasticEmailCount  = providerCounts.Length > 3 ? providerCounts[3] : 0,
-            MailerSendCount    = providerCounts.Length > 4 ? providerCounts[4] : 0,
-            SendGridCount      = providerCounts.Length > 5 ? providerCounts[5] : 0,
-            Warnings           = warnings,
+            Leads          = result,
+            TotalSelected  = result.Count,
+            ProviderCounts = providerCounts,
+            Warnings       = warnings,
         };
     }
 }
