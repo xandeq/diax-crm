@@ -40,16 +40,25 @@ jobs:
           NEXT_PUBLIC_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
         run: npm run build
 
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.HOSTGATOR_FTP_SERVER }}
-          username: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
-          password: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
-          local-dir: ./crm-web/out/
-          server-dir: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}/
-          protocol: ftp
-          port: 21
-          dangerous-clean-slate: false
-          timeout: 30000
-          log-level: minimal
+      - name: Install lftp
+        run: sudo apt-get install -y lftp
+
+      - name: Deploy via lftp mirror
+        env:
+          FTP_HOST: ${{ secrets.HOSTGATOR_FTP_SERVER }}
+          FTP_USER: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
+          REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
+        run: |
+          lftp -c "
+            set ftp:ssl-allow false;
+            set ftp:passive-mode true;
+            set net:timeout 30;
+            set net:max-retries 5;
+            set net:reconnect-interval-base 3;
+            set net:reconnect-interval-max 15;
+            set ftp:use-site-utime false;
+            open -u '${FTP_USER}','${FTP_PASS}' ftp://${FTP_HOST};
+            mirror --reverse --parallel=2 --delete --verbose --log=/tmp/lftp.log ./crm-web/out/ ${REMOTE_DIR}/;
+            bye
+          " || (cat /tmp/lftp.log 2>/dev/null; exit 1)
