@@ -4,11 +4,9 @@ const email = process.env.PLAYWRIGHT_LOGIN_EMAIL;
 const password = process.env.PLAYWRIGHT_LOGIN_PASSWORD;
 
 async function login(page: any) {
-  await page.goto('/login/');
-  await page.getByLabel('Senha').fill(password!);
-  await page.locator('#email').fill(email!);
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.waitForURL('**/dashboard/**');
+  // storageState pre-loads auth — navigate to dashboard directly
+  await page.goto('/dashboard/');
+  await page.waitForURL('**/dashboard/**', { timeout: 15_000 });
 }
 
 test.describe('Production smoke', () => {

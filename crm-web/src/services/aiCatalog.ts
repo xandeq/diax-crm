@@ -55,14 +55,7 @@ export async function getAiCatalog(): Promise<AiProvider[]> {
   }
 
   try {
-    console.log('[aiCatalog] 🔄 Fetching AI catalog...');
-
     const response = await apiFetch<AiCatalogResponse>('/ai/catalog');
-
-    console.log('[aiCatalog] ✅ Response received:', {
-      providersCount: response.providers?.length ?? 0,
-      providers: response.providers?.map(p => p.name) ?? []
-    });
 
     if (!response.providers || response.providers.length === 0) {
       console.warn('[aiCatalog] ⚠️ Catalog is empty. This may indicate missing API keys in backend configuration.');
