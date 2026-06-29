@@ -38,6 +38,8 @@ import {
   deleteCustomer,
   getCustomers,
   updateCustomer,
+  updateCustomerStatus,
+  updateCustomerSegment,
 } from '@/services/customers';
 import {
   Activity,
@@ -260,7 +262,7 @@ export default function CustomersPage() {
     const count = selectedRows.length;
     showConfirm(`Alterar status de ${count} cliente(s)?`, async () => {
       try {
-        await Promise.all(selectedRows.map((c) => updateCustomer(c.id, { ...c, status: newStatus })));
+        await Promise.all(selectedRows.map((c) => updateCustomerStatus(c.id, newStatus)));
         toast.success(`Status atualizado para ${count} cliente(s).`);
         invalidate();
         setSelectedRows([]);
@@ -272,7 +274,7 @@ export default function CustomersPage() {
 
   const handleBulkSegmentChange = async (segment: number) => {
     try {
-      await Promise.all(selectedRows.map((c) => updateCustomer(c.id, { ...c, segment })));
+      await Promise.all(selectedRows.map((c) => updateCustomerSegment(c.id, segment)));
       const labels = ['Cold', 'Warm', 'Hot'];
       toast.success(`Segmento ${labels[segment]} aplicado a ${selectedRows.length} cliente(s).`);
       invalidate();

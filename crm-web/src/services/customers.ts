@@ -173,6 +173,20 @@ export async function deleteCustomer(id: string) {
   });
 }
 
+export async function updateCustomerStatus(id: string, status: CustomerStatus) {
+  return apiFetch<Customer>(`/customers/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function updateCustomerSegment(id: string, segment: number) {
+  return apiFetch<Customer>(`/leads/${id}/segment`, {
+    method: 'PATCH',
+    body: JSON.stringify({ segment }),
+  });
+}
+
 export interface LeadActivity {
   type: string;
   title: string;
