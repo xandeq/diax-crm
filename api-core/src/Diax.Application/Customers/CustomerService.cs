@@ -286,7 +286,7 @@ public class CustomerService : IApplicationService
         if (customer is null)
             return Result.Failure<CustomerResponse>(Error.NotFound("Customer", id));
 
-        if (await _repository.EmailExistsAsync(request.Email, id, cancellationToken))
+        if (!string.IsNullOrWhiteSpace(request.Email) && await _repository.EmailExistsAsync(request.Email, id, cancellationToken))
         {
             return Result.Failure<CustomerResponse>(
                 Error.Conflict("Email", $"JÃ¡ existe outro cadastro com o e-mail '{request.Email}'."));

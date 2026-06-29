@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getApiBaseUrl } from '@/services/api';
+import { getServicesStatus, type ServiceStatus, type StatusResponse } from '@/services/status';
 import {
   Activity,
   CheckCircle2,
@@ -13,21 +13,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-
-interface ServiceStatus {
-  name: string;
-  url: string;
-  domain: string;
-  category: string;
-  online: boolean;
-  statusCode: number;
-  responseTimeMs: number;
-}
-
-interface StatusResponse {
-  checkedAt: string;
-  services: ServiceStatus[];
-}
 
 const CATEGORY_ORDER = ['SaaS', 'Website'];
 
@@ -128,12 +113,7 @@ export default function StatusPage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-      const res = await fetch(`${getApiBaseUrl()}/status/services`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json: StatusResponse = await res.json();
+      const json = await getServicesStatus();
       setData(json);
       setCountdown(REFRESH_INTERVAL / 1000);
     } catch (e) {

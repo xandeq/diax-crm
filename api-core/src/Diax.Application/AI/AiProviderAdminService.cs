@@ -240,14 +240,42 @@ public class AiProviderAdminService : IAiProviderAdminService
             throw new InvalidOperationException($"Provider '{provider.Name}' does not support model listing.");
         }
 
-        // TODO: Implement actual API call logic using HttpClientFactory and provider specific clients.
-        // For now, we return a mock result to allow frontend development to proceed.
+        // Discover from the provider's external API (reuses the same discovery clients as the
+        // discover-models endpoint) and upsert into the local catalog.
+        List<DiscoveredModelDto> discovered;
+        try
+        {
+            discovered = (await DiscoverModelsAsync(provider.Key, cancellationToken)).ToList();
+        }
+        catch (NotSupportedException ex)
+        {
+            return new SyncModelsResultDto(0, 0, 0, new List<string> { ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Sync failed during discovery for provider {Provider}", provider.Key);
+            return new SyncModelsResultDto(0, 0, 0, new List<string>
+            {
+                $"Failed to discover models from '{provider.Name}': {ex.Message}"
+            });
+        }
+
+        // Compute new vs updated counts before persisting (upsert logic mirrors UpdateModelsBatchAsync).
+        var existingModels = await _modelRepository.GetByProviderIdAsync(providerId, cancellationToken);
+        var existingKeys = existingModels
+            .Select(m => m.ModelKey.ToLowerInvariant())
+            .ToHashSet();
+
+        var newCount = discovered.Count(d => !existingKeys.Contains(d.Id.ToLowerInvariant()));
+        var updatedCount = discovered.Count - newCount;
+
+        await UpdateModelsBatchAsync(providerId, discovered, cancellationToken);
 
         return new SyncModelsResultDto(
-            DiscoveredCount: 0,
-            NewModels: 0,
-            ExistingModelsUpdated: 0,
-            Errors: new List<string> { "Sync implementation pending integration with HTTP clients." }
+            DiscoveredCount: discovered.Count,
+            NewModels: newCount,
+            ExistingModelsUpdated: updatedCount,
+            Errors: new List<string>()
         );
     }
 
