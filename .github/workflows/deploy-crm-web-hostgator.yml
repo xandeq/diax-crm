@@ -80,7 +80,7 @@ jobs:
             Write-Host "TCP $($env:HOST):$port -> $($res.TcpTestSucceeded)"
           }
 
-      - name: Deploy via FTP (parallel curl)
+      - name: Deploy via FTP (curl.exe)
         env:
           FTP_SERVER: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           FTP_USER: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
@@ -96,46 +96,39 @@ jobs:
 
           $files = Get-ChildItem -Path $localDir -Recurse -File
           $total = $files.Count
-          Write-Host "Files to upload: $total (parallel, 8 threads)"
+          Write-Host "Files to upload: $total"
 
-          # Build file info list for parallel processing
-          $fileInfos = $files | ForEach-Object {
-            $rel = $_.FullName.Substring($localDir.Length).TrimStart('\').Replace('\', '/')
+          $errors = 0
+          $idx = 0
+          foreach ($file in $files) {
+            $idx++
+            $rel = $file.FullName.Substring($localDir.Length).TrimStart('\').Replace('\', '/')
             $encodedRel = ($rel.Split('/') | ForEach-Object { [System.Uri]::EscapeDataString($_) }) -join '/'
-            [PSCustomObject]@{
-              FullName   = $_.FullName
-              RemoteUrl  = "ftp://$server$remoteBase/$encodedRel"
-              RelPath    = $rel
-            }
-          }
+            $remoteUrl = "ftp://$server$remoteBase/$encodedRel"
 
-          # Upload in parallel — 8 threads (HostGator allows ~10 simultaneous FTP connections)
-          $results = $fileInfos | ForEach-Object -Parallel {
-            $f        = $_
-            $userPass = $using:userPass
             $out = curl.exe --user $userPass `
-              --upload-file $f.FullName `
-              $f.RemoteUrl `
+              --upload-file $file.FullName `
+              $remoteUrl `
               --ftp-create-dirs `
               --ftp-pasv `
               --globoff `
               --retry 2 `
               --retry-delay 3 `
               --connect-timeout 30 `
-              --max-time 120 `
+              --max-time 60 `
               --silent `
               --show-error 2>&1
-            [PSCustomObject]@{ Rel = $f.RelPath; Exit = $LASTEXITCODE; Msg = $out }
-          } -ThrottleLimit 8
 
-          $errors = $results | Where-Object { $_.Exit -ne 0 }
-          $errors | ForEach-Object { Write-Host "  FAIL [$($_.Exit)]: $($_.Rel) -- $($_.Msg)" }
+            if ($LASTEXITCODE -ne 0) {
+              $errors++
+              Write-Host "  FAIL [$LASTEXITCODE] ($idx/$total): $rel -- $out"
+            }
+          }
 
-          $ok = $total - $errors.Count
-          Write-Host "[$ok/$total] uploaded (errors: $($errors.Count))"
+          Write-Host "[$(($total - $errors))/$total] uploaded (errors: $errors)"
 
-          if ($errors.Count -gt 0) {
-            Write-Host "::error::Deploy completed with $($errors.Count) upload failures out of $total files."
+          if ($errors -gt 0) {
+            Write-Host "::error::Deploy completed with $errors upload failures out of $total files."
             exit 1
           }
           Write-Host "Deploy complete: $total files uploaded successfully."
