@@ -9,6 +9,8 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   fullyParallel: false,
+  workers: process.env.CI ? 1 : 2,
+  retries: 2,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL,

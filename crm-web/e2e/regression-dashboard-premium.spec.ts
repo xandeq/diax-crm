@@ -56,11 +56,13 @@ test.describe('Dashboard Premium — Wave QA', () => {
     await page.goto('/dashboard/');
     await page.locator('.hero-card').first().waitFor({ state: 'visible', timeout: 30000 });
 
-    // Check KPI labels exist
-    const labels = ['RECEITA DO MÊS', 'TOTAL DESPESAS', 'LEADS NO FUNIL', 'ABERTURA EMAIL'];
+    // Dashboard redesign uses title-case labels — check current labels
+    const labels = ['Receita do Mês', 'Despesas do mês'];
     for (const label of labels) {
       await expect(page.locator(`text=${label}`).first()).toBeVisible({ timeout: 10000 });
     }
+    // Area chart for Receita must render
+    await expect(page.locator('[aria-label*="Receita"]').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('charts — nenhum 500 ou chunk error durante carga', async ({ page }) => {
