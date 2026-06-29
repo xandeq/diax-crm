@@ -80,7 +80,7 @@ jobs:
             Write-Host "TCP $($env:HOST):$port -> $($res.TcpTestSucceeded)"
           }
 
-      - name: Deploy via FTP (curl.exe)
+      - name: Deploy via FTP (parallel curl)
         env:
           FTP_SERVER: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           FTP_USER: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
@@ -96,40 +96,46 @@ jobs:
 
           $files = Get-ChildItem -Path $localDir -Recurse -File
           $total = $files.Count
-          $done  = 0
-          $errors = 0
-          Write-Host "Files to upload: $total"
+          Write-Host "Files to upload: $total (parallel, 8 threads)"
 
-          foreach ($file in $files) {
-            $rel       = $file.FullName.Substring($localDir.Length).TrimStart('\').Replace('\', '/')
-            # URL-encode each path segment (handles spaces, parens, brackets, etc.)
+          # Build file info list for parallel processing
+          $fileInfos = $files | ForEach-Object {
+            $rel = $_.FullName.Substring($localDir.Length).TrimStart('\').Replace('\', '/')
             $encodedRel = ($rel.Split('/') | ForEach-Object { [System.Uri]::EscapeDataString($_) }) -join '/'
-            $remoteUrl = "ftp://$server$remoteBase/$encodedRel"
-
-            $result = curl.exe --user $userPass `
-              --upload-file $file.FullName `
-              $remoteUrl `
-              --ftp-create-dirs `
-              --ftp-pasv `
-              --globoff `
-              --retry 3 `
-              --retry-delay 5 `
-              --silent `
-              --show-error 2>&1
-
-            if ($LASTEXITCODE -ne 0) {
-              Write-Host "  FAIL [$($LASTEXITCODE)]: $rel -- $result"
-              $errors++
-            }
-
-            $done++
-            if ($done % 50 -eq 0 -or $done -eq $total) {
-              Write-Host "  [$done/$total] uploaded (errors: $errors)"
+            [PSCustomObject]@{
+              FullName   = $_.FullName
+              RemoteUrl  = "ftp://$server$remoteBase/$encodedRel"
+              RelPath    = $rel
             }
           }
 
-          if ($errors -gt 0) {
-            Write-Host "::error::Deploy completed with $errors upload failures out of $total files."
+          # Upload in parallel — 8 threads (HostGator allows ~10 simultaneous FTP connections)
+          $results = $fileInfos | ForEach-Object -Parallel {
+            $f        = $_
+            $userPass = $using:userPass
+            $out = curl.exe --user $userPass `
+              --upload-file $f.FullName `
+              $f.RemoteUrl `
+              --ftp-create-dirs `
+              --ftp-pasv `
+              --globoff `
+              --retry 2 `
+              --retry-delay 3 `
+              --connect-timeout 30 `
+              --max-time 120 `
+              --silent `
+              --show-error 2>&1
+            [PSCustomObject]@{ Rel = $f.RelPath; Exit = $LASTEXITCODE; Msg = $out }
+          } -ThrottleLimit 8
+
+          $errors = $results | Where-Object { $_.Exit -ne 0 }
+          $errors | ForEach-Object { Write-Host "  FAIL [$($_.Exit)]: $($_.Rel) -- $($_.Msg)" }
+
+          $ok = $total - $errors.Count
+          Write-Host "[$ok/$total] uploaded (errors: $($errors.Count))"
+
+          if ($errors.Count -gt 0) {
+            Write-Host "::error::Deploy completed with $($errors.Count) upload failures out of $total files."
             exit 1
           }
           Write-Host "Deploy complete: $total files uploaded successfully."
