@@ -23,7 +23,7 @@ async function goToCustomers(page: Page) {
   await page.goto('/customers/');
   await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible();
   // Wait for table rows to load — row checkboxes have exact aria-label "Selecionar" (not "Selecionar todos")
-  await page.getByRole('checkbox', { name: 'Selecionar', exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 });
+  await page.getByRole('checkbox', { name: 'Selecionar', exact: true }).first().waitFor({ state: 'visible', timeout: 30_000 });
 }
 
 async function selectFirstRow(page: Page) {

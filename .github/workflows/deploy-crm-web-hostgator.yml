@@ -14,13 +14,8 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment: production
-
-    defaults:
-      run:
-        working-directory: crm-web
-        shell: pwsh
 
     steps:
       - name: Checkout
@@ -35,101 +30,35 @@ jobs:
           cache: npm
           cache-dependency-path: crm-web/package-lock.json
 
-      - name: Validate required secrets
-        env:
-          HOSTGATOR_FTP_SERVER: ${{ secrets.HOSTGATOR_FTP_SERVER }}
-          HOSTGATOR_FTP_USERNAME: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
-          HOSTGATOR_FTP_PASSWORD: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
-          HOSTGATOR_FTP_REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
-          CRM_WEB_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
-        run: |
-          $missing = $false
-          function Check-Secret([string]$name, [string]$value) {
-            if ([string]::IsNullOrWhiteSpace($value)) {
-              Write-Host "::error::Missing required secret: $name"
-              $script:missing = $true
-            }
-          }
-          Check-Secret "HOSTGATOR_FTP_SERVER" $env:HOSTGATOR_FTP_SERVER
-          Check-Secret "HOSTGATOR_FTP_USERNAME" $env:HOSTGATOR_FTP_USERNAME
-          Check-Secret "HOSTGATOR_FTP_PASSWORD" $env:HOSTGATOR_FTP_PASSWORD
-          Check-Secret "HOSTGATOR_FTP_REMOTE_DIR" $env:HOSTGATOR_FTP_REMOTE_DIR
-          Check-Secret "CRM_WEB_API_BASE_URL" $env:CRM_WEB_API_BASE_URL
-          if ($missing) { exit 1 }
-
       - name: Install dependencies
+        working-directory: crm-web
         run: npm ci --legacy-peer-deps
 
       - name: Build (static export)
+        working-directory: crm-web
         env:
           NEXT_PUBLIC_API_BASE_URL: ${{ secrets.CRM_WEB_API_BASE_URL }}
         run: npm run build
 
-      - name: Network diagnostics (FTP)
-        env:
-          HOST: ${{ secrets.HOSTGATOR_FTP_SERVER }}
-        run: |
-          Write-Host "Host: $env:HOST"
-          try {
-            $dns = Resolve-DnsName -Name $env:HOST -Type A -ErrorAction Stop
-            $ips = $dns | Where-Object { $_.IPAddress } | Select-Object -ExpandProperty IPAddress
-            if ($ips) { Write-Host ("DNS A: " + ($ips -join ', ')) }
-          } catch { Write-Host "DNS lookup failed: $($_.Exception.Message)" }
-          foreach ($port in @(21)) {
-            $res = Test-NetConnection -ComputerName $env:HOST -Port $port -WarningAction SilentlyContinue
-            Write-Host "TCP $($env:HOST):$port -> $($res.TcpTestSucceeded)"
-          }
+      - name: Install lftp
+        run: sudo apt-get install -y lftp
 
-      - name: Deploy via FTP (curl.exe)
+      - name: Deploy via lftp mirror
         env:
-          FTP_SERVER: ${{ secrets.HOSTGATOR_FTP_SERVER }}
+          FTP_HOST: ${{ secrets.HOSTGATOR_FTP_SERVER }}
           FTP_USER: ${{ secrets.HOSTGATOR_FTP_USERNAME }}
           FTP_PASS: ${{ secrets.HOSTGATOR_FTP_PASSWORD }}
-          FTP_REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
+          REMOTE_DIR: ${{ secrets.HOSTGATOR_FTP_REMOTE_DIR }}
         run: |
-          $localDir   = Join-Path $env:GITHUB_WORKSPACE "crm-web\out"
-          $server     = $env:FTP_SERVER
-          $remoteBase = $env:FTP_REMOTE_DIR.TrimEnd('/')
-          $userPass   = "$($env:FTP_USER):$($env:FTP_PASS)"
-
-          Write-Host "Uploading $localDir -> ftp://$server$remoteBase"
-
-          $files = Get-ChildItem -Path $localDir -Recurse -File
-          $total = $files.Count
-          $done  = 0
-          $errors = 0
-          Write-Host "Files to upload: $total"
-
-          foreach ($file in $files) {
-            $rel       = $file.FullName.Substring($localDir.Length).TrimStart('\').Replace('\', '/')
-            # URL-encode each path segment (handles spaces, parens, brackets, etc.)
-            $encodedRel = ($rel.Split('/') | ForEach-Object { [System.Uri]::EscapeDataString($_) }) -join '/'
-            $remoteUrl = "ftp://$server$remoteBase/$encodedRel"
-
-            $result = curl.exe --user $userPass `
-              --upload-file $file.FullName `
-              $remoteUrl `
-              --ftp-create-dirs `
-              --ftp-pasv `
-              --globoff `
-              --retry 3 `
-              --retry-delay 5 `
-              --silent `
-              --show-error 2>&1
-
-            if ($LASTEXITCODE -ne 0) {
-              Write-Host "  FAIL [$($LASTEXITCODE)]: $rel -- $result"
-              $errors++
-            }
-
-            $done++
-            if ($done % 50 -eq 0 -or $done -eq $total) {
-              Write-Host "  [$done/$total] uploaded (errors: $errors)"
-            }
-          }
-
-          if ($errors -gt 0) {
-            Write-Host "::error::Deploy completed with $errors upload failures out of $total files."
-            exit 1
-          }
-          Write-Host "Deploy complete: $total files uploaded successfully."
+          lftp -c "
+            set ftp:ssl-allow false;
+            set ftp:passive-mode true;
+            set net:timeout 30;
+            set net:max-retries 5;
+            set net:reconnect-interval-base 3;
+            set net:reconnect-interval-max 15;
+            set ftp:use-site-utime false;
+            open -u '${FTP_USER}','${FTP_PASS}' ftp://${FTP_HOST};
+            mirror --reverse --parallel=2 --delete --verbose --log=/tmp/lftp.log ./crm-web/out/ ${REMOTE_DIR}/;
+            bye
+          " || (cat /tmp/lftp.log 2>/dev/null; exit 1)
