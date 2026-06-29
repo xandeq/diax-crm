@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+// Auth tests verify unauthenticated redirect behavior — must start with a clean session
+test.use({ storageState: { cookies: [], origins: [] } });
+
 const email = process.env.PLAYWRIGHT_LOGIN_EMAIL;
 const password = process.env.PLAYWRIGHT_LOGIN_PASSWORD;
 

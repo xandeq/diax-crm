@@ -57,7 +57,8 @@ export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   return (
     readTokenFromStorage(window.sessionStorage) ??
-    inMemoryAccessToken
+    inMemoryAccessToken ??
+    readTokenFromStorage(window.localStorage)
   );
 }
 

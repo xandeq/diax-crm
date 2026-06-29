@@ -7,11 +7,9 @@ test.describe('Daily Briefings — area nova', () => {
   test.skip(!email || !password, 'PLAYWRIGHT_LOGIN_EMAIL e PLAYWRIGHT_LOGIN_PASSWORD são obrigatórios.');
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login/');
-    await page.locator('#email').fill(email!);
-    await page.getByLabel('Senha').fill(password!);
-    await page.getByRole('button', { name: 'Entrar' }).click();
-    await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+    // storageState pre-loads auth — navigate to dashboard directly
+    await page.goto('/dashboard/');
+    await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
   });
 
   test('lista do dia + abre conteúdo, sem erros de JS', async ({ page }) => {
