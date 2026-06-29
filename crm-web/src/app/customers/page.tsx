@@ -46,14 +46,23 @@ import {
   Download,
   Edit2,
   Filter,
+  Flame,
   Loader2,
   Mail,
   MessageCircle,
   Plus,
   Search,
   Trash2,
+  UserCheck,
   X,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -245,6 +254,32 @@ export default function CustomersPage() {
       selectedRows.map((c) => ({ id: c.id, name: c.name, email: c.email }))
     );
     setIsComposerOpen(true);
+  };
+
+  const handleBulkStatusChange = (newStatus: CustomerStatus) => {
+    const count = selectedRows.length;
+    showConfirm(`Alterar status de ${count} cliente(s)?`, async () => {
+      try {
+        await Promise.all(selectedRows.map((c) => updateCustomer(c.id, { ...c, status: newStatus })));
+        toast.success(`Status atualizado para ${count} cliente(s).`);
+        invalidate();
+        setSelectedRows([]);
+      } catch {
+        toast.error('Erro ao atualizar status.');
+      }
+    });
+  };
+
+  const handleBulkSegmentChange = async (segment: number) => {
+    try {
+      await Promise.all(selectedRows.map((c) => updateCustomer(c.id, { ...c, segment })));
+      const labels = ['Cold', 'Warm', 'Hot'];
+      toast.success(`Segmento ${labels[segment]} aplicado a ${selectedRows.length} cliente(s).`);
+      invalidate();
+      setSelectedRows([]);
+    } catch {
+      toast.error('Erro ao atualizar segmento.');
+    }
   };
 
   const handleExport = () => {
@@ -643,14 +678,51 @@ export default function CustomersPage() {
         onExport={handleExport}
         onClearSelection={() => setSelectedRows([])}
         customActions={
-          <Button
-            size="sm"
-            onClick={handleBulkEmail}
-            className="h-8 bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Mail className="h-3.5 w-3.5 mr-1.5" />
-            Enviar E-mail
-          </Button>
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                  <UserCheck className="h-3.5 w-3.5 mr-1.5" />
+                  Mudar Status
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleBulkStatusChange(CustomerStatus.Lead)}>Lead</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange(CustomerStatus.Contacted)}>Contactado</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange(CustomerStatus.Qualified)}>Qualificado</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange(CustomerStatus.Negotiating)}>Negociando</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange(CustomerStatus.Customer)}>Cliente</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleBulkStatusChange(CustomerStatus.Inactive)} className="text-yellow-600">Inativo</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange(CustomerStatus.Churned)} className="text-red-600">Churn</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-8 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                  <Flame className="h-3.5 w-3.5 mr-1.5" />
+                  Segmento
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleBulkSegmentChange(0)}>❄️ Cold</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkSegmentChange(1)}>🌤️ Warm</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkSegmentChange(2)}>🔥 Hot</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              size="sm"
+              onClick={handleBulkEmail}
+              className="h-8 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Mail className="h-3.5 w-3.5 mr-1.5" />
+              Enviar E-mail
+            </Button>
+          </>
         }
       />
 

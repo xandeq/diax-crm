@@ -94,6 +94,7 @@ export interface UpdateCustomerRequest {
   tags?: string;
   source?: number;
   status?: CustomerStatus;
+  segment?: number;
 }
 
 export interface CustomerListParams {
