@@ -37,9 +37,14 @@ export interface PreselectedLeadDto {
 export interface SmartPreselectResponse {
   leads: PreselectedLeadDto[]
   totalSelected: number
+  providerCounts: Record<string, number>
+  // backwards compat fields
   brevoCount: number
   mailjetCount: number
   resendCount: number
+  sendGridCount: number
+  mailerSendCount: number
+  elasticEmailCount: number
   warnings: string[]
 }
 
