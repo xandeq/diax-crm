@@ -84,8 +84,8 @@ test.describe('Regression — Bulk Actions on /customers/', () => {
     await selectFirstRow(page);
     await expect(page.locator('text=/1 item selecionado/')).toBeVisible();
 
-    // Open "Segmento" dropdown
-    await page.getByRole('button', { name: /Segmento/i }).click();
+    // Open "Segmento" dropdown — use first() to avoid matching the table column header button
+    await page.getByRole('button', { name: /Segmento/i }).first().click();
 
     await expect(page.getByRole('menuitem', { name: /Cold/i })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /Warm/i })).toBeVisible();
@@ -102,8 +102,9 @@ test.describe('Regression — Bulk Actions on /customers/', () => {
     await expect(page.locator('text=/1 item selecionado/')).toBeVisible();
 
     // All three action controls must be visible simultaneously
+    // "Segmento" has 2 matches (TableActions button + table column header) — use first()
     await expect(page.getByRole('button', { name: /Mudar Status/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Segmento/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Segmento/i }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /Enviar E-mail/i })).toBeVisible();
   });
 
