@@ -22,7 +22,7 @@ public class TransactionCategoryRepository : Repository<TransactionCategory>, IT
     {
         return await DbSet
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId, ct);
+            .FirstOrDefaultAsync(c => c.Id == id && (c.UserId == userId || c.UserId == null), ct);
     }
 
     public async Task<IEnumerable<TransactionCategory>> GetActiveAsync(Guid userId, CancellationToken ct = default)

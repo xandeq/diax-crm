@@ -28,6 +28,6 @@ public class IncomeCategoryRepository : Repository<IncomeCategory>, IIncomeCateg
     public async Task<IncomeCategory?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet
-            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
+            .FirstOrDefaultAsync(x => x.Id == id && (x.UserId == userId || x.UserId == null), ct);
     }
 }
