@@ -346,6 +346,8 @@ public class PersonalFinanceController : BaseApiController
         if (!existing.IsSuccess)
             return NotFound(existing.Error);
 
+        // Personal-control expenses have no user-selectable category; skip category
+        // validation by passing null so the service doesn't reject seeded global categories.
         var result = await _transactionService.UpdateAsync(
             id,
             new UpdateTransactionRequest(
@@ -353,7 +355,7 @@ public class PersonalFinanceController : BaseApiController
                 request.Amount,
                 date,
                 paymentMethod,
-                existing.Value.CategoryId,
+                null,
                 existing.Value.IsRecurring,
                 accountId,
                 creditCardId,
