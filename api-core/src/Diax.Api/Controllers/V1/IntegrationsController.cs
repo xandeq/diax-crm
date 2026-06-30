@@ -246,18 +246,22 @@ public class IntegrationsController : BaseApiController
             return Unauthorized(new { error = "Integrations.Unauthorized" });
 
         var status = _quotaGuard.GetStatus();
-        var resetAtUtc = status.Values.FirstOrDefault()?.ResetAtUtc ?? DateTime.UtcNow.Date.AddDays(1);
+        var first = status.Values.FirstOrDefault();
 
         return Ok(new
         {
-            resetAtUtc,
+            dailyResetAtUtc  = first?.DailyResetAtUtc  ?? DateTime.UtcNow.Date.AddDays(1),
+            weeklyResetAtUtc = first?.WeeklyResetAtUtc ?? DateTime.UtcNow.Date.AddDays(7 - (int)DateTime.UtcNow.DayOfWeek + 1),
             providers = status.Values.OrderBy(s => s.Provider).Select(s => new
             {
-                provider = s.Provider,
-                used = s.Used,
-                dailyLimit = s.DailyLimit,
-                remaining = s.Remaining,
-                exhausted = s.Remaining == 0
+                provider        = s.Provider,
+                dailyUsed       = s.DailyUsed,
+                dailyLimit      = s.DailyLimit,
+                dailyRemaining  = s.DailyRemaining,
+                weeklyUsed      = s.WeeklyUsed,
+                weeklyLimit     = s.WeeklyLimit,
+                weeklyRemaining = s.WeeklyRemaining,
+                exhausted       = s.DailyRemaining == 0 || s.WeeklyRemaining == 0
             })
         });
     }
