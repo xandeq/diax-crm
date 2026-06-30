@@ -111,6 +111,51 @@ public class BrevoEmailSender : IEmailSender
         }
     }
 
+    public async Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+            return EmailSendResult.Fail("Brevo API key não configurada.");
+
+        try
+        {
+            var payload = new BrevoSendRequest
+            {
+                Sender = new BrevoEmailAddress { Email = message.From.Address, Name = message.From.Display },
+                To = message.To.Select(a => new BrevoEmailAddress { Email = a.Address, Name = a.Display }).ToList(),
+                Subject = message.Subject,
+                HtmlContent = message.Html,
+                TextContent = message.Text ?? ConvertHtmlToPlainText(message.Html),
+                Tags = message.Tags?.ToList()
+            };
+
+            if (message.ReplyTo.HasValue)
+                payload.ReplyTo = new BrevoEmailAddress { Email = message.ReplyTo.Value.Address, Name = message.ReplyTo.Value.Display };
+
+            if (message.Attachments?.Count > 0)
+                payload.Attachment = message.Attachments.Select(a => new BrevoAttachment { Name = a.FileName, Content = a.Base64Content }).ToList();
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+            request.Headers.Add("api-key", _settings.ApiKey);
+            request.Content = JsonContent.Create(payload, options: JsonOptions);
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<BrevoSendResponse>(responseBody, JsonOptions);
+                return EmailSendResult.Ok(result?.MessageId?.TrimStart('<').TrimEnd('>'));
+            }
+
+            return EmailSendResult.Fail($"Brevo API error {(int)response.StatusCode}: {responseBody}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar email via Brevo (EmailMessage) para {Recipient}", message.From.Address);
+            return EmailSendResult.Fail(ex.Message);
+        }
+    }
+
     /// <summary>
     /// Converte HTML para texto plano, preservando formatação básica.
     /// Isso garante que clientes de email que preferem texto plano recebam conteúdo legível.

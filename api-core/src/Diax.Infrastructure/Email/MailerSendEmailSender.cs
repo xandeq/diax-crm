@@ -104,6 +104,55 @@ public class MailerSendEmailSender : IEmailSender
         }
     }
 
+    public async Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ApiToken))
+            return EmailSendResult.Fail("MailerSend API token não configurado.");
+
+        try
+        {
+            var payload = new MailerSendRequest
+            {
+                From = new MailerSendAddress { Email = message.From.Address, Name = message.From.Display },
+                To = message.To.Select(a => new MailerSendAddress { Email = a.Address, Name = a.Display }).ToList(),
+                Subject = message.Subject,
+                Html = message.Html
+            };
+
+            if (message.ReplyTo.HasValue)
+                payload.ReplyTo = new MailerSendAddress { Email = message.ReplyTo.Value.Address };
+
+            if (message.Attachments?.Count > 0)
+                payload.Attachments = message.Attachments.Select(a => new MailerSendAttachment
+                {
+                    Filename = a.FileName,
+                    Content = a.Base64Content,
+                    Disposition = "attachment"
+                }).ToList();
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailersend.com/v1/email");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _settings.ApiToken);
+            request.Content = JsonContent.Create(payload, options: JsonOptions);
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var messageId = response.Headers.TryGetValues("X-Message-Id", out var values)
+                    ? values.FirstOrDefault() : null;
+                return EmailSendResult.Ok(messageId);
+            }
+
+            return EmailSendResult.Fail($"MailerSend API error {(int)response.StatusCode}: {responseBody}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar email via MailerSend (EmailMessage) para {Recipient}", message.From.Address);
+            return EmailSendResult.Fail(ex.Message);
+        }
+    }
+
     // ===== MailerSend API DTOs =====
 
     private sealed class MailerSendRequest

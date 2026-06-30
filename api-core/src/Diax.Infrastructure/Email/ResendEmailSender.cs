@@ -85,6 +85,47 @@ public class ResendEmailSender : IEmailSender
         }
     }
 
+    public async Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+            return EmailSendResult.Fail("Resend API key não configurada.");
+
+        try
+        {
+            var from = string.IsNullOrWhiteSpace(message.From.Display)
+                ? message.From.Address
+                : $"{message.From.Display} <{message.From.Address}>";
+
+            var payload = new ResendSendRequest
+            {
+                From = from,
+                To = message.To.Select(a => a.Address).ToList(),
+                Subject = message.Subject,
+                Html = message.Html
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _settings.ApiKey);
+            request.Content = JsonContent.Create(payload, options: JsonOptions);
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<ResendSendResponse>(responseBody, JsonOptions);
+                return EmailSendResult.Ok(result?.Id);
+            }
+
+            return EmailSendResult.Fail($"Resend API error {(int)response.StatusCode}: {responseBody}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar email via Resend (EmailMessage) para {Recipient}", message.From.Address);
+            return EmailSendResult.Fail(ex.Message);
+        }
+    }
+
     // ===== Resend API DTOs =====
 
     private sealed class ResendSendRequest

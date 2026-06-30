@@ -110,6 +110,59 @@ public class SendGridEmailSender : IEmailSender
         }
     }
 
+    public async Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+            return EmailSendResult.Fail("SendGrid API key não configurada.");
+
+        try
+        {
+            var payload = new SendGridRequest
+            {
+                Personalizations = [new SendGridPersonalization
+                {
+                    To = message.To.Select(a => new SendGridAddress { Email = a.Address, Name = a.Display }).ToList()
+                }],
+                From = new SendGridAddress { Email = message.From.Address, Name = message.From.Display },
+                Subject = message.Subject,
+                Content = [new SendGridContent { Type = "text/html", Value = message.Html }]
+            };
+
+            if (message.ReplyTo.HasValue)
+                payload.ReplyTo = new SendGridAddress { Email = message.ReplyTo.Value.Address };
+
+            if (message.Attachments?.Count > 0)
+                payload.Attachments = message.Attachments.Select(a => new SendGridAttachment
+                {
+                    Content = a.Base64Content,
+                    Filename = a.FileName,
+                    Type = "application/octet-stream",
+                    Disposition = "attachment"
+                }).ToList();
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.sendgrid.com/v3/mail/send");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _settings.ApiKey);
+            request.Content = JsonContent.Create(payload, options: JsonOptions);
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var messageId = response.Headers.TryGetValues("X-Message-Id", out var values)
+                    ? values.FirstOrDefault() : null;
+                return EmailSendResult.Ok(messageId);
+            }
+
+            return EmailSendResult.Fail($"SendGrid API error {(int)response.StatusCode}: {responseBody}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar email via SendGrid (EmailMessage) para {Recipient}", message.From.Address);
+            return EmailSendResult.Fail(ex.Message);
+        }
+    }
+
     // ===== SendGrid API DTOs =====
 
     private sealed class SendGridRequest
