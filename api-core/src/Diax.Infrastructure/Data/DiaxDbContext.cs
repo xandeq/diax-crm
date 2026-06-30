@@ -124,6 +124,7 @@ public class DiaxDbContext : DbContext
     public DbSet<EmailCampaign> EmailCampaigns => Set<EmailCampaign>();
     public DbSet<EmailSuppression> EmailSuppressions => Set<EmailSuppression>();
     public DbSet<EmailEvent> EmailEvents => Set<EmailEvent>();
+    public DbSet<EmailSendLog> EmailSendLogs => Set<EmailSendLog>();
 
     // Image Generation
     public DbSet<ImageTemplate> ImageTemplates => Set<ImageTemplate>();
