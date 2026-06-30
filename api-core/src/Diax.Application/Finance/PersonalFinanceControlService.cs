@@ -443,8 +443,7 @@ public class PersonalFinanceControlService : IApplicationService
             var defaultCategoryId = Guid.Parse("20000000-0000-0000-0000-000000000014");
             var categoryId = transaction.CategoryId ?? defaultCategoryId;
 
-            var now = DateTime.UtcNow;
-            var startDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
+            var startDate = new DateTime(transaction.Date.Year, transaction.Date.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
             DateTime? endDate = months.HasValue
                 ? startDate.AddMonths(months.Value - 1)
                 : null;
