@@ -168,6 +168,12 @@ public class IntegrationsController : BaseApiController
         if (string.IsNullOrWhiteSpace(request.Html))
             return BadRequest(new { error = "Integrations.Validation", message = "html é obrigatório" });
 
+        var (renderedHtml, renderedText, renderedSubject) = TemplateRenderer.RenderAll(
+            request.Html,
+            request.Text,
+            request.Subject ?? string.Empty,
+            request.Variables);
+
         var message = new EmailMessage
         {
             From = new EmailAddress(request.FromEmail, request.FromName),
@@ -175,9 +181,9 @@ public class IntegrationsController : BaseApiController
             Cc = request.Cc?.Select(r => new EmailAddress(r.Address, r.Display)).ToList(),
             Bcc = request.Bcc?.Select(r => new EmailAddress(r.Address, r.Display)).ToList(),
             ReplyTo = request.ReplyToEmail is not null ? new EmailAddress(request.ReplyToEmail) : null,
-            Subject = request.Subject ?? string.Empty,
-            Html = request.Html,
-            Text = request.Text,
+            Subject = renderedSubject,
+            Html = renderedHtml,
+            Text = renderedText,
             Tags = request.Tags
         };
 
@@ -292,6 +298,12 @@ public sealed class SendEmailIntegrationRequest
     public List<string>? Tags { get; init; }
     public string? IdempotencyKey { get; init; }
     public string? ProviderHint { get; init; }
+
+    /// <summary>
+    /// Variáveis para substituição em templates: {"FirstName":"João","Company":"ACME"}.
+    /// Tokens no formato {{NomeDaVariável}} em subject, html e text são substituídos.
+    /// </summary>
+    public Dictionary<string, string>? Variables { get; init; }
 
     /// <summary>
     /// false (padrão) = campanhas de marketing — nunca usa Tier 2 SMTP.
