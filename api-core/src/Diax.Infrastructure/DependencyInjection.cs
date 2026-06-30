@@ -29,8 +29,10 @@ using Diax.Domain.Outreach;
 using Diax.Domain.Helpdesk;
 using Diax.Domain.Tasks;
 using Diax.Application.EmailMarketing;
+using Diax.Application.EmailMarketing.Dispatch;
 using Diax.Application.WhatsApp;
 using Diax.Infrastructure.Email;
+using Microsoft.Extensions.Options;
 using Diax.Infrastructure.EmailImages;
 using Diax.Infrastructure.WhatsApp;
 using Diax.Application.AI;
@@ -387,6 +389,31 @@ public static class DependencyInjection
 
         // Fallback não-keyed para partes do sistema que usam IEmailSender diretamente (test email, etc.)
         services.AddScoped<IEmailSender, BrevoEmailSender>();
+
+        // ===== SMTP PROVIDERS (Tier 2 — 4 instâncias de GenericSmtpEmailSender) =====
+        services.AddOptions<SmtpProviderSettings>("gmail-smtp")
+            .BindConfiguration("SmtpProviders:gmail-smtp");
+        services.AddOptions<SmtpProviderSettings>("hostgator-smtp")
+            .BindConfiguration("SmtpProviders:hostgator-smtp");
+        services.AddOptions<SmtpProviderSettings>("smarterasp-smtp")
+            .BindConfiguration("SmtpProviders:smarterasp-smtp");
+        services.AddOptions<SmtpProviderSettings>("hostinger-smtp")
+            .BindConfiguration("SmtpProviders:hostinger-smtp");
+
+        foreach (var smtpKey in new[] { "gmail-smtp", "hostgator-smtp", "smarterasp-smtp", "hostinger-smtp" })
+        {
+            var captured = smtpKey;
+            services.AddKeyedScoped<IEmailSender>(captured, (sp, _) =>
+            {
+                var monitor = sp.GetRequiredService<IOptionsMonitor<SmtpProviderSettings>>();
+                return new GenericSmtpEmailSender(monitor.Get(captured), sp.GetRequiredService<ILogger<GenericSmtpEmailSender>>());
+            });
+        }
+
+        // ===== UNIFIED EMAIL DISPATCH =====
+        services.Configure<EmailChainOptions>(configuration.GetSection(EmailChainOptions.Section));
+        services.AddSingleton<IProviderCircuitBreaker, EmailProviderCircuitBreaker>();
+        services.AddScoped<IEmailDispatchService, EmailFallbackOrchestrator>();
 
         // Brevo Contact Stats Service (para analytics por contato)
         services.AddHttpClient<IBrevoContactStatsService, BrevoContactStatsService>();
