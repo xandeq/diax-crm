@@ -132,6 +132,8 @@ jobs:
             --arg hostgatorNoreplyPass "${{ secrets.HOSTGATOR_NOREPLY_PASS }}" \
             --arg hostgatorMarketingPass "${{ secrets.HOSTGATOR_MARKETING_PASS }}" \
             --arg hostgatorVendasPass "${{ secrets.HOSTGATOR_VENDAS_PASS }}" \
+            --arg hostgatorContatoPass "${{ secrets.HOSTGATOR_CONTATO_PASS }}" \
+            --arg hostgatorEnvioPass "${{ secrets.HOSTGATOR_ENVIO_PASS }}" \
             --arg googleSheetsJson "$GOOGLE_SHEETS_SA_JSON" \
             --arg googleSheetsSpreadsheetId "$GOOGLE_SHEETS_SPREADSHEET_ID" \
             --arg ga4PropertyId "$GA4_PROPERTY_ID" \
@@ -289,6 +291,24 @@ jobs:
                   "Username": "noreply@alexandrequeiroz.com.br",
                   "Password": $hostgatorNoreplyPass,
                   "DefaultFromEmail": "noreply@alexandrequeiroz.com.br",
+                  "DefaultFromName": "Alexandre Queiroz"
+                },
+                "hostgator-contato-smtp": {
+                  "Host": $hostgatorSmtpHost,
+                  "Port": 465,
+                  "EnableSsl": true,
+                  "Username": "contato@alexandrequeiroz.com.br",
+                  "Password": $hostgatorContatoPass,
+                  "DefaultFromEmail": "contato@alexandrequeiroz.com.br",
+                  "DefaultFromName": "Alexandre Queiroz Marketing Digital"
+                },
+                "hostgator-envio-smtp": {
+                  "Host": $hostgatorSmtpHost,
+                  "Port": 465,
+                  "EnableSsl": true,
+                  "Username": "envio@alexandrequeiroz.com.br",
+                  "Password": $hostgatorEnvioPass,
+                  "DefaultFromEmail": "envio@alexandrequeiroz.com.br",
                   "DefaultFromName": "Alexandre Queiroz"
                 },
                 "hostgator-marketing-smtp": {

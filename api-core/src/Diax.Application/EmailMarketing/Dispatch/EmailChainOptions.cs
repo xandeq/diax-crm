@@ -10,9 +10,15 @@ public class EmailChainOptions
     /// Limite diário de envios por provider.
     /// Key = provider key (ex: "brevo", "gmail-smtp").
     /// Value = máximo de envios por dia UTC.
-    /// Providers sem entrada aqui não têm limite aplicado (útil para providers pagos ilimitados).
     /// </summary>
     public Dictionary<string, int> ProviderDailyLimits { get; set; } = new();
+
+    /// <summary>
+    /// Limite semanal de envios por provider (segunda-feira 00:00 UTC → domingo 23:59 UTC).
+    /// Complementa o limite diário — o menor dos dois prevalece.
+    /// Providers sem entrada aqui não têm limite semanal aplicado.
+    /// </summary>
+    public Dictionary<string, int> ProviderWeeklyLimits { get; set; } = new();
 }
 
 public class SenderDomainConfig
