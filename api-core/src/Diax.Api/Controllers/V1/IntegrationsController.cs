@@ -27,6 +27,7 @@ public class IntegrationsController : BaseApiController
     private readonly IDailyBriefingService _dailyBriefingService;
     private readonly IUserRepository _userRepository;
     private readonly IEmailDispatchService _emailDispatch;
+    private readonly IProviderQuotaGuard _quotaGuard;
     private readonly IConfiguration _configuration;
     private readonly ILogger<IntegrationsController> _logger;
 
@@ -35,6 +36,7 @@ public class IntegrationsController : BaseApiController
         IDailyBriefingService dailyBriefingService,
         IUserRepository userRepository,
         IEmailDispatchService emailDispatch,
+        IProviderQuotaGuard quotaGuard,
         IConfiguration configuration,
         ILogger<IntegrationsController> logger)
     {
@@ -42,6 +44,7 @@ public class IntegrationsController : BaseApiController
         _dailyBriefingService = dailyBriefingService;
         _userRepository = userRepository;
         _emailDispatch = emailDispatch;
+        _quotaGuard = quotaGuard;
         _configuration = configuration;
         _logger = logger;
     }
@@ -219,6 +222,38 @@ public class IntegrationsController : BaseApiController
                 attempts = result.Attempts.Count
             })
         };
+    }
+
+    /// <summary>
+    /// Status de quota diária de cada provider de email.
+    /// Mostra quantos envios foram usados e quanto resta até meia-noite UTC.
+    /// </summary>
+    [HttpGet("email-quota")]
+    public IActionResult GetEmailQuota(
+        [FromHeader(Name = "X-Integration-Key")] string? integrationKey)
+    {
+        var configuredKey = _configuration["Integrations:SendEmailKey"];
+        if (string.IsNullOrWhiteSpace(configuredKey))
+            return StatusCode(503, new { error = "Integrations.NotConfigured" });
+
+        if (string.IsNullOrWhiteSpace(integrationKey) || !TimingSafeEquals(integrationKey, configuredKey))
+            return Unauthorized(new { error = "Integrations.Unauthorized" });
+
+        var status = _quotaGuard.GetStatus();
+        var resetAtUtc = status.Values.FirstOrDefault()?.ResetAtUtc ?? DateTime.UtcNow.Date.AddDays(1);
+
+        return Ok(new
+        {
+            resetAtUtc,
+            providers = status.Values.OrderBy(s => s.Provider).Select(s => new
+            {
+                provider = s.Provider,
+                used = s.Used,
+                dailyLimit = s.DailyLimit,
+                remaining = s.Remaining,
+                exhausted = s.Remaining == 0
+            })
+        });
     }
 
     private async Task<Guid?> ResolveOwnerUserIdAsync(CancellationToken ct)

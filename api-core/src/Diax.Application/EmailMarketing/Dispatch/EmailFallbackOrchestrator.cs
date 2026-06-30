@@ -13,6 +13,7 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
     private readonly IServiceProvider _sp;
     private readonly IOptionsMonitor<EmailChainOptions> _chain;
     private readonly IProviderCircuitBreaker _breaker;
+    private readonly IProviderQuotaGuard _quota;
     private readonly IEmailSendLogRepository _logRepo;
     private readonly ILogger<EmailFallbackOrchestrator> _logger;
 
@@ -20,12 +21,14 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
         IServiceProvider sp,
         IOptionsMonitor<EmailChainOptions> chain,
         IProviderCircuitBreaker breaker,
+        IProviderQuotaGuard quota,
         IEmailSendLogRepository logRepo,
         ILogger<EmailFallbackOrchestrator> logger)
     {
         _sp = sp;
         _chain = chain;
         _breaker = breaker;
+        _quota = quota;
         _logRepo = logRepo;
         _logger = logger;
     }
@@ -96,6 +99,12 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
             if (_breaker.IsOpen(providerKey))
             {
                 _logger.LogDebug("Circuit breaker aberto para {Provider} — pulando", providerKey);
+                continue;
+            }
+
+            if (!_quota.TryConsume(providerKey))
+            {
+                // Quota esgotada — não consome crédito, pula para o próximo
                 continue;
             }
 

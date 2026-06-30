@@ -413,6 +413,7 @@ public static class DependencyInjection
         // ===== UNIFIED EMAIL DISPATCH =====
         services.Configure<EmailChainOptions>(configuration.GetSection(EmailChainOptions.Section));
         services.AddSingleton<IProviderCircuitBreaker, EmailProviderCircuitBreaker>();
+        services.AddSingleton<IProviderQuotaGuard, ProviderQuotaGuard>();
         services.AddScoped<IEmailDispatchService, EmailFallbackOrchestrator>();
 
         // Brevo Contact Stats Service (para analytics por contato)
