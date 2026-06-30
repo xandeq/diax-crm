@@ -421,6 +421,76 @@ public class PersonalFinanceControlService : IApplicationService
         }
     }
 
+    public async Task<Result<Guid>> MakeExpenseRecurringAsync(
+        Guid expenseId,
+        int? months,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var transaction = await _transactionRepository.GetByIdAndUserAsync(expenseId, userId, cancellationToken);
+            if (transaction == null)
+                return Result.Failure<Guid>(new Error("PersonalFinance.NotFound", "Despesa não encontrada"));
+
+            if (transaction.Type != Domain.Finance.TransactionType.Expense)
+                return Result.Failure<Guid>(new Error("PersonalFinance.InvalidType", "Apenas despesas podem ser tornadas recorrentes"));
+
+            if (transaction.RecurringTransactionId.HasValue)
+                return Result.Failure<Guid>(new Error("PersonalFinance.AlreadyRecurring", "Esta despesa já está vinculada a um recorrente"));
+
+            // "Não Categorizado" seeded category — same fallback used elsewhere no sistema
+            var defaultCategoryId = Guid.Parse("20000000-0000-0000-0000-000000000014");
+            var categoryId = transaction.CategoryId ?? defaultCategoryId;
+
+            var now = DateTime.UtcNow;
+            var startDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
+            DateTime? endDate = months.HasValue
+                ? startDate.AddMonths(months.Value - 1)
+                : null;
+
+            var dayOfMonth = transaction.Date.Day;
+
+            var recurring = new RecurringTransaction
+            {
+                UserId = userId,
+                Type = PlannerTransactionType.Expense,
+                ItemKind = RecurringItemKind.Standard,
+                Description = transaction.Description,
+                Details = transaction.Details,
+                Amount = transaction.Amount,
+                CategoryId = categoryId,
+                FrequencyType = FrequencyType.Monthly,
+                DayOfMonth = dayOfMonth,
+                StartDate = startDate,
+                EndDate = endDate,
+                PaymentMethod = transaction.PaymentMethod,
+                CreditCardId = transaction.CreditCardId,
+                FinancialAccountId = transaction.FinancialAccountId,
+                IsActive = true,
+                HasVariableAmount = transaction.HasVariableAmount,
+                Priority = 0,
+            };
+
+            await _recurringRepository.AddAsync(recurring);
+
+            transaction.LinkToRecurringTemplate(recurring.Id, false, transaction.Details);
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "MakeExpenseRecurring user={UserId} expense={ExpenseId} recurring={RecurringId} months={Months}",
+                userId, expenseId, recurring.Id, months?.ToString() ?? "indefinido");
+
+            return Result.Success(recurring.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "MakeExpenseRecurring failed user={UserId} expense={ExpenseId}", userId, expenseId);
+            return Result.Failure<Guid>(new Error("PersonalFinance.MakeRecurringFailed", "Falha ao tornar despesa recorrente"));
+        }
+    }
+
     public async Task<Result<ImportFromSheetResult>> ImportFromSheetAsync(
         int year,
         int month,

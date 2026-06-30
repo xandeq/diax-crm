@@ -62,6 +62,7 @@ import {
   FileText,
   PencilLine,
   Plus,
+  Repeat,
   RotateCcw,
   Sparkles,
   TrendingDown,
@@ -789,6 +790,9 @@ function Page() {
     id: string;
     name: string;
   } | null>(null);
+  const [makeRecurringDialog, setMakeRecurringDialog] = useState<{ item: PersonalControlExpenseItem } | null>(null);
+  const [recurringIndefinite, setRecurringIndefinite] = useState(true);
+  const [recurringMonths, setRecurringMonths] = useState(12);
   const [importingSheet, setImportingSheet] = useState(false);
   const [copyingRecurring, setCopyingRecurring] = useState(false);
   const [editingStatementId, setEditingStatementId] = useState<string | null>(null);
@@ -1449,7 +1453,7 @@ function Page() {
                     <TableCell>Dia {item.dueDay}</TableCell>
                     <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
                     <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Tornar recorrente" onClick={() => setMakeRecurringDialog({ item })}><Repeat className="h-4 w-4 text-blue-500" /></Button><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                   </TableRow>
                 )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
               </TableBody>
@@ -1970,6 +1974,60 @@ function Page() {
               disabled={deleteDialog ? savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` : false}
             >
               {deleteDialog && savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(makeRecurringDialog)} onOpenChange={(open) => { if (!open) { setMakeRecurringDialog(null); setRecurringIndefinite(true); setRecurringMonths(12); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tornar Recorrente</DialogTitle>
+            <DialogDescription>
+              {makeRecurringDialog ? `${makeRecurringDialog.item.name} — R$ ${makeRecurringDialog.item.amount.toFixed(2).replace('.', ',')}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <Button type="button" variant={recurringIndefinite ? 'default' : 'outline'} size="sm" onClick={() => setRecurringIndefinite(true)}>Indefinido</Button>
+              <Button type="button" variant={!recurringIndefinite ? 'default' : 'outline'} size="sm" onClick={() => setRecurringIndefinite(false)}>Definir meses</Button>
+            </div>
+            {!recurringIndefinite && (
+              <div className="space-y-2">
+                <Label htmlFor="recurring-months">Quantidade de meses</Label>
+                <Input id="recurring-months" type="number" min={1} max={120} value={recurringMonths} onChange={(e) => setRecurringMonths(Math.max(1, parseInt(e.target.value) || 1))} />
+                {(() => {
+                  const now = new Date();
+                  const end = new Date(now.getFullYear(), now.getMonth() + recurringMonths, 1);
+                  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+                  return <p className="text-sm text-muted-foreground">Encerra em {monthNames[end.getMonth()]}/{end.getFullYear()}</p>;
+                })()}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => { setMakeRecurringDialog(null); setRecurringIndefinite(true); setRecurringMonths(12); }}>Cancelar</Button>
+            <Button
+              type="button"
+              disabled={savingKey === `make-recurring-${makeRecurringDialog?.item.id}`}
+              onClick={async () => {
+                if (!makeRecurringDialog) return;
+                setSavingKey(`make-recurring-${makeRecurringDialog.item.id}`);
+                try {
+                  await personalControlService.makeExpenseRecurring(makeRecurringDialog.item.id, recurringIndefinite ? null : recurringMonths);
+                  void qc.invalidateQueries({ queryKey: personalControlKeys.monthView(period.year, period.month) });
+                  toast.success('Despesa marcada como recorrente.');
+                  setMakeRecurringDialog(null);
+                  setRecurringIndefinite(true);
+                  setRecurringMonths(12);
+                } catch (err) {
+                  toast.error('Falha ao tornar recorrente: ' + (err instanceof Error ? err.message : String(err)));
+                } finally {
+                  setSavingKey(null);
+                }
+              }}
+            >
+              {savingKey === `make-recurring-${makeRecurringDialog?.item.id}` ? 'Salvando...' : 'Confirmar'}
             </Button>
           </DialogFooter>
         </DialogContent>

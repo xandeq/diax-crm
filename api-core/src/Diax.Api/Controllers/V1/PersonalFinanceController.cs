@@ -767,6 +767,19 @@ public class PersonalFinanceController : BaseApiController
         return Ok(result.Value);
     }
 
+    [HttpPost("expense/{expenseId:guid}/make-recurring")]
+    public async Task<IActionResult> MakeExpenseRecurring(Guid expenseId, [FromBody] MakeRecurringRequest request, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _monthService.MakeExpenseRecurringAsync(expenseId, request.Months, userId.Value, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(new { code = result.Error.Code, message = result.Error.Message });
+
+        return Ok(new { recurringTransactionId = result.Value });
+    }
+
     [HttpPost("parse-statement")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> ParseStatement(IFormFile file, CancellationToken cancellationToken)
@@ -943,4 +956,6 @@ public class PersonalFinanceController : BaseApiController
         [Range(1, 12)] int Month,
         bool IsPaid,
         DateTime? PaymentDate = null);
+
+    public record MakeRecurringRequest(int? Months);
 }
