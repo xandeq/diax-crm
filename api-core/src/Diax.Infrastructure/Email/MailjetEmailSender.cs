@@ -102,6 +102,50 @@ public class MailjetEmailSender : IEmailSender
         }
     }
 
+    public async Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey) || string.IsNullOrWhiteSpace(_settings.SecretKey))
+            return EmailSendResult.Fail("Mailjet API key/secret não configurados.");
+
+        try
+        {
+            var payload = new MailjetSendRequest
+            {
+                Messages =
+                [
+                    new MailjetMessage
+                    {
+                        From = new MailjetContact { Email = message.From.Address, Name = message.From.Display },
+                        To = message.To.Select(a => new MailjetContact { Email = a.Address, Name = a.Display }).ToList(),
+                        Subject = message.Subject,
+                        HtmlPart = message.Html
+                    }
+                ]
+            };
+
+            var credentials = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{_settings.ApiKey}:{_settings.SecretKey}"));
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailjet.com/v3.1/send");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+            request.Content = JsonContent.Create(payload, options: JsonOptions);
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<MailjetSendResponse>(responseBody, JsonOptions);
+                return EmailSendResult.Ok(result?.Messages?.FirstOrDefault()?.To?.FirstOrDefault()?.MessageId.ToString());
+            }
+
+            return EmailSendResult.Fail($"Mailjet API error {(int)response.StatusCode}: {responseBody}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar email via Mailjet (EmailMessage) para {Recipient}", message.From.Address);
+            return EmailSendResult.Fail(ex.Message);
+        }
+    }
+
     // ===== Mailjet API DTOs =====
 
     private sealed class MailjetSendRequest

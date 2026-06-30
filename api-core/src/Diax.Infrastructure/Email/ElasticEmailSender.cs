@@ -93,6 +93,53 @@ public class ElasticEmailSender : IEmailSender
         }
     }
 
+    public async Task<EmailSendResult> SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+            return EmailSendResult.Fail("ElasticEmail API key não configurada.");
+
+        try
+        {
+            var fromStr = string.IsNullOrWhiteSpace(message.From.Display)
+                ? message.From.Address
+                : $"{message.From.Display} <{message.From.Address}>";
+
+            var payload = new ElasticEmailRequest
+            {
+                Recipients = new ElasticEmailRecipients
+                {
+                    To = message.To.Select(a => new ElasticEmailContact { Email = a.Address }).ToList()
+                },
+                Content = new ElasticEmailContent
+                {
+                    Body = [new ElasticEmailBody { ContentType = "HTML", Content = message.Html }],
+                    From = fromStr,
+                    Subject = message.Subject
+                }
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.elasticemail.com/v4/emails/transactional");
+            request.Headers.Add("X-ElasticEmail-ApiKey", _settings.ApiKey);
+            request.Content = JsonContent.Create(payload, options: JsonOptions);
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<ElasticEmailResponse>(responseBody, JsonOptions);
+                return EmailSendResult.Ok(result?.TransactionId);
+            }
+
+            return EmailSendResult.Fail($"ElasticEmail API error {(int)response.StatusCode}: {responseBody}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar email via ElasticEmail (EmailMessage) para {Recipient}", message.From.Address);
+            return EmailSendResult.Fail(ex.Message);
+        }
+    }
+
     // ===== ElasticEmail API DTOs =====
 
     private sealed class ElasticEmailRequest

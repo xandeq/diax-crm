@@ -124,6 +124,14 @@ jobs:
             --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
             --arg dailyBriefingsKey "${{ secrets.DIAX_DAILY_BRIEFINGS_KEY }}" \
             --arg investiqKey "${{ secrets.INVESTIQ_INTEGRATION_KEY }}" \
+            --arg sendEmailKey "${{ secrets.DIAX_SEND_EMAIL_KEY }}" \
+            --arg defaultUserId "${{ secrets.DIAX_INTEGRATIONS_DEFAULT_USER_ID }}" \
+            --arg gmailSmtpUsername "${{ secrets.GMAIL_SMTP_USERNAME }}" \
+            --arg gmailSmtpPassword "${{ secrets.GMAIL_APP_PASSWORD }}" \
+            --arg hostgatorSmtpHost "${{ secrets.HOSTGATOR_SMTP_HOST }}" \
+            --arg hostgatorNoreplyPass "${{ secrets.HOSTGATOR_NOREPLY_PASS }}" \
+            --arg hostgatorMarketingPass "${{ secrets.HOSTGATOR_MARKETING_PASS }}" \
+            --arg hostgatorVendasPass "${{ secrets.HOSTGATOR_VENDAS_PASS }}" \
             --arg googleSheetsJson "$GOOGLE_SHEETS_SA_JSON" \
             --arg googleSheetsSpreadsheetId "$GOOGLE_SHEETS_SPREADSHEET_ID" \
             --arg ga4PropertyId "$GA4_PROPERTY_ID" \
@@ -259,7 +267,48 @@ jobs:
               },
               "ServiceApiKey": $serviceApiKey,
               "Integrations": {
-                "DailyBriefingsKey": $dailyBriefingsKey
+                "DailyBriefingsKey": $dailyBriefingsKey,
+                "InvestIQKey": $investiqKey,
+                "SendEmailKey": $sendEmailKey,
+                "DefaultUserId": $defaultUserId
+              },
+              "SmtpProviders": {
+                "gmail-smtp": {
+                  "Host": "smtp.gmail.com",
+                  "Port": 587,
+                  "EnableSsl": true,
+                  "Username": $gmailSmtpUsername,
+                  "Password": $gmailSmtpPassword,
+                  "DefaultFromEmail": $gmailSmtpUsername,
+                  "DefaultFromName": "Alexandre Queiroz"
+                },
+                "hostgator-smtp": {
+                  "Host": $hostgatorSmtpHost,
+                  "Port": 465,
+                  "EnableSsl": true,
+                  "Username": "noreply@alexandrequeiroz.com.br",
+                  "Password": $hostgatorNoreplyPass,
+                  "DefaultFromEmail": "noreply@alexandrequeiroz.com.br",
+                  "DefaultFromName": "Alexandre Queiroz"
+                },
+                "hostgator-marketing-smtp": {
+                  "Host": $hostgatorSmtpHost,
+                  "Port": 465,
+                  "EnableSsl": true,
+                  "Username": "marketing@alexandrequeiroz.com.br",
+                  "Password": $hostgatorMarketingPass,
+                  "DefaultFromEmail": "marketing@alexandrequeiroz.com.br",
+                  "DefaultFromName": "Alexandre Queiroz Marketing Digital"
+                },
+                "hostgator-vendas-smtp": {
+                  "Host": $hostgatorSmtpHost,
+                  "Port": 465,
+                  "EnableSsl": true,
+                  "Username": "vendas@alexandrequeiroz.com.br",
+                  "Password": $hostgatorVendasPass,
+                  "DefaultFromEmail": "vendas@alexandrequeiroz.com.br",
+                  "DefaultFromName": "Alexandre Queiroz"
+                }
               },
               "InvestIQ": {
                 "BaseUrl": "https://api.investiq.com.br",
