@@ -50,3 +50,4 @@ service_account.json
 **/service_account.json
 api-core/nul
 nul
+.playwright-mcp/
