@@ -35,6 +35,7 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
 
     public async Task<EmailDispatchResult> DispatchAsync(EmailDispatchRequest request, CancellationToken ct = default)
     {
+        var options = _chain.CurrentValue;
         var fromDomain = ExtractDomain(request.Message.From.Address);
         var toHash = HashAddresses(request.Message.To);
         var subjectHash = Hash(request.Message.Subject);
@@ -56,36 +57,53 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
                 }
                 if (existing.Status == "InFlight")
                 {
-                    _logger.LogInformation("Idempotency — chave {Key} em processamento", request.IdempotencyKey);
-                    return new EmailDispatchResult(false, EmailDispatchStatus.InProgress, null, null, false, []);
+                    var age = DateTime.UtcNow - existing.CreatedAt;
+                    if (age < options.InFlightStaleAfter)
+                    {
+                        _logger.LogInformation("Idempotency — chave {Key} em processamento", request.IdempotencyKey);
+                        return new EmailDispatchResult(false, EmailDispatchStatus.InProgress, null, null, false, []);
+                    }
+
+                    // InFlight órfão (crash no meio do dispatch): sem esta expiração a chave
+                    // ficaria bloqueada por 24h respondendo 409. Marca Uncertain e libera.
+                    _logger.LogWarning(
+                        "Idempotency — InFlight órfão ({Age:F0}min) para chave {Key}; marcando Uncertain e reprocessando",
+                        age.TotalMinutes, request.IdempotencyKey);
+                    await _logRepo.MarkUncertainAsync(existing.Id, "InFlight órfão expirado — possível crash durante dispatch", ct);
                 }
+                // Status Failed/Uncertain: caller re-tentou explicitamente — prossegue.
             }
         }
 
         // 2. Validate sender domain
-        var options = _chain.CurrentValue;
         if (!options.SenderDomains.TryGetValue(fromDomain, out var domainConfig))
         {
             _logger.LogWarning("From domain {Domain} não configurado em EmailChain:SenderDomains", fromDomain);
             return new EmailDispatchResult(false, EmailDispatchStatus.Rejected, null, null, false, []);
         }
 
-        // 3. Create InFlight log
-        var log = await _logRepo.CreateInFlightAsync(
+        // 3. Create InFlight log — o índice único filtrado em idempotency_key garante que
+        //    apenas UMA chamada concorrente detém a chave; a perdedora recebe InProgress.
+        var log = await _logRepo.TryCreateInFlightAsync(
             request.RequestId, request.IdempotencyKey,
             toHash, subjectHash, bodyHash, fromDomain, ct);
 
-        // 4. Build ordered provider list
-        var providers = new List<string>(domainConfig.Tier1Providers);
+        if (log is null)
+        {
+            _logger.LogInformation(
+                "Idempotency — corrida perdida para chave {Key} (outra chamada detém o InFlight)",
+                request.IdempotencyKey);
+            return new EmailDispatchResult(false, EmailDispatchStatus.InProgress, null, null, false, []);
+        }
+
+        // 4. Build ordered provider list (ProviderHint vai para a frente do seu tier)
         var tier2Set = new HashSet<string>(domainConfig.Tier2Providers, StringComparer.OrdinalIgnoreCase);
+        var providers = BuildProviderOrder(domainConfig, request.ProviderHint, request.AllowUnaligned);
 
-        if (request.AllowUnaligned)
-            providers.AddRange(domainConfig.Tier2Providers);
-
-        // 5. Hard timeout — wrap caller's token
+        // 5. Hard timeout — orçamento TOTAL da cadeia; cada provider tem o próprio orçamento.
         using var hardCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         hardCts.CancelAfter(options.HardTimeout);
-        var linkedCt = hardCts.Token;
+        var chainCt = hardCts.Token;
 
         var attempts = new List<EmailAttemptDetail>();
 
@@ -102,7 +120,7 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
                 continue;
             }
 
-            if (!_quota.TryConsume(providerKey))
+            if (!await _quota.TryConsumeAsync(providerKey, ct))
             {
                 // Quota esgotada — não consome crédito, pula para o próximo
                 continue;
@@ -119,18 +137,37 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
             var sw = Stopwatch.StartNew();
             EmailSendResult result;
 
+            // Timeout POR PROVIDER dentro do orçamento da cadeia: um provider pendurado
+            // não pode consumir os 60s inteiros e impedir os demais de tentar.
+            using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(chainCt);
+            attemptCts.CancelAfter(options.PerProviderTimeout);
+
             try
             {
-                result = await sender.SendAsync(request.Message, linkedCt);
+                result = await sender.SendAsync(request.Message, attemptCts.Token);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
                 sw.Stop();
-                var timeoutDetail = new EmailAttemptDetail(providerKey, attemptNo, false, null, "Hard timeout (60s)", sw.ElapsedMilliseconds);
-                attempts.Add(timeoutDetail);
-                await _logRepo.RecordAttemptAsync(log.Id, providerKey, attemptNo, false, null, "Hard timeout", (int)sw.ElapsedMilliseconds, isTier2, ct);
+                var chainExhausted = chainCt.IsCancellationRequested;
+                var timeoutError = chainExhausted
+                    ? $"Hard timeout da cadeia ({options.HardTimeout.TotalSeconds:F0}s)"
+                    : $"Timeout do provider ({options.PerProviderTimeout.TotalSeconds:F0}s)";
+
+                attempts.Add(new EmailAttemptDetail(providerKey, attemptNo, false, null, timeoutError, sw.ElapsedMilliseconds));
+                await _logRepo.RecordAttemptAsync(log.Id, providerKey, attemptNo, false, null, timeoutError, (int)sw.ElapsedMilliseconds, isTier2, ct);
                 _breaker.RecordFailure(providerKey, "timeout");
-                break; // Hard timeout — abort chain
+
+                if (chainExhausted)
+                {
+                    // Orçamento total esgotado com um envio em voo: o provider pode ter
+                    // aceitado a mensagem. Resultado é AMBÍGUO — nunca marcar Failed aqui,
+                    // ou um retry do caller com chave nova duplicaria o email.
+                    await _logRepo.MarkUncertainAsync(log.Id, timeoutError, ct);
+                    return new EmailDispatchResult(false, EmailDispatchStatus.Uncertain, null, null, false, attempts);
+                }
+
+                continue; // timeout individual — próximo provider
             }
 
             sw.Stop();
@@ -159,6 +196,40 @@ public class EmailFallbackOrchestrator : IEmailDispatchService
         // 6. All providers exhausted
         await _logRepo.MarkFailedAsync(log.Id, ct);
         return new EmailDispatchResult(false, EmailDispatchStatus.AllFailed, null, null, false, attempts);
+    }
+
+    /// <summary>
+    /// Tier1 na ordem configurada (+ Tier2 quando permitido). ProviderHint move o provider
+    /// indicado para a frente do SEU tier — nunca promove Tier2 sem allowUnaligned.
+    /// </summary>
+    private static List<string> BuildProviderOrder(
+        SenderDomainConfig domainConfig,
+        string? providerHint,
+        bool allowUnaligned)
+    {
+        var tier1 = new List<string>(domainConfig.Tier1Providers);
+        var tier2 = allowUnaligned ? new List<string>(domainConfig.Tier2Providers) : [];
+
+        if (!string.IsNullOrWhiteSpace(providerHint))
+        {
+            var hint = providerHint.Trim();
+            MoveToFront(tier1, hint);
+            MoveToFront(tier2, hint);
+        }
+
+        tier1.AddRange(tier2);
+        return tier1;
+    }
+
+    private static void MoveToFront(List<string> list, string key)
+    {
+        var index = list.FindIndex(p => p.Equals(key, StringComparison.OrdinalIgnoreCase));
+        if (index > 0)
+        {
+            var value = list[index];
+            list.RemoveAt(index);
+            list.Insert(0, value);
+        }
     }
 
     private static string ExtractDomain(string email)

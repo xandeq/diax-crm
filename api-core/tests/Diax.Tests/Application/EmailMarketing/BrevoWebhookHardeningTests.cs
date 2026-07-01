@@ -30,6 +30,7 @@ public class BrevoWebhookHardeningTests
     private readonly Mock<IPilotCircuitBreaker> _circuitBreakerMock = new();
     private readonly Mock<IAuditLogRepository> _auditLogRepoMock = new();
     private readonly Mock<IUserRepository> _userRepoMock = new();
+    private readonly Mock<IEmailEventRepository> _emailEventRepoMock = new();
     private readonly BrevoWebhookController _sut;
 
     public BrevoWebhookHardeningTests()
@@ -46,7 +47,8 @@ public class BrevoWebhookHardeningTests
             _loggerMock.Object,
             _circuitBreakerMock.Object,
             _auditLogRepoMock.Object,
-            _userRepoMock.Object
+            _userRepoMock.Object,
+            _emailEventRepoMock.Object
         );
     }
 

@@ -31,6 +31,8 @@ public class EmailMarketingService : IApplicationService
     private readonly IEmailSuppressionRepository _suppressionRepository;
     private readonly IPilotCircuitBreaker _circuitBreaker;
     private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IUnsubscribeLinkBuilder _linkBuilder;
+    private readonly IEmailProviderPolicy _providerPolicy;
 
     public EmailMarketingService(
         IEmailQueueRepository emailQueueRepository,
@@ -44,7 +46,9 @@ public class EmailMarketingService : IApplicationService
         IEmailSender emailSender,
         IEmailSuppressionRepository suppressionRepository,
         IPilotCircuitBreaker circuitBreaker,
-        IAuditLogRepository auditLogRepository)
+        IAuditLogRepository auditLogRepository,
+        IUnsubscribeLinkBuilder linkBuilder,
+        IEmailProviderPolicy providerPolicy)
     {
         _emailQueueRepository = emailQueueRepository;
         _emailCampaignRepository = emailCampaignRepository;
@@ -58,6 +62,8 @@ public class EmailMarketingService : IApplicationService
         _suppressionRepository = suppressionRepository;
         _circuitBreaker = circuitBreaker;
         _auditLogRepository = auditLogRepository;
+        _linkBuilder = linkBuilder;
+        _providerPolicy = providerPolicy;
     }
 
     public async Task<Result<PreviewCampaignResponse>> PreviewCampaignAsync(
@@ -156,8 +162,8 @@ public class EmailMarketingService : IApplicationService
         variables["cidade"] = "São Paulo";
         variables["ferramenta_atual"] = "Pipedrive";
         variables["dor_principal"] = "falta de integração com o WhatsApp";
-        variables["cta_link"] = "https://diaxcrm.com.br/landing/agencias-digitais";
-        variables["unsubscribe_url"] = $"https://diaxcrm.com.br/api/v1/email-campaigns/unsubscribe?email={Uri.EscapeDataString(userEmail)}";
+        variables["cta_link"] = _linkBuilder.DefaultCtaUrl;
+        variables["unsubscribe_url"] = _linkBuilder.BuildUnsubscribeUrl(_currentUserService.UserId!.Value, userEmail);
 
         var renderedSubject = "[TESTE] " + _emailTemplateEngine.Render(subjectTemplate, variables);
         var renderedBody = _emailTemplateEngine.Render(templateResult.Value.TemplateBody, variables);
@@ -429,6 +435,15 @@ public class EmailMarketingService : IApplicationService
         var skipped = new List<string>();
         var providerIndex = 0;
 
+        // Rotação apenas entre providers HABILITADOS — providers sem credencial
+        // (Email:DisabledProviders) não recebem itens que falhariam 100% das vezes.
+        var enabledProviders = _providerPolicy.EnabledProviders;
+        if (enabledProviders.Count == 0)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Validation("Providers", "Nenhum provider de email habilitado (Email:DisabledProviders)."));
+        }
+
         var customerIds = recipients.Select(c => c.Id).ToList();
         var existingQueued = await _emailQueueRepository.FindAsync(
             q => q.CampaignId == campaign.Id && q.CustomerId.HasValue && customerIds.Contains(q.CustomerId.Value),
@@ -465,7 +480,7 @@ public class EmailMarketingService : IApplicationService
                 continue;
             }
 
-            var provider = (Domain.EmailMarketing.Enums.EmailProvider)(providerIndex % 6);
+            var provider = enabledProviders[providerIndex % enabledProviders.Count];
             providerIndex++;
 
             queuedItems.Add(new EmailQueueItem(
@@ -561,6 +576,12 @@ public class EmailMarketingService : IApplicationService
             return Result.Failure<EmailQueueItemResponse>(attachmentsJsonResult.Error);
         }
 
+        if (await _suppressionRepository.IsSuppressedAsync(_currentUserService.UserId.Value, request.RecipientEmail, cancellationToken))
+        {
+            return Result.Failure<EmailQueueItemResponse>(
+                Error.Validation("RecipientEmail", "Destinatário está na lista de supressão (opt-out)."));
+        }
+
         var scheduledAt = NormalizeSchedule(request.ScheduledAt);
         var queueItem = new EmailQueueItem(
             _currentUserService.UserId.Value,
@@ -625,6 +646,18 @@ public class EmailMarketingService : IApplicationService
             if (!IsValidEmail(customer.Email))
             {
                 skipped.Add($"{customer.Name} <{customer.Email}> (email inválido)");
+                continue;
+            }
+
+            if (customer.EmailOptOut)
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (opt-out ativo)");
+                continue;
+            }
+
+            if (await _suppressionRepository.IsSuppressedAsync(_currentUserService.UserId.Value, customer.Email, cancellationToken))
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (suprimido)");
                 continue;
             }
 
@@ -847,7 +880,11 @@ public class EmailMarketingService : IApplicationService
             cancellationToken);
     }
 
-    public static Dictionary<string, string?> BuildRecipientTemplateVariables(Customer? customer, EmailQueueItem queueItem)
+    public static Dictionary<string, string?> BuildRecipientTemplateVariables(
+        Customer? customer,
+        EmailQueueItem queueItem,
+        string unsubscribeUrl,
+        string ctaUrl)
     {
         var firstName = !string.IsNullOrEmpty(customer?.NormalizedName)
             ? customer!.NormalizedName.Split(' ')[0]
@@ -885,9 +922,11 @@ public class EmailMarketingService : IApplicationService
         }
         dict["dor_principal"] = mainPain;
 
-        // CTA Link and Unsubscribe URL
-        dict["cta_link"] = "https://diaxcrm.com.br/landing/agencias-digitais";
-        dict["unsubscribe_url"] = $"https://diaxcrm.com.br/api/v1/email-campaigns/unsubscribe?email={Uri.EscapeDataString(queueItem.RecipientEmail)}";
+        // CTA e unsubscribe vêm do UnsubscribeLinkBuilder (host público real + token HMAC).
+        // Os antigos hardcodes apontavam para diaxcrm.com.br — domínio morto: nenhum
+        // destinatário conseguia se descadastrar.
+        dict["cta_link"] = ctaUrl;
+        dict["unsubscribe_url"] = unsubscribeUrl;
 
         return dict;
     }
@@ -1099,6 +1138,13 @@ public class EmailMarketingService : IApplicationService
             .Select(q => q.CustomerId!.Value)
             .ToHashSet();
 
+        var enabledForAssignment = _providerPolicy.EnabledProviders;
+        if (enabledForAssignment.Count == 0)
+        {
+            return Result.Failure<QueueCampaignRecipientsResponse>(
+                Error.Validation("Providers", "Nenhum provider de email habilitado (Email:DisabledProviders)."));
+        }
+
         foreach (var leadDto in request.Leads)
         {
             if (!customers.TryGetValue(leadDto.CustomerId, out var customer))
@@ -1113,21 +1159,44 @@ public class EmailMarketingService : IApplicationService
                 continue;
             }
 
+            // Consentimento: mesmo gate do caminho legado (QueueCampaignRecipients).
+            // Sem estes checks, quem fez opt-out (inclusive via hard bounce) voltava
+            // a ser enfileirado em qualquer campanha nova — violação de LGPD/CAN-SPAM.
+            if (customer.EmailOptOut)
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (opt-out ativo)");
+                continue;
+            }
+
+            if (await _suppressionRepository.IsSuppressedAsync(_currentUserService.UserId!.Value, customer.Email, cancellationToken))
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (suprimido)");
+                continue;
+            }
+
             if (existingQueuedCustomerIds.Contains(customer.Id))
             {
                 skipped.Add($"{customer.Name} <{customer.Email}> (já enfileirado ou enviado para esta campanha)");
                 continue;
             }
 
-            var provider = leadDto.AssignedProvider?.ToLowerInvariant() switch
+            // Parse estrito: nome de provider desconhecido é erro do caller — o antigo
+            // default silencioso para Brevo mascarava typos e desequilibrava limites.
+            EmailProvider provider;
+            if (string.IsNullOrWhiteSpace(leadDto.AssignedProvider))
             {
-                "mailjet"      => EmailProvider.Mailjet,
-                "resend"       => EmailProvider.Resend,
-                "elasticemail" => EmailProvider.ElasticEmail,
-                "mailersend"   => EmailProvider.MailerSend,
-                "sendgrid"     => EmailProvider.SendGrid,
-                _              => EmailProvider.Brevo,
-            };
+                provider = enabledForAssignment[0];
+            }
+            else if (!_providerPolicy.TryParse(leadDto.AssignedProvider, out provider))
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (provider desconhecido: '{leadDto.AssignedProvider}')");
+                continue;
+            }
+            else if (!_providerPolicy.IsEnabled(provider))
+            {
+                skipped.Add($"{customer.Name} <{customer.Email}> (provider desabilitado: '{leadDto.AssignedProvider}')");
+                continue;
+            }
 
             queuedItems.Add(new EmailQueueItem(
                 _currentUserService.UserId.Value,

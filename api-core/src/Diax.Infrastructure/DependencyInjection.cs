@@ -356,6 +356,26 @@ public static class DependencyInjection
 
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
+
+        // Links públicos dos emails (unsubscribe com HMAC + CTA default). A chave HMAC
+        // é a mesma Jwt:Key validada pelo EmailUnsubscribeController.
+        services.Configure<Diax.Application.EmailMarketing.EmailLinkOptions>(
+            configuration.GetSection(Diax.Application.EmailMarketing.EmailLinkOptions.Section));
+        services.PostConfigure<Diax.Application.EmailMarketing.EmailLinkOptions>(o =>
+        {
+            if (string.IsNullOrWhiteSpace(o.SigningKey))
+            {
+                o.SigningKey = configuration["Jwt:Key"] ?? string.Empty;
+            }
+        });
+        services.AddSingleton<Diax.Application.EmailMarketing.IUnsubscribeLinkBuilder,
+            Diax.Application.EmailMarketing.UnsubscribeLinkBuilder>();
+
+        // Política de providers habilitados (Email:DisabledProviders)
+        services.Configure<Diax.Application.EmailMarketing.EmailProviderPolicyOptions>(
+            configuration.GetSection(Diax.Application.EmailMarketing.EmailProviderPolicyOptions.Section));
+        services.AddSingleton<Diax.Application.EmailMarketing.IEmailProviderPolicy,
+            Diax.Application.EmailMarketing.EmailProviderPolicy>();
         services.Configure<BrevoSettings>(configuration.GetSection("Brevo"));
         services.Configure<MailjetSettings>(configuration.GetSection("Mailjet"));
         services.Configure<ResendSettings>(configuration.GetSection("Resend"));
@@ -413,13 +433,19 @@ public static class DependencyInjection
         // ===== UNIFIED EMAIL DISPATCH =====
         services.Configure<EmailChainOptions>(configuration.GetSection(EmailChainOptions.Section));
         services.AddSingleton<IProviderCircuitBreaker, EmailProviderCircuitBreaker>();
+        services.AddSingleton<IProviderQuotaUsageSource, DbProviderQuotaUsageSource>();
         services.AddSingleton<IProviderQuotaGuard, ProviderQuotaGuard>();
         services.AddScoped<IEmailDispatchService, EmailFallbackOrchestrator>();
 
         // Brevo Contact Stats Service (para analytics por contato)
         services.AddHttpClient<IBrevoContactStatsService, BrevoContactStatsService>();
 
+        services.AddScoped<EmailQueueCycleProcessor>();
         services.AddHostedService<EmailQueueProcessorWorker>();
+
+        // Ledger de eventos de email (idempotência dos webhooks)
+        services.AddScoped<IEmailEventRepository,
+            Diax.Infrastructure.Data.Repositories.EmailEventRepository>();
 
         // Email Image Storage Service (para imagens inline em emails)
         services.AddScoped<IEmailImageStorageService, EmailImageStorageService>();

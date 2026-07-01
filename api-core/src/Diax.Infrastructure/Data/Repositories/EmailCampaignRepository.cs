@@ -50,4 +50,16 @@ public class EmailCampaignRepository : Repository<EmailCampaign>, IEmailCampaign
         campaign.IncrementFailed();
         DbSet.Update(campaign);
     }
+
+    public async Task DecrementFailedAsync(Guid campaignId, CancellationToken cancellationToken = default)
+    {
+        var campaign = await DbSet.FirstOrDefaultAsync(c => c.Id == campaignId, cancellationToken);
+        if (campaign is null)
+        {
+            return;
+        }
+
+        campaign.DecrementFailed();
+        DbSet.Update(campaign);
+    }
 }

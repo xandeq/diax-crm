@@ -87,7 +87,10 @@ public class EmailCampaignStrategyTests
         );
 
         // Act
-        var variables = EmailMarketingService.BuildRecipientTemplateVariables(customer, queueItem);
+        var linkBuilder = EmailTestDefaults.LinkBuilder();
+        var unsubscribeUrl = linkBuilder.BuildUnsubscribeUrl(queueItem.UserId, queueItem.RecipientEmail);
+        var variables = EmailMarketingService.BuildRecipientTemplateVariables(
+            customer, queueItem, unsubscribeUrl, linkBuilder.DefaultCtaUrl);
 
         // Assert
         Assert.Equal("Carlos", variables["nome"]);
@@ -95,8 +98,10 @@ public class EmailCampaignStrategyTests
         Assert.Equal("www.agenciaalfa.com.br", variables["site"]);
         Assert.Equal(expectedTool, variables["ferramenta_atual"]);
         Assert.Equal(expectedPain, variables["dor_principal"]);
-        Assert.Contains("https://diaxcrm.com.br/landing/agencias-digitais", variables["cta_link"]);
-        Assert.Contains("unsubscribe?email=carlos%40alfa.com", variables["unsubscribe_url"]);
+        Assert.Equal(EmailTestDefaults.CtaUrl, variables["cta_link"]);
+        // URL de unsubscribe aponta para o host público real com token HMAC (não mais
+        // o antigo formato ?email= no domínio morto diaxcrm.com.br).
+        Assert.StartsWith($"{EmailTestDefaults.PublicBaseUrl}/unsubscribe?token=", variables["unsubscribe_url"]);
     }
 
     [Fact]
@@ -171,7 +176,9 @@ public class EmailCampaignStrategyTests
             mockEmailSender.Object,
             new Mock<IEmailSuppressionRepository>().Object,
             new Mock<IPilotCircuitBreaker>().Object,
-            new Mock<IAuditLogRepository>().Object
+            new Mock<IAuditLogRepository>().Object,
+            EmailTestDefaults.LinkBuilder(),
+            EmailTestDefaults.ProviderPolicy()
         );
 
         // Act
@@ -296,7 +303,9 @@ public class EmailCampaignStrategyTests
             new Mock<IEmailSender>().Object,
             new Mock<IEmailSuppressionRepository>().Object,
             new Mock<IPilotCircuitBreaker>().Object,
-            new Mock<IAuditLogRepository>().Object
+            new Mock<IAuditLogRepository>().Object,
+            EmailTestDefaults.LinkBuilder(),
+            EmailTestDefaults.ProviderPolicy()
         );
 
         // Act
@@ -361,7 +370,9 @@ public class EmailCampaignStrategyTests
             new Mock<IEmailSender>().Object,
             mockSuppressionRepo.Object,
             new Mock<IPilotCircuitBreaker>().Object,
-            new Mock<IAuditLogRepository>().Object
+            new Mock<IAuditLogRepository>().Object,
+            EmailTestDefaults.LinkBuilder(),
+            EmailTestDefaults.ProviderPolicy()
         );
 
         // Act

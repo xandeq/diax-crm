@@ -96,8 +96,19 @@ public class EmailQueueItem : AuditableEntity
     {
         Status = EmailQueueStatus.Queued;
         ScheduledAt = retryAt;
-        LastError = null;
+        // LastError é preservado de propósito: enquanto o item aguarda retry,
+        // a causa da última falha precisa continuar visível para diagnóstico.
         ProcessingStartedAt = null;
+        SetUpdated("system");
+    }
+
+    /// <summary>
+    /// Troca o provider do item (usado no retry para não insistir em provider que falhou
+    /// e para tirar itens de providers desabilitados/sem credencial).
+    /// </summary>
+    public void ReassignProvider(EmailProvider provider)
+    {
+        AssignedProvider = provider;
         SetUpdated("system");
     }
 }

@@ -9,30 +9,40 @@ namespace Diax.Infrastructure.Email;
 /// Controla envios diários e semanais por provider para nunca exceder limites.
 /// Singleton — estado em memória, thread-safe.
 /// Diário reseta à meia-noite UTC; semanal na segunda-feira 00:00 UTC.
+///
+/// No primeiro consumo de cada período o contador é HIDRATADO do banco
+/// (IProviderQuotaUsageSource) — sem isso, um recycle do app pool zerava a quota
+/// no meio do dia e os limites externos eram silenciosamente ultrapassados.
 /// </summary>
 public sealed class ProviderQuotaGuard : IProviderQuotaGuard
 {
     private sealed class PeriodBucket
     {
-        public volatile int Used;
+        public int Used;
+        public bool Hydrated;
         public DateTime PeriodStartUtc;
-        public readonly object Lock = new();
+        public readonly SemaphoreSlim Gate = new(1, 1);
     }
 
     private readonly IOptionsMonitor<EmailChainOptions> _options;
+    private readonly IProviderQuotaUsageSource _usageSource;
     private readonly ILogger<ProviderQuotaGuard> _logger;
 
     // Buckets separados por provider para evitar contenção cruzada
     private readonly ConcurrentDictionary<string, PeriodBucket> _daily  = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, PeriodBucket> _weekly = new(StringComparer.OrdinalIgnoreCase);
 
-    public ProviderQuotaGuard(IOptionsMonitor<EmailChainOptions> options, ILogger<ProviderQuotaGuard> logger)
+    public ProviderQuotaGuard(
+        IOptionsMonitor<EmailChainOptions> options,
+        IProviderQuotaUsageSource usageSource,
+        ILogger<ProviderQuotaGuard> logger)
     {
         _options = options;
+        _usageSource = usageSource;
         _logger = logger;
     }
 
-    public bool TryConsume(string providerKey)
+    public async Task<bool> TryConsumeAsync(string providerKey, CancellationToken ct = default)
     {
         providerKey = providerKey.ToLowerInvariant();
         var opts = _options.CurrentValue;
@@ -40,54 +50,68 @@ public sealed class ProviderQuotaGuard : IProviderQuotaGuard
         var dailyLimit  = GetLimit(opts.ProviderDailyLimits,  providerKey);
         var weeklyLimit = GetLimit(opts.ProviderWeeklyLimits, providerKey);
 
-        // Verifica semanal primeiro (mais raro de atingir, mas importante)
+        PeriodBucket? db = null, wb = null;
+
+        // Adquire os dois gates em ordem fixa (semanal → diário) para evitar deadlock,
+        // e só incrementa depois que AMBOS os limites passaram — fecha a janela
+        // check-then-increment da versão anterior.
         if (weeklyLimit > 0)
         {
-            var wb = _weekly.GetOrAdd(providerKey, _ => new PeriodBucket { PeriodStartUtc = CurrentWeekStartUtc() });
-            lock (wb.Lock)
+            wb = _weekly.GetOrAdd(providerKey, _ => new PeriodBucket { PeriodStartUtc = CurrentWeekStartUtc() });
+            await wb.Gate.WaitAsync(ct);
+        }
+
+        try
+        {
+            if (dailyLimit > 0)
             {
-                MaybeResetWeekly(wb);
-                if (wb.Used >= weeklyLimit)
+                db = _daily.GetOrAdd(providerKey, _ => new PeriodBucket { PeriodStartUtc = DateTime.UtcNow.Date });
+                await db.Gate.WaitAsync(ct);
+            }
+
+            try
+            {
+                if (wb is not null)
                 {
-                    _logger.LogWarning("Provider {Provider} quota SEMANAL esgotada ({Used}/{Limit}) — reset na próxima segunda {Reset:yyyy-MM-dd} UTC",
-                        providerKey, wb.Used, weeklyLimit, NextWeekStartUtc());
-                    return false;
+                    MaybeResetWeekly(wb);
+                    await HydrateAsync(wb, providerKey, CurrentWeekStartUtc(), ct);
+                    if (wb.Used >= weeklyLimit)
+                    {
+                        _logger.LogWarning("Provider {Provider} quota SEMANAL esgotada ({Used}/{Limit}) — reset na próxima segunda {Reset:yyyy-MM-dd} UTC",
+                            providerKey, wb.Used, weeklyLimit, NextWeekStartUtc());
+                        return false;
+                    }
                 }
+
+                if (db is not null)
+                {
+                    MaybeResetDaily(db);
+                    await HydrateAsync(db, providerKey, DateTime.UtcNow.Date, ct);
+                    if (db.Used >= dailyLimit)
+                    {
+                        _logger.LogWarning("Provider {Provider} quota DIÁRIA esgotada ({Used}/{Limit}) — reset às {Reset:HH:mm} UTC",
+                            providerKey, db.Used, dailyLimit, NextMidnightUtc());
+                        return false;
+                    }
+                }
+
+                // Ambos OK — incrementa com os gates ainda adquiridos.
+                if (wb is not null) wb.Used++;
+                if (db is not null) db.Used++;
+                return true;
+            }
+            finally
+            {
+                db?.Gate.Release();
             }
         }
-
-        // Verifica diário
-        if (dailyLimit > 0)
+        finally
         {
-            var db = _daily.GetOrAdd(providerKey, _ => new PeriodBucket { PeriodStartUtc = DateTime.UtcNow.Date });
-            lock (db.Lock)
-            {
-                MaybeResetDaily(db);
-                if (db.Used >= dailyLimit)
-                {
-                    _logger.LogWarning("Provider {Provider} quota DIÁRIA esgotada ({Used}/{Limit}) — reset às {Reset:HH:mm} UTC",
-                        providerKey, db.Used, dailyLimit, NextMidnightUtc());
-                    return false;
-                }
-            }
+            wb?.Gate.Release();
         }
-
-        // Ambos OK — incrementa
-        if (dailyLimit > 0)
-        {
-            var db = _daily[providerKey];
-            lock (db.Lock) { db.Used++; }
-        }
-        if (weeklyLimit > 0)
-        {
-            var wb = _weekly[providerKey];
-            lock (wb.Lock) { wb.Used++; }
-        }
-
-        return true;
     }
 
-    public int GetRemaining(string providerKey)
+    public async Task<int> GetRemainingAsync(string providerKey, CancellationToken ct = default)
     {
         providerKey = providerKey.ToLowerInvariant();
         var opts = _options.CurrentValue;
@@ -95,13 +119,17 @@ public sealed class ProviderQuotaGuard : IProviderQuotaGuard
         var dailyLimit  = GetLimit(opts.ProviderDailyLimits,  providerKey);
         var weeklyLimit = GetLimit(opts.ProviderWeeklyLimits, providerKey);
 
-        int dailyRemaining  = dailyLimit  > 0 ? RemainingInBucket(_daily,  providerKey, dailyLimit,  MaybeResetDaily)  : int.MaxValue;
-        int weeklyRemaining = weeklyLimit > 0 ? RemainingInBucket(_weekly, providerKey, weeklyLimit, MaybeResetWeekly) : int.MaxValue;
+        var dailyRemaining = dailyLimit > 0
+            ? await RemainingInBucketAsync(_daily, providerKey, dailyLimit, DateTime.UtcNow.Date, MaybeResetDaily, ct)
+            : int.MaxValue;
+        var weeklyRemaining = weeklyLimit > 0
+            ? await RemainingInBucketAsync(_weekly, providerKey, weeklyLimit, CurrentWeekStartUtc(), MaybeResetWeekly, ct)
+            : int.MaxValue;
 
         return Math.Min(dailyRemaining, weeklyRemaining);
     }
 
-    public IReadOnlyDictionary<string, ProviderQuotaStatus> GetStatus()
+    public async Task<IReadOnlyDictionary<string, ProviderQuotaStatus>> GetStatusAsync(CancellationToken ct = default)
     {
         var opts = _options.CurrentValue;
         var result = new Dictionary<string, ProviderQuotaStatus>(StringComparer.OrdinalIgnoreCase);
@@ -121,11 +149,11 @@ public sealed class ProviderQuotaGuard : IProviderQuotaGuard
 
             int du = 0, wu = 0;
 
-            if (dl > 0 && _daily.TryGetValue(key, out var db))
-                lock (db.Lock) { MaybeResetDaily(db); du = db.Used; }
+            if (dl > 0)
+                du = await UsedInBucketAsync(_daily, key, DateTime.UtcNow.Date, MaybeResetDaily, ct);
 
-            if (wl > 0 && _weekly.TryGetValue(key, out var wb))
-                lock (wb.Lock) { MaybeResetWeekly(wb); wu = wb.Used; }
+            if (wl > 0)
+                wu = await UsedInBucketAsync(_weekly, key, CurrentWeekStartUtc(), MaybeResetWeekly, ct);
 
             result[key] = new ProviderQuotaStatus(
                 Provider: key,
@@ -145,24 +173,73 @@ public sealed class ProviderQuotaGuard : IProviderQuotaGuard
 
     // ───── helpers ─────
 
-    private static int GetLimit(Dictionary<string, int> dict, string key) =>
-        dict.TryGetValue(key, out var v) ? v : 0;
+    private async Task HydrateAsync(PeriodBucket bucket, string providerKey, DateTime periodStart, CancellationToken ct)
+    {
+        if (bucket.Hydrated)
+            return;
 
-    private static int RemainingInBucket(
+        try
+        {
+            var used = await _usageSource.GetUsedSinceAsync(providerKey, periodStart, ct);
+            // max(): não perde incrementos in-memory que ainda não chegaram ao banco.
+            bucket.Used = Math.Max(bucket.Used, used);
+            _logger.LogInformation(
+                "Quota {Provider} hidratada do banco: {Used} envios desde {Start:u}",
+                providerKey, bucket.Used, periodStart);
+        }
+        catch (Exception ex)
+        {
+            // Falha de hidratação não pode derrubar o envio — segue com contador in-memory
+            // (comportamento antigo) e tenta de novo no próximo consumo.
+            _logger.LogError(ex, "Falha ao hidratar quota do provider {Provider} — usando contador in-memory", providerKey);
+            return;
+        }
+
+        bucket.Hydrated = true;
+    }
+
+    private async Task<int> RemainingInBucketAsync(
         ConcurrentDictionary<string, PeriodBucket> dict,
         string key,
         int limit,
-        Action<PeriodBucket> resetFn)
+        DateTime periodStart,
+        Action<PeriodBucket> resetFn,
+        CancellationToken ct)
     {
-        if (!dict.TryGetValue(key, out var b)) return limit;
-        lock (b.Lock) { resetFn(b); return Math.Max(0, limit - b.Used); }
+        var used = await UsedInBucketAsync(dict, key, periodStart, resetFn, ct);
+        return Math.Max(0, limit - used);
     }
+
+    private async Task<int> UsedInBucketAsync(
+        ConcurrentDictionary<string, PeriodBucket> dict,
+        string key,
+        DateTime periodStart,
+        Action<PeriodBucket> resetFn,
+        CancellationToken ct)
+    {
+        var bucket = dict.GetOrAdd(key, _ => new PeriodBucket { PeriodStartUtc = periodStart });
+        await bucket.Gate.WaitAsync(ct);
+        try
+        {
+            resetFn(bucket);
+            await HydrateAsync(bucket, key, periodStart, ct);
+            return bucket.Used;
+        }
+        finally
+        {
+            bucket.Gate.Release();
+        }
+    }
+
+    private static int GetLimit(Dictionary<string, int> dict, string key) =>
+        dict.TryGetValue(key, out var v) ? v : 0;
 
     private static void MaybeResetDaily(PeriodBucket b)
     {
         var today = DateTime.UtcNow.Date;
         if (b.PeriodStartUtc == today) return;
         b.Used = 0;
+        b.Hydrated = false;
         b.PeriodStartUtc = today;
     }
 
@@ -171,6 +248,7 @@ public sealed class ProviderQuotaGuard : IProviderQuotaGuard
         var thisWeek = CurrentWeekStartUtc();
         if (b.PeriodStartUtc == thisWeek) return;
         b.Used = 0;
+        b.Hydrated = false;
         b.PeriodStartUtc = thisWeek;
     }
 

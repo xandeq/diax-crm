@@ -13,6 +13,12 @@ public interface IEmailQueueRepository : IRepository<EmailQueueItem>
     Task<int> CountQueuedByProviderAsync(EmailProvider provider, CancellationToken cancellationToken = default);
     Task<int> CountFailedByProviderSinceAsync(EmailProvider provider, DateTime fromUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailQueueItem>> GetFailedForRetryAsync(int maxAttempts, DateTime cutoffUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Itens presos em Processing há mais tempo que o limite (crash entre MarkProcessing e
+    /// o save final). Sem esta varredura eles ficariam órfãos para sempre — email perdido.
+    /// </summary>
+    Task<IReadOnlyList<EmailQueueItem>> GetStaleProcessingAsync(DateTime olderThanUtc, int take, CancellationToken cancellationToken = default);
     Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByUserAsync(
         Guid userId,
         int page,

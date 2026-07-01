@@ -110,12 +110,8 @@ public class EmailUnsubscribeController : BaseApiController
             "text/html");
     }
 
+    // Delegado ao UnsubscribeLinkBuilder — fonte única do algoritmo, compartilhada com a
+    // geração dos links dentro dos emails. Divergência aqui = links de unsubscribe mortos.
     public static string ComputeToken(string key, string userId, string email)
-    {
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
-        var payload = Encoding.UTF8.GetBytes($"unsub:{userId}:{email}");
-        var hash = hmac.ComputeHash(payload);
-        return Convert.ToBase64String(hash)
-            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
-    }
+        => Diax.Application.EmailMarketing.UnsubscribeLinkBuilder.ComputeToken(key, userId, email);
 }

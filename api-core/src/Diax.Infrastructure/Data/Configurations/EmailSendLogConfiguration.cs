@@ -26,8 +26,14 @@ public class EmailSendLogConfiguration : IEntityTypeConfiguration<EmailSendLog>
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.UpdatedBy).HasMaxLength(100);
 
+        // Índice ÚNICO filtrado: garante no banco que só existe UM registro ativo
+        // (InFlight ou Sent) por idempotency key — fecha a corrida check-then-insert
+        // que permitia envio duplicado sob concorrência. Failed/Uncertain ficam fora
+        // do filtro para permitir retry legítimo.
         builder.HasIndex(x => x.IdempotencyKey)
-               .HasDatabaseName("IX_EmailSendLog_IdempotencyKey");
+               .IsUnique()
+               .HasFilter("[idempotency_key] IS NOT NULL AND [status] IN ('InFlight', 'Sent')")
+               .HasDatabaseName("UX_EmailSendLog_IdempotencyKey_Active");
         builder.HasIndex(x => x.RequestId)
                .HasDatabaseName("IX_EmailSendLog_RequestId");
         builder.HasIndex(x => x.CreatedAt)

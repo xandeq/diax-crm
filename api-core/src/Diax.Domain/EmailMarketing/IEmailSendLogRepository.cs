@@ -12,8 +12,10 @@ public interface IEmailSendLogRepository
 
     /// <summary>
     /// Cria e salva um registro InFlight (ANTES de tentar os providers).
+    /// Retorna null quando outra chamada concorrente já detém a mesma idempotency key
+    /// (violação do índice único filtrado) — o caller deve responder InProgress.
     /// </summary>
-    Task<EmailSendLog> CreateInFlightAsync(
+    Task<EmailSendLog?> TryCreateInFlightAsync(
         string requestId,
         string? idempotencyKey,
         string toHash,
@@ -50,4 +52,9 @@ public interface IEmailSendLogRepository
     /// Marca o registro como Failed (todos os providers esgotados).
     /// </summary>
     Task MarkFailedAsync(Guid logId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Marca o registro como Uncertain (resultado ambíguo — timeout/crash após possível aceite).
+    /// </summary>
+    Task MarkUncertainAsync(Guid logId, string? reason, CancellationToken ct = default);
 }

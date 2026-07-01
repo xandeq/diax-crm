@@ -88,5 +88,25 @@ public class EmailQueueItemConfiguration : IEntityTypeConfiguration<EmailQueueIt
 
         builder.HasIndex(item => new { item.UserId, item.CreatedAt })
             .HasDatabaseName("IX_EmailQueueItem_UserId_CreatedAt");
+
+        // Webhooks (delivered/opened/click/bounce) buscam por ProviderMessageId a cada
+        // evento — sem índice era table scan em tabela que cresce com todo envio.
+        builder.HasIndex(item => item.ProviderMessageId)
+            .HasDatabaseName("IX_EmailQueueItem_ProviderMessageId");
+
+        // Query quente do worker: Status == Queued && AssignedProvider == X && ScheduledAt <= now,
+        // executada uma vez por provider por ciclo.
+        builder.HasIndex(item => new { item.Status, item.AssignedProvider, item.ScheduledAt })
+            .HasDatabaseName("IX_EmailQueueItem_Status_Provider_ScheduledAt");
+
+        // Backstop de deduplicação: a checagem em memória no enfileiramento não protege
+        // contra requisições concorrentes — o banco garante 1 item QUEUED por (campanha,
+        // cliente). O filtro por status=0 (Queued) evita que duplicatas HISTÓRICAS já
+        // enviadas quebrem a criação do índice em produção; o INSERT concorrente (sempre
+        // Queued) continua bloqueado.
+        builder.HasIndex(item => new { item.CampaignId, item.CustomerId })
+            .IsUnique()
+            .HasFilter("[campaign_id] IS NOT NULL AND [customer_id] IS NOT NULL AND [status] = 0")
+            .HasDatabaseName("UX_EmailQueueItem_Campaign_Customer");
     }
 }

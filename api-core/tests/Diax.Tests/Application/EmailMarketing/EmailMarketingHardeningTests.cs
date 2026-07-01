@@ -54,7 +54,9 @@ public class EmailMarketingHardeningTests
             new Mock<IEmailSender>().Object,
             new Mock<IEmailSuppressionRepository>().Object,
             mockCircuitBreaker.Object,
-            mockAuditRepo.Object
+            mockAuditRepo.Object,
+            EmailTestDefaults.LinkBuilder(),
+            EmailTestDefaults.ProviderPolicy()
         );
 
         // Act
@@ -109,7 +111,9 @@ public class EmailMarketingHardeningTests
             new Mock<IEmailSender>().Object,
             new Mock<IEmailSuppressionRepository>().Object,
             new Mock<IPilotCircuitBreaker>().Object,
-            new Mock<IAuditLogRepository>().Object
+            new Mock<IAuditLogRepository>().Object,
+            EmailTestDefaults.LinkBuilder(),
+            EmailTestDefaults.ProviderPolicy()
         );
 
         // Act
@@ -153,7 +157,9 @@ public class EmailMarketingHardeningTests
             new Mock<IEmailSender>().Object,
             new Mock<IEmailSuppressionRepository>().Object,
             new Mock<IPilotCircuitBreaker>().Object,
-            mockAuditRepo.Object
+            mockAuditRepo.Object,
+            EmailTestDefaults.LinkBuilder(),
+            EmailTestDefaults.ProviderPolicy()
         );
 
         // Act
@@ -205,7 +211,9 @@ public class EmailMarketingHardeningTests
             mockEmailSender.Object,
             new Mock<IEmailSuppressionRepository>().Object,
             new Mock<IPilotCircuitBreaker>().Object,
-            mockAuditRepo.Object
+            mockAuditRepo.Object,
+            EmailTestDefaults.LinkBuilder(),
+            EmailTestDefaults.ProviderPolicy()
         );
 
         // Act

@@ -221,6 +221,12 @@ public class IntegrationsController : BaseApiController
                 error = "Dispatch.Rejected",
                 message = "From domain not configured or not allowed in EmailChain"
             }),
+            EmailDispatchStatus.Uncertain => StatusCode(502, new
+            {
+                error = "Dispatch.Uncertain",
+                message = "Send outcome uncertain (hard timeout mid-send) — retry with the SAME idempotency key to avoid duplicates",
+                attempts = result.Attempts.Count
+            }),
             _ => StatusCode(502, new
             {
                 error = "Dispatch.AllFailed",
@@ -235,8 +241,9 @@ public class IntegrationsController : BaseApiController
     /// Mostra quantos envios foram usados e quanto resta até meia-noite UTC.
     /// </summary>
     [HttpGet("email-quota")]
-    public IActionResult GetEmailQuota(
-        [FromHeader(Name = "X-Integration-Key")] string? integrationKey)
+    public async Task<IActionResult> GetEmailQuota(
+        [FromHeader(Name = "X-Integration-Key")] string? integrationKey,
+        CancellationToken ct)
     {
         var configuredKey = _configuration["Integrations:SendEmailKey"];
         if (string.IsNullOrWhiteSpace(configuredKey))
@@ -245,7 +252,7 @@ public class IntegrationsController : BaseApiController
         if (string.IsNullOrWhiteSpace(integrationKey) || !TimingSafeEquals(integrationKey, configuredKey))
             return Unauthorized(new { error = "Integrations.Unauthorized" });
 
-        var status = _quotaGuard.GetStatus();
+        var status = await _quotaGuard.GetStatusAsync(ct);
         var first = status.Values.FirstOrDefault();
 
         return Ok(new

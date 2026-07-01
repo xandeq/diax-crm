@@ -114,6 +114,25 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<EmailQueueItem>> GetStaleProcessingAsync(
+        DateTime olderThanUtc,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        if (take <= 0)
+        {
+            return [];
+        }
+
+        return await DbSet
+            .Where(item => item.Status == EmailQueueStatus.Processing
+                        && item.ProcessingStartedAt != null
+                        && item.ProcessingStartedAt < olderThanUtc)
+            .OrderBy(item => item.ProcessingStartedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByUserAsync(
         Guid userId,
         int page,

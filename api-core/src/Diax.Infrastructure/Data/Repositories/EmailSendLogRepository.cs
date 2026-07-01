@@ -26,7 +26,7 @@ public class EmailSendLogRepository : IEmailSendLogRepository
     }
 
     /// <inheritdoc/>
-    public async Task<EmailSendLog> CreateInFlightAsync(
+    public async Task<EmailSendLog?> TryCreateInFlightAsync(
         string requestId,
         string? idempotencyKey,
         string toHash,
@@ -39,8 +39,28 @@ public class EmailSendLogRepository : IEmailSendLogRepository
             requestId, idempotencyKey, toHash, subjectHash, bodyHash, fromDomain);
 
         await _db.EmailSendLogs.AddAsync(log, ct);
-        await _db.SaveChangesAsync(ct);
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            // Corrida de idempotência: outra chamada concorrente já criou o InFlight/Sent
+            // com a mesma chave (índice único filtrado). Solta a entidade do contexto
+            // para não contaminar SaveChanges futuros e sinaliza ao caller.
+            _db.Entry(log).State = EntityState.Detached;
+            return null;
+        }
+
         return log;
+    }
+
+    private static bool IsUniqueViolation(DbUpdateException ex)
+    {
+        // SQL Server: 2601 = duplicate key em índice único; 2627 = violação de constraint UNIQUE.
+        return ex.InnerException is Microsoft.Data.SqlClient.SqlException sql
+            && (sql.Number == 2601 || sql.Number == 2627);
     }
 
     /// <inheritdoc/>
@@ -84,6 +104,16 @@ public class EmailSendLogRepository : IEmailSendLogRepository
         if (log is null) return;
 
         log.MarkFailed();
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <inheritdoc/>
+    public async Task MarkUncertainAsync(Guid logId, string? reason, CancellationToken ct = default)
+    {
+        var log = await _db.EmailSendLogs.FindAsync([logId], ct);
+        if (log is null) return;
+
+        log.MarkUncertain(reason);
         await _db.SaveChangesAsync(ct);
     }
 }
