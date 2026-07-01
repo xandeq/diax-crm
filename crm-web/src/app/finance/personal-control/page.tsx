@@ -46,9 +46,11 @@ import {
   personalControlService,
 } from '@/services/personalControlService';
 import {
+  ArrowDown,
   ArrowDownCircle,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   ArrowUpCircle,
   Banknote,
   BarChart3,
@@ -72,7 +74,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { toast } from 'sonner';
 
@@ -780,6 +782,55 @@ function SalaryPlannerSection({
   );
 }
 
+// ─── Sort helpers ────────────────────────────────────────────────────────────
+type SortConfig = { key: string; dir: 'asc' | 'desc' } | null;
+
+function nextSort(current: SortConfig, key: string): SortConfig {
+  if (current?.key !== key) return { key, dir: 'asc' };
+  return current.dir === 'asc' ? { key, dir: 'desc' } : null;
+}
+
+function sortedBy<T>(
+  items: T[],
+  sort: SortConfig,
+  getters: Partial<Record<string, (item: T) => string | number | boolean>>,
+): T[] {
+  if (!sort) return items;
+  const get = getters[sort.key];
+  if (!get) return items;
+  return [...items].sort((a, b) => {
+    const va = get(a);
+    const vb = get(b);
+    let cmp = 0;
+    if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+    else if (typeof va === 'boolean' && typeof vb === 'boolean') cmp = Number(va) - Number(vb);
+    else cmp = String(va).localeCompare(String(vb), 'pt-BR', { sensitivity: 'base' });
+    return sort.dir === 'asc' ? cmp : -cmp;
+  });
+}
+
+function SortHead({ label, sortKey, sort, onSort }: {
+  label: string;
+  sortKey: string;
+  sort: SortConfig;
+  onSort: (key: string) => void;
+}) {
+  const active = sort?.key === sortKey;
+  const Icon = active && sort?.dir === 'desc' ? ArrowDown : ArrowUp;
+  return (
+    <TableHead
+      className="cursor-pointer select-none hover:bg-muted/50 whitespace-nowrap"
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        <Icon className={cn('h-3 w-3 shrink-0', active ? 'text-primary' : 'opacity-20')} />
+      </div>
+    </TableHead>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function Page() {
   const [period, setPeriod] = useState(currentPeriod);
   const [isPending, startTransition] = useTransition();
@@ -803,6 +854,37 @@ function Page() {
   const [editingStatementId, setEditingStatementId] = useState<string | null>(null);
   const [statementDraft, setStatementDraft] = useState('');
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
+
+  // Sort states
+  const [incomeSort, setIncomeSort] = useState<SortConfig>(null);
+  const [expenseSort, setExpenseSort] = useState<SortConfig>(null);
+  const [subscriptionSort, setSubscriptionSort] = useState<SortConfig>(null);
+  const toggleIncomeSort = (key: string) => setIncomeSort((prev) => nextSort(prev, key));
+  const toggleExpenseSort = (key: string) => setExpenseSort((prev) => nextSort(prev, key));
+  const toggleSubscriptionSort = (key: string) => setSubscriptionSort((prev) => nextSort(prev, key));
+
+  // Resizable pane (Receitas / Despesas)
+  const [leftPct, setLeftPct] = useState(40);
+  const paneContainerRef = useRef<HTMLDivElement>(null);
+  const paneDrag = useRef({ active: false, containerLeft: 0, containerWidth: 0 });
+  const onDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const rect = paneContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    paneDrag.current = { active: true, containerLeft: rect.left, containerWidth: rect.width };
+    const onMove = (ev: MouseEvent) => {
+      if (!paneDrag.current.active) return;
+      const pct = ((ev.clientX - paneDrag.current.containerLeft) / paneDrag.current.containerWidth) * 100;
+      setLeftPct(Math.min(Math.max(pct, 20), 75));
+    };
+    const onUp = () => {
+      paneDrag.current.active = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
 
   // Feature 2 — PDF statement import
   type ParsedStatementTx = { description: string; amount: number; date: string; selected: boolean };
@@ -1247,6 +1329,29 @@ function Page() {
 
   const summary = monthView?.summary;
 
+  // Sorted data
+  const sortedIncomes = sortedBy(monthView?.incomes ?? [], incomeSort, {
+    name: (i) => i.name,
+    amount: (i) => i.amount,
+    dayOfMonth: (i) => i.dayOfMonth,
+    isPaid: (i) => i.isPaid,
+  });
+  const sortedExpenses = sortedBy(monthView?.expenses ?? [], expenseSort, {
+    name: (i) => i.name,
+    amount: (i) => i.amount,
+    paymentType: (i) => i.paymentType,
+    dueDay: (i) => i.dueDay,
+    card: (i) => i.creditCardName ?? '',
+    isPaid: (i) => i.isPaid,
+  });
+  const sortedSubscriptions = sortedBy(monthView?.subscriptions ?? [], subscriptionSort, {
+    name: (i) => i.name,
+    amount: (i) => i.amount,
+    billingFrequency: (i) => i.billingFrequency,
+    paymentType: (i) => i.paymentType,
+    isPaid: (i) => i.isPaid,
+  });
+
   return (
     <div className="p-8 max-w-[1700px] mx-auto space-y-8">
       <div className="rounded-3xl border bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-8 text-white shadow-xl">
@@ -1395,86 +1500,129 @@ function Page() {
         </div>
       </SectionShell>
 
-      <div className="grid gap-6 xl:grid-cols-[2fr_3fr]">
-        <SectionShell title="Receitas do mês" description="Clique no badge de status para marcar como pago/pendente.">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Dia pagamento</TableHead><TableHead>Recorrente</TableHead><TableHead>Status (clicável)</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.incomes.length ? monthView.incomes.map((item) => {
-                  const pay = getEffectivePayDay(item.dayOfMonth, period.year, period.month);
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
-                      <TableCell>{formatCurrency(item.amount)}</TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-medium">{pay.label}</p>
-                          {pay.adjusted && <p className="text-xs text-amber-600">Ajustado (fim de semana)</p>}
-                          {item.paymentDate && (() => {
-                            const pd = new Date(item.paymentDate);
-                            const actualDay = pd.getUTCDate();
-                            if (actualDay !== pay.effectiveDay) {
-                              const d = pd.getUTCDate().toString().padStart(2, '0');
-                              const m = (pd.getUTCMonth() + 1).toString().padStart(2, '0');
-                              return <p className="text-xs text-sky-600 font-medium">Pago em {d}/{m}</p>;
-                            }
-                            return null;
-                          })()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {item.isRecurring
-                          ? <Badge variant="outline" className="border-emerald-200 text-emerald-700">Recorrente</Badge>
-                          : <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">Encerrado</Badge>
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge
-                          paid={item.isPaid}
-                          loading={savingKey === `income-${item.id}`}
-                          onClick={() => saveStatus('income', item.id, !item.isPaid)}
-                        />
-                      </TableCell>
-                      <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editIncome(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'income', id: item.id, name: item.name })} disabled={savingKey === `delete-income-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
-                    </TableRow>
-                  );
-                }) : <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-        </SectionShell>
-
-        <SectionShell title="Despesas do mês" description="Débito, crédito, vencimentos e cartão vinculado.">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Tipo</TableHead><TableHead>Venc.</TableHead><TableHead>Cartão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.expenses.length ? monthView.expenses.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell><div className="space-y-1"><p className="font-medium flex items-center gap-1">{item.name}{item.hasVariableAmount && <span title="Valor variável — verificar mês a mês" className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">~valor</span>}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
-                    <TableCell>{formatCurrency(item.amount)}</TableCell>
-                    <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
-                    <TableCell>Dia {item.dueDay}</TableCell>
-                    <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
-                    <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
-                    <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Tornar recorrente" onClick={() => setMakeRecurringDialog({ item })}><Repeat className="h-4 w-4 text-blue-500" /></Button><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+      {/* Receitas / Despesas — resizable split pane */}
+      <div ref={paneContainerRef} className="flex items-stretch gap-0">
+        <div style={{ width: `${leftPct}%`, flexShrink: 0, minWidth: 0 }}>
+          <SectionShell title="Receitas do mês" description="Clique no badge de status para marcar como pago/pendente.">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <SortHead label="Nome" sortKey="name" sort={incomeSort} onSort={toggleIncomeSort} />
+                    <SortHead label="Valor" sortKey="amount" sort={incomeSort} onSort={toggleIncomeSort} />
+                    <SortHead label="Dia pagamento" sortKey="dayOfMonth" sort={incomeSort} onSort={toggleIncomeSort} />
+                    <TableHead>Recorrente</TableHead>
+                    <SortHead label="Status" sortKey="isPaid" sort={incomeSort} onSort={toggleIncomeSort} />
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-          <ExpenseSummaryFooter expenses={monthView?.expenses ?? []} />
-        </SectionShell>
+                </TableHeader>
+                <TableBody>
+                  {loading ? <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : sortedIncomes.length ? sortedIncomes.map((item) => {
+                    const pay = getEffectivePayDay(item.dayOfMonth, period.year, period.month);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell><div className="space-y-1"><p className="font-medium">{item.name}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                        <TableCell>{formatCurrency(item.amount)}</TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">{pay.label}</p>
+                            {pay.adjusted && <p className="text-xs text-amber-600">Ajustado (fim de semana)</p>}
+                            {item.paymentDate && (() => {
+                              const pd = new Date(item.paymentDate);
+                              const actualDay = pd.getUTCDate();
+                              if (actualDay !== pay.effectiveDay) {
+                                const d = pd.getUTCDate().toString().padStart(2, '0');
+                                const m = (pd.getUTCMonth() + 1).toString().padStart(2, '0');
+                                return <p className="text-xs text-sky-600 font-medium">Pago em {d}/{m}</p>;
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {item.isRecurring
+                            ? <Badge variant="outline" className="border-emerald-200 text-emerald-700">Recorrente</Badge>
+                            : <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">Encerrado</Badge>
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge
+                            paid={item.isPaid}
+                            loading={savingKey === `income-${item.id}`}
+                            onClick={() => saveStatus('income', item.id, !item.isPaid)}
+                          />
+                        </TableCell>
+                        <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" onClick={() => editIncome(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'income', id: item.id, name: item.name })} disabled={savingKey === `delete-income-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                      </TableRow>
+                    );
+                  }) : <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground">Nenhuma receita encontrada.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+          </SectionShell>
+        </div>
+
+        {/* Drag handle */}
+        <div
+          className="w-3 flex-shrink-0 cursor-col-resize flex items-stretch justify-center group"
+          onMouseDown={onDividerMouseDown}
+          title="Arrastar para redimensionar"
+        >
+          <div className="w-0.5 my-6 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SectionShell title="Despesas do mês" description="Débito, crédito, vencimentos e cartão vinculado.">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <SortHead label="Nome" sortKey="name" sort={expenseSort} onSort={toggleExpenseSort} />
+                    <SortHead label="Valor" sortKey="amount" sort={expenseSort} onSort={toggleExpenseSort} />
+                    <SortHead label="Tipo" sortKey="paymentType" sort={expenseSort} onSort={toggleExpenseSort} />
+                    <SortHead label="Venc." sortKey="dueDay" sort={expenseSort} onSort={toggleExpenseSort} />
+                    <SortHead label="Cartão" sortKey="card" sort={expenseSort} onSort={toggleExpenseSort} />
+                    <SortHead label="Status" sortKey="isPaid" sort={expenseSort} onSort={toggleExpenseSort} />
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : sortedExpenses.length ? sortedExpenses.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell><div className="space-y-1"><p className="font-medium flex items-center gap-1">{item.name}{item.hasVariableAmount && <span title="Valor variável — verificar mês a mês" className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">~valor</span>}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
+                      <TableCell>{formatCurrency(item.amount)}</TableCell>
+                      <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
+                      <TableCell>Dia {item.dueDay}</TableCell>
+                      <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
+                      <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
+                      <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Tornar recorrente" onClick={() => setMakeRecurringDialog({ item })}><Repeat className="h-4 w-4 text-blue-500" /></Button><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                    </TableRow>
+                  )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+            <ExpenseSummaryFooter expenses={monthView?.expenses ?? []} />
+          </SectionShell>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <SectionShell title="Assinaturas" description="Serviços recorrentes consolidados por mês.">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Valor</TableHead><TableHead>Frequência</TableHead><TableHead>Tipo</TableHead><TableHead>Cartão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+              <TableHeader>
+                <TableRow>
+                  <SortHead label="Nome" sortKey="name" sort={subscriptionSort} onSort={toggleSubscriptionSort} />
+                  <SortHead label="Valor" sortKey="amount" sort={subscriptionSort} onSort={toggleSubscriptionSort} />
+                  <SortHead label="Frequência" sortKey="billingFrequency" sort={subscriptionSort} onSort={toggleSubscriptionSort} />
+                  <SortHead label="Tipo" sortKey="paymentType" sort={subscriptionSort} onSort={toggleSubscriptionSort} />
+                  <TableHead>Cartão</TableHead>
+                  <SortHead label="Status" sortKey="isPaid" sort={subscriptionSort} onSort={toggleSubscriptionSort} />
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
-                {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : monthView?.subscriptions.length ? monthView.subscriptions.map((item) => (
+                {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : sortedSubscriptions.length ? sortedSubscriptions.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell><div className="space-y-1"><p className="font-medium flex items-center gap-1">{item.name}{item.hasVariableAmount && <span title="Valor variável — verificar mês a mês" className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">~valor</span>}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
                     <TableCell>{formatCurrency(item.amount)}</TableCell>
