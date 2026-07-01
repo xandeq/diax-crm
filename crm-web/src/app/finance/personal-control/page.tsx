@@ -107,6 +107,11 @@ const billingFrequencyOptions: { value: PersonalControlBillingFrequency; label: 
 
 function currentPeriod() {
   const now = new Date();
+  // Default to previous month during the first 5 days so users can finalize last month
+  if (now.getDate() <= 5) {
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return { year: prev.getFullYear(), month: prev.getMonth() + 1 };
+  }
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
