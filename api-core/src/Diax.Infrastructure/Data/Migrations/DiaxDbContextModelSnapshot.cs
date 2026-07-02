@@ -453,6 +453,143 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.ToTable("ai_usage_logs", (string)null);
                 });
 
+            modelBuilder.Entity("Diax.Domain.AI.VideoGenerationJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AllowFallback")
+                        .HasColumnType("bit")
+                        .HasColumnName("allow_fallback");
+
+                    b.Property<string>("AspectRatio")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("aspect_ratio");
+
+                    b.Property<string>("AttemptedProvidersJson")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("attempted_providers_json");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("DurationMs")
+                        .HasColumnType("int")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("int")
+                        .HasColumnName("duration_seconds");
+
+                    b.Property<string>("ErrorCategory")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("error_category");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("error_message");
+
+                    b.Property<bool>("FallbackOccurred")
+                        .HasColumnType("bit")
+                        .HasColumnName("fallback_occurred");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("int")
+                        .HasColumnName("height");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("model");
+
+                    b.Property<string>("ModelUsed")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("model_used");
+
+                    b.Property<string>("NegativePrompt")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("negative_prompt");
+
+                    b.Property<string>("Prompt")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnName("prompt");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderUsed")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("provider_used");
+
+                    b.Property<string>("ReferenceImageBase64")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("reference_image_base64");
+
+                    b.Property<string>("RequestId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("request_id");
+
+                    b.Property<string>("Seed")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("seed");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("thumbnail_url");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("VideoUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("video_url");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("int")
+                        .HasColumnName("width");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("video_generation_jobs", (string)null);
+                });
+
             modelBuilder.Entity("Diax.Domain.AI.EmailOptimization", b =>
                 {
                     b.Property<Guid>("Id")

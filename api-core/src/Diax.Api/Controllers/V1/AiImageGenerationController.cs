@@ -17,10 +17,12 @@ public class AiImageGenerationController : BaseAiController
 {
     private readonly IImageGenerationService _service;
     private readonly IVideoGenerationService _videoService;
+    private readonly IVideoJobService _videoJobService;
 
     public AiImageGenerationController(
         IImageGenerationService service,
         IVideoGenerationService videoService,
+        IVideoJobService videoJobService,
         IAiCatalogService catalogService,
         DiaxDbContext db,
         ILogger<AiImageGenerationController> logger)
@@ -28,6 +30,7 @@ public class AiImageGenerationController : BaseAiController
     {
         _service = service;
         _videoService = videoService;
+        _videoJobService = videoJobService;
     }
 
     [HttpPost("generate-image")]
@@ -71,5 +74,55 @@ public class AiImageGenerationController : BaseAiController
                 return null; // Fall through to standard handlers
             }
         );
+    }
+
+    /// <summary>
+    /// Enfileira uma geração de vídeo assíncrona (recomendado — vídeos podem levar minutos).
+    /// Retorna 202 com o jobId; consulte o status em GET video-jobs/{id}.
+    /// </summary>
+    [HttpPost("video-jobs")]
+    public async Task<IActionResult> CreateVideoJob([FromBody] VideoGenerationRequestDto request, CancellationToken ct)
+    {
+        _logger.LogInformation("POST /api/v1/ai/video-jobs - Request received");
+
+        if (request is null)
+            return BadRequest(new { Message = "Payload inválido." });
+
+        return await ExecuteAiActionAsync(
+            request.Provider,
+            request.Model,
+            ct,
+            async userId => {
+                var job = await _videoJobService.EnqueueAsync(request, userId, ct);
+                return StatusCode(202, job);
+            }
+        );
+    }
+
+    /// <summary>Status de um job de geração de vídeo (só do próprio usuário).</summary>
+    [HttpGet("video-jobs/{jobId:guid}")]
+    public async Task<IActionResult> GetVideoJob([FromRoute] Guid jobId, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { Message = "Usuário não autenticado." });
+
+        var job = await _videoJobService.GetAsync(jobId, userId.Value, ct);
+        if (job == null)
+            return NotFound(new { Message = "Job não encontrado." });
+
+        return Ok(job);
+    }
+
+    /// <summary>Lista os jobs de vídeo do usuário (mais recentes primeiro).</summary>
+    [HttpGet("video-jobs")]
+    public async Task<IActionResult> ListVideoJobs([FromQuery] int take, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { Message = "Usuário não autenticado." });
+
+        var jobs = await _videoJobService.ListAsync(userId.Value, take <= 0 ? 20 : take, ct);
+        return Ok(jobs);
     }
 }

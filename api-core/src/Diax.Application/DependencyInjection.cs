@@ -119,6 +119,9 @@ public static class DependencyInjection
         // AI Video Generation Service
         services.AddScoped<IVideoGenerationService, VideoGenerationService>();
 
+        // AI Video Job Queue (geração assíncrona)
+        services.AddScoped<IVideoJobService, VideoJobService>();
+
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();
 
