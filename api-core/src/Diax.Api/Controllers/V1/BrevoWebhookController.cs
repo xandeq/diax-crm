@@ -5,6 +5,7 @@ using Asp.Versioning;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.EmailMarketing;
+using Diax.Domain.EmailMarketing.Enums;
 using Diax.Infrastructure.Email;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,7 +32,8 @@ public class BrevoWebhookController : BaseApiController
     private readonly IPilotCircuitBreaker _circuitBreaker;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUserRepository _userRepository;
- 
+    private readonly IEmailEventRepository _emailEventRepository;
+
     public BrevoWebhookController(
         IEmailQueueRepository emailQueueRepository,
         IEmailCampaignRepository emailCampaignRepository,
@@ -41,7 +43,8 @@ public class BrevoWebhookController : BaseApiController
         ILogger<BrevoWebhookController> logger,
         IPilotCircuitBreaker circuitBreaker,
         IAuditLogRepository auditLogRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IEmailEventRepository emailEventRepository)
     {
         _emailQueueRepository = emailQueueRepository;
         _emailCampaignRepository = emailCampaignRepository;
@@ -52,6 +55,7 @@ public class BrevoWebhookController : BaseApiController
         _circuitBreaker = circuitBreaker;
         _auditLogRepository = auditLogRepository;
         _userRepository = userRepository;
+        _emailEventRepository = emailEventRepository;
     }
 
     /// <summary>
@@ -278,10 +282,10 @@ public class BrevoWebhookController : BaseApiController
             return;
         }
 
-        // Idempotency check: check if click already logged for this messageId
-        var logs = await _auditLogRepository.GetByResourceAsync("PilotCampaign", campaignId.Value.ToString(), cancellationToken);
-        var alreadyClicked = logs.Any(l => l.Description.Contains("PilotEmailClicked") && l.NewValues != null && l.NewValues.Contains(payload.MessageId));
-        if (alreadyClicked)
+        // Idempotência: ledger email_events por (queue item, tipo) — substitui o scan de
+        // string no AuditLog, que era frágil (Contains) e caro (varre todos os logs).
+        if (queueItem != null &&
+            await _emailEventRepository.ExistsAsync(queueItem.Id, EmailEventType.Clicked, cancellationToken))
         {
             _logger.LogInformation("Click event ignored (already clicked): ProviderMessageId={MessageId}", payload.MessageId);
             return;
@@ -292,6 +296,19 @@ public class BrevoWebhookController : BaseApiController
         {
             campaign.IncrementClick();
             await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+
+            if (queueItem != null)
+            {
+                await _emailEventRepository.AddAsync(new EmailEvent(
+                    queueItem.UserId,
+                    queueItem.AssignedProvider,
+                    EmailEventType.Clicked,
+                    queueItem.Id,
+                    queueItem.CustomerId,
+                    queueItem.CampaignId,
+                    payload.MessageId), cancellationToken);
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             // Log click audit event
@@ -316,18 +333,40 @@ public class BrevoWebhookController : BaseApiController
         _logger.LogWarning(
             "Bounce event ({Event}) for email={Email}, tag={Tag}",
             payload.Event, payload.Email, payload.Tag);
- 
-        Guid? campaignId = null;
-        // Increment bounce count for campaign if exists
-        if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var parsedId))
+
+        var queueItem = await FindQueueItemByMessageIdAsync(payload.MessageId, cancellationToken);
+
+        Guid? campaignId = queueItem?.CampaignId;
+        if (!campaignId.HasValue && !string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var parsedId))
         {
             campaignId = parsedId;
+        }
+
+        // Idempotência via ledger: reentrega do mesmo webhook pelo Brevo não conta em dobro.
+        var alreadyCounted = queueItem != null &&
+            await _emailEventRepository.ExistsAsync(queueItem.Id, EmailEventType.Bounced, cancellationToken);
+
+        if (campaignId.HasValue && !alreadyCounted)
+        {
             var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId.Value, cancellationToken);
             if (campaign != null)
             {
                 campaign.IncrementBounce();
                 await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
             }
+        }
+
+        if (queueItem != null && !alreadyCounted)
+        {
+            await _emailEventRepository.AddAsync(new EmailEvent(
+                queueItem.UserId,
+                queueItem.AssignedProvider,
+                EmailEventType.Bounced,
+                queueItem.Id,
+                queueItem.CustomerId,
+                queueItem.CampaignId,
+                payload.MessageId,
+                metadata: payload.Event), cancellationToken);
         }
  
         // Hard bounces should opt-out (suppress) the customer. They must NOT open the
@@ -367,14 +406,47 @@ public class BrevoWebhookController : BaseApiController
         if (string.IsNullOrWhiteSpace(payload.Email))
             return;
 
-        // Increment unsubscribe count for campaign if exists
-        if (!string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var campaignId))
+        // hard_bounce chega aqui só para o opt-out do customer — o contador de unsubscribe
+        // é de spam/unsubscribed; bounce já tem o próprio contador (IncrementBounce).
+        var isUnsubscribeEvent = !reason.Equals("hard_bounce", StringComparison.OrdinalIgnoreCase);
+
+        var queueItem = await FindQueueItemByMessageIdAsync(payload.MessageId, cancellationToken);
+        var eventType = reason.Equals("spam", StringComparison.OrdinalIgnoreCase)
+            ? EmailEventType.Spam
+            : EmailEventType.Unsubscribed;
+
+        var alreadyCounted = queueItem != null && isUnsubscribeEvent &&
+            await _emailEventRepository.ExistsAsync(queueItem.Id, eventType, cancellationToken);
+
+        if (isUnsubscribeEvent && !alreadyCounted)
         {
-            var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId, cancellationToken);
-            if (campaign != null)
+            Guid? campaignId = queueItem?.CampaignId;
+            if (!campaignId.HasValue && !string.IsNullOrWhiteSpace(payload.Tag) && Guid.TryParse(payload.Tag, out var parsedId))
             {
-                campaign.IncrementUnsubscribe();
-                await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+                campaignId = parsedId;
+            }
+
+            if (campaignId.HasValue)
+            {
+                var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId.Value, cancellationToken);
+                if (campaign != null)
+                {
+                    campaign.IncrementUnsubscribe();
+                    await _emailCampaignRepository.UpdateAsync(campaign, cancellationToken);
+                }
+            }
+
+            if (queueItem != null)
+            {
+                await _emailEventRepository.AddAsync(new EmailEvent(
+                    queueItem.UserId,
+                    queueItem.AssignedProvider,
+                    eventType,
+                    queueItem.Id,
+                    queueItem.CustomerId,
+                    queueItem.CampaignId,
+                    payload.MessageId,
+                    metadata: reason), cancellationToken);
             }
         }
 
@@ -414,6 +486,22 @@ public class BrevoWebhookController : BaseApiController
     /// </summary>
     private static string NormalizeMessageId(string? messageId)
         => messageId?.TrimStart('<').TrimEnd('>') ?? string.Empty;
+
+    private async Task<EmailQueueItem?> FindQueueItemByMessageIdAsync(
+        string? messageId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+            return null;
+
+        var normalized = NormalizeMessageId(messageId);
+        var bracketed = $"<{normalized}>";
+        var items = await _emailQueueRepository.FindAsync(
+            q => q.ProviderMessageId == normalized || q.ProviderMessageId == bracketed,
+            cancellationToken);
+
+        return items?.FirstOrDefault();
+    }
 
     private async Task LogPilotEventAsync(
         string action,

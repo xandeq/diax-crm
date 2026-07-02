@@ -107,6 +107,18 @@ public class EmailCampaign : AuditableEntity
         CheckCompletion();
     }
 
+    /// <summary>
+    /// Desfaz uma contagem de falha quando o item volta para retry — evita que o mesmo
+    /// destinatário conte como Failed E Sent (Sent+Failed estourando TotalRecipients).
+    /// </summary>
+    public void DecrementFailed()
+    {
+        if (FailedCount > 0)
+        {
+            FailedCount--;
+        }
+    }
+
     public void IncrementOpened()
     {
         OpenCount++;

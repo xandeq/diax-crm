@@ -9,8 +9,10 @@ public static class EmailErrorClassifier
     public static bool IsCriticalAuthError(string? errorMsg)
     {
         if (string.IsNullOrEmpty(errorMsg)) return false;
-        return errorMsg.Contains("bounce", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("unauthorized", StringComparison.OrdinalIgnoreCase)
+        // "bounce" NÃO entra aqui: bounce é problema do DESTINATÁRIO (lista suja),
+        // não do provider — tratado via opt-out/supressão no webhook. Um único bounce
+        // abrindo o breaker derrubava todo o envio até reset manual.
+        return errorMsg.Contains("unauthorized", StringComparison.OrdinalIgnoreCase)
             || errorMsg.Contains("autenticação", StringComparison.OrdinalIgnoreCase)
             || errorMsg.Contains("authentication", StringComparison.OrdinalIgnoreCase)
             || errorMsg.Contains("401", StringComparison.OrdinalIgnoreCase)

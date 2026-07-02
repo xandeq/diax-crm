@@ -24,5 +24,6 @@ public enum EmailDispatchStatus
     Duplicate,    // Idempotency replay — já enviado
     InProgress,   // Idempotency: InFlight em outra chamada
     AllFailed,    // Todos os providers falharam
-    Rejected      // Sender domain não permitido / validação falhou
+    Rejected,     // Sender domain não permitido / validação falhou
+    Uncertain     // Timeout duro após possível aceite — retry com a MESMA idempotency key
 }

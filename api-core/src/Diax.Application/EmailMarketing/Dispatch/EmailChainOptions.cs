@@ -4,6 +4,18 @@ public class EmailChainOptions
 {
     public const string Section = "EmailChain";
     public TimeSpan HardTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// Timeout de cada tentativa individual de provider. Um provider pendurado consome
+    /// só este orçamento e a cadeia segue para o próximo — não aborta o dispatch inteiro.
+    /// </summary>
+    public TimeSpan PerProviderTimeout { get; set; } = TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// Idade máxima de um registro InFlight antes de ser considerado órfão (crash no meio
+    /// do dispatch). Órfãos são marcados Uncertain e a idempotency key é liberada.
+    /// </summary>
+    public TimeSpan InFlightStaleAfter { get; set; } = TimeSpan.FromMinutes(10);
     public Dictionary<string, SenderDomainConfig> SenderDomains { get; set; } = new();
 
     /// <summary>

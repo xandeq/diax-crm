@@ -103,7 +103,10 @@ public class EmailSendLog : AuditableEntity
         Error = error;
         LatencyMs = latencyMs;
         AllowUnaligned = allowUnaligned;
-        Status = success ? "Sent" : "Failed";
+        // Status permanece InFlight durante tentativas intermediárias — só as transições
+        // terminais (MarkSent/MarkFailed/MarkUncertain) mudam o status. Flipar para
+        // "Failed" no meio da cadeia abriria janela para replay concorrente da mesma
+        // idempotency key enquanto o dispatch original ainda está em andamento.
         SetUpdated("system");
     }
 
@@ -126,6 +129,21 @@ public class EmailSendLog : AuditableEntity
     public void MarkFailed()
     {
         Status = "Failed";
+        SetUpdated("system");
+    }
+
+    /// <summary>
+    /// Resultado ambíguo: o provider pode ter aceitado o envio mas a confirmação não
+    /// chegou (timeout duro / crash). O caller deve re-tentar com a MESMA idempotency
+    /// key ciente do risco de duplicidade.
+    /// </summary>
+    public void MarkUncertain(string? reason = null)
+    {
+        Status = "Uncertain";
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            Error = reason;
+        }
         SetUpdated("system");
     }
 }

@@ -165,36 +165,15 @@ public class PilotCircuitBreaker : IPilotCircuitBreaker
     }
 
     /// <summary>
-    /// Detecta erros críticos (credencial/autenticação/bounce) que devem abrir o
-    /// circuito imediatamente, independentemente da taxa de erro.
+    /// Erros críticos de credencial/autenticação — delega ao classificador compartilhado
+    /// (fonte única com o EmailProviderCircuitBreaker). Bounce NÃO é crítico.
     /// </summary>
     private static bool IsCriticalError(string errorMsg)
-    {
-        return errorMsg.Contains("bounce", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("unauthorized", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("autenticação", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("authentication", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("401", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("invalid api key", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("apikey", StringComparison.OrdinalIgnoreCase);
-    }
+        => EmailErrorClassifier.IsCriticalAuthError(errorMsg);
 
     /// <summary>
-    /// Detecta erros de limite de taxa (HTTP 429 / "Too Many Requests" / "rate limit"),
-    /// que são transitórios e não devem disparar o circuit breaker.
+    /// Rate-limit transitório — delega ao classificador compartilhado.
     /// </summary>
     private static bool IsTransientRateLimit(string errorMsg)
-    {
-        if (string.IsNullOrEmpty(errorMsg))
-        {
-            return false;
-        }
-
-        return errorMsg.Contains("429", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("too many requests", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("rate limit", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("rate_limit", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("ratelimit", StringComparison.OrdinalIgnoreCase)
-            || errorMsg.Contains("too_many_requests", StringComparison.OrdinalIgnoreCase);
-    }
+        => EmailErrorClassifier.IsTransientRateLimit(errorMsg);
 }

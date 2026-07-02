@@ -12,4 +12,7 @@ public interface IEmailCampaignRepository : IRepository<EmailCampaign>
 
     Task IncrementSentAsync(Guid campaignId, CancellationToken cancellationToken = default);
     Task IncrementFailedAsync(Guid campaignId, CancellationToken cancellationToken = default);
+
+    /// <summary>Desfaz uma contagem de Failed quando o item volta para retry.</summary>
+    Task DecrementFailedAsync(Guid campaignId, CancellationToken cancellationToken = default);
 }
