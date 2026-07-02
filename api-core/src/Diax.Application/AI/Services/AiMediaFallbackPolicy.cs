@@ -18,13 +18,15 @@ public static class AiMediaFallbackPolicy
     };
 
     /// <summary>
-    /// Ordem de fallback para geração de vídeo.
+    /// Ordem de fallback para geração de vídeo (baratos/rápidos primeiro).
+    /// wavespeed (~US$0,05/vídeo) e modelslab (~US$0,05) na frente de huggingface
+    /// (grátis mas cold start de minutos) e replicate.
     /// Runway fica fora da cadeia automática: gen4_turbo/gen4.5 exigem imagem de referência.
     /// Shotstack fica fora: é composição de vídeo, não text-to-video.
     /// </summary>
     public static readonly IReadOnlyList<string> VideoProviderOrder = new[]
     {
-        "falai", "huggingface", "replicate"
+        "falai", "wavespeed", "modelslab", "huggingface", "replicate"
     };
 
     /// <summary>
@@ -47,6 +49,8 @@ public static class AiMediaFallbackPolicy
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["falai"] = "fal-ai/ltx-video",
+            ["wavespeed"] = "wavespeed-ai/wan-2.2/t2v-480p-ultra-fast",
+            ["modelslab"] = "wan2.2",
             ["huggingface"] = "Wan-AI/Wan2.1-T2V-1.3B",
             ["replicate"] = "stability-ai/stable-video-diffusion",
         };

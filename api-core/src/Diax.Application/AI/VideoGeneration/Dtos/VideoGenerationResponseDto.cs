@@ -12,5 +12,6 @@ public record VideoGenerationResponseDto(
     QuotaStatusDto? QuotaStatus = null,
     bool FallbackOccurred = false,
     string? RequestedProvider = null,
-    List<string>? AttemptedProviders = null
+    List<string>? AttemptedProviders = null,
+    decimal? EstimatedCostUsd = null
 );

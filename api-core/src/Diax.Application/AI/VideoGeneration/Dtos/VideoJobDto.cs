@@ -17,5 +17,6 @@ public record VideoJobDto(
     int? DurationMs,
     DateTime CreatedAt,
     DateTime? StartedAt,
-    DateTime? CompletedAt
+    DateTime? CompletedAt,
+    decimal? EstimatedCostUsd = null
 );

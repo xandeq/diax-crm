@@ -1,3 +1,4 @@
+using Diax.Application.AI.Services;
 using Diax.Application.AI.VideoGeneration.Dtos;
 using Diax.Application.Common;
 using Diax.Domain.AI;
@@ -212,5 +213,9 @@ public class VideoJobService : IApplicationService, IVideoJobService
         DurationMs: job.DurationMs,
         CreatedAt: job.CreatedAt,
         StartedAt: job.StartedAt,
-        CompletedAt: job.CompletedAt);
+        CompletedAt: job.CompletedAt,
+        EstimatedCostUsd: job.Status == VideoGenerationJobStatus.Completed
+            ? AiGenerationCostEstimator.EstimateVideoCostUsd(
+                job.ProviderUsed ?? job.Provider, job.ModelUsed ?? job.Model, job.DurationSeconds)
+            : null);
 }

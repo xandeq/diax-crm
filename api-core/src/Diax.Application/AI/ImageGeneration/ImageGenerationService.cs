@@ -219,6 +219,12 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         var validResults = results.Where(r => !string.IsNullOrWhiteSpace(r.ImageUrl)).ToList();
         var pairs = new List<(GeneratedImage Entity, ImageGenerationResult Result)>();
 
+        var estimatedTotalCost = AiGenerationCostEstimator.EstimateImageCostUsd(
+            candidate.ProviderKey, candidate.ModelKey, validResults.Count);
+        var estimatedCostPerImage = estimatedTotalCost.HasValue && validResults.Count > 0
+            ? estimatedTotalCost.Value / validResults.Count
+            : (decimal?)null;
+
         foreach (var result in validResults)
         {
             var providerUrl = !result.IsBase64 && result.ImageUrl.Length <= MaxUrlLength
@@ -238,7 +244,8 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 revisedPrompt: result.RevisedPrompt,
                 providerUrl: providerUrl,
                 storageUrl: null, // preenchido abaixo se o storage local funcionar
-                seed: result.Seed);
+                seed: result.Seed,
+                estimatedCost: estimatedCostPerImage);
 
             // Storage próprio: URLs de provider expiram e base64 não cabe no banco.
             var storedUrl = await _mediaStorage.TrySaveImageAsync(result.ImageUrl, result.IsBase64, image.Id, ct);
@@ -268,10 +275,12 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         // Tracking awaited (sem Task.Run — DbContext é scoped e morre com o request).
         // Best-effort: nunca falha a resposta por causa de tracking.
         candidate.Model.RecordSuccess();
+        QuotaStatusDto? quotaStatus = null;
         try
         {
             await _modelRepository.UpdateFailureTrackingAsync(candidate.Model, CancellationToken.None);
             await _quotaService.RecordGenerationAsync(candidate.Provider.Id, pairs.Count, CancellationToken.None);
+            quotaStatus = await _quotaService.GetQuotaStatusAsync(candidate.Provider.Id, CancellationToken.None);
             await _usageTracking.LogUsageAsync(
                 userId: userId,
                 providerId: candidate.Provider.Id,
@@ -307,7 +316,9 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
             )).ToList(),
             FallbackOccurred: attempted.Count > 1,
             RequestedProvider: requestedProviderKey,
-            AttemptedProviders: attempted
+            AttemptedProviders: attempted,
+            EstimatedCostUsd: estimatedTotalCost,
+            QuotaStatus: quotaStatus
         );
     }
 

@@ -359,6 +359,12 @@ public static class DependencyInjection
         services.AddHttpClient<ShotstackVideoClient>();
         services.AddScoped<IAiVideoGenerationClient, ShotstackVideoClient>();
 
+        services.AddHttpClient<WaveSpeedVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, WaveSpeedVideoClient>();
+
+        services.AddHttpClient<ModelsLabVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, ModelsLabVideoClient>();
+
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
 

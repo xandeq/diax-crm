@@ -37,6 +37,9 @@ export interface ImageGenerationResponse {
   fallbackOccurred?: boolean;
   requestedProvider?: string;
   attemptedProviders?: string[];
+  /** Custo estimado em USD (0 = grátis; null/undefined = desconhecido) */
+  estimatedCostUsd?: number | null;
+  quotaStatus?: QuotaStatusDto;
 }
 
 export const imageSizeOptions = [
@@ -100,6 +103,8 @@ export interface VideoGenerationResponse {
   fallbackOccurred?: boolean;
   requestedProvider?: string;
   attemptedProviders?: string[];
+  /** Custo estimado em USD (0 = grátis; null/undefined = desconhecido) */
+  estimatedCostUsd?: number | null;
 }
 
 export const videoAspectRatioOptions = [
@@ -147,6 +152,8 @@ export interface VideoJobDto {
   createdAt: string;
   startedAt?: string | null;
   completedAt?: string | null;
+  /** Custo estimado em USD (0 = grátis; null/undefined = desconhecido) */
+  estimatedCostUsd?: number | null;
 }
 
 export async function createVideoJob(data: VideoGenerationRequest): Promise<VideoJobDto> {
