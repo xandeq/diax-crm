@@ -19,6 +19,8 @@ public class PromptGeneratorSettings
     public ProviderConfig Runway { get; set; } = new();
     public ProviderConfig Replicate { get; set; } = new();
     public ProviderConfig Shotstack { get; set; } = new();
+    public ProviderConfig WaveSpeed { get; set; } = new();
+    public ProviderConfig ModelsLab { get; set; } = new();
 
     /// <summary>
     /// Obtém a configuração do provider pelo key do banco de dados.
@@ -43,6 +45,8 @@ public class PromptGeneratorSettings
             "runway" => Runway,
             "replicate" => Replicate,
             "shotstack" => Shotstack,
+            "wavespeed" or "wavespeedai" or "wavespeed-ai" => WaveSpeed,
+            "modelslab" or "models-lab" => ModelsLab,
             _ => null
         };
     }

@@ -146,7 +146,9 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                     QuotaStatus: quotaStatus,
                     FallbackOccurred: attempted.Count > 1,
                     RequestedProvider: requestedProviderKey,
-                    AttemptedProviders: attempted);
+                    AttemptedProviders: attempted,
+                    EstimatedCostUsd: AiGenerationCostEstimator.EstimateVideoCostUsd(
+                        candidate.ProviderKey, candidate.ModelKey, request.DurationSeconds));
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
             {

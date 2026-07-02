@@ -361,6 +361,28 @@ public static class AiDataSeeder
             {
                 new ModelSeed("shotstack", "Shotstack Composition (Text-to-Video)", SupportsVideo: true),
             }),
+
+        new ProviderSeed(
+            Key: "wavespeed",
+            Name: "WaveSpeed AI",
+            BaseUrl: "https://api.wavespeed.ai/api/v3",
+            SupportsListModels: false,
+            Models: new()
+            {
+                // $0.01/s (mínimo 5s = $0.05/vídeo) — um dos mais baratos do mercado (verificado 2026-07)
+                new ModelSeed("wavespeed-ai/wan-2.2/t2v-480p-ultra-fast", "WAN 2.2 480p Ultra Fast (~US$0,05/vídeo 5s)", SupportsVideo: true),
+            }),
+
+        new ProviderSeed(
+            Key: "modelslab",
+            Name: "ModelsLab",
+            BaseUrl: "https://modelslab.com/api/v6",
+            SupportsListModels: false,
+            Models: new()
+            {
+                // WAN $0.03–0.08/vídeo (verificado na página oficial 2026-07)
+                new ModelSeed("wan2.2", "WAN 2.2 (ModelsLab, ~US$0,05/vídeo)", SupportsVideo: true),
+            }),
     };
 
     public static void SeedAiProviders(DiaxDbContext db, ILogger? logger = null)

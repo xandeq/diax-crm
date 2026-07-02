@@ -41,9 +41,18 @@ public class AiMediaFallbackPolicyTests
     public void VideoProviderOrder_ContainsOnlyProvidersWithRegisteredClients()
     {
         // Runway fica fora (exige imagem de referência); Shotstack fora (composição, não T2V)
-        var registeredVideoClients = new[] { "falai", "huggingface", "runway", "replicate", "shotstack" };
+        var registeredVideoClients = new[] { "falai", "huggingface", "runway", "replicate", "shotstack", "wavespeed", "modelslab" };
         foreach (var key in AiMediaFallbackPolicy.VideoProviderOrder)
             Assert.Contains(key, registeredVideoClients);
+    }
+
+    [Fact]
+    public void VideoProviderOrder_PutsCheapProvidersBeforeSlowFreeTier()
+    {
+        // wavespeed/modelslab (~$0.05, ~30-60s) vêm antes do huggingface (grátis mas cold start de minutos)
+        var order = AiMediaFallbackPolicy.VideoProviderOrder.ToList();
+        Assert.True(order.IndexOf("wavespeed") < order.IndexOf("huggingface"));
+        Assert.True(order.IndexOf("modelslab") < order.IndexOf("huggingface"));
     }
 
     [Fact]

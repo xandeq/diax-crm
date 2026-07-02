@@ -1,3 +1,5 @@
+using Diax.Application.AI.QuotaManagement;
+
 namespace Diax.Application.AI.ImageGeneration.Dtos;
 
 public record GeneratedImageDto(
@@ -18,5 +20,7 @@ public record ImageGenerationResponseDto(
     List<GeneratedImageDto> Images,
     bool FallbackOccurred = false,
     string? RequestedProvider = null,
-    List<string>? AttemptedProviders = null
+    List<string>? AttemptedProviders = null,
+    decimal? EstimatedCostUsd = null,
+    QuotaStatusDto? QuotaStatus = null
 );

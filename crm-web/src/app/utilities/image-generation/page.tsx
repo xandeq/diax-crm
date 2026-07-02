@@ -238,9 +238,9 @@ export default function ImageGenerationPage() {
     };
   }, [isGenerating, currentLoadingMessages.length]);
 
-  // Fetch quota status when video provider changes
+  // Fetch quota status when provider changes (imagem e vídeo)
   useEffect(() => {
-    if (activeTab !== 'video' || !selectedProvider) {
+    if (!selectedProvider) {
       setQuotaStatus(null);
       return;
     }
@@ -248,14 +248,15 @@ export default function ImageGenerationPage() {
     const fetchQuota = async () => {
       setIsLoadingQuota(true);
       try {
-        // Get provider ID from the providers list
-        const provider = videoProviders.find(p => p.key === selectedProvider);
+        // Get provider ID from the providers list of the active tab
+        const providerList = activeTab === 'video' ? videoProviders : imageProviders;
+        const provider = providerList.find(p => p.key === selectedProvider);
         if (!provider) {
           setQuotaStatus(null);
           return;
         }
 
-        // Fetch quota status from API
+        // Fetch quota status from API (endpoint é por provider id, vale para os dois tipos)
         const quota = await apiFetch<QuotaStatusDto>(`/admin/video-providers/${provider.id}/quota`, {
           method: 'GET',
         });
@@ -269,7 +270,7 @@ export default function ImageGenerationPage() {
     };
 
     fetchQuota();
-  }, [activeTab, selectedProvider, videoProviders]);
+  }, [activeTab, selectedProvider, videoProviders, imageProviders]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -392,6 +393,9 @@ export default function ImageGenerationPage() {
           referenceImageBase64: referenceImageBase64 ?? undefined,
         });
         setImageResult(response);
+        if (response.quotaStatus) {
+          setQuotaStatus(response.quotaStatus);
+        }
       } else {
         // Fluxo assíncrono: enfileira o job e acompanha até concluir.
         // O request não fica aberto por minutos (timeout do servidor) e o job
@@ -420,6 +424,7 @@ export default function ImageGenerationPage() {
             fallbackOccurred: finalJob.fallbackOccurred,
             requestedProvider: finalJob.provider,
             attemptedProviders: finalJob.attemptedProviders ?? undefined,
+            estimatedCostUsd: finalJob.estimatedCostUsd,
           });
         } else {
           setError(finalJob.errorMessage || 'Falha na geração do vídeo. Tente novamente.');
@@ -471,12 +476,14 @@ export default function ImageGenerationPage() {
       ? {
           provider: imageResult.providerUsed, model: imageResult.modelUsed, ms: imageResult.durationMs,
           fallback: imageResult.fallbackOccurred ?? false, requestedProvider: imageResult.requestedProvider,
+          cost: imageResult.estimatedCostUsd,
         }
       : null
     : videoResult
       ? {
           provider: videoResult.providerUsed, model: videoResult.modelUsed, ms: videoResult.durationMs,
           fallback: videoResult.fallbackOccurred ?? false, requestedProvider: videoResult.requestedProvider,
+          cost: videoResult.estimatedCostUsd,
         }
       : null;
 
@@ -594,8 +601,8 @@ export default function ImageGenerationPage() {
             </div>
           )}
 
-          {/* Quota Status (Video only) */}
-          {activeTab === 'video' && selectedProvider && (
+          {/* Quota Status — limites do provider (imagem e vídeo) */}
+          {selectedProvider && (
             <QuotaStatusCard quota={quotaStatus} isLoading={isLoadingQuota} />
           )}
 
@@ -890,6 +897,19 @@ export default function ImageGenerationPage() {
                     <span className="flex items-center gap-1 text-[11px] text-white/30">
                       <Clock className="h-3 w-3" />
                       {(generationMeta.ms / 1000).toFixed(1)}s · {generationMeta.provider} · {generationMeta.model}
+                      {generationMeta.cost === 0 && (
+                        <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                          grátis
+                        </span>
+                      )}
+                      {generationMeta.cost != null && generationMeta.cost > 0 && (
+                        <span
+                          className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-sky-500/15 text-sky-300 border border-sky-500/25"
+                          title="Custo estimado desta geração (valores de tabela do provider — o real pode variar com resolução/qualidade)"
+                        >
+                          ~US$ {generationMeta.cost.toFixed(generationMeta.cost < 0.01 ? 3 : 2)}
+                        </span>
+                      )}
                       {generationMeta.fallback && (
                         <span
                           className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25"
