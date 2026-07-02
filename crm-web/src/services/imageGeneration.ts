@@ -123,3 +123,43 @@ export async function generateVideo(data: VideoGenerationRequest): Promise<Video
     body: JSON.stringify(data),
   });
 }
+
+// ── Video jobs (geração assíncrona) ─────────────────────────────────────────
+// Vídeos podem levar minutos; o fluxo é: enfileirar → poll do status → resultado.
+
+export type VideoJobStatus = 'Queued' | 'Processing' | 'Completed' | 'Failed';
+
+export interface VideoJobDto {
+  id: string;
+  status: VideoJobStatus;
+  provider: string;
+  model: string;
+  providerUsed?: string | null;
+  modelUsed?: string | null;
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  errorMessage?: string | null;
+  errorCategory?: string | null;
+  fallbackOccurred: boolean;
+  attemptedProviders?: string[] | null;
+  queuePosition?: number | null;
+  durationMs?: number | null;
+  createdAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
+export async function createVideoJob(data: VideoGenerationRequest): Promise<VideoJobDto> {
+  return apiFetch<VideoJobDto>('/ai/video-jobs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getVideoJob(jobId: string): Promise<VideoJobDto> {
+  return apiFetch<VideoJobDto>(`/ai/video-jobs/${jobId}`, { method: 'GET' });
+}
+
+export async function listVideoJobs(take = 20): Promise<VideoJobDto[]> {
+  return apiFetch<VideoJobDto[]>(`/ai/video-jobs?take=${take}`, { method: 'GET' });
+}

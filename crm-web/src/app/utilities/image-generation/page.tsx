@@ -11,13 +11,15 @@ import { isModelFree, requiresLicenseAcceptance } from '@/lib/aiModelClassificat
 import { type AiModel } from '@/services/aiCatalog';
 import { apiFetch, ApiError } from '@/services/api';
 import {
+  createVideoJob,
   generateImage,
-  generateVideo,
+  getVideoJob,
   imageSizeOptions,
   videoAspectRatioOptions,
   videoDurationOptions,
   type ImageGenerationResponse,
   type VideoGenerationResponse,
+  type VideoJobDto,
 } from '@/services/imageGeneration';
 import {
   AlertCircle,
@@ -160,6 +162,9 @@ export default function ImageGenerationPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageResult, setImageResult] = useState<ImageGenerationResponse | null>(null);
   const [videoResult, setVideoResult] = useState<VideoGenerationResponse | null>(null);
+  // Fase do job de vídeo assíncrono (fila/processando) mostrada durante a geração
+  const [videoJobPhase, setVideoJobPhase] = useState<string | null>(null);
+  const pollingActiveRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
   const clearError = () => { setError(null); setErrorCode(undefined); };
@@ -305,6 +310,57 @@ export default function ImageGenerationPage() {
     if (file) handleImageUpload(file);
   }, [handleImageUpload]);
 
+  // ── Video job polling (geração assíncrona) ──────────────────────────────────
+
+  const updateJobPhase = useCallback((job: VideoJobDto) => {
+    if (job.status === 'Queued') {
+      const pos = job.queuePosition;
+      setVideoJobPhase(pos != null && pos > 0
+        ? `🕐 Na fila — posição ${pos + 1}...`
+        : '🕐 Na fila — você é o próximo...');
+    } else if (job.status === 'Processing') {
+      setVideoJobPhase('🎬 Gerando o vídeo — isso pode levar alguns minutos...');
+    } else {
+      setVideoJobPhase(null);
+    }
+  }, []);
+
+  /** Poll até o job terminar. Retorna null se o polling foi abortado (unmount). */
+  const pollVideoJob = useCallback(async (initial: VideoJobDto): Promise<VideoJobDto | null> => {
+    const POLL_INTERVAL_MS = 4000;
+    const MAX_POLL_MS = 15 * 60 * 1000;
+
+    pollingActiveRef.current = true;
+    let job = initial;
+    const startedAt = Date.now();
+    updateJobPhase(job);
+
+    while (job.status === 'Queued' || job.status === 'Processing') {
+      if (!pollingActiveRef.current) return null;
+      if (Date.now() - startedAt > MAX_POLL_MS) {
+        throw new Error(
+          'A geração passou de 15 minutos, mas o job continua no servidor. ' +
+          'Volte a esta página mais tarde para ver o resultado.');
+      }
+
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+      if (!pollingActiveRef.current) return null;
+
+      try {
+        job = await getVideoJob(initial.id);
+        updateJobPhase(job);
+      } catch {
+        // Erro transitório de rede não derruba o acompanhamento — tenta de novo no próximo tick
+      }
+    }
+
+    setVideoJobPhase(null);
+    return job;
+  }, [updateJobPhase]);
+
+  // Ao desmontar a página, para o polling (o job continua no servidor)
+  useEffect(() => () => { pollingActiveRef.current = false; }, []);
+
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
       setError('Descreva o que deseja gerar no campo de prompt.');
@@ -337,7 +393,10 @@ export default function ImageGenerationPage() {
         });
         setImageResult(response);
       } else {
-        const response = await generateVideo({
+        // Fluxo assíncrono: enfileira o job e acompanha até concluir.
+        // O request não fica aberto por minutos (timeout do servidor) e o job
+        // sobrevive se o usuário sair da página.
+        const job = await createVideoJob({
           provider: selectedProvider,
           model: selectedModel,
           prompt: prompt.trim(),
@@ -346,10 +405,25 @@ export default function ImageGenerationPage() {
           aspectRatio,
           referenceImageBase64: referenceImageBase64 ?? undefined,
         });
-        setVideoResult(response);
-        // Update quota status if returned from API
-        if (response.quotaStatus) {
-          setQuotaStatus(response.quotaStatus);
+
+        const finalJob = await pollVideoJob(job);
+        if (!finalJob) return; // página desmontada — job continua no servidor
+
+        if (finalJob.status === 'Completed' && finalJob.videoUrl) {
+          setVideoResult({
+            providerUsed: finalJob.providerUsed ?? finalJob.provider,
+            modelUsed: finalJob.modelUsed ?? finalJob.model,
+            requestId: finalJob.id,
+            durationMs: finalJob.durationMs ?? 0,
+            videoUrl: finalJob.videoUrl,
+            thumbnailUrl: finalJob.thumbnailUrl ?? undefined,
+            fallbackOccurred: finalJob.fallbackOccurred,
+            requestedProvider: finalJob.provider,
+            attemptedProviders: finalJob.attemptedProviders ?? undefined,
+          });
+        } else {
+          setError(finalJob.errorMessage || 'Falha na geração do vídeo. Tente novamente.');
+          setErrorCode(finalJob.errorCategory ?? undefined);
         }
       }
     } catch (err) {
@@ -359,11 +433,12 @@ export default function ImageGenerationPage() {
       setErrorCode(code);
     } finally {
       setIsGenerating(false);
+      setVideoJobPhase(null);
     }
   }, [
     prompt, negativePrompt, selectedProvider, selectedModel,
     activeTab, selectedSize, style, quality,
-    duration, aspectRatio, referenceImageBase64,
+    duration, aspectRatio, referenceImageBase64, pollVideoJob,
   ]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -923,11 +998,11 @@ export default function ImageGenerationPage() {
                   {/* Message */}
                   <div className="text-center space-y-2 max-w-sm">
                     <p className="text-base font-medium text-white">
-                      {currentLoadingMessages[loadingMsgIdx]}
+                      {videoJobPhase ?? currentLoadingMessages[loadingMsgIdx]}
                     </p>
                     <p className="text-sm text-white/40">
                       {activeTab === 'video'
-                        ? 'Vídeos podem levar de 30 segundos a 5 minutos'
+                        ? 'Vídeos podem levar de 30 segundos a 5 minutos — pode sair da página, o job continua no servidor'
                         : 'Imagens ficam prontas em 5 a 30 segundos'
                       }
                     </p>

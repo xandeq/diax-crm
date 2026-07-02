@@ -244,6 +244,7 @@ public static class DependencyInjection
         services.AddScoped<IImageTemplateRepository, ImageTemplateRepository>();
         services.AddScoped<IImageGenerationProjectRepository, ImageGenerationProjectRepository>();
         services.AddScoped<IGeneratedImageRepository, GeneratedImageRepository>();
+        services.AddScoped<IVideoGenerationJobRepository, VideoGenerationJobRepository>();
 
         // ===== AUDIT LOG =====
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
@@ -491,6 +492,9 @@ public static class DependencyInjection
         // ===== QUOTA MANAGEMENT =====
         services.AddScoped<Diax.Application.AI.QuotaManagement.IAiQuotaService, Diax.Infrastructure.AI.QuotaManagement.AiQuotaService>();
         services.AddHostedService<Diax.Infrastructure.AI.QuotaManagement.QuotaResetWorker>();
+
+        // ===== VIDEO JOB QUEUE =====
+        services.AddHostedService<VideoJobWorker>();
 
         return services;
     }

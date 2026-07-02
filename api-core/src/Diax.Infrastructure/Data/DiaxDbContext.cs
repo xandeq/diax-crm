@@ -131,6 +131,9 @@ public class DiaxDbContext : DbContext
     public DbSet<ImageGenerationProject> ImageGenerationProjects => Set<ImageGenerationProject>();
     public DbSet<GeneratedImage> GeneratedImages => Set<GeneratedImage>();
 
+    // Video Generation (jobs assíncronos)
+    public DbSet<VideoGenerationJob> VideoGenerationJobs => Set<VideoGenerationJob>();
+
     // Audit
     public DbSet<AuditLogEntry> AuditLogs => Set<AuditLogEntry>();
 
