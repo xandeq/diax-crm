@@ -338,6 +338,10 @@ public static class DependencyInjection
         services.AddHttpClient<HuggingFaceImageClient>();
         services.AddScoped<IAiImageGenerationClient, HuggingFaceImageClient>();
 
+        // Storage durável de mídia gerada (URLs de provider expiram; base64 não cabe no banco)
+        services.AddHttpClient<GeneratedMediaStorageService>();
+        services.AddScoped<Diax.Application.AI.MediaStorage.IGeneratedMediaStorageService, GeneratedMediaStorageService>();
+
         // ===== AI VIDEO GENERATION CLIENTS =====
         services.AddHttpClient<FalAiVideoClient>();
         services.AddScoped<IAiVideoGenerationClient, FalAiVideoClient>();

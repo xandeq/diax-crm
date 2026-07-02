@@ -15,5 +15,8 @@ public record ImageGenerationResponseDto(
     string ModelUsed,
     string RequestId,
     int DurationMs,
-    List<GeneratedImageDto> Images
+    List<GeneratedImageDto> Images,
+    bool FallbackOccurred = false,
+    string? RequestedProvider = null,
+    List<string>? AttemptedProviders = null
 );

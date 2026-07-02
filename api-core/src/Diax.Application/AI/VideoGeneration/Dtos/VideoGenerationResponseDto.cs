@@ -9,5 +9,8 @@ public record VideoGenerationResponseDto(
     int DurationMs,
     string VideoUrl,
     string? ThumbnailUrl,
-    QuotaStatusDto? QuotaStatus = null
+    QuotaStatusDto? QuotaStatus = null,
+    bool FallbackOccurred = false,
+    string? RequestedProvider = null,
+    List<string>? AttemptedProviders = null
 );

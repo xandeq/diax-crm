@@ -17,6 +17,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
     private readonly IAiModelValidator _aiModelValidator;
     private readonly IAiUsageTrackingService _usageTracking;
     private readonly IAiQuotaService _quotaService;
+    private readonly IAiCatalogService _catalogService;
     private readonly IAiProviderRepository _providerRepository;
     private readonly IAiModelRepository _modelRepository;
     private readonly IAiProviderCredentialRepository _credentialRepository;
@@ -29,6 +30,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
         IAiModelValidator aiModelValidator,
         IAiUsageTrackingService usageTracking,
         IAiQuotaService quotaService,
+        IAiCatalogService catalogService,
         IAiProviderRepository providerRepository,
         IAiModelRepository modelRepository,
         IAiProviderCredentialRepository credentialRepository,
@@ -40,6 +42,7 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
         _aiModelValidator = aiModelValidator;
         _usageTracking = usageTracking;
         _quotaService = quotaService;
+        _catalogService = catalogService;
         _providerRepository = providerRepository;
         _modelRepository = modelRepository;
         _credentialRepository = credentialRepository;
@@ -53,9 +56,156 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
         Guid userId,
         CancellationToken ct = default)
     {
-        var providerKey = request.Provider.ToLower();
+        ValidateRequest(request);
 
-        // 1. Validate provider
+        var requestedProviderKey = request.Provider.ToLower();
+        var requestedCandidate = await ResolveRequestedCandidateAsync(requestedProviderKey, request.Model, ct);
+
+        var requestId = Guid.NewGuid().ToString();
+        var attempted = new List<string>();
+        var attemptErrors = new List<string>();
+        var lastErrorCategory = AiErrorCategory.Unknown;
+
+        GenerationCandidate? candidate = requestedCandidate;
+
+        while (candidate != null)
+        {
+            attempted.Add(candidate.ProviderKey);
+            var startTime = DateTime.UtcNow;
+
+            _logger.LogInformation(
+                "VideoGeneration attempt {Attempt}. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}. Fallback: {IsFallback}",
+                attempted.Count, requestId, candidate.ProviderKey, candidate.ModelKey, attempted.Count > 1);
+
+            try
+            {
+                // Quota local do provider antes de gastar a chamada
+                var quotaCheck = await _quotaService.CanUserGenerateAsync(candidate.Provider.Id, 1, ct);
+                if (!quotaCheck.IsSuccess)
+                    throw new AiProviderException(
+                        quotaCheck.Error?.Message ?? $"Quota local esgotada para '{candidate.ProviderKey}'.",
+                        AiErrorCategory.QuotaExhausted);
+
+                var options = new VideoGenerationOptions(
+                    ApiKey: candidate.ApiKey,
+                    BaseUrl: candidate.Provider.BaseUrl ?? string.Empty,
+                    Model: candidate.ModelKey,
+                    DurationSeconds: request.DurationSeconds,
+                    Width: request.Width,
+                    Height: request.Height,
+                    AspectRatio: request.AspectRatio,
+                    NegativePrompt: request.NegativePrompt,
+                    Seed: request.Seed);
+
+                var result = await candidate.Client.GenerateAsync(
+                    request.Prompt, options, request.ReferenceImageBase64, ct);
+
+                if (result == null || string.IsNullOrWhiteSpace(result.VideoUrl))
+                    throw new AiProviderException(
+                        $"Provider '{candidate.ProviderKey}' retornou resposta vazia (sem URL de vídeo).",
+                        AiErrorCategory.ProviderUnavailable);
+
+                var durationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+
+                _logger.LogInformation(
+                    "VideoGeneration completed. RequestId: {RequestId}. Provider: {Provider}. Duration: {Duration}ms. Fallback: {Fallback}",
+                    requestId, candidate.ProviderKey, durationMs, attempted.Count > 1);
+
+                // Tracking awaited e best-effort (sem Task.Run — DbContext é scoped).
+                candidate.Model.RecordSuccess();
+                QuotaStatusDto? quotaStatus = null;
+                try
+                {
+                    await _quotaService.RecordGenerationAsync(candidate.Provider.Id, 1, CancellationToken.None);
+                    quotaStatus = await _quotaService.GetQuotaStatusAsync(candidate.Provider.Id, CancellationToken.None);
+                    await _modelRepository.UpdateFailureTrackingAsync(candidate.Model, CancellationToken.None);
+                    await _usageTracking.LogUsageAsync(
+                        userId: userId,
+                        providerId: candidate.Provider.Id,
+                        modelId: candidate.Model.Id,
+                        featureType: "VideoGeneration",
+                        duration: TimeSpan.FromMilliseconds(durationMs),
+                        success: true,
+                        requestId: requestId,
+                        inputTokens: request.Prompt?.Length ?? 0,
+                        outputTokens: 1,
+                        cancellationToken: CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to track video usage for request {RequestId}", requestId);
+                }
+
+                return new VideoGenerationResponseDto(
+                    ProviderUsed: candidate.ProviderKey,
+                    ModelUsed: candidate.ModelKey,
+                    RequestId: requestId,
+                    DurationMs: durationMs,
+                    VideoUrl: result.VideoUrl,
+                    ThumbnailUrl: result.ThumbnailUrl,
+                    QuotaStatus: quotaStatus,
+                    FallbackOccurred: attempted.Count > 1,
+                    RequestedProvider: requestedProviderKey,
+                    AttemptedProviders: attempted);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                var durationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+                var httpStatus = AiErrorCategorizationHelper.ExtractHttpStatusCode(ex);
+                var errorCategory = ex is AiProviderException aiEx
+                    ? aiEx.ErrorCode
+                    : AiErrorCategorizationHelper.Categorize(ex, httpStatus);
+                var sanitizedMsg = AiErrorCategorizationHelper.SanitizeForLog(ex.Message);
+
+                lastErrorCategory = errorCategory;
+                attemptErrors.Add($"{candidate.ProviderKey}: [{errorCategory}] {sanitizedMsg}");
+
+                _logger.LogError(ex,
+                    "VideoGeneration attempt failed. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}. " +
+                    "ErrorCategory: {ErrorCategory}. HttpStatus: {HttpStatus}. Message: {Message}",
+                    requestId, candidate.ProviderKey, candidate.ModelKey, errorCategory, httpStatus, sanitizedMsg);
+
+                await TrackAttemptFailureAsync(
+                    userId, candidate, errorCategory, sanitizedMsg, httpStatus, requestId, durationMs);
+
+                GenerationCandidate? next = null;
+                if (request.AllowFallback && AiMediaFallbackPolicy.ShouldFallback(errorCategory))
+                {
+                    next = await ResolveNextFallbackCandidateAsync(
+                        userId, attempted, request.ReferenceImageBase64 != null, ct);
+
+                    if (next != null)
+                        _logger.LogWarning(
+                            "VideoGeneration FALLBACK. RequestId: {RequestId}. {From} → {To} (motivo: {Category})",
+                            requestId, candidate.ProviderKey, next.ProviderKey, errorCategory);
+                }
+
+                candidate = next;
+            }
+        }
+
+        var aggregate = string.Join(" | ", attemptErrors);
+        throw new AiProviderException(
+            attempted.Count > 1
+                ? $"Todos os {attempted.Count} providers falharam. Detalhes: {aggregate}"
+                : aggregate,
+            lastErrorCategory);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Resolução de candidatos
+    // ─────────────────────────────────────────────────────────────────────────
+    private sealed record GenerationCandidate(
+        string ProviderKey,
+        AiProvider Provider,
+        AiModel Model,
+        string ModelKey,
+        string ApiKey,
+        IAiVideoGenerationClient Client);
+
+    private async Task<GenerationCandidate> ResolveRequestedCandidateAsync(
+        string providerKey, string modelKey, CancellationToken ct)
+    {
         var isValidProvider = await _aiModelValidator.IsValidProviderAsync(providerKey, ct);
         if (!isValidProvider)
         {
@@ -64,197 +214,159 @@ public class VideoGenerationService : IApplicationService, IVideoGenerationServi
                 ? string.Join(", ", activeProviders)
                 : "Nenhum provider configurado.";
             throw new ArgumentException(
-                $"Provedor '{request.Provider}' não está ativo ou não existe. Providers disponíveis: {availableList}");
+                $"Provedor '{providerKey}' não está ativo ou não existe. Providers disponíveis: {availableList}");
         }
 
-        // 2. Resolve provider and model from DB
         var provider = await _providerRepository.GetByKeyAsync(providerKey, ct)
             ?? throw new ArgumentException($"Provider '{providerKey}' não encontrado.");
 
-        var model = await _modelRepository.GetByProviderAndModelKeyAsync(provider.Id, request.Model, ct)
+        var model = await _modelRepository.GetByProviderAndModelKeyAsync(provider.Id, modelKey, ct)
             ?? throw new ArgumentException(
-                $"Modelo '{request.Model}' não encontrado para o provider '{providerKey}'.");
+                $"Modelo '{modelKey}' não encontrado para o provider '{providerKey}'.");
 
         if (!model.IsEnabled)
-            throw new ArgumentException($"Modelo '{request.Model}' está desabilitado.");
+            throw new ArgumentException($"Modelo '{modelKey}' está desabilitado.");
 
         if (!model.SupportsVideoGeneration())
             throw new ArgumentException(
-                $"Modelo '{request.Model}' não suporta geração de vídeo. " +
+                $"Modelo '{modelKey}' não suporta geração de vídeo. " +
                 "Verifique se o CapabilitiesJson do modelo está configurado corretamente.");
 
-        // 2.5. Check quota before proceeding
-        var quotaCheckResult = await _quotaService.CanUserGenerateAsync(provider.Id, 1, ct);
-        if (!quotaCheckResult.IsSuccess)
-        {
-            _logger.LogWarning(
-                "VideoGeneration quota check failed for provider '{Provider}': {Error}",
-                providerKey, quotaCheckResult.Error?.Message);
-            throw new InvalidOperationException(quotaCheckResult.Error?.Message ?? "Quota limit exceeded");
-        }
-
-        // 3. Get API key — DB first, then appsettings fallback
-        string apiKey;
-        var credential = await _credentialRepository.GetByProviderIdAsync(provider.Id, ct);
-        if (credential != null && credential.IsConfigured())
-        {
-            _logger.LogDebug("VideoGeneration: using DB credential for provider '{Provider}'", providerKey);
-            try
-            {
-                apiKey = _encryptionService.Decrypt(credential.ApiKeyEncrypted);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "VideoGeneration: credential decryption failed for '{Provider}' (keys may have been rotated), trying appsettings fallback",
-                    providerKey);
-                var providerConfig = _promptSettings.GetProviderConfig(providerKey);
-                if (providerConfig == null || string.IsNullOrWhiteSpace(providerConfig.ApiKey))
-                    throw new InvalidOperationException(
-                        $"API Key inválida para '{providerKey}': falha na descriptografia e nenhum fallback configurado.");
-                apiKey = providerConfig.ApiKey;
-            }
-        }
-        else
-        {
-            var providerConfig = _promptSettings.GetProviderConfig(providerKey);
-            if (providerConfig == null || string.IsNullOrWhiteSpace(providerConfig.ApiKey))
-                throw new InvalidOperationException(
-                    $"API Key não configurada para o provider '{providerKey}'. " +
-                    "Configure a chave em Administração > AI > Providers ou nas variáveis de ambiente.");
-
-            _logger.LogDebug("VideoGeneration: using appsettings fallback for '{Provider}'", providerKey);
-            apiKey = providerConfig.ApiKey;
-        }
-
-        // 4. Find the matching video client
-        var client = _videoClients.FirstOrDefault(c => c.ProviderName.Equals(providerKey, StringComparison.OrdinalIgnoreCase))
+        var client = FindClient(providerKey)
             ?? throw new InvalidOperationException(
                 $"Client de geração de vídeo não encontrado para '{providerKey}'. " +
                 "Verifique se o client está registrado no container de DI.");
 
-        // 5. Build options and generate
-        var options = new VideoGenerationOptions(
-            ApiKey: apiKey,
-            BaseUrl: provider.BaseUrl ?? string.Empty,
-            Model: request.Model,
-            DurationSeconds: request.DurationSeconds,
-            Width: request.Width,
-            Height: request.Height,
-            AspectRatio: request.AspectRatio,
-            NegativePrompt: request.NegativePrompt,
-            Seed: request.Seed
-        );
+        var apiKey = await TryResolveApiKeyAsync(provider, providerKey)
+            ?? throw new AiProviderException(
+                $"API Key não configurada para o provider '{providerKey}'. " +
+                "Configure a chave em Administração > AI > Providers ou nas variáveis de ambiente.",
+                AiErrorCategory.ConfigurationMissing);
 
-        var requestId = Guid.NewGuid().ToString();
-        var startTime = DateTime.UtcNow;
+        return new GenerationCandidate(providerKey, provider, model, model.ModelKey, apiKey, client);
+    }
 
-        _logger.LogInformation(
-            "VideoGeneration started. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}",
-            requestId, providerKey, request.Model);
+    private async Task<GenerationCandidate?> ResolveNextFallbackCandidateAsync(
+        Guid userId,
+        List<string> alreadyAttempted,
+        bool requiresImageToVideo,
+        CancellationToken ct)
+    {
+        foreach (var providerKey in AiMediaFallbackPolicy.VideoProviderOrder)
+        {
+            if (alreadyAttempted.Contains(providerKey, StringComparer.OrdinalIgnoreCase))
+                continue;
 
+            try
+            {
+                var client = FindClient(providerKey);
+                if (client == null) continue;
+                if (requiresImageToVideo && !client.SupportsImageToVideo) continue;
+
+                if (!await _aiModelValidator.IsValidProviderAsync(providerKey, ct)) continue;
+
+                var provider = await _providerRepository.GetByKeyAsync(providerKey, ct);
+                if (provider == null) continue;
+
+                var apiKey = await TryResolveApiKeyAsync(provider, providerKey);
+                if (apiKey == null) continue;
+
+                var models = (await _modelRepository.GetEnabledByProviderAsync(provider.Id, ct))
+                    .Where(m => m.SupportsVideoGeneration())
+                    .ToList();
+                if (models.Count == 0) continue;
+
+                var model = AiMediaFallbackPolicy.PreferredVideoModel.TryGetValue(providerKey, out var preferred)
+                    ? models.FirstOrDefault(m => m.ModelKey.Equals(preferred, StringComparison.OrdinalIgnoreCase)) ?? models[0]
+                    : models[0];
+
+                // RBAC: fallback respeita as permissões de grupo do usuário.
+                var hasAccess = await _catalogService.ValidateUserAccessAsync(userId, providerKey, model.ModelKey, ct);
+                if (!hasAccess)
+                {
+                    _logger.LogDebug(
+                        "VideoGeneration fallback: usuário {UserId} sem acesso a {Provider}/{Model} — pulando",
+                        userId, providerKey, model.ModelKey);
+                    continue;
+                }
+
+                return new GenerationCandidate(providerKey, provider, model, model.ModelKey, apiKey, client);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "VideoGeneration fallback: erro avaliando candidato '{Provider}' — pulando", providerKey);
+            }
+        }
+
+        return null;
+    }
+
+    private IAiVideoGenerationClient? FindClient(string providerKey) =>
+        _videoClients.FirstOrDefault(c => c.ProviderName.Equals(providerKey, StringComparison.OrdinalIgnoreCase));
+
+    private async Task<string?> TryResolveApiKeyAsync(AiProvider provider, string providerKey)
+    {
+        var credential = await _credentialRepository.GetByProviderIdAsync(provider.Id);
+        if (credential != null && credential.IsConfigured())
+        {
+            try
+            {
+                return _encryptionService.Decrypt(credential.ApiKeyEncrypted);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "VideoGeneration: falha ao descriptografar credencial de '{Provider}' (chaves rotacionadas?), tentando appsettings",
+                    providerKey);
+            }
+        }
+
+        var providerConfig = _promptSettings.GetProviderConfig(providerKey);
+        return string.IsNullOrWhiteSpace(providerConfig?.ApiKey) ? null : providerConfig.ApiKey;
+    }
+
+    private static void ValidateRequest(VideoGenerationRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Prompt) && string.IsNullOrWhiteSpace(request.ReferenceImageBase64))
+            throw new ArgumentException("Informe um prompt de texto ou uma imagem de referência para gerar o vídeo.");
+
+        if (request.DurationSeconds is < 1 or > 30)
+            throw new ArgumentException("DurationSeconds deve estar entre 1 e 30 segundos.");
+
+        if (request.Width is < 256 or > 4096 || request.Height is < 256 or > 4096)
+            throw new ArgumentException("Dimensões devem estar entre 256 e 4096 pixels.");
+    }
+
+    private async Task TrackAttemptFailureAsync(
+        Guid userId,
+        GenerationCandidate candidate,
+        string errorCategory,
+        string sanitizedMsg,
+        int? httpStatus,
+        string requestId,
+        int durationMs)
+    {
+        candidate.Model.RecordFailure(errorCategory, sanitizedMsg);
         try
         {
-            var result = await client.GenerateAsync(request.Prompt, options, request.ReferenceImageBase64, ct);
-
-            var durationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
-
-            _logger.LogInformation(
-                "VideoGeneration completed. RequestId: {RequestId}. Duration: {Duration}ms",
-                requestId, durationMs);
-
-            // Get updated quota status BEFORE fire-and-forget tasks to avoid DbContext concurrency issues
-            var quotaStatus = await _quotaService.GetQuotaStatusAsync(provider.Id);
-
-            // Record quota usage (fire and forget — after sync DB ops are done)
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _quotaService.RecordGenerationAsync(provider.Id, 1, CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to record quota usage for request {RequestId}", requestId);
-                }
-            }, CancellationToken.None);
-
-            // Record success + track usage (fire and forget)
-            model.RecordSuccess();
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _modelRepository.UpdateFailureTrackingAsync(model, CancellationToken.None);
-                    await _usageTracking.LogUsageAsync(
-                        userId: userId,
-                        providerId: provider.Id,
-                        modelId: model.Id,
-                        featureType: "VideoGeneration",
-                        duration: TimeSpan.FromMilliseconds(durationMs),
-                        success: true,
-                        requestId: requestId,
-                        inputTokens: (request.Prompt?.Length ?? 0),
-                        outputTokens: 1,
-                        cancellationToken: CancellationToken.None);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to track video usage for request {RequestId}", requestId);
-                }
-            }, CancellationToken.None);
-
-            return new VideoGenerationResponseDto(
-                ProviderUsed: providerKey,
-                ModelUsed: request.Model,
-                RequestId: requestId,
-                DurationMs: durationMs,
-                VideoUrl: result.VideoUrl,
-                ThumbnailUrl: result.ThumbnailUrl,
-                QuotaStatus: quotaStatus
-            );
+            await _modelRepository.UpdateFailureTrackingAsync(candidate.Model, CancellationToken.None);
+            await _usageTracking.LogUsageAsync(
+                userId: userId,
+                providerId: candidate.Provider.Id,
+                modelId: candidate.Model.Id,
+                featureType: "VideoGeneration",
+                duration: TimeSpan.FromMilliseconds(durationMs),
+                success: false,
+                requestId: requestId,
+                errorMessage: sanitizedMsg,
+                errorCategory: errorCategory,
+                httpStatusCode: httpStatus,
+                cancellationToken: CancellationToken.None);
         }
-        catch (Exception ex)
+        catch (Exception trackEx)
         {
-            var durationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
-
-            // Categorize the error for structured observability
-            var httpStatus    = AiErrorCategorizationHelper.ExtractHttpStatusCode(ex);
-            var errorCategory = AiErrorCategorizationHelper.Categorize(ex, httpStatus);
-            var sanitizedMsg  = AiErrorCategorizationHelper.SanitizeForLog(ex.Message);
-
-            _logger.LogError(ex,
-                "VideoGeneration failed. RequestId: {RequestId}. Provider: {Provider}. Model: {Model}. " +
-                "ErrorCategory: {ErrorCategory}. HttpStatus: {HttpStatus}. Message: {Message}",
-                requestId, providerKey, request.Model, errorCategory, httpStatus, sanitizedMsg);
-
-            // Record failure on model + track usage (fire and forget)
-            model.RecordFailure(errorCategory, sanitizedMsg);
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _modelRepository.UpdateFailureTrackingAsync(model, CancellationToken.None);
-                    await _usageTracking.LogUsageAsync(
-                        userId: userId,
-                        providerId: provider.Id,
-                        modelId: model.Id,
-                        featureType: "VideoGeneration",
-                        duration: TimeSpan.FromMilliseconds(durationMs),
-                        success: false,
-                        requestId: requestId,
-                        errorMessage: sanitizedMsg,
-                        errorCategory: errorCategory,
-                        httpStatusCode: httpStatus,
-                        cancellationToken: CancellationToken.None);
-                }
-                catch (Exception trackEx)
-                {
-                    _logger.LogError(trackEx, "Failed to track failed video usage for request {RequestId}", requestId);
-                }
-            }, CancellationToken.None);
-
-            throw new AiProviderException(ex.Message, errorCategory, ex);
+            _logger.LogError(trackEx, "Failed to track failed video usage for request {RequestId}", requestId);
         }
     }
 }

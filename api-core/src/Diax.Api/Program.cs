@@ -334,9 +334,8 @@ try
             AiDataSeeder.SeedAiProviders(db, seedLogger);
             Log.Information("AiDataSeeder completed.");
 
-            // Seed Video Providers
-            await VideoProviderSeeder.SeedVideoProvidersAsync(db);
-            Log.Information("VideoProviderSeeder completed.");
+            // VideoProviderSeeder removido: só criava providers órfãos ('fal-ai'/'pika'/'kling')
+            // sem client correspondente — os providers de vídeo reais vêm do AiDataSeeder.
 
             // Approve video providers for admin group
             await AdminGroupVideoAccessSeeder.ApproveVideoProvidersForAdminAsync(db, seedLogger);

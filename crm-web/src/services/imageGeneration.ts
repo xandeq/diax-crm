@@ -14,6 +14,8 @@ export interface ImageGenerationRequest {
   seed?: string;
   projectId?: string;
   referenceImageBase64?: string;
+  /** Permite troca automática de provider em erro transitório (default: true) */
+  allowFallback?: boolean;
 }
 
 export interface GeneratedImageDto {
@@ -31,6 +33,10 @@ export interface ImageGenerationResponse {
   requestId: string;
   durationMs: number;
   images: GeneratedImageDto[];
+  /** True quando o provider solicitado falhou e outro assumiu automaticamente */
+  fallbackOccurred?: boolean;
+  requestedProvider?: string;
+  attemptedProviders?: string[];
 }
 
 export const imageSizeOptions = [
@@ -78,6 +84,8 @@ export interface VideoGenerationRequest {
   aspectRatio?: string;
   seed?: string;
   referenceImageBase64?: string;
+  /** Permite troca automática de provider em erro transitório (default: true) */
+  allowFallback?: boolean;
 }
 
 export interface VideoGenerationResponse {
@@ -88,6 +96,10 @@ export interface VideoGenerationResponse {
   videoUrl: string;
   thumbnailUrl?: string;
   quotaStatus?: QuotaStatusDto;
+  /** True quando o provider solicitado falhou e outro assumiu automaticamente */
+  fallbackOccurred?: boolean;
+  requestedProvider?: string;
+  attemptedProviders?: string[];
 }
 
 export const videoAspectRatioOptions = [

@@ -12,5 +12,6 @@ public record VideoGenerationRequestDto(
     int Height = 720,
     string? AspectRatio = null,
     string? Seed = null,
-    string? ReferenceImageBase64 = null
+    string? ReferenceImageBase64 = null,
+    bool AllowFallback = true
 );

@@ -14,5 +14,6 @@ public record ImageGenerationRequestDto(
     string? Quality = null,
     string? Seed = null,
     Guid? ProjectId = null,
-    string? ReferenceImageBase64 = null
+    string? ReferenceImageBase64 = null,
+    bool AllowFallback = true
 );
