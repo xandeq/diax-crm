@@ -268,144 +268,17 @@ public class PersonalFinanceControlService : IApplicationService
 
             var created = new List<CopyRecurringItem>();
             var skipped = new List<CopyRecurringItem>();
-            var anyCreated = false;
 
             foreach (var template in templates)
             {
-                var existing = await _transactionRepository.GetByRecurringTransactionForMonthAsync(
-                    template.Id, year, month, userId, cancellationToken);
-                if (existing != null)
-                {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, existing.Id, "AlreadyExists", template.HasVariableAmount));
-                    continue;
-                }
-
-                if (template.PaymentMethod == PaymentMethod.CreditCard)
-                {
-                    if (!template.CreditCardId.HasValue)
-                    {
-                        skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "CreditCardSkipped", template.HasVariableAmount));
-                        continue;
-                    }
-
-                    var invoice = await _creditCardInvoiceRepository.GetByCardAndPeriodAsync(template.CreditCardId.Value, month, year, cancellationToken);
-                    if (invoice == null)
-                    {
-                        skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "NoInvoiceFound", template.HasVariableAmount));
-                        continue;
-                    }
-
-                    var ccSafeDay = Math.Min(template.DayOfMonth, DateTime.DaysInMonth(year, month));
-                    var ccTargetDate = new DateTime(year, month, ccSafeDay, 12, 0, 0, DateTimeKind.Utc);
-
-                    if (ccTargetDate.Date < template.StartDate.Date)
-                    {
-                        skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "BeforeStartDate", template.HasVariableAmount));
-                        continue;
-                    }
-
-                    var ccTx = Transaction.CreateExpense(
-                        description: template.Description,
-                        amount: template.Amount,
-                        date: ccTargetDate,
-                        paymentMethod: PaymentMethod.CreditCard,
-                        categoryId: template.CategoryId,
-                        isRecurring: true,
-                        userId: userId,
-                        creditCardId: template.CreditCardId,
-                        creditCardInvoiceId: invoice.Id,
-                        financialAccountId: null,
-                        status: TransactionStatus.Pending,
-                        details: template.Details,
-                        recurringTransactionId: template.Id,
-                        isSubscription: template.ItemKind == RecurringItemKind.Subscription,
-                        hasVariableAmount: template.HasVariableAmount);
-
-                    await _transactionRepository.AddAsync(ccTx, cancellationToken);
-                    created.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, ccTx.Id, null, template.HasVariableAmount));
-                    anyCreated = true;
-                    continue;
-                }
-
-                if (!template.FinancialAccountId.HasValue)
-                {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "MissingAccount", template.HasVariableAmount));
-                    continue;
-                }
-
-                var account = await _financialAccountRepository.GetByIdAndUserAsync(
-                    template.FinancialAccountId.Value, userId, cancellationToken);
-                if (account == null || !account.IsActive)
-                {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "InvalidAccount", template.HasVariableAmount));
-                    continue;
-                }
-
-                var safeDay = Math.Min(template.DayOfMonth, DateTime.DaysInMonth(year, month));
-                var targetDate = new DateTime(year, month, safeDay, 12, 0, 0, DateTimeKind.Utc);
-
-                // Mirror RecurringTransaction.GetNextOccurrences:196 — the first
-                // materialised occurrence must land on or after the template's StartDate.
-                // Otherwise a template starting mid-month with an earlier DayOfMonth
-                // would create a transaction dated before the template was supposed to begin.
-                if (targetDate.Date < template.StartDate.Date)
-                {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "BeforeStartDate", template.HasVariableAmount));
-                    continue;
-                }
-
-                var domainType = (Domain.Finance.TransactionType)(int)template.Type;
-
-                Transaction tx;
-                if (domainType == Domain.Finance.TransactionType.Income)
-                {
-                    tx = Transaction.CreateIncome(
-                        description: template.Description,
-                        amount: template.Amount,
-                        date: targetDate,
-                        paymentMethod: template.PaymentMethod,
-                        categoryId: template.CategoryId,
-                        isRecurring: true,
-                        financialAccountId: template.FinancialAccountId.Value,
-                        userId: userId,
-                        details: template.Details,
-                        recurringTransactionId: template.Id,
-                        paidDate: targetDate);
-
-                    account.Credit(template.Amount);
-                }
-                else if (domainType == Domain.Finance.TransactionType.Expense)
-                {
-                    tx = Transaction.CreateExpense(
-                        description: template.Description,
-                        amount: template.Amount,
-                        date: targetDate,
-                        paymentMethod: template.PaymentMethod,
-                        categoryId: template.CategoryId,
-                        isRecurring: true,
-                        userId: userId,
-                        financialAccountId: template.FinancialAccountId.Value,
-                        status: TransactionStatus.Pending,
-                        details: template.Details,
-                        recurringTransactionId: template.Id,
-                        isSubscription: template.ItemKind == RecurringItemKind.Subscription,
-                        hasVariableAmount: template.HasVariableAmount);
-
-                    account.Debit(template.Amount);
-                }
+                var item = await TryMaterializeTemplateForMonthAsync(template, year, month, userId, cancellationToken);
+                if (item.SkipReason == null)
+                    created.Add(item);
                 else
-                {
-                    skipped.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "UnsupportedType", template.HasVariableAmount));
-                    continue;
-                }
-
-                await _transactionRepository.AddAsync(tx, cancellationToken);
-                await _financialAccountRepository.UpdateAsync(account, cancellationToken);
-                created.Add(new CopyRecurringItem(template.Id, template.Description, template.Amount, tx.Id, null, template.HasVariableAmount));
-                anyCreated = true;
+                    skipped.Add(item);
             }
 
-            if (anyCreated)
+            if (created.Count > 0)
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
@@ -421,7 +294,136 @@ public class PersonalFinanceControlService : IApplicationService
         }
     }
 
-    public async Task<Result<Guid>> MakeExpenseRecurringAsync(
+    /// <summary>
+    /// Materialises a single recurring template into (year, month) as a real Transaction,
+    /// mirroring the per-template body previously inlined in CopyRecurringForMonthAsync.
+    /// Returns a CopyRecurringItem whose SkipReason is null when a transaction was created.
+    /// Does NOT flush — callers batch a single SaveChangesAsync.
+    /// </summary>
+    private async Task<CopyRecurringItem> TryMaterializeTemplateForMonthAsync(
+        RecurringTransaction template,
+        int year,
+        int month,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _transactionRepository.GetByRecurringTransactionForMonthAsync(
+            template.Id, year, month, userId, cancellationToken);
+        if (existing != null)
+            return new CopyRecurringItem(template.Id, template.Description, template.Amount, existing.Id, "AlreadyExists", template.HasVariableAmount);
+
+        if (template.PaymentMethod == PaymentMethod.CreditCard)
+        {
+            if (!template.CreditCardId.HasValue)
+                return new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "CreditCardSkipped", template.HasVariableAmount);
+
+            var invoice = await _creditCardInvoiceRepository.GetByCardAndPeriodAsync(template.CreditCardId.Value, month, year, cancellationToken);
+            if (invoice == null)
+                return new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "NoInvoiceFound", template.HasVariableAmount);
+
+            var ccSafeDay = Math.Min(template.DayOfMonth, DateTime.DaysInMonth(year, month));
+            var ccTargetDate = new DateTime(year, month, ccSafeDay, 12, 0, 0, DateTimeKind.Utc);
+
+            if (ccTargetDate.Date < template.StartDate.Date)
+                return new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "BeforeStartDate", template.HasVariableAmount);
+
+            var ccTx = Transaction.CreateExpense(
+                description: template.Description,
+                amount: template.Amount,
+                date: ccTargetDate,
+                paymentMethod: PaymentMethod.CreditCard,
+                categoryId: template.CategoryId,
+                isRecurring: true,
+                userId: userId,
+                creditCardId: template.CreditCardId,
+                creditCardInvoiceId: invoice.Id,
+                financialAccountId: null,
+                status: TransactionStatus.Pending,
+                details: template.Details,
+                recurringTransactionId: template.Id,
+                isSubscription: template.ItemKind == RecurringItemKind.Subscription,
+                hasVariableAmount: template.HasVariableAmount);
+
+            await _transactionRepository.AddAsync(ccTx, cancellationToken);
+            return new CopyRecurringItem(template.Id, template.Description, template.Amount, ccTx.Id, null, template.HasVariableAmount);
+        }
+
+        if (!template.FinancialAccountId.HasValue)
+            return new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "MissingAccount", template.HasVariableAmount);
+
+        var account = await _financialAccountRepository.GetByIdAndUserAsync(
+            template.FinancialAccountId.Value, userId, cancellationToken);
+        if (account == null || !account.IsActive)
+            return new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "InvalidAccount", template.HasVariableAmount);
+
+        var safeDay = Math.Min(template.DayOfMonth, DateTime.DaysInMonth(year, month));
+        var targetDate = new DateTime(year, month, safeDay, 12, 0, 0, DateTimeKind.Utc);
+
+        // Mirror RecurringTransaction.GetNextOccurrences:196 — the first
+        // materialised occurrence must land on or after the template's StartDate.
+        // Otherwise a template starting mid-month with an earlier DayOfMonth
+        // would create a transaction dated before the template was supposed to begin.
+        if (targetDate.Date < template.StartDate.Date)
+            return new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "BeforeStartDate", template.HasVariableAmount);
+
+        var domainType = (Domain.Finance.TransactionType)(int)template.Type;
+
+        Transaction tx;
+        if (domainType == Domain.Finance.TransactionType.Income)
+        {
+            tx = Transaction.CreateIncome(
+                description: template.Description,
+                amount: template.Amount,
+                date: targetDate,
+                paymentMethod: template.PaymentMethod,
+                categoryId: template.CategoryId,
+                isRecurring: true,
+                financialAccountId: template.FinancialAccountId.Value,
+                userId: userId,
+                details: template.Details,
+                recurringTransactionId: template.Id,
+                paidDate: targetDate);
+
+            account.Credit(template.Amount);
+        }
+        else if (domainType == Domain.Finance.TransactionType.Expense)
+        {
+            tx = Transaction.CreateExpense(
+                description: template.Description,
+                amount: template.Amount,
+                date: targetDate,
+                paymentMethod: template.PaymentMethod,
+                categoryId: template.CategoryId,
+                isRecurring: true,
+                userId: userId,
+                financialAccountId: template.FinancialAccountId.Value,
+                status: TransactionStatus.Pending,
+                details: template.Details,
+                recurringTransactionId: template.Id,
+                isSubscription: template.ItemKind == RecurringItemKind.Subscription,
+                hasVariableAmount: template.HasVariableAmount);
+
+            account.Debit(template.Amount);
+        }
+        else
+        {
+            return new CopyRecurringItem(template.Id, template.Description, template.Amount, null, "UnsupportedType", template.HasVariableAmount);
+        }
+
+        await _transactionRepository.AddAsync(tx, cancellationToken);
+        await _financialAccountRepository.UpdateAsync(account, cancellationToken);
+        return new CopyRecurringItem(template.Id, template.Description, template.Amount, tx.Id, null, template.HasVariableAmount);
+    }
+
+    /// <summary>
+    /// Upper bound of months materialised immediately by MakeExpenseRecurringAsync.
+    /// Indefinite recurrences materialise this many months ahead; finite ones
+    /// materialise min(months, horizon). Months beyond the horizon keep working
+    /// through the template (copy-recurring per month), exactly as before.
+    /// </summary>
+    private const int MakeRecurringMaterializationHorizonMonths = 12;
+
+    public async Task<Result<MakeRecurringResult>> MakeExpenseRecurringAsync(
         Guid expenseId,
         int? months,
         Guid userId,
@@ -431,13 +433,13 @@ public class PersonalFinanceControlService : IApplicationService
         {
             var transaction = await _transactionRepository.GetByIdAndUserAsync(expenseId, userId, cancellationToken);
             if (transaction == null)
-                return Result.Failure<Guid>(new Error("PersonalFinance.NotFound", "Despesa não encontrada"));
+                return Result.Failure<MakeRecurringResult>(new Error("PersonalFinance.NotFound", "Despesa não encontrada"));
 
             if (transaction.Type != Domain.Finance.TransactionType.Expense)
-                return Result.Failure<Guid>(new Error("PersonalFinance.InvalidType", "Apenas despesas podem ser tornadas recorrentes"));
+                return Result.Failure<MakeRecurringResult>(new Error("PersonalFinance.InvalidType", "Apenas despesas podem ser tornadas recorrentes"));
 
             if (transaction.RecurringTransactionId.HasValue)
-                return Result.Failure<Guid>(new Error("PersonalFinance.AlreadyRecurring", "Esta despesa já está vinculada a um recorrente"));
+                return Result.Failure<MakeRecurringResult>(new Error("PersonalFinance.AlreadyRecurring", "Esta despesa já está vinculada a um recorrente"));
 
             // "Não Categorizado" seeded category — same fallback used elsewhere no sistema
             var defaultCategoryId = Guid.Parse("20000000-0000-0000-0000-000000000014");
@@ -475,18 +477,35 @@ public class PersonalFinanceControlService : IApplicationService
 
             transaction.LinkToRecurringTemplate(recurring.Id, false, transaction.Details);
 
+            // Materialise the upcoming months right away: the month view only lists real
+            // Transactions for standard expenses, so without this the recurrence would be
+            // invisible until the user manually ran copy-recurring in each future month —
+            // which is exactly the "cliquei em recorrente e nada apareceu" bug.
+            var horizon = Math.Min(months ?? MakeRecurringMaterializationHorizonMonths, MakeRecurringMaterializationHorizonMonths);
+            var created = new List<CopyRecurringItem>();
+            var skipped = new List<CopyRecurringItem>();
+            for (var offset = 0; offset < horizon; offset++)
+            {
+                var target = startDate.AddMonths(offset);
+                var item = await TryMaterializeTemplateForMonthAsync(recurring, target.Year, target.Month, userId, cancellationToken);
+                if (item.SkipReason == null)
+                    created.Add(item);
+                else
+                    skipped.Add(item);
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "MakeExpenseRecurring user={UserId} expense={ExpenseId} recurring={RecurringId} months={Months}",
-                userId, expenseId, recurring.Id, months?.ToString() ?? "indefinido");
+                "MakeExpenseRecurring user={UserId} expense={ExpenseId} recurring={RecurringId} months={Months} materialized={Materialized} skipped={Skipped}",
+                userId, expenseId, recurring.Id, months?.ToString() ?? "indefinido", created.Count, skipped.Count);
 
-            return Result.Success(recurring.Id);
+            return Result<MakeRecurringResult>.Success(new MakeRecurringResult(recurring.Id, created, skipped));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "MakeExpenseRecurring failed user={UserId} expense={ExpenseId}", userId, expenseId);
-            return Result.Failure<Guid>(new Error("PersonalFinance.MakeRecurringFailed", "Falha ao tornar despesa recorrente"));
+            return Result.Failure<MakeRecurringResult>(new Error("PersonalFinance.MakeRecurringFailed", "Falha ao tornar despesa recorrente"));
         }
     }
 

@@ -342,11 +342,17 @@ export const personalControlService = {
     });
   },
 
-  makeExpenseRecurring: async (expenseId: string, months: number | null): Promise<{ recurringTransactionId: string }> => {
-    return apiFetch<{ recurringTransactionId: string }>(`${basePath}/expense/${expenseId}/make-recurring`, {
-      method: 'POST',
-      body: JSON.stringify({ months }),
-    });
+  makeExpenseRecurring: async (
+    expenseId: string,
+    months: number | null,
+  ): Promise<{ recurringTransactionId: string; created: CopyRecurringItem[]; skipped: CopyRecurringItem[] }> => {
+    return apiFetch<{ recurringTransactionId: string; created: CopyRecurringItem[]; skipped: CopyRecurringItem[] }>(
+      `${basePath}/expense/${expenseId}/make-recurring`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ months }),
+      },
+    );
   },
 };
 
