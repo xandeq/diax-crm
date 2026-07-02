@@ -59,12 +59,11 @@ public class RunwayVideoClient : IAiVideoGenerationClient
         if (options.DurationSeconds.HasValue)
             payload["duration"] = options.DurationSeconds.Value <= 5 ? 5 : 10;
 
-        // Aspect ratio — gen4 models REQUIRE a ratio; gen3a_turbo treats it as optional
+        // Aspect ratio — o Runway só aceita valores LITERAIS por família de modelo
+        // (gen4: 1280:720, 720:1280, 1104:832, 832:1104, 960:960, 1584:672;
+        //  gen3a_turbo: 1280:768, 768:1280). "16:9" cru é rejeitado com 400.
         var isGen4 = (options.Model ?? "gen3a_turbo").StartsWith("gen4", StringComparison.OrdinalIgnoreCase);
-        if (!string.IsNullOrWhiteSpace(options.AspectRatio))
-            payload["ratio"] = options.AspectRatio;
-        else if (isGen4)
-            payload["ratio"] = "1280:720"; // default landscape for gen4 family
+        payload["ratio"] = MapToSupportedRatio(options, isGen4);
 
         var json = JsonSerializer.Serialize(payload);
 
@@ -209,5 +208,45 @@ public class RunwayVideoClient : IAiVideoGenerationClient
                 $"Runway retornou resposta sem URL de vídeo: {responseBody[..Math.Min(300, responseBody.Length)]}");
 
         return new VideoGenerationResult(videoUrl, null, null);
+    }
+
+    /// <summary>
+    /// Converte AspectRatio/dimensões do request para o ratio literal mais próximo aceito
+    /// pelo Runway. gen4/gen4.5: 1280:720, 720:1280, 1104:832, 832:1104, 960:960, 1584:672;
+    /// gen3a_turbo: 1280:768, 768:1280. Enviar "16:9" cru retorna 400 invalid_value.
+    /// </summary>
+    public static string MapToSupportedRatio(VideoGenerationOptions options, bool isGen4)
+    {
+        var ratio = options.Width > 0 && options.Height > 0
+            ? (double)options.Width / options.Height
+            : 16.0 / 9.0;
+
+        var ar = options.AspectRatio?.Trim();
+        if (!string.IsNullOrWhiteSpace(ar))
+        {
+            var parts = ar.Split(':');
+            if (parts.Length == 2
+                && double.TryParse(parts[0], out var a)
+                && double.TryParse(parts[1], out var b)
+                && a > 0 && b > 0)
+            {
+                ratio = a / b;
+            }
+        }
+
+        if (!isGen4)
+            return ratio >= 1 ? "1280:768" : "768:1280";
+
+        var candidates = new (string Value, double R)[]
+        {
+            ("1280:720", 1280.0 / 720),
+            ("720:1280", 720.0 / 1280),
+            ("1104:832", 1104.0 / 832),
+            ("832:1104", 832.0 / 1104),
+            ("960:960", 1.0),
+            ("1584:672", 1584.0 / 672),
+        };
+
+        return candidates.OrderBy(c => Math.Abs(c.R - ratio)).First().Value;
     }
 }
