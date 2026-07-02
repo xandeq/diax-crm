@@ -393,10 +393,16 @@ export default function ImageGenerationPage() {
   const revisedPrompt = imageResult?.images?.[0]?.revisedPrompt;
   const generationMeta = activeTab === 'image'
     ? imageResult
-      ? { provider: imageResult.providerUsed, model: imageResult.modelUsed, ms: imageResult.durationMs }
+      ? {
+          provider: imageResult.providerUsed, model: imageResult.modelUsed, ms: imageResult.durationMs,
+          fallback: imageResult.fallbackOccurred ?? false, requestedProvider: imageResult.requestedProvider,
+        }
       : null
     : videoResult
-      ? { provider: videoResult.providerUsed, model: videoResult.modelUsed, ms: videoResult.durationMs }
+      ? {
+          provider: videoResult.providerUsed, model: videoResult.modelUsed, ms: videoResult.durationMs,
+          fallback: videoResult.fallbackOccurred ?? false, requestedProvider: videoResult.requestedProvider,
+        }
       : null;
 
   return (
@@ -809,6 +815,14 @@ export default function ImageGenerationPage() {
                     <span className="flex items-center gap-1 text-[11px] text-white/30">
                       <Clock className="h-3 w-3" />
                       {(generationMeta.ms / 1000).toFixed(1)}s · {generationMeta.provider} · {generationMeta.model}
+                      {generationMeta.fallback && (
+                        <span
+                          className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25"
+                          title={`O provider "${generationMeta.requestedProvider}" falhou — geramos automaticamente com "${generationMeta.provider}".`}
+                        >
+                          fallback: {generationMeta.requestedProvider} → {generationMeta.provider}
+                        </span>
+                      )}
                     </span>
                   )}
                   {activeTab === 'image' && imageSrc && (

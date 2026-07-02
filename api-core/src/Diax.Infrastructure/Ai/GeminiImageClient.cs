@@ -62,7 +62,8 @@ public class GeminiImageClient : IAiImageGenerationClient
         ImageGenerationOptions options,
         CancellationToken ct)
     {
-        var endpoint = $"{BaseUrl}/models/{options.Model}:predict?key={options.ApiKey}";
+        // Key vai no header x-goog-api-key (não na query string) para não vazar em logs de URL.
+        var endpoint = $"{BaseUrl}/models/{options.Model}:predict";
 
         var aspectRatio = GetAspectRatio(options.Width, options.Height);
 
@@ -82,6 +83,7 @@ public class GeminiImageClient : IAiImageGenerationClient
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
+        request.Headers.Add("x-goog-api-key", options.ApiKey);
 
         _logger.LogInformation(
             "[Gemini/Imagen] Generating {Count} image(s), aspect {Ratio}", options.NumberOfImages, aspectRatio);
@@ -110,7 +112,8 @@ public class GeminiImageClient : IAiImageGenerationClient
         string? referenceImageBase64,
         CancellationToken ct)
     {
-        var endpoint = $"{BaseUrl}/models/{options.Model}:generateContent?key={options.ApiKey}";
+        // Key vai no header x-goog-api-key (não na query string) para não vazar em logs de URL.
+        var endpoint = $"{BaseUrl}/models/{options.Model}:generateContent";
 
         // Build parts — text first, then optional reference image
         var parts = new List<object> { new { text = prompt } };
@@ -147,6 +150,7 @@ public class GeminiImageClient : IAiImageGenerationClient
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
+        request.Headers.Add("x-goog-api-key", options.ApiKey);
 
         _logger.LogInformation("[Gemini Flash] Generating image with model {Model}", options.Model);
 
