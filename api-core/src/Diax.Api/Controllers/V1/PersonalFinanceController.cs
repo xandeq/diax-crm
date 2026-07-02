@@ -779,7 +779,12 @@ public class PersonalFinanceController : BaseApiController
         if (!result.IsSuccess)
             return BadRequest(new { code = result.Error.Code, message = result.Error.Message });
 
-        return Ok(new { recurringTransactionId = result.Value });
+        return Ok(new
+        {
+            recurringTransactionId = result.Value.RecurringTransactionId,
+            created = result.Value.Created,
+            skipped = result.Value.Skipped
+        });
     }
 
     [HttpPost("parse-statement")]

@@ -34,3 +34,15 @@ public record CopyRecurringItem(
     Guid? CreatedTransactionId,
     string? SkipReason,
     bool HasVariableAmount = false);
+
+/// <summary>
+/// Result of MakeExpenseRecurringAsync: the created template plus the transactions
+/// materialised into the upcoming months. The month view only lists real Transactions
+/// (Standard templates are not projected the way subscriptions are), so without this
+/// materialisation the new recurrence would be invisible until the user manually ran
+/// copy-recurring in each future month.
+/// </summary>
+public record MakeRecurringResult(
+    Guid RecurringTransactionId,
+    IReadOnlyList<CopyRecurringItem> Created,
+    IReadOnlyList<CopyRecurringItem> Skipped);

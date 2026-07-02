@@ -2167,9 +2167,19 @@ function Page() {
                 if (!makeRecurringDialog) return;
                 setSavingKey(`make-recurring-${makeRecurringDialog.item.id}`);
                 try {
-                  await personalControlService.makeExpenseRecurring(makeRecurringDialog.item.id, recurringIndefinite ? null : recurringMonths);
-                  void qc.invalidateQueries({ queryKey: personalControlKeys.monthView(period.year, period.month) });
-                  toast.success('Despesa marcada como recorrente.');
+                  const result = await personalControlService.makeExpenseRecurring(makeRecurringDialog.item.id, recurringIndefinite ? null : recurringMonths);
+                  // A materialização atinge vários meses futuros — invalida todas as month views em cache.
+                  void qc.invalidateQueries({ queryKey: personalControlKeys.all });
+                  const createdCount = result.created?.length ?? 0;
+                  const cardSkipped = (result.skipped ?? []).filter((s) => s.skipReason === 'NoInvoiceFound' || s.skipReason === 'CreditCardSkipped').length;
+                  if (createdCount > 0) {
+                    const cardSuffix = cardSkipped > 0 ? ` ${cardSkipped} mês(es) de cartão sem fatura criada — gere a fatura e use "Copiar recorrências".` : '';
+                    toast.success(`Despesa recorrente: replicada para ${createdCount} próximo${createdCount !== 1 ? 's' : ''} mês${createdCount !== 1 ? 'es' : ''}.${cardSuffix}`);
+                  } else if (cardSkipped > 0) {
+                    toast.warning('Recorrência criada, mas nenhum mês foi replicado: as faturas de cartão dos meses futuros ainda não existem. Crie as faturas e use "Copiar recorrências".', { duration: 8000 });
+                  } else {
+                    toast.success('Despesa marcada como recorrente.');
+                  }
                   setMakeRecurringDialog(null);
                   setRecurringIndefinite(true);
                   setRecurringMonths(12);
