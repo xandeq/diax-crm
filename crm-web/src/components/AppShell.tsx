@@ -135,7 +135,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/landing', '/proposta'];
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/landing', '/proposta', '/agendar'];
 
 const SHELL_CSS = `
   .sh-wrap {
