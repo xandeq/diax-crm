@@ -22,6 +22,7 @@ public class CommercialBriefingWorker : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly ILogger<CommercialBriefingWorker> _logger;
     private DateOnly? _lastRunDate;
+    private DateOnly? _lastFailureAlertDate;
 
     public CommercialBriefingWorker(
         IServiceProvider serviceProvider,
@@ -77,10 +78,28 @@ public class CommercialBriefingWorker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[Briefing] Erro no envio diário — tentará no próximo ciclo");
+                await TryAlertFailureAsync(ex, stoppingToken);
             }
         }
 
         _logger.LogInformation("[Briefing] Worker parado");
+    }
+
+    /// <summary>Alerta o dono no Telegram sobre falha do worker (máx 1 aviso/dia, fire-safe).</summary>
+    private async Task TryAlertFailureAsync(Exception ex, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (_lastFailureAlertDate == today) return;
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var telegram = scope.ServiceProvider.GetRequiredService<Diax.Application.Notifications.ITelegramSender>();
+            var msg = ex.Message.Length > 200 ? ex.Message[..200] : ex.Message;
+            await telegram.SendAsync(
+                $"⚠️ <b>DIAX CRM</b>: worker do briefing comercial falhou.\n<code>{msg}</code>\nVai tentar de novo no próximo ciclo.", ct);
+            _lastFailureAlertDate = today;
+        }
+        catch { /* alerta é best-effort */ }
     }
 
     private async Task<Guid?> ResolveOwnerAsync(IServiceProvider sp, CancellationToken ct)

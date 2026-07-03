@@ -215,7 +215,7 @@ public class MeetingService : IApplicationService
                 $"📅 <b>Nova reunião agendada!</b>\n" +
                 $"{Esc(meeting.ContactName)} — <b>{brt:dd/MM} às {brt:HH:mm}</b> (Brasília)\n" +
                 $"Email: {Esc(meeting.ContactEmail)}" +
-                (meeting.ContactPhone != null ? $" · Tel: {Esc(meeting.ContactPhone)}" : "") +
+                (meeting.ContactPhone != null ? $" · Tel: {WhatsAppLink.AsHtml(meeting.ContactPhone)}" : "") +
                 (meeting.Notes != null ? $"\nAssunto: {Esc(meeting.Notes)}" : "") +
                 (meeting.CustomerId != null ? "\n<i>Lead já existente no CRM — contato registrado.</i>" : ""), ct);
         }

@@ -16,6 +16,7 @@ public record CommercialBriefingData(
     List<TaskItem> FollowUpsDue,
     List<Customer> HotLeads,
     List<Proposal> PendingProposals,
+    List<Proposal> RecentlyViewedProposals,
     decimal WeightedForecast,
     decimal WonLast30DaysValue,
     int WonLast30DaysCount);
@@ -78,16 +79,24 @@ public class CommercialBriefingService : IApplicationService
             .Take(5)
             .ToList();
 
-        var proposals = (await _proposalRepository.GetByUserAsync(userId, 50, ct))
+        var allProposals = await _proposalRepository.GetByUserAsync(userId, 50, ct);
+        var proposals = allProposals
             .Where(p => p.Status is ProposalStatus.Sent or ProposalStatus.Accepted)
             .OrderByDescending(p => p.Status)
             .ThenByDescending(p => p.Amount)
             .ToList();
 
+        // Sinal de calor: proposta em aberto que o cliente ABRIU nas últimas 24h
+        // (RegisterView atualiza UpdatedAt — bom proxy sem coluna nova)
+        var viewedRecently = proposals
+            .Where(p => p.ViewCount > 0 && p.UpdatedAt.HasValue && p.UpdatedAt.Value >= nowUtc.AddHours(-24))
+            .Take(5)
+            .ToList();
+
         var board = await _pipelineService.GetBoardAsync(ct);
 
         return new CommercialBriefingData(
-            todayBrt, meetings, followUps, hotLeads, proposals,
+            todayBrt, meetings, followUps, hotLeads, proposals, viewedRecently,
             board.WeightedForecast, board.WonLast30DaysValue, board.WonLast30DaysCount);
     }
 
@@ -106,7 +115,7 @@ public class CommercialBriefingService : IApplicationService
             {
                 var brt = m.ScheduledAt + BrtOffset;
                 sb.AppendLine($"• {brt:HH:mm} — {Esc(m.ContactName)}" +
-                    (m.ContactPhone != null ? $" ({Esc(m.ContactPhone)})" : ""));
+                    (m.ContactPhone != null ? $" ({Notifications.WhatsAppLink.AsHtml(m.ContactPhone)})" : ""));
             }
             sb.AppendLine();
         }
@@ -128,9 +137,11 @@ public class CommercialBriefingService : IApplicationService
             sb.AppendLine($"<b>🔥 Leads quentes (top {d.HotLeads.Count})</b>");
             foreach (var l in d.HotLeads)
             {
-                var contact = !string.IsNullOrWhiteSpace(l.Phone) ? l.Phone
-                    : !string.IsNullOrWhiteSpace(l.WhatsApp) ? l.WhatsApp : l.Email;
-                sb.AppendLine($"• {Esc(Truncate(l.Name, 40))} (score {l.LeadScore}) — {Esc(contact ?? "-")}");
+                var phone = !string.IsNullOrWhiteSpace(l.Phone) ? l.Phone : l.WhatsApp;
+                var contact = !string.IsNullOrWhiteSpace(phone)
+                    ? Notifications.WhatsAppLink.AsHtml(phone)
+                    : Esc(l.Email ?? "-");
+                sb.AppendLine($"• {Esc(Truncate(l.Name, 40))} (score {l.LeadScore}) — {contact}");
             }
             sb.AppendLine();
         }
@@ -146,6 +157,15 @@ public class CommercialBriefingService : IApplicationService
                     p.ViewCount > 0 ? $"👀 vista {p.ViewCount}x" : "enviada";
                 sb.AppendLine($"• {Esc(Truncate(p.Title, 45))} — {Brl(p.Amount)} ({flag})");
             }
+            sb.AppendLine();
+        }
+
+        // Sinal de calor: quem abriu a proposta recentemente
+        if (d.RecentlyViewedProposals.Count > 0)
+        {
+            sb.AppendLine("<b>👀 Abriram sua proposta nas últimas 24h — LIGUE!</b>");
+            foreach (var p in d.RecentlyViewedProposals)
+                sb.AppendLine($"• {Esc(Truncate(p.Title, 45))} — {Brl(p.Amount)} (vista {p.ViewCount}x)");
             sb.AppendLine();
         }
 

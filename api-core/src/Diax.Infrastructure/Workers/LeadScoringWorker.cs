@@ -18,6 +18,7 @@ public class LeadScoringWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<LeadScoringWorker> _logger;
     private DateOnly? _lastRunDate;
+    private DateOnly? _lastFailureAlertDate;
 
     public LeadScoringWorker(IServiceProvider serviceProvider, ILogger<LeadScoringWorker> logger)
     {
@@ -59,9 +60,27 @@ public class LeadScoringWorker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[LeadScoring] Erro no recálculo diário — tentará no próximo ciclo");
+                await TryAlertFailureAsync("lead scoring", ex, stoppingToken);
             }
         }
 
         _logger.LogInformation("[LeadScoring] Background worker stopped");
+    }
+
+    /// <summary>Alerta o dono no Telegram sobre falha do worker (máx 1 aviso/dia, fire-safe).</summary>
+    private async Task TryAlertFailureAsync(string workerName, Exception ex, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (_lastFailureAlertDate == today) return;
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var telegram = scope.ServiceProvider.GetRequiredService<Diax.Application.Notifications.ITelegramSender>();
+            var msg = ex.Message.Length > 200 ? ex.Message[..200] : ex.Message;
+            await telegram.SendAsync(
+                $"⚠️ <b>DIAX CRM</b>: worker de {workerName} falhou.\n<code>{msg}</code>\nVai tentar de novo no próximo ciclo.", ct);
+            _lastFailureAlertDate = today;
+        }
+        catch { /* alerta é best-effort */ }
     }
 }
