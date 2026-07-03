@@ -10,10 +10,12 @@ import {
   type PipelineCard,
   type PipelineStage,
 } from '@/services/pipeline';
+import { getBookingLinkUserId, publicBookingUrl } from '@/services/meetings';
 import { createProposal, publicProposalUrl } from '@/services/proposals';
 import {
   AlertCircle,
   Banknote,
+  CalendarPlus,
   Check,
   Copy,
   FileText,
@@ -73,6 +75,19 @@ export default function PipelinePage() {
   const [valueDraft, setValueDraft] = useState('');
   const [isScoring, setIsScoring] = useState(false);
   const [scoringMsg, setScoringMsg] = useState<string | null>(null);
+
+  const [bookingLinkCopied, setBookingLinkCopied] = useState(false);
+
+  const copyBookingLink = async () => {
+    try {
+      const uid = await getBookingLinkUserId();
+      await navigator.clipboard.writeText(publicBookingUrl(uid));
+      setBookingLinkCopied(true);
+      setTimeout(() => setBookingLinkCopied(false), 2500);
+    } catch {
+      setError('Não foi possível copiar o link de agendamento.');
+    }
+  };
 
   // Modal de proposta
   const [proposalCard, setProposalCard] = useState<PipelineCard | null>(null);
@@ -251,6 +266,18 @@ export default function PipelinePage() {
                 </span>
               </p>
             </div>
+            <button
+              type="button"
+              onClick={copyBookingLink}
+              className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-medium transition-all border
+                ${bookingLinkCopied
+                  ? 'bg-emerald-600/20 border-emerald-500/30 text-emerald-300'
+                  : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white'}`}
+              title="Copia o link público de agendamento de reunião (30min, horário comercial) para enviar aos leads"
+            >
+              {bookingLinkCopied ? <Check className="h-3.5 w-3.5" /> : <CalendarPlus className="h-3.5 w-3.5" />}
+              {bookingLinkCopied ? 'Copiado!' : 'Link de agendamento'}
+            </button>
             <button
               type="button"
               disabled={isScoring}
