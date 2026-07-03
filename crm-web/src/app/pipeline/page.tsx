@@ -10,9 +10,13 @@ import {
   type PipelineCard,
   type PipelineStage,
 } from '@/services/pipeline';
+import { createProposal, publicProposalUrl } from '@/services/proposals';
 import {
   AlertCircle,
   Banknote,
+  Check,
+  Copy,
+  FileText,
   Loader2,
   Phone,
   RefreshCw,
@@ -20,6 +24,7 @@ import {
   Target,
   TrendingUp,
   Trophy,
+  X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -68,6 +73,63 @@ export default function PipelinePage() {
   const [valueDraft, setValueDraft] = useState('');
   const [isScoring, setIsScoring] = useState(false);
   const [scoringMsg, setScoringMsg] = useState<string | null>(null);
+
+  // Modal de proposta
+  const [proposalCard, setProposalCard] = useState<PipelineCard | null>(null);
+  const [pTitle, setPTitle] = useState('');
+  const [pDesc, setPDesc] = useState('');
+  const [pAmount, setPAmount] = useState('');
+  const [pPixKey, setPPixKey] = useState('');
+  const [pCreating, setPCreating] = useState(false);
+  const [pLink, setPLink] = useState<string | null>(null);
+  const [pLinkCopied, setPLinkCopied] = useState(false);
+
+  const openProposalModal = (card: PipelineCard) => {
+    setProposalCard(card);
+    setPTitle(`Proposta — ${card.companyName || card.name}`);
+    setPDesc(
+      'Escopo do projeto:\n' +
+      '• Criação de site institucional profissional (até 5 páginas)\n' +
+      '• Design responsivo (celular, tablet e desktop)\n' +
+      '• Otimização para o Google (SEO básico)\n' +
+      '• Integração com WhatsApp e redes sociais\n' +
+      '• Hospedagem e domínio pelo primeiro ano\n\n' +
+      'Prazo de entrega: 15 dias úteis após aprovação.\n' +
+      'Inclui 2 rodadas de ajustes.');
+    setPAmount(card.estimatedValue != null ? String(card.estimatedValue) : '2500');
+    setPPixKey(localStorage.getItem('diax.pixKey') ?? '');
+    setPLink(null);
+    setPLinkCopied(false);
+  };
+
+  const submitProposal = async () => {
+    if (!proposalCard) return;
+    const amount = Number(pAmount.replace(/\./g, '').replace(',', '.'));
+    if (!pTitle.trim() || Number.isNaN(amount) || amount <= 0) {
+      setError('Preencha título e um valor válido para a proposta.');
+      return;
+    }
+    setPCreating(true);
+    try {
+      if (pPixKey.trim()) localStorage.setItem('diax.pixKey', pPixKey.trim());
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 15);
+      const proposal = await createProposal({
+        customerId: proposalCard.id,
+        title: pTitle.trim(),
+        description: pDesc.trim(),
+        amount,
+        pixKey: pPixKey.trim() || null,
+        validUntil: validUntil.toISOString(),
+      });
+      setPLink(publicProposalUrl(proposal.publicToken));
+      await loadBoard(); // lead avança para Negociando + valor sincronizado
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao criar a proposta.');
+    } finally {
+      setPCreating(false);
+    }
+  };
 
   const loadBoard = useCallback(async () => {
     setError(null);
@@ -246,6 +308,89 @@ export default function PipelinePage() {
         </div>
       )}
 
+      {/* ── Modal de proposta ── */}
+      {proposalCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => !pCreating && setProposalCard(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-[#141419] border border-white/10 p-6 space-y-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                <FileText className="h-4 w-4 text-violet-400" />
+                Proposta para {proposalCard.companyName || proposalCard.name}
+              </h2>
+              <button type="button" onClick={() => setProposalCard(null)} className="text-white/40 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {pLink ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-4 py-3 text-emerald-300 text-sm">
+                  <Check className="h-4 w-4 shrink-0" /> Proposta criada! Envie o link para o cliente:
+                </div>
+                <div className="rounded-xl bg-black/40 border border-white/10 p-3 font-mono text-[11px] text-white/60 break-all select-all">
+                  {pLink}
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(pLink);
+                    setPLinkCopied(true);
+                    setTimeout(() => setPLinkCopied(false), 2500);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
+                    ${pLinkCopied ? 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-300' : 'bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300'}`}
+                >
+                  {pLinkCopied ? <><Check className="h-4 w-4" /> Copiado!</> : <><Copy className="h-4 w-4" /> Copiar link</>}
+                </button>
+                <p className="text-[11px] text-white/35">
+                  O cliente lê, aceita e paga via PIX nesse link. Quando pagar, marque como paga na
+                  proposta — o lead vira cliente automaticamente no pipeline.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-[11px] text-white/40 uppercase tracking-wider">Título</label>
+                  <input value={pTitle} onChange={e => setPTitle(e.target.value)}
+                    className="mt-1 w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-white/40 uppercase tracking-wider">Escopo / descrição</label>
+                  <textarea value={pDesc} onChange={e => setPDesc(e.target.value)} rows={7}
+                    className="mt-1 w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-[12px] text-white/80 outline-none focus:border-violet-500/50 leading-relaxed" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] text-white/40 uppercase tracking-wider">Valor (R$)</label>
+                    <input value={pAmount} onChange={e => setPAmount(e.target.value)} placeholder="2500"
+                      className="mt-1 w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-white/40 uppercase tracking-wider">Sua chave PIX</label>
+                    <input value={pPixKey} onChange={e => setPPixKey(e.target.value)} placeholder="CPF, email ou aleatória"
+                      className="mt-1 w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-white/30">
+                  Validade: 15 dias. Com a chave PIX preenchida, o link já traz o código copia-e-cola do valor exato.
+                </p>
+                <button
+                  type="button"
+                  onClick={submitProposal}
+                  disabled={pCreating}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all disabled:opacity-60"
+                >
+                  {pCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                  Gerar proposta com link público
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Kanban ── */}
       <div className="max-w-screen-2xl mx-auto px-6 py-6">
         <div className="flex gap-4 overflow-x-auto pb-6 min-h-[65vh]">
@@ -346,6 +491,16 @@ export default function PipelinePage() {
                           {card.phone && <span className="flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{card.phone}</span>}
                           {idle != null && idle > 7 && col.status !== 'Customer' && (
                             <span className="text-amber-400/70" title={`${idle} dias sem contato`}>⏰ {idle}d parado</span>
+                          )}
+                          {col.status !== 'Customer' && (
+                            <button
+                              type="button"
+                              onClick={() => openProposalModal(card)}
+                              className="ml-auto flex items-center gap-0.5 text-violet-400/70 hover:text-violet-300 transition-colors"
+                              title="Gerar proposta comercial com link público e PIX"
+                            >
+                              <FileText className="h-3 w-3" /> Proposta
+                            </button>
                           )}
                         </div>
                       </div>

@@ -245,6 +245,7 @@ public static class DependencyInjection
         services.AddScoped<IImageGenerationProjectRepository, ImageGenerationProjectRepository>();
         services.AddScoped<IGeneratedImageRepository, GeneratedImageRepository>();
         services.AddScoped<IVideoGenerationJobRepository, VideoGenerationJobRepository>();
+        services.AddScoped<IProposalRepository, ProposalRepository>();
 
         // ===== AUDIT LOG =====
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
