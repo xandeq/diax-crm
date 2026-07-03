@@ -42,6 +42,16 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<Customer>> GetPipelineAsync(
+        DateTime wonSince,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(c => c.Status < CustomerStatus.Customer
+                        || (c.Status == CustomerStatus.Customer && c.ConvertedAt >= wonSince))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<Customer>> GetLeadsAsync(CancellationToken cancellationToken = default)
     {
         return await DbSet
