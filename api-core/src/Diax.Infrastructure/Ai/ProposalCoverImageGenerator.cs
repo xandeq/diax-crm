@@ -56,21 +56,40 @@ public class ProposalCoverImageGenerator : IProposalCoverImageGenerator
         var prompt = IProposalCoverImageGenerator.BuildPrompt(title);
         // seed determinístico pelo id → mesma proposta, mesma arte (e cache no Pollinations)
         var seed = Math.Abs(proposalId.GetHashCode() % 100000);
-        var url = $"https://image.pollinations.ai/prompt/{Uri.EscapeDataString(prompt)}" +
-                  $"?width=1200&height=400&nologo=true&seed={seed}";
 
         using var scope = _scopeFactory.CreateScope();
         var storage = scope.ServiceProvider.GetRequiredService<IGeneratedMediaStorageService>();
         var proposals = scope.ServiceProvider.GetRequiredService<IProposalRepository>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        // TrySaveImageAsync baixa a URL (Pollinations gera on-demand) e persiste localmente
-        var savedUrl = await storage.TrySaveImageAsync(url, isBase64: false, mediaId: proposalId);
-        if (savedUrl == null)
+        // Client Pollinations do módulo de imagens (baixa e retorna base64 — caminho já
+        // comprovado em produção; o download direto pelo storage falhava)
+        var pollinations = scope.ServiceProvider.GetRequiredService<PollinationsImageClient>();
+        var results = await pollinations.GenerateAsync(prompt, new Diax.Shared.Ai.ImageGenerationOptions(
+            ApiKey: string.Empty,
+            BaseUrl: string.Empty,
+            Model: "flux",
+            Width: 1200,
+            Height: 400,
+            NumberOfImages: 1,
+            Seed: seed.ToString()));
+        if (results.Count == 0)
         {
-            _logger.LogInformation("Capa da proposta {ProposalId}: Pollinations indisponível — sem capa", proposalId);
+            _logger.LogInformation("Capa da proposta {ProposalId}: Pollinations sem resultado — sem capa", proposalId);
             return;
         }
+
+        var savedUrl = await storage.TrySaveImageAsync(results[0].ImageUrl, isBase64: true, mediaId: proposalId);
+        if (savedUrl == null)
+        {
+            _logger.LogInformation("Capa da proposta {ProposalId}: storage falhou — sem capa", proposalId);
+            return;
+        }
+
+        // Fora de request o storage devolve URL relativa (/generated-media/...) — perfeito:
+        // o controller absolutiza. Se vier absoluta (contexto vivo), normaliza p/ relativa.
+        var idx = savedUrl.IndexOf("/generated-media/", StringComparison.OrdinalIgnoreCase);
+        if (idx > 0) savedUrl = savedUrl[idx..];
 
         var proposal = await proposals.GetByIdAsync(proposalId);
         if (proposal == null) return;
