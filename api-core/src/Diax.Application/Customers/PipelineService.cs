@@ -37,6 +37,13 @@ public class PipelineService : IApplicationService
             [CustomerStatus.Customer] = "Fechado (30 dias)",
         };
 
+    /// <summary>
+    /// Máximo de cards retornados por coluna. Com bases grandes (4k+ leads) o board
+    /// ficaria com payload de MBs e a tela inutilizável — os TOTAIS (Count/TotalValue/
+    /// previsão) continuam calculados sobre TODOS os registros do estágio.
+    /// </summary>
+    public const int MaxCardsPerColumn = 50;
+
     /// <summary>Estágios válidos como destino de drag-and-drop no Kanban.</summary>
     private static readonly HashSet<CustomerStatus> ValidMoveTargets = new()
     {
@@ -99,7 +106,7 @@ public class PipelineService : IApplicationService
                 Probability: probability,
                 Count: stageCustomers.Count,
                 TotalValue: stageValue,
-                Cards: stageCustomers.Select(ToCard).ToList()));
+                Cards: stageCustomers.Take(MaxCardsPerColumn).Select(ToCard).ToList()));
         }
 
         // Coluna de fechados: convertidos nos últimos 30 dias (receita ganha, fora da previsão)
@@ -115,7 +122,7 @@ public class PipelineService : IApplicationService
             Probability: 1m,
             Count: won.Count,
             TotalValue: wonValue,
-            Cards: won.Select(ToCard).ToList()));
+            Cards: won.Take(MaxCardsPerColumn).Select(ToCard).ToList()));
 
         return new PipelineBoardDto(
             Columns: columns,

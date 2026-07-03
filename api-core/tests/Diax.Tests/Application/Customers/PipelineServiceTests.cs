@@ -56,6 +56,23 @@ public class PipelineServiceTests
     }
 
     [Fact]
+    public async Task GetBoardAsync_CapsCardsPerColumn_ButTotalsCoverAll()
+    {
+        var many = Enumerable.Range(1, PipelineService.MaxCardsPerColumn + 20)
+            .Select(i => MakeCustomer($"Lead {i}", CustomerStatus.Lead, 10m))
+            .ToList();
+        _repo.Setup(r => r.GetPipelineAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(many);
+
+        var board = await CreateService().GetBoardAsync();
+
+        var leadCol = board.Columns.Single(c => c.Status == CustomerStatus.Lead);
+        Assert.Equal(PipelineService.MaxCardsPerColumn, leadCol.Cards.Count); // payload limitado
+        Assert.Equal(many.Count, leadCol.Count);                              // contagem completa
+        Assert.Equal(many.Count * 10m, leadCol.TotalValue);                   // total completo
+    }
+
+    [Fact]
     public async Task GetBoardAsync_OrdersCardsByValueThenScore()
     {
         var big = MakeCustomer("Grande", CustomerStatus.Lead, 9000m);
