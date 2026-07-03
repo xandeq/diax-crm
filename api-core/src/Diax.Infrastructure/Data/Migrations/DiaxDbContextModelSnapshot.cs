@@ -1941,6 +1941,11 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
 
+                    b.Property<string>("CoverImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("cover_image_url");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");

@@ -247,6 +247,7 @@ public static class DependencyInjection
         services.AddScoped<IVideoGenerationJobRepository, VideoGenerationJobRepository>();
         services.AddScoped<IProposalRepository, ProposalRepository>();
         services.AddScoped<IMeetingRepository, MeetingRepository>();
+        services.AddSingleton<Diax.Application.Customers.IProposalCoverImageGenerator, Diax.Infrastructure.Ai.ProposalCoverImageGenerator>();
 
         // ===== AUDIT LOG =====
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();

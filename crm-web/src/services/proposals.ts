@@ -36,6 +36,7 @@ export interface PublicProposal {
   validUntil?: string | null;
   acceptedAt?: string | null;
   pixCopiaECola?: string | null;
+  coverImageUrl?: string | null;
 }
 
 export interface CreateProposalRequest {

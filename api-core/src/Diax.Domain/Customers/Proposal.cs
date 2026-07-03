@@ -45,6 +45,15 @@ public class Proposal : AuditableEntity, IUserOwnedEntity
     /// <summary>Quantas vezes o link público foi aberto.</summary>
     public int ViewCount { get; private set; }
 
+    /// <summary>Capa gerada por IA para a página pública (URL durável em /generated-media).</summary>
+    public string? CoverImageUrl { get; private set; }
+
+    public void SetCoverImage(string url)
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+            CoverImageUrl = url.Length <= 500 ? url : url[..500];
+    }
+
     protected Proposal() { } // EF Core
 
     public Proposal(
