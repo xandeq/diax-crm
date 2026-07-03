@@ -26,6 +26,7 @@ public class ProposalConfiguration : IEntityTypeConfiguration<Proposal>
         builder.Property(x => x.AcceptedAt).HasColumnName("accepted_at");
         builder.Property(x => x.PaidAt).HasColumnName("paid_at");
         builder.Property(x => x.ViewCount).HasColumnName("view_count").IsRequired();
+        builder.Property(x => x.CoverImageUrl).HasColumnName("cover_image_url").HasMaxLength(500);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(256);
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");

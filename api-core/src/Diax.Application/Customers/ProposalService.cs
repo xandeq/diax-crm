@@ -46,7 +46,9 @@ public record PublicProposalDto(
     DateTime? ValidUntil,
     DateTime? AcceptedAt,
     /// <summary>PIX copia-e-cola (BR Code) — presente quando há chave PIX configurada.</summary>
-    string? PixCopiaECola);
+    string? PixCopiaECola,
+    /// <summary>Capa gerada por IA (URL relativa /generated-media — absolutizada no controller).</summary>
+    string? CoverImageUrl = null);
 
 public class ProposalService : IApplicationService
 {
@@ -64,6 +66,7 @@ public class ProposalService : IApplicationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ITelegramSender _telegramSender;
     private readonly IEmailDispatchService _emailDispatchService;
+    private readonly IProposalCoverImageGenerator _coverImageGenerator;
     private readonly ILogger<ProposalService> _logger;
 
     public ProposalService(
@@ -72,6 +75,7 @@ public class ProposalService : IApplicationService
         IUnitOfWork unitOfWork,
         ITelegramSender telegramSender,
         IEmailDispatchService emailDispatchService,
+        IProposalCoverImageGenerator coverImageGenerator,
         ILogger<ProposalService> logger)
     {
         _proposalRepository = proposalRepository;
@@ -79,6 +83,7 @@ public class ProposalService : IApplicationService
         _unitOfWork = unitOfWork;
         _telegramSender = telegramSender;
         _emailDispatchService = emailDispatchService;
+        _coverImageGenerator = coverImageGenerator;
         _logger = logger;
     }
 
@@ -128,6 +133,9 @@ public class ProposalService : IApplicationService
         await _customerRepository.UpdateAsync(customer, ct);
 
         await _unitOfWork.SaveChangesAsync(ct);
+
+        // Capa por IA em background (grátis via Pollinations) — nunca bloqueia nem falha a criação
+        _coverImageGenerator.QueueGeneration(proposal.Id, proposal.Title);
 
         _logger.LogInformation(
             "Proposal criada: {ProposalId} para {CustomerId} (R$ {Amount})",
@@ -196,7 +204,8 @@ public class ProposalService : IApplicationService
             IsExpired: proposal.IsExpired,
             ValidUntil: proposal.ValidUntil,
             AcceptedAt: proposal.AcceptedAt,
-            PixCopiaECola: pix);
+            PixCopiaECola: pix,
+            CoverImageUrl: proposal.CoverImageUrl);
     }
 
     /// <summary>Aceite pelo link público (anônimo, por token não-enumerável).</summary>

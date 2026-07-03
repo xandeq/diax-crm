@@ -73,12 +73,27 @@ public class ProposalsController : BaseApiController
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public")]
     [HttpGet("public/{token}")]
     public async Task<IActionResult> GetPublic(string token, CancellationToken ct)
-        => HandleResult(await _proposalService.GetPublicAsync(token, ct));
+    {
+        var result = await _proposalService.GetPublicAsync(token, ct);
+        return result.IsSuccess ? Ok(AbsolutizeCover(result.Value)) : HandleResult(result);
+    }
 
     /// <summary>Aceite da proposta pelo cliente (link público).</summary>
     [AllowAnonymous]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public")]
     [HttpPost("public/{token}/accept")]
     public async Task<IActionResult> AcceptPublic(string token, CancellationToken ct)
-        => HandleResult(await _proposalService.AcceptPublicAsync(token, ct));
+    {
+        var result = await _proposalService.AcceptPublicAsync(token, ct);
+        return result.IsSuccess ? Ok(AbsolutizeCover(result.Value)) : HandleResult(result);
+    }
+
+    // Capa é salva com URL relativa (/generated-media/...) — o config de base URL não
+    // chega em prod via FTP, então absolutizamos pelo request (padrão do módulo de mídia).
+    private PublicProposalDto AbsolutizeCover(PublicProposalDto dto)
+    {
+        if (dto.CoverImageUrl != null && dto.CoverImageUrl.StartsWith('/'))
+            dto = dto with { CoverImageUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{dto.CoverImageUrl}" };
+        return dto;
+    }
 }
