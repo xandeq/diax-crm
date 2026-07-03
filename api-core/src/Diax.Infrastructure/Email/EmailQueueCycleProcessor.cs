@@ -46,6 +46,7 @@ public class EmailQueueCycleProcessor
     private readonly IServiceProvider _serviceProvider;
     private readonly EmailSettings _settings;
     private readonly IOptionsMonitor<EmailChainOptions> _chainOptions;
+    private readonly IEmailOpsAlerter _opsAlerter;
     private readonly ILogger<EmailQueueCycleProcessor> _logger;
 
     public EmailQueueCycleProcessor(
@@ -63,6 +64,7 @@ public class EmailQueueCycleProcessor
         IServiceProvider serviceProvider,
         IOptions<EmailSettings> settings,
         IOptionsMonitor<EmailChainOptions> chainOptions,
+        IEmailOpsAlerter opsAlerter,
         ILogger<EmailQueueCycleProcessor> logger)
     {
         _repository = repository;
@@ -79,6 +81,7 @@ public class EmailQueueCycleProcessor
         _serviceProvider = serviceProvider;
         _settings = settings.Value;
         _chainOptions = chainOptions;
+        _opsAlerter = opsAlerter;
         _logger = logger;
     }
 
@@ -88,6 +91,7 @@ public class EmailQueueCycleProcessor
 
         await RecoverStaleProcessingAsync(now, cancellationToken);
         await ReassignFromDisabledProvidersAsync(now, cancellationToken);
+        await SweepExhaustedFailedToDeadLetterAsync(cancellationToken);
 
         var enabledProviders = _providerPolicy.EnabledProviders;
         if (enabledProviders.Count == 0)
@@ -281,8 +285,68 @@ public class EmailQueueCycleProcessor
         }
 
         var error = sendResult.ErrorMessage ?? "Falha desconhecida ao enviar e-mail.";
-        item.MarkFailed(error);
+        var providerWasOpen = _providerBreaker.IsOpen(serviceKey);
         _providerBreaker.RecordFailure(serviceKey, error);
+        var providerOpened = !providerWasOpen && _providerBreaker.IsOpen(serviceKey);
+        if (providerOpened)
+        {
+            await _opsAlerter.NotifyAsync(
+                $"breaker:{serviceKey}",
+                $"🟠 Breaker do provider <b>{serviceKey}</b> ABRIU.\nErro: {error}",
+                cancellationToken);
+        }
+
+        var errorChain = $"{serviceKey}: {error}";
+
+        // Fallback in-cycle (auditoria §11): falha provider-level → tenta o próximo
+        // provider habilitado AGORA, em vez de esperar o backoff de 2^n×15min do retry.
+        // Erros de destinatário não fazem fallback — trocar de provider não conserta
+        // endereço ruim e queimaria a quota dos outros providers.
+        if (_settings.InCycleFallbackEnabled && !EmailErrorClassifier.IsRecipientError(error))
+        {
+            var fallback = await TrySendWithFallbackAsync(item, message, cancellationToken);
+            if (fallback.ErrorChain is not null)
+            {
+                errorChain += " | " + fallback.ErrorChain;
+            }
+
+            if (fallback.Sent)
+            {
+                item.ReassignProvider(fallback.Provider!.Value);
+                item.MarkSent(fallback.ProviderMessageId);
+                if (item.CampaignId.HasValue)
+                {
+                    await _campaignRepository.IncrementSentAsync(item.CampaignId.Value, cancellationToken);
+                    _pilotBreaker.RecordSuccess();
+                }
+
+                await _repository.UpdateAsync(item, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Item {ItemId}: fallback in-cycle {From} → {To} após falha ({Error}).",
+                    item.Id, serviceKey, EmailProviderPolicy.KeyOf(fallback.Provider.Value), error);
+
+                // Enviado com sucesso; mas se o breaker do provider TITULAR abriu,
+                // interrompe o lote dele — os próximos itens iriam falhar do mesmo jeito.
+                return providerOpened ? ItemOutcome.ProviderBreakerOpened : ItemOutcome.Sent;
+            }
+        }
+
+        // Falha definitiva desta passada: com tentativas esgotadas vai para a DLQ
+        // (visível + alertada) em vez do Failed terminal invisível.
+        if (item.AttemptCount >= MaxRetryAttempts)
+        {
+            item.MarkDeadLettered(errorChain);
+            await _opsAlerter.NotifyAsync(
+                $"dlq:{item.CampaignId?.ToString() ?? "avulso"}",
+                $"💀 Email para <b>{item.RecipientEmail}</b> esgotou as {MaxRetryAttempts} tentativas e foi para a DLQ.\nÚltimo erro: {Truncate(errorChain, 300)}\nReprocesse no dashboard de saúde do email.",
+                cancellationToken);
+        }
+        else
+        {
+            item.MarkFailed(errorChain);
+        }
 
         var pilotOpened = false;
         if (item.CampaignId.HasValue)
@@ -304,6 +368,11 @@ public class EmailQueueCycleProcessor
                     $"Circuit Breaker aberto devido a erro de envio: {error}",
                     item.UserId,
                     cancellationToken);
+
+                await _opsAlerter.NotifyAsync(
+                    "breaker:pilot",
+                    $"🔴 Circuit breaker GLOBAL de campanhas ABRIU — envios pausados até reset.\nErro: {error}",
+                    cancellationToken);
             }
         }
 
@@ -321,6 +390,116 @@ public class EmailQueueCycleProcessor
     }
 
     /// <summary>
+    /// Tenta os próximos providers habilitados (rotação circular a partir do titular),
+    /// pulando breakers abertos, limites diários estourados e providers sem sender
+    /// registrado. Limitado a <see cref="EmailSettings.MaxFallbackProvidersPerItem"/>.
+    /// </summary>
+    private async Task<(bool Sent, EmailProvider? Provider, string? ProviderMessageId, string? ErrorChain)> TrySendWithFallbackAsync(
+        EmailQueueItem item,
+        EmailSendMessage message,
+        CancellationToken cancellationToken)
+    {
+        var maxCandidates = Math.Max(0, _settings.MaxFallbackProvidersPerItem);
+        if (maxCandidates == 0)
+        {
+            return (false, null, null, null);
+        }
+
+        var enabled = _providerPolicy.EnabledProviders;
+        var chainLimits = _chainOptions.CurrentValue.ProviderDailyLimits;
+        var startOfDay = DateTime.UtcNow.Date;
+        var errors = new List<string>();
+
+        // Rotação circular a partir do titular (excluindo-o).
+        var all = enabled.ToList();
+        var idx = all.IndexOf(item.AssignedProvider);
+        var candidates = idx < 0
+            ? all
+            : all.Skip(idx + 1).Concat(all.Take(idx)).ToList();
+
+        var tried = 0;
+        foreach (var candidate in candidates)
+        {
+            if (tried >= maxCandidates)
+            {
+                break;
+            }
+
+            var key = EmailProviderPolicy.KeyOf(candidate);
+            if (_providerBreaker.IsOpen(key))
+            {
+                continue;
+            }
+
+            if (chainLimits.TryGetValue(key, out var limit) && limit > 0)
+            {
+                var sentToday = await _repository.CountSentByProviderSinceAsync(candidate, startOfDay, cancellationToken);
+                if (sentToday >= limit)
+                {
+                    continue;
+                }
+            }
+
+            var sender = _serviceProvider.GetKeyedService<IEmailSender>(key);
+            if (sender is null)
+            {
+                continue;
+            }
+
+            tried++;
+            var result = await sender.SendAsync(message, cancellationToken);
+            if (result.Success)
+            {
+                _providerBreaker.RecordSuccess(key);
+                return (true, candidate, result.ProviderMessageId, errors.Count > 0 ? string.Join(" | ", errors) : null);
+            }
+
+            var err = result.ErrorMessage ?? "Falha desconhecida ao enviar e-mail.";
+            _providerBreaker.RecordFailure(key, err);
+            errors.Add($"{key}: {err}");
+
+            if (EmailErrorClassifier.IsRecipientError(err))
+            {
+                // Dois providers apontando problema no destinatário — parar de insistir.
+                break;
+            }
+        }
+
+        return (false, null, null, errors.Count > 0 ? string.Join(" | ", errors) : null);
+    }
+
+    /// <summary>
+    /// Itens Failed com tentativas esgotadas ficavam invisíveis para sempre (o retry só
+    /// busca AttemptCount &lt; máximo) — move para a DLQ, onde são listáveis e reprocessáveis.
+    /// Também captura o legado acumulado antes desta feature existir.
+    /// </summary>
+    private async Task SweepExhaustedFailedToDeadLetterAsync(CancellationToken cancellationToken)
+    {
+        var exhausted = await _repository.GetExhaustedFailedAsync(MaxRetryAttempts, StaleRecoveryBatchSize, cancellationToken);
+        if (exhausted.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var item in exhausted)
+        {
+            item.MarkDeadLettered(item.LastError ?? "Tentativas esgotadas.");
+            await _repository.UpdateAsync(item, cancellationToken);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogWarning("DLQ: {Count} item(s) com tentativas esgotadas movido(s) de Failed para DeadLettered.", exhausted.Count);
+
+        await _opsAlerter.NotifyAsync(
+            "dlq:sweep",
+            $"💀 <b>{exhausted.Count} email(s)</b> com tentativas esgotadas foram para a DLQ. Reprocesse no dashboard de saúde do email.",
+            cancellationToken);
+    }
+
+    private static string Truncate(string value, int max)
+        => value.Length <= max ? value : value[..max] + "…";
+
+    /// <summary>
     /// Itens presos em Processing (crash entre MarkProcessing e o save final) eram
     /// invisíveis para sempre: nenhuma query buscava esse status — email perdido em
     /// silêncio. Volta para a fila (ou Failed se esgotou tentativas).
@@ -336,11 +515,16 @@ public class EmailQueueCycleProcessor
         {
             if (item.AttemptCount >= MaxRetryAttempts)
             {
-                item.MarkFailed("Item preso em Processing (provável crash durante envio) — máximo de tentativas atingido.");
+                item.MarkDeadLettered("Item preso em Processing (provável crash durante envio) — máximo de tentativas atingido.");
                 if (item.CampaignId.HasValue)
                 {
                     await _campaignRepository.IncrementFailedAsync(item.CampaignId.Value, cancellationToken);
                 }
+
+                await _opsAlerter.NotifyAsync(
+                    "dlq:stale",
+                    $"💀 Email para <b>{item.RecipientEmail}</b> preso em Processing esgotou as tentativas → DLQ.",
+                    cancellationToken);
             }
             else
             {

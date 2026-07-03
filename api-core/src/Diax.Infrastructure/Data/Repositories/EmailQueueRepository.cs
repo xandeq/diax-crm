@@ -133,6 +133,48 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<int> CountByStatusAsync(
+        EmailQueueStatus status,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet.CountAsync(item => item.Status == status, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EmailQueueItem>> GetExhaustedFailedAsync(
+        int minAttempts,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        if (take <= 0)
+        {
+            return [];
+        }
+
+        return await DbSet
+            .Where(item => item.Status == EmailQueueStatus.Failed
+                        && item.AttemptCount >= minAttempts)
+            .OrderBy(item => item.UpdatedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetDeadLetteredPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.Where(item => item.Status == EmailQueueStatus.DeadLettered);
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(item => item.UpdatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public async Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetPagedByUserAsync(
         Guid userId,
         int page,

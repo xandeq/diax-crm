@@ -111,4 +111,29 @@ public class EmailQueueItem : AuditableEntity
         AssignedProvider = provider;
         SetUpdated("system");
     }
+
+    /// <summary>
+    /// Tentativas esgotadas — sai da rotação de retry até intervenção manual.
+    /// </summary>
+    public void MarkDeadLettered(string reason)
+    {
+        Status = EmailQueueStatus.DeadLettered;
+        LastError = reason;
+        ProcessingStartedAt = null;
+        SetUpdated("system");
+    }
+
+    /// <summary>
+    /// Requeue manual a partir da DLQ: zera as tentativas (ganha um ciclo completo
+    /// de retries) e volta para a fila imediatamente.
+    /// </summary>
+    public void RestoreFromDeadLetter(DateTime utcNow)
+    {
+        Status = EmailQueueStatus.Queued;
+        ScheduledAt = utcNow;
+        AttemptCount = 0;
+        ProcessingStartedAt = null;
+        // LastError preservado até o próximo MarkProcessing — diagnóstico do motivo original.
+        SetUpdated("system");
+    }
 }

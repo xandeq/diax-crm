@@ -459,6 +459,9 @@ public static class DependencyInjection
         // Brevo Contact Stats Service (para analytics por contato)
         services.AddHttpClient<IBrevoContactStatsService, BrevoContactStatsService>();
 
+        // Alertas operacionais de email (DLQ, breakers) via Telegram — no-op sem config
+        services.AddScoped<IEmailOpsAlerter, TelegramEmailOpsAlerter>();
+
         services.AddScoped<EmailQueueCycleProcessor>();
         services.AddHostedService<EmailQueueProcessorWorker>();
 

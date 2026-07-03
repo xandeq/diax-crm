@@ -59,6 +59,7 @@ const navGroups: NavGroup[] = [
       { icon: Megaphone, label: 'Email Marketing', children: [
         { label: 'Email Marketing', href: '/email-marketing' },
         { label: 'Email Marketing PRO', href: '/email-marketing/pro', badge: 'NEW' },
+        { label: 'Saúde do Email', href: '/email-marketing/health', badge: 'NEW' },
         { label: 'Campanhas', href: '/campanhas' },
       ]},
       { icon: Globe, label: 'Meta Ads', href: '/ads/' },
@@ -420,6 +421,7 @@ const ROUTE_LABELS: Record<string, string> = {
   edit: 'Editar',
   logs: 'Logs do Sistema',
   monitoring: 'Erros',
+  health: 'Saúde',
 };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
