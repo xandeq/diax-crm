@@ -48,6 +48,7 @@ public static class AiGenerationCostEstimator
 
         decimal? perImage = providerKey.ToLowerInvariant() switch
         {
+            "pollinations" => 0m,                                     // keyless, 100% grátis
             "gemini" when mk.Contains("flash-image") => 0m,          // free tier da API Gemini
             "gemini" when mk.StartsWith("imagen") => 0.04m,          // Imagen 4 (pago)
             "grok" => 0m,                                             // grok-2-image no free tier atual

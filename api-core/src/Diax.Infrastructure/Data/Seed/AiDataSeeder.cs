@@ -383,6 +383,18 @@ public static class AiDataSeeder
                 // WAN $0.03–0.08/vídeo (verificado na página oficial 2026-07)
                 new ModelSeed("wan2.2", "WAN 2.2 (ModelsLab, ~US$0,05/vídeo)", SupportsVideo: true),
             }),
+
+        new ProviderSeed(
+            Key: "pollinations",
+            Name: "Pollinations.ai",
+            BaseUrl: "https://image.pollinations.ai",
+            SupportsListModels: false,
+            Models: new()
+            {
+                // 100% gratuito e SEM API key — GET retorna a imagem direto (testado 2026-07)
+                new ModelSeed("flux", "FLUX (Pollinations — grátis, sem key)", SupportsImage: true),
+                new ModelSeed("turbo", "Turbo (Pollinations — grátis, rápido)", SupportsImage: true),
+            }),
     };
 
     public static void SeedAiProviders(DiaxDbContext db, ILogger? logger = null)

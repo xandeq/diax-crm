@@ -11,11 +11,22 @@ public static class AiMediaFallbackPolicy
 {
     /// <summary>
     /// Ordem de fallback para geração de imagem (gratuitos primeiro).
+    /// pollinations e huggingface são keyless/free-tier — resiliência sem custo.
     /// </summary>
     public static readonly IReadOnlyList<string> ImageProviderOrder = new[]
     {
-        "gemini", "grok", "falai", "openai", "openrouter", "huggingface"
+        "gemini", "pollinations", "huggingface", "grok", "falai", "openai", "openrouter"
     };
+
+    /// <summary>
+    /// Providers que NÃO exigem API key (a resolução de credencial é pulada).
+    /// </summary>
+    private static readonly HashSet<string> KeylessProviders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "pollinations",
+    };
+
+    public static bool IsKeyless(string providerKey) => KeylessProviders.Contains(providerKey);
 
     /// <summary>
     /// Ordem de fallback para geração de vídeo (baratos/rápidos primeiro).
@@ -38,11 +49,12 @@ public static class AiMediaFallbackPolicy
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["gemini"] = "gemini-2.5-flash-image",
+            ["pollinations"] = "flux",
+            ["huggingface"] = "black-forest-labs/FLUX.1-schnell",
             ["grok"] = "grok-2-image-1212",
             ["falai"] = "fal-ai/flux/schnell",
             ["openai"] = "dall-e-3",
             ["openrouter"] = "google/gemini-2.5-flash-image",
-            ["huggingface"] = "black-forest-labs/FLUX.1-schnell",
         };
 
     public static readonly IReadOnlyDictionary<string, string> PreferredVideoModel =

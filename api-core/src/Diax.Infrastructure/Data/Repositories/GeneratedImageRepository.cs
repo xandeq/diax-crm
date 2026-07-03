@@ -22,6 +22,8 @@ public class GeneratedImageRepository : Repository<GeneratedImage>, IGeneratedIm
             .OrderByDescending(x => x.CreatedAt)
             .Skip(skip)
             .Take(take)
+            .Include(x => x.Provider)
+            .Include(x => x.Model)
             .ToListAsync(cancellationToken);
     }
 }

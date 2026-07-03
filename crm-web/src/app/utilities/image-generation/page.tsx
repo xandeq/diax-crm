@@ -15,10 +15,12 @@ import {
   generateImage,
   getVideoJob,
   imageSizeOptions,
+  listGeneratedImages,
   listVideoJobs,
   videoAspectRatioOptions,
   videoDurationOptions,
   type ImageGenerationResponse,
+  type ImageHistoryItem,
   type VideoGenerationResponse,
   type VideoJobDto,
 } from '@/services/imageGeneration';
@@ -179,6 +181,21 @@ export default function ImageGenerationPage() {
       // histórico é secundário — falha silenciosa, botão de refresh permite tentar de novo
     } finally {
       setIsLoadingHistory(false);
+    }
+  }, []);
+
+  // Histórico de imagens geradas
+  const [imageHistory, setImageHistory] = useState<ImageHistoryItem[]>([]);
+  const [isLoadingImageHistory, setIsLoadingImageHistory] = useState(false);
+
+  const loadImageHistory = useCallback(async () => {
+    setIsLoadingImageHistory(true);
+    try {
+      setImageHistory(await listGeneratedImages(18));
+    } catch {
+      // secundário — falha silenciosa
+    } finally {
+      setIsLoadingImageHistory(false);
     }
   }, []);
   const [error, setError] = useState<string | null>(null);
@@ -382,6 +399,11 @@ export default function ImageGenerationPage() {
   useEffect(() => {
     if (activeTab === 'video' && isAuthenticated) loadVideoHistory();
   }, [activeTab, isAuthenticated, videoResult, loadVideoHistory]);
+
+  // Carrega o histórico de imagens ao abrir a aba e após cada geração
+  useEffect(() => {
+    if (activeTab === 'image' && isAuthenticated) loadImageHistory();
+  }, [activeTab, isAuthenticated, imageResult, loadImageHistory]);
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
@@ -1188,6 +1210,51 @@ export default function ImageGenerationPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── Histórico de imagens ── */}
+              {activeTab === 'image' && imageHistory.length > 0 && (
+                <div className="w-full mt-8 rounded-2xl bg-white/[0.03] border border-white/8 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2">
+                      <ImageIcon className="h-3.5 w-3.5" /> Histórico de imagens
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={loadImageHistory}
+                      disabled={isLoadingImageHistory}
+                      className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isLoadingImageHistory ? 'animate-spin' : ''}`} /> Atualizar
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                    {imageHistory.map(img => (
+                      <button
+                        key={img.id}
+                        type="button"
+                        onClick={() => setLightboxUrl(img.imageUrl)}
+                        className="group relative aspect-square rounded-xl overflow-hidden border border-white/8 hover:border-violet-500/40 transition-all bg-black/40"
+                        title={`${img.prompt}\n${new Date(img.createdAt).toLocaleString('pt-BR')}${img.providerName ? ` · ${img.providerName}` : ''}${img.estimatedCostUsd != null ? (img.estimatedCostUsd === 0 ? ' · grátis' : ` · ~US$ ${img.estimatedCostUsd.toFixed(2)}`) : ''}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={img.imageUrl}
+                          alt={img.prompt}
+                          loading="lazy"
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-2 pb-1.5 pt-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-[9px] text-white/80 truncate">{img.prompt}</p>
+                          <p className="text-[8px] text-white/50">
+                            {new Date(img.createdAt).toLocaleDateString('pt-BR')}
+                            {img.providerName && <> · {img.providerName}</>}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

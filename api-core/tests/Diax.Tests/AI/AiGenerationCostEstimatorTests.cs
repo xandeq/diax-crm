@@ -33,6 +33,7 @@ public class AiGenerationCostEstimatorTests
         Assert.Equal(0m, AiGenerationCostEstimator.EstimateImageCostUsd("gemini", "gemini-2.5-flash-image", 1));
         Assert.Equal(0m, AiGenerationCostEstimator.EstimateImageCostUsd("grok", "grok-2-image-1212", 2));
         Assert.Equal(0m, AiGenerationCostEstimator.EstimateImageCostUsd("huggingface", "black-forest-labs/FLUX.1-schnell", 1));
+        Assert.Equal(0m, AiGenerationCostEstimator.EstimateImageCostUsd("pollinations", "flux", 3));
     }
 
     [Fact]

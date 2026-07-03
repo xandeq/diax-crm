@@ -171,3 +171,21 @@ export async function getVideoJob(jobId: string): Promise<VideoJobDto> {
 export async function listVideoJobs(take = 20): Promise<VideoJobDto[]> {
   return apiFetch<VideoJobDto[]>(`/ai/video-jobs?take=${take}`, { method: 'GET' });
 }
+
+// ── Histórico de imagens geradas ─────────────────────────────────────────────
+
+export interface ImageHistoryItem {
+  id: string;
+  imageUrl: string;
+  prompt: string;
+  providerName?: string | null;
+  modelName?: string | null;
+  width: number;
+  height: number;
+  estimatedCostUsd?: number | null;
+  createdAt: string;
+}
+
+export async function listGeneratedImages(take = 24): Promise<ImageHistoryItem[]> {
+  return apiFetch<ImageHistoryItem[]>(`/ai/images?take=${take}`, { method: 'GET' });
+}
