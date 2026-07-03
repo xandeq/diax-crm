@@ -10,4 +10,10 @@ public interface IEmailEventRepository
 {
     Task<bool> ExistsAsync(Guid queueItemId, EmailEventType eventType, CancellationToken cancellationToken = default);
     Task AddAsync(EmailEvent emailEvent, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Agregado de engajamento por cliente (opens/clicks/bounces + último engajamento).
+    /// Usado pelo lead scoring. Só considera eventos com CustomerId preenchido.
+    /// </summary>
+    Task<List<CustomerEngagementSummary>> GetEngagementSummaryAsync(CancellationToken cancellationToken = default);
 }

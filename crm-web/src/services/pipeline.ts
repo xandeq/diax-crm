@@ -60,3 +60,19 @@ export async function updatePipelineDeal(
     body: JSON.stringify({ estimatedValue, expectedCloseDate }),
   });
 }
+
+export interface LeadScoringSummary {
+  leadsScored: number;
+  hot: number;
+  warm: number;
+  cold: number;
+  followUpTasksCreated: number;
+}
+
+/**
+ * Recalcula o score de todos os leads (engajamento de email + cadastro)
+ * e cria tasks de follow-up para os quentes parados (máx 10 por execução).
+ */
+export async function recomputeLeadScores(): Promise<LeadScoringSummary> {
+  return apiFetch<LeadScoringSummary>('/pipeline/recompute-scores', { method: 'POST' });
+}

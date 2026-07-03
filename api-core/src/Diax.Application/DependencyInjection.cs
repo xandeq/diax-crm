@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<CustomerService>();
         services.AddScoped<CustomerImportService>();
         services.AddScoped<PipelineService>();
+        services.AddScoped<LeadScoringService>();
         services.AddScoped<ILeadSanitizationService, LeadSanitizationService>();
         services.AddScoped<CreditCardService>();
         services.AddScoped<CreditCardGroupService>();

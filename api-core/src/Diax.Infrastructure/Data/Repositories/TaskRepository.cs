@@ -40,4 +40,22 @@ public class TaskRepository : Repository<TaskItem>, ITaskRepository
                 && !t.IsArchived)
             .OrderBy(t => t.DueDate)
             .ToListAsync(cancellationToken);
+
+    public async Task<HashSet<Guid>> GetCustomerIdsWithOpenTasksAsync(
+        IEnumerable<Guid> customerIds, CancellationToken cancellationToken = default)
+    {
+        var ids = customerIds.Distinct().ToList();
+        if (ids.Count == 0) return new HashSet<Guid>();
+
+        var found = await _context.TaskItems
+            .Where(t => t.CustomerId != null
+                && ids.Contains(t.CustomerId.Value)
+                && (t.Status == TaskItemStatus.Todo || t.Status == TaskItemStatus.InProgress)
+                && !t.IsArchived)
+            .Select(t => t.CustomerId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return found.ToHashSet();
+    }
 }

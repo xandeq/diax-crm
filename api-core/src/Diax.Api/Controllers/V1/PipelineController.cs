@@ -18,10 +18,12 @@ namespace Diax.Api.Controllers.V1;
 public class PipelineController : BaseApiController
 {
     private readonly PipelineService _pipelineService;
+    private readonly LeadScoringService _leadScoringService;
 
-    public PipelineController(PipelineService pipelineService)
+    public PipelineController(PipelineService pipelineService, LeadScoringService leadScoringService)
     {
         _pipelineService = pipelineService;
+        _leadScoringService = leadScoringService;
     }
 
     /// <summary>Board completo: colunas com totais + previsão ponderada + fechados (30 dias).</summary>
@@ -41,4 +43,19 @@ public class PipelineController : BaseApiController
         Guid id, [FromBody] UpdatePipelineDealRequest request, CancellationToken ct)
         => HandleResult(await _pipelineService.UpdateDealAsync(
             id, request.EstimatedValue, request.ExpectedCloseDate, ct));
+
+    /// <summary>
+    /// Recalcula o lead scoring (engajamento de email + cadastro) de todos os leads
+    /// e cria tasks de follow-up para os quentes parados (dedup + máx 10 por execução).
+    /// </summary>
+    [HttpPost("recompute-scores")]
+    public async Task<IActionResult> RecomputeScores(CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { Message = "Usuário não autenticado." });
+
+        var summary = await _leadScoringService.RecomputeAllAsync(userId.Value, ct);
+        return Ok(summary);
+    }
 }
