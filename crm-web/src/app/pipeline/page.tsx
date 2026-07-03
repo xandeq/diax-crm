@@ -11,7 +11,7 @@ import {
   type PipelineStage,
 } from '@/services/pipeline';
 import { getBookingLinkUserId, publicBookingUrl } from '@/services/meetings';
-import { createProposal, publicProposalUrl } from '@/services/proposals';
+import { createProposal, publicProposalUrl, sendProposalEmail } from '@/services/proposals';
 import {
   AlertCircle,
   Banknote,
@@ -98,6 +98,22 @@ export default function PipelinePage() {
   const [pCreating, setPCreating] = useState(false);
   const [pLink, setPLink] = useState<string | null>(null);
   const [pLinkCopied, setPLinkCopied] = useState(false);
+  const [pProposalId, setPProposalId] = useState<string | null>(null);
+  const [pEmailState, setPEmailState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [pEmailMsg, setPEmailMsg] = useState<string | null>(null);
+
+  const sendProposalByEmail = async () => {
+    if (!pProposalId) return;
+    setPEmailState('sending');
+    try {
+      const msg = await sendProposalEmail(pProposalId);
+      setPEmailState('sent');
+      setPEmailMsg(msg);
+    } catch (err) {
+      setPEmailState('error');
+      setPEmailMsg(err instanceof Error ? err.message : 'Falha ao enviar o email.');
+    }
+  };
 
   const openProposalModal = (card: PipelineCard) => {
     setProposalCard(card);
@@ -138,6 +154,9 @@ export default function PipelinePage() {
         validUntil: validUntil.toISOString(),
       });
       setPLink(publicProposalUrl(proposal.publicToken));
+      setPProposalId(proposal.id);
+      setPEmailState('idle');
+      setPEmailMsg(null);
       await loadBoard(); // lead avança para Negociando + valor sincronizado
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar a proposta.');
@@ -359,18 +378,35 @@ export default function PipelinePage() {
                 <div className="rounded-xl bg-black/40 border border-white/10 p-3 font-mono text-[11px] text-white/60 break-all select-all">
                   {pLink}
                 </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(pLink);
-                    setPLinkCopied(true);
-                    setTimeout(() => setPLinkCopied(false), 2500);
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
-                    ${pLinkCopied ? 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-300' : 'bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300'}`}
-                >
-                  {pLinkCopied ? <><Check className="h-4 w-4" /> Copiado!</> : <><Copy className="h-4 w-4" /> Copiar link</>}
-                </button>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(pLink);
+                      setPLinkCopied(true);
+                      setTimeout(() => setPLinkCopied(false), 2500);
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
+                      ${pLinkCopied ? 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-300' : 'bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300'}`}
+                  >
+                    {pLinkCopied ? <><Check className="h-4 w-4" /> Copiado!</> : <><Copy className="h-4 w-4" /> Copiar link</>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={sendProposalByEmail}
+                    disabled={pEmailState === 'sending' || pEmailState === 'sent'}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-70
+                      ${pEmailState === 'sent' ? 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-300' : 'bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/30 text-sky-300'}`}
+                    title="Envia por email ao cliente com botão de aceite e PIX"
+                  >
+                    {pEmailState === 'sending' ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : pEmailState === 'sent' ? <Check className="h-4 w-4" /> : <span>📧</span>}
+                    {pEmailState === 'sent' ? 'Email enviado!' : 'Enviar por email'}
+                  </button>
+                </div>
+                {pEmailMsg && (
+                  <p className={`text-[11px] ${pEmailState === 'error' ? 'text-red-300' : 'text-emerald-300/80'}`}>{pEmailMsg}</p>
+                )}
                 <p className="text-[11px] text-white/35">
                   O cliente lê, aceita e paga via PIX nesse link. Quando pagar, marque como paga na
                   proposta — o lead vira cliente automaticamente no pipeline.

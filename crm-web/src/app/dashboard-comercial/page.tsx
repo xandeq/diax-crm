@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { listUpcomingMeetings, type Meeting } from '@/services/meetings';
 import { getSalesDashboard, type SalesDashboard } from '@/services/salesDashboard';
 import {
   AlertCircle,
@@ -40,14 +41,17 @@ export default function SalesDashboardPage() {
   const router = useRouter();
 
   const [data, setData] = useState<SalesDashboard | null>(null);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setIsLoading(true);
     setError(null);
-    getSalesDashboard()
-      .then(setData)
+    Promise.all([
+      getSalesDashboard().then(setData),
+      listUpcomingMeetings().then(setMeetings).catch(() => setMeetings([])),
+    ])
       .catch(err => setError(err instanceof Error ? err.message : 'Erro ao carregar o dashboard.'))
       .finally(() => setIsLoading(false));
   }, []);
@@ -204,6 +208,21 @@ export default function SalesDashboardPage() {
                   <p className="text-[11px] text-white/40">follow-ups abertos</p>
                 </div>
               </div>
+              {meetings.length > 0 && (
+                <div className="mt-4 space-y-1.5">
+                  {meetings.slice(0, 5).map(m => {
+                    const brt = new Date(new Date(m.scheduledAt).getTime() - 3 * 3600 * 1000);
+                    return (
+                      <div key={m.id} className="flex items-center justify-between text-[12px] rounded-lg bg-white/[0.03] px-3 py-2">
+                        <span className="text-white/70 truncate">{m.contactName}</span>
+                        <span className="text-violet-300/80 shrink-0 ml-2">
+                          {String(brt.getUTCDate()).padStart(2, '0')}/{String(brt.getUTCMonth() + 1).padStart(2, '0')} {String(brt.getUTCHours()).padStart(2, '0')}:{String(brt.getUTCMinutes()).padStart(2, '0')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <p className="text-[11px] text-white/30 mt-4">
                 O briefing diário no Telegram (~7h30) traz esta visão com nomes e contatos.
               </p>
