@@ -368,6 +368,9 @@ public static class DependencyInjection
         services.AddHttpClient<ModelsLabVideoClient>();
         services.AddScoped<IAiVideoGenerationClient, ModelsLabVideoClient>();
 
+        services.AddHttpClient<MagicHourVideoClient>();
+        services.AddScoped<IAiVideoGenerationClient, MagicHourVideoClient>();
+
         // ===== EMAIL MARKETING =====
         services.Configure<EmailSettings>(configuration.GetSection("Email"));
 

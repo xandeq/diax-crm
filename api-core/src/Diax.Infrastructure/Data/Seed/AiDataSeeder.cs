@@ -395,6 +395,19 @@ public static class AiDataSeeder
                 new ModelSeed("flux", "FLUX (Pollinations — grátis, sem key)", SupportsImage: true),
                 new ModelSeed("turbo", "Turbo (Pollinations — grátis, rápido)", SupportsImage: true),
             }),
+
+        new ProviderSeed(
+            Key: "magichour",
+            Name: "Magic Hour",
+            BaseUrl: "https://api.magichour.ai/v1",
+            SupportsListModels: false,
+            Models: new()
+            {
+                // Free tier com créditos DIÁRIOS renováveis (pesquisa 2026-07).
+                // "default" deixa o Magic Hour escolher o modelo mais barato do plano.
+                new ModelSeed("default", "Magic Hour (modelo padrão — créditos diários grátis)", SupportsVideo: true),
+                new ModelSeed("kling-3.0", "Kling 3.0 (via Magic Hour)", SupportsVideo: true),
+            }),
     };
 
     public static void SeedAiProviders(DiaxDbContext db, ILogger? logger = null)

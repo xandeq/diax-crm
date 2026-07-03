@@ -27,6 +27,9 @@ public static class AiGenerationCostEstimator
             case "huggingface":
                 return 0m; // Serverless Inference free tier (com rate limit)
 
+            case "magichour":
+                return 0m; // free tier com créditos diários renováveis (esgotou → fallback)
+
             case "falai" when modelKey != null:
                 var mk = modelKey.ToLowerInvariant();
                 if (mk.Contains("ltx-video")) return 0.04m;                    // ~$0.04/vídeo

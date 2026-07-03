@@ -21,6 +21,7 @@ public class PromptGeneratorSettings
     public ProviderConfig Shotstack { get; set; } = new();
     public ProviderConfig WaveSpeed { get; set; } = new();
     public ProviderConfig ModelsLab { get; set; } = new();
+    public ProviderConfig MagicHour { get; set; } = new();
 
     /// <summary>
     /// Obtém a configuração do provider pelo key do banco de dados.
@@ -47,6 +48,7 @@ public class PromptGeneratorSettings
             "shotstack" => Shotstack,
             "wavespeed" or "wavespeedai" or "wavespeed-ai" => WaveSpeed,
             "modelslab" or "models-lab" => ModelsLab,
+            "magichour" or "magic-hour" => MagicHour,
             _ => null
         };
     }
