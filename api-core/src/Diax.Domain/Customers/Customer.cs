@@ -105,6 +105,18 @@ public class Customer : AuditableEntity
     /// </summary>
     public DateTime? ConvertedAt { get; private set; }
 
+    // ===== NEGÓCIO (Pipeline de vendas) =====
+
+    /// <summary>
+    /// Valor estimado do negócio em R$ (usado no Kanban e na previsão de receita).
+    /// </summary>
+    public decimal? EstimatedValue { get; private set; }
+
+    /// <summary>
+    /// Data prevista de fechamento do negócio.
+    /// </summary>
+    public DateTime? ExpectedCloseDate { get; private set; }
+
     /// <summary>
     /// Data do último contato/interação.
     /// </summary>
@@ -308,6 +320,18 @@ public class Customer : AuditableEntity
     {
         Source = source;
         SourceDetails = sourceDetails;
+    }
+
+    /// <summary>
+    /// Atualiza os dados do negócio (valor estimado e previsão de fechamento).
+    /// </summary>
+    public void UpdateDealInfo(decimal? estimatedValue, DateTime? expectedCloseDate)
+    {
+        if (estimatedValue is < 0)
+            throw new ArgumentException("Valor estimado do negócio não pode ser negativo.");
+
+        EstimatedValue = estimatedValue;
+        ExpectedCloseDate = expectedCloseDate;
     }
 
     /// <summary>

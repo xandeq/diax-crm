@@ -1661,6 +1661,14 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("email_opt_out");
 
+                    b.Property<decimal?>("EstimatedValue")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("estimated_value");
+
+                    b.Property<DateTime?>("ExpectedCloseDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("expected_close_date");
+
                     b.Property<int>("EmailSentCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")

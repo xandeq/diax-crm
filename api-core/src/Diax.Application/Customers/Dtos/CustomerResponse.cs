@@ -42,6 +42,10 @@ public class CustomerResponse
     public DateTime? ConvertedAt { get; set; }
     public DateTime? LastContactAt { get; set; }
 
+    // Negócio (pipeline de vendas)
+    public decimal? EstimatedValue { get; set; }
+    public DateTime? ExpectedCloseDate { get; set; }
+
     // Segmentação / Outreach
     public LeadSegment? Segment { get; set; }
     public string? SegmentDescription { get; set; }
@@ -92,6 +96,8 @@ public class CustomerResponse
             IsActiveCustomer = customer.IsActiveCustomer,
             ConvertedAt = customer.ConvertedAt,
             LastContactAt = customer.LastContactAt,
+            EstimatedValue = customer.EstimatedValue,
+            ExpectedCloseDate = customer.ExpectedCloseDate,
             Segment = customer.Segment,
             SegmentDescription = GetSegmentDescription(customer.Segment),
             LeadScore = customer.LeadScore,

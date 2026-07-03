@@ -42,6 +42,7 @@ const navGroups: NavGroup[] = [
   {
     section: 'CRM',
     items: [
+      { icon: Target, label: 'Pipeline', href: '/pipeline' },
       { icon: Users, label: 'Clientes', href: '/customers/' },
       { icon: TrendingUp, label: 'Leads', children: [
         { label: 'Todos os Leads', href: '/leads/' },
@@ -362,6 +363,7 @@ const ROUTE_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   'daily-briefings': 'Daily Briefings',
   customers: 'Clientes',
+  pipeline: 'Pipeline de Vendas',
   leads: 'Leads',
   import: 'Importar',
   helpdesk: 'Helpdesk',
@@ -472,6 +474,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const commandItems = [
     { label: 'Ir para Dashboard', href: '/dashboard', category: 'Navegação' },
     { label: 'Ir para Daily Briefings', href: '/daily-briefings', category: 'Navegação' },
+    { label: 'Ir para Pipeline de Vendas', href: '/pipeline', category: 'Navegação' },
     { label: 'Ir para Clientes', href: '/customers', category: 'Navegação' },
     { label: 'Ir para Leads', href: '/leads', category: 'Navegação' },
     { label: 'Ir para Helpdesk', href: '/helpdesk', category: 'Navegação' },

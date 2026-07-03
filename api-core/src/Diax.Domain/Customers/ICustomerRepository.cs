@@ -29,6 +29,12 @@ public interface ICustomerRepository : IRepository<Customer>
     Task<IEnumerable<Customer>> GetByStatusAsync(CustomerStatus status, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Clientes do pipeline de vendas: funil aberto (Lead..Negotiating) +
+    /// convertidos (Customer) a partir de <paramref name="wonSince"/>.
+    /// </summary>
+    Task<IEnumerable<Customer>> GetPipelineAsync(DateTime wonSince, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lista apenas leads (status < Customer).
     /// </summary>
     Task<IEnumerable<Customer>> GetLeadsAsync(CancellationToken cancellationToken = default);

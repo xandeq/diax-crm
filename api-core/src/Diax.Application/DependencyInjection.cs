@@ -57,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Calendar.IAppointmentLabelService, Diax.Application.Calendar.AppointmentLabelService>();
         services.AddScoped<CustomerService>();
         services.AddScoped<CustomerImportService>();
+        services.AddScoped<PipelineService>();
         services.AddScoped<ILeadSanitizationService, LeadSanitizationService>();
         services.AddScoped<CreditCardService>();
         services.AddScoped<CreditCardGroupService>();
