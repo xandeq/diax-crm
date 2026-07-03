@@ -1,3 +1,4 @@
+using Diax.Application.AI.MediaStorage;
 using Diax.Application.AI.Services;
 using Diax.Application.AI.VideoGeneration.Dtos;
 using Diax.Application.Common;
@@ -14,6 +15,7 @@ public class VideoJobService : IApplicationService, IVideoJobService
     private readonly IVideoGenerationJobRepository _jobRepository;
     private readonly IVideoGenerationService _videoGenerationService;
     private readonly IAiModelValidator _aiModelValidator;
+    private readonly IGeneratedMediaStorageService _mediaStorage;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<VideoJobService> _logger;
 
@@ -24,12 +26,14 @@ public class VideoJobService : IApplicationService, IVideoJobService
         IVideoGenerationJobRepository jobRepository,
         IVideoGenerationService videoGenerationService,
         IAiModelValidator aiModelValidator,
+        IGeneratedMediaStorageService mediaStorage,
         IUnitOfWork unitOfWork,
         ILogger<VideoJobService> logger)
     {
         _jobRepository = jobRepository;
         _videoGenerationService = videoGenerationService;
         _aiModelValidator = aiModelValidator;
+        _mediaStorage = mediaStorage;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -133,10 +137,17 @@ public class VideoJobService : IApplicationService, IVideoJobService
             // geração já em andamento no provider (o recovery marca o job se o app morrer).
             var result = await _videoGenerationService.GenerateAsync(request, job.UserId, CancellationToken.None);
 
+            // URLs de provider expiram (Runway usa JWT de ~24h) — baixa para storage
+            // durável e guarda a URL permanente; em falha mantém a URL do provider.
+            var durableUrl = await _mediaStorage.TrySaveVideoAsync(result.VideoUrl, job.Id, CancellationToken.None);
+            if (durableUrl == null)
+                _logger.LogWarning(
+                    "VideoJob {JobId}: storage durável falhou — mantendo URL do provider (pode expirar)", job.Id);
+
             job.MarkCompleted(
                 providerUsed: result.ProviderUsed,
                 modelUsed: result.ModelUsed,
-                videoUrl: result.VideoUrl,
+                videoUrl: durableUrl ?? result.VideoUrl,
                 thumbnailUrl: result.ThumbnailUrl,
                 requestId: result.RequestId,
                 durationMs: result.DurationMs,
@@ -201,6 +212,7 @@ public class VideoJobService : IApplicationService, IVideoJobService
         Status: job.Status,
         Provider: job.Provider,
         Model: job.Model,
+        Prompt: job.Prompt,
         ProviderUsed: job.ProviderUsed,
         ModelUsed: job.ModelUsed,
         VideoUrl: job.VideoUrl,

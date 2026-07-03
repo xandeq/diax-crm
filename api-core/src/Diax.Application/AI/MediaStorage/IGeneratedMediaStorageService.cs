@@ -21,4 +21,14 @@ public interface IGeneratedMediaStorageService
         bool isBase64,
         Guid mediaId,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Baixa um vídeo da URL do provider e persiste em storage próprio, retornando URL durável.
+    /// URLs de provider expiram (Runway usa JWT de ~24h) — sem isso o histórico apodrece.
+    /// NUNCA lança exceção — retorna null em falha (o chamador mantém a URL do provider).
+    /// </summary>
+    Task<string?> TrySaveVideoAsync(
+        string videoUrl,
+        Guid mediaId,
+        CancellationToken ct = default);
 }

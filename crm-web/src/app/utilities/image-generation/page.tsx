@@ -15,6 +15,7 @@ import {
   generateImage,
   getVideoJob,
   imageSizeOptions,
+  listVideoJobs,
   videoAspectRatioOptions,
   videoDurationOptions,
   type ImageGenerationResponse,
@@ -165,6 +166,21 @@ export default function ImageGenerationPage() {
   // Fase do job de vídeo assíncrono (fila/processando) mostrada durante a geração
   const [videoJobPhase, setVideoJobPhase] = useState<string | null>(null);
   const pollingActiveRef = useRef(false);
+
+  // Histórico de vídeos gerados (links duráveis em /generated-media/)
+  const [videoHistory, setVideoHistory] = useState<VideoJobDto[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const loadVideoHistory = useCallback(async () => {
+    setIsLoadingHistory(true);
+    try {
+      setVideoHistory(await listVideoJobs(12));
+    } catch {
+      // histórico é secundário — falha silenciosa, botão de refresh permite tentar de novo
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
   const clearError = () => { setError(null); setErrorCode(undefined); };
@@ -361,6 +377,11 @@ export default function ImageGenerationPage() {
 
   // Ao desmontar a página, para o polling (o job continua no servidor)
   useEffect(() => () => { pollingActiveRef.current = false; }, []);
+
+  // Carrega o histórico ao abrir a aba de vídeo e o atualiza quando um job termina
+  useEffect(() => {
+    if (activeTab === 'video' && isAuthenticated) loadVideoHistory();
+  }, [activeTab, isAuthenticated, videoResult, loadVideoHistory]);
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
@@ -1167,6 +1188,77 @@ export default function ImageGenerationPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── Histórico de vídeos (links duráveis) ── */}
+              {activeTab === 'video' && videoHistory.length > 0 && (
+                <div className="w-full mt-8 rounded-2xl bg-white/[0.03] border border-white/8 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2">
+                      <Film className="h-3.5 w-3.5" /> Histórico de vídeos
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={loadVideoHistory}
+                      disabled={isLoadingHistory}
+                      className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isLoadingHistory ? 'animate-spin' : ''}`} /> Atualizar
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {videoHistory.map(job => {
+                      const statusInfo =
+                        job.status === 'Completed' ? { label: 'Concluído', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' } :
+                        job.status === 'Failed' ? { label: 'Falhou', cls: 'bg-red-500/15 text-red-300 border-red-500/25' } :
+                        job.status === 'Processing' ? { label: 'Processando', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/25 animate-pulse' } :
+                        { label: 'Na fila', cls: 'bg-white/10 text-white/50 border-white/15' };
+                      const isDurable = (job.videoUrl ?? '').includes('/generated-media/');
+                      return (
+                        <div key={job.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/8 px-4 py-3">
+                          <span className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-medium border ${statusInfo.cls}`}>
+                            {statusInfo.label}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-white/70 truncate" title={job.prompt ?? undefined}>
+                              {job.prompt || '(sem prompt — imagem de referência)'}
+                            </p>
+                            <p className="text-[10px] text-white/30 mt-0.5">
+                              {new Date(job.createdAt).toLocaleString('pt-BR')}
+                              {job.providerUsed && <> · {job.providerUsed}</>}
+                              {job.estimatedCostUsd != null && (
+                                <> · {job.estimatedCostUsd === 0 ? 'grátis' : `~US$ ${job.estimatedCostUsd.toFixed(2)}`}</>
+                              )}
+                              {job.status === 'Completed' && !isDurable && <> · ⚠️ link do provider (pode expirar)</>}
+                              {job.status === 'Failed' && job.errorCategory && <> · {job.errorCategory}</>}
+                            </p>
+                          </div>
+                          {job.status === 'Completed' && job.videoUrl && (
+                            <div className="shrink-0 flex items-center gap-1.5">
+                              <a
+                                href={job.videoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-violet-300 hover:text-violet-200 bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/25 transition-all"
+                              >
+                                <Film className="h-3 w-3" /> Assistir
+                              </a>
+                              <a
+                                href={job.videoUrl}
+                                download={`diax-video-${job.id}.mp4`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] text-white/50 hover:text-white bg-white/8 hover:bg-white/12 border border-white/10 transition-all"
+                              >
+                                <Download className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

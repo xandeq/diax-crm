@@ -1,4 +1,5 @@
 using Diax.Application.AI;
+using Diax.Application.AI.MediaStorage;
 using Diax.Application.AI.VideoGeneration;
 using Diax.Application.AI.VideoGeneration.Dtos;
 using Diax.Domain.AI;
@@ -13,12 +14,14 @@ public class VideoJobServiceTests
     private readonly Mock<IVideoGenerationJobRepository> _jobRepo = new();
     private readonly Mock<IVideoGenerationService> _videoService = new();
     private readonly Mock<IAiModelValidator> _validator = new();
+    private readonly Mock<IGeneratedMediaStorageService> _mediaStorage = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private VideoJobService CreateService() => new(
         _jobRepo.Object,
         _videoService.Object,
         _validator.Object,
+        _mediaStorage.Object,
         _unitOfWork.Object,
         NullLogger<VideoJobService>.Instance);
 
@@ -112,11 +115,33 @@ public class VideoJobServiceTests
         Assert.Equal(1, processed);
         Assert.Equal(VideoGenerationJobStatus.Completed, job.Status);
         Assert.Equal("huggingface", job.ProviderUsed);
+        // storage durável falhou (mock retorna null) → mantém URL do provider
         Assert.Equal("https://cdn.example.com/video.mp4", job.VideoUrl);
         Assert.True(job.FallbackOccurred);
         Assert.Null(job.ReferenceImageBase64); // limpo ao concluir
         // claim (Processing) + resultado final = 2 saves
         _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ProcessNextAsync_StoresDurableVideoUrl_WhenStorageSucceeds()
+    {
+        var job = new VideoGenerationJob(Guid.NewGuid(), "runway", "gen4_turbo",
+            "prompt", null, 5, 1280, 720, "16:9", null, null, true);
+        _jobRepo.Setup(r => r.GetNextQueuedAsync(It.IsAny<CancellationToken>())).ReturnsAsync(job);
+        _videoService.Setup(v => v.GenerateAsync(
+                It.IsAny<VideoGenerationRequestDto>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new VideoGenerationResponseDto(
+                "runway", "gen4_turbo", "req-2", 21000,
+                "https://provider.example.com/expira-em-24h.mp4?jwt=abc", null));
+        _mediaStorage.Setup(m => m.TrySaveVideoAsync(
+                "https://provider.example.com/expira-em-24h.mp4?jwt=abc", job.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync($"https://api.example.com/generated-media/{job.Id:N}.mp4");
+
+        await CreateService().ProcessNextAsync();
+
+        Assert.Equal(VideoGenerationJobStatus.Completed, job.Status);
+        Assert.Equal($"https://api.example.com/generated-media/{job.Id:N}.mp4", job.VideoUrl);
     }
 
     [Fact]
