@@ -70,12 +70,14 @@ public class ProposalsController : BaseApiController
 
     /// <summary>Visão pública da proposta (o cliente abre este link).</summary>
     [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public")]
     [HttpGet("public/{token}")]
     public async Task<IActionResult> GetPublic(string token, CancellationToken ct)
         => HandleResult(await _proposalService.GetPublicAsync(token, ct));
 
     /// <summary>Aceite da proposta pelo cliente (link público).</summary>
     [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public")]
     [HttpPost("public/{token}/accept")]
     public async Task<IActionResult> AcceptPublic(string token, CancellationToken ct)
         => HandleResult(await _proposalService.AcceptPublicAsync(token, ct));

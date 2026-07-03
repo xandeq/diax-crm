@@ -50,6 +50,7 @@ public class MeetingsController : BaseApiController
 
     /// <summary>Slots livres dos próximos dias (link público de agendamento).</summary>
     [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public")]
     [HttpGet("public/availability")]
     public async Task<IActionResult> GetAvailability(
         [FromQuery] Guid u, [FromQuery] int days = 7, CancellationToken ct = default)
@@ -57,6 +58,7 @@ public class MeetingsController : BaseApiController
 
     /// <summary>Reserva de um slot pelo visitante (link público).</summary>
     [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public")]
     [HttpPost("public/book")]
     public async Task<IActionResult> Book([FromBody] PublicBookingRequest request, CancellationToken ct)
         => HandleResult(await _meetingService.BookPublicAsync(request, ct));

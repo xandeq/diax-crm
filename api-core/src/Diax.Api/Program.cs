@@ -273,6 +273,19 @@ builder.Services.AddRateLimiter(options =>
             });
     });
 
+    // Endpoints públicos (proposta/agendamento): 30 req/min por IP —
+    // barra scraping/enumeração de tokens sem atrapalhar uso legítimo.
+    options.AddPolicy("public", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"pub:{httpContext.Connection.RemoteIpAddress}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 30,
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
