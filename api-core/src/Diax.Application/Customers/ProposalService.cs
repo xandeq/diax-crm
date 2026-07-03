@@ -225,15 +225,17 @@ public class ProposalService : IApplicationService
         _logger.LogInformation("Proposal ACEITA pelo cliente: {ProposalId}", proposal.Id);
 
         var acceptedCustomer = await _customerRepository.GetByIdAsync(proposal.CustomerId, ct);
-        var contact = string.Join(" · ", new[]
-        {
-            acceptedCustomer?.Phone, acceptedCustomer?.WhatsApp, acceptedCustomer?.Email,
-        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        var phone = !string.IsNullOrWhiteSpace(acceptedCustomer?.Phone)
+            ? acceptedCustomer!.Phone : acceptedCustomer?.WhatsApp;
+        var contactParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(phone)) contactParts.Add(WhatsAppLink.AsHtml(phone));
+        if (!string.IsNullOrWhiteSpace(acceptedCustomer?.Email)) contactParts.Add(Esc(acceptedCustomer!.Email!));
+        var contact = string.Join(" · ", contactParts);
         await NotifyAsync(
             $"✅ <b>PROPOSTA ACEITA!</b> 🎉\n" +
             $"{Esc(proposal.Title)}\n" +
             $"Cliente: {Esc(acceptedCustomer?.Name ?? "—")} · Valor: <b>{proposal.Amount.ToString("C0", PtBr)}</b>\n" +
-            (contact.Length > 0 ? $"Contato: {Esc(contact)}\n" : "") +
+            (contact.Length > 0 ? $"Contato: {contact}\n" : "") +
             $"<i>Aguardando pagamento — marque como paga em crm.alexandrequeiroz.com.br/propostas quando o PIX cair.</i>", ct);
 
         return await GetPublicAsync(token, ct);

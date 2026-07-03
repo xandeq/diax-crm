@@ -10,7 +10,7 @@ public class CommercialBriefingFormatTests
 
     private static CommercialBriefingData Empty() => new(
         Today, new List<Meeting>(), new List<TaskItem>(), new List<Customer>(),
-        new List<Proposal>(), 12345m, 2500m, 1);
+        new List<Proposal>(), new List<Proposal>(), 12345m, 2500m, 1);
 
     [Fact]
     public void FormatBriefing_Empty_ShowsPipelineAndMotivation()
