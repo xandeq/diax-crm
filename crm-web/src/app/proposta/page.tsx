@@ -6,18 +6,32 @@ import {
   type PublicProposal,
 } from '@/services/proposals';
 import { AlertCircle, Check, CheckCircle2, Copy, FileText, Loader2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 /**
  * Página PÚBLICA da proposta — o cliente abre este link, lê, aceita e paga via PIX.
- * Sem autenticação (o token opaco na URL é a credencial).
+ * Sem autenticação (o token opaco na query string é a credencial).
+ * Rota estática (/proposta?t=TOKEN) porque o deploy usa output: export,
+ * que não suporta segmentos dinâmicos sem generateStaticParams.
  */
 export default function PublicProposalPage() {
-  const params = useParams<{ token: string }>();
-  const token = params?.token ?? '';
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0c0c0f] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-violet-400 animate-spin" />
+      </div>
+    }>
+      <ProposalContent />
+    </Suspense>
+  );
+}
+
+function ProposalContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams?.get('t') ?? '';
 
   const [proposal, setProposal] = useState<PublicProposal | null>(null);
   const [isLoading, setIsLoading] = useState(true);

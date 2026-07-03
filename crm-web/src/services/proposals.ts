@@ -72,7 +72,7 @@ export async function acceptPublicProposal(token: string): Promise<PublicProposa
   return apiFetch<PublicProposal>(`/proposals/public/${token}/accept`, { method: 'POST' });
 }
 
-/** Monta a URL pública da proposta a partir do token. */
+/** Monta a URL pública da proposta a partir do token (query string — deploy é export estático). */
 export function publicProposalUrl(token: string): string {
-  return `${window.location.origin}/proposta/${token}`;
+  return `${window.location.origin}/proposta?t=${token}`;
 }
