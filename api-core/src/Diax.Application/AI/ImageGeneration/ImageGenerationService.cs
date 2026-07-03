@@ -367,13 +367,14 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 $"Client de geração de imagem não encontrado para '{providerKey}'. " +
                 "Verifique se o client está registrado no container de DI.");
 
-        var apiKey = await TryResolveApiKeyAsync(provider, providerKey)
-            ?? throw new AiProviderException(
+        var apiKey = await TryResolveApiKeyAsync(provider, providerKey);
+        if (apiKey == null && !AiMediaFallbackPolicy.IsKeyless(providerKey))
+            throw new AiProviderException(
                 $"API Key não configurada para o provider '{providerKey}'. " +
                 "Configure a chave em Administração > AI > Providers ou nas variáveis de ambiente.",
                 AiErrorCategory.ConfigurationMissing);
 
-        return new GenerationCandidate(providerKey, provider, model, model.ModelKey, apiKey, client);
+        return new GenerationCandidate(providerKey, provider, model, model.ModelKey, apiKey ?? string.Empty, client);
     }
 
     /// <summary>
@@ -404,7 +405,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 if (provider == null) continue;
 
                 var apiKey = await TryResolveApiKeyAsync(provider, providerKey);
-                if (apiKey == null) continue;
+                if (apiKey == null && !AiMediaFallbackPolicy.IsKeyless(providerKey)) continue;
 
                 var models = (await _modelRepository.GetEnabledByProviderAsync(provider.Id, ct))
                     .Where(m => m.SupportsImageGeneration())
@@ -425,7 +426,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                     continue;
                 }
 
-                return new GenerationCandidate(providerKey, provider, model, model.ModelKey, apiKey, client);
+                return new GenerationCandidate(providerKey, provider, model, model.ModelKey, apiKey ?? string.Empty, client);
             }
             catch (Exception ex)
             {
@@ -464,6 +465,27 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
 
         var providerConfig = _promptSettings.GetProviderConfig(providerKey);
         return string.IsNullOrWhiteSpace(providerConfig?.ApiKey) ? null : providerConfig.ApiKey;
+    }
+
+    public async Task<List<ImageHistoryItemDto>> ListImagesAsync(
+        Guid userId, int take = 24, CancellationToken ct = default)
+    {
+        take = Math.Clamp(take, 1, 100);
+        var images = await _generatedImageRepository.GetByUserIdAsync(userId, 0, take, ct);
+
+        return images
+            .Select(i => new ImageHistoryItemDto(
+                Id: i.Id,
+                ImageUrl: i.StorageUrl ?? i.ProviderUrl ?? string.Empty,
+                Prompt: i.Prompt,
+                ProviderName: i.Provider?.Name,
+                ModelName: i.Model?.DisplayName,
+                Width: i.Width,
+                Height: i.Height,
+                EstimatedCostUsd: i.EstimatedCost,
+                CreatedAt: i.CreatedAt))
+            .Where(i => !string.IsNullOrWhiteSpace(i.ImageUrl))
+            .ToList();
     }
 
     private async Task<ImageGenerationProject> ResolveProjectAsync(

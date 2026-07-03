@@ -8,4 +8,7 @@ public interface IImageGenerationService
         ImageGenerationRequestDto request,
         Guid userId,
         CancellationToken ct = default);
+
+    /// <summary>Histórico de imagens do usuário (mais recentes primeiro; só itens com URL utilizável).</summary>
+    Task<List<ImageHistoryItemDto>> ListImagesAsync(Guid userId, int take = 24, CancellationToken ct = default);
 }

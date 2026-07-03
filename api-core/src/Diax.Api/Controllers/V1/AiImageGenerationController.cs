@@ -126,6 +126,22 @@ public class AiImageGenerationController : BaseAiController
         return Ok(jobs.Select(AbsolutizeMediaUrls).ToList());
     }
 
+    /// <summary>Histórico de imagens geradas do usuário (mais recentes primeiro).</summary>
+    [HttpGet("images")]
+    public async Task<IActionResult> ListImages([FromQuery] int take, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { Message = "Usuário não autenticado." });
+
+        var images = await _service.ListImagesAsync(userId.Value, take <= 0 ? 24 : take, ct);
+        // Absolutiza URLs relativas (mesma razão dos video-jobs)
+        var result = images.Select(i => i.ImageUrl.StartsWith('/')
+            ? i with { ImageUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{i.ImageUrl}" }
+            : i).ToList();
+        return Ok(result);
+    }
+
     /// <summary>
     /// O worker grava URLs de mídia relativas quando não há HttpContext/config —
     /// aqui (sempre dentro de um request) resolvemos para URL absoluta da API,

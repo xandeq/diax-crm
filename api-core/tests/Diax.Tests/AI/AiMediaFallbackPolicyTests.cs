@@ -32,9 +32,26 @@ public class AiMediaFallbackPolicyTests
     public void ImageProviderOrder_ContainsOnlyProvidersWithRegisteredClients()
     {
         // Keys precisam bater com ProviderName dos clients registrados no DI
-        var registeredImageClients = new[] { "openai", "openrouter", "gemini", "falai", "grok", "huggingface" };
+        var registeredImageClients = new[] { "openai", "openrouter", "gemini", "falai", "grok", "huggingface", "pollinations" };
         foreach (var key in AiMediaFallbackPolicy.ImageProviderOrder)
             Assert.Contains(key, registeredImageClients);
+    }
+
+    [Fact]
+    public void IsKeyless_TrueOnlyForPollinations()
+    {
+        Assert.True(AiMediaFallbackPolicy.IsKeyless("pollinations"));
+        Assert.True(AiMediaFallbackPolicy.IsKeyless("POLLINATIONS"));
+        Assert.False(AiMediaFallbackPolicy.IsKeyless("gemini"));
+        Assert.False(AiMediaFallbackPolicy.IsKeyless("huggingface"));
+    }
+
+    [Fact]
+    public void ImageProviderOrder_PutsFreeProvidersBeforePaid()
+    {
+        var order = AiMediaFallbackPolicy.ImageProviderOrder.ToList();
+        Assert.True(order.IndexOf("pollinations") < order.IndexOf("openai"));
+        Assert.True(order.IndexOf("huggingface") < order.IndexOf("falai"));
     }
 
     [Fact]
