@@ -55,6 +55,19 @@ public class ProposalsController : BaseApiController
         return HandleResult(await _proposalService.CancelAsync(id, userId.Value, ct));
     }
 
+    public record SendProposalEmailRequest(string? PublicBaseUrl);
+
+    /// <summary>Envia a proposta por email ao cliente (fallback multi-provider, idempotente por dia).</summary>
+    [HttpPost("{id:guid}/send-email")]
+    public async Task<IActionResult> SendEmail(
+        Guid id, [FromBody] SendProposalEmailRequest? request, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null) return Unauthorized(new { Message = "Usuário não autenticado." });
+        var result = await _proposalService.SendByEmailAsync(id, userId.Value, request?.PublicBaseUrl, ct);
+        return result.IsSuccess ? Ok(new { message = result.Value }) : HandleResult(result);
+    }
+
     /// <summary>Visão pública da proposta (o cliente abre este link).</summary>
     [AllowAnonymous]
     [HttpGet("public/{token}")]
