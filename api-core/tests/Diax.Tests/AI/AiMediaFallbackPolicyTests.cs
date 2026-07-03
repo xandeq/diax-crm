@@ -58,7 +58,7 @@ public class AiMediaFallbackPolicyTests
     public void VideoProviderOrder_ContainsOnlyProvidersWithRegisteredClients()
     {
         // Runway fica fora (exige imagem de referência); Shotstack fora (composição, não T2V)
-        var registeredVideoClients = new[] { "falai", "huggingface", "runway", "replicate", "shotstack", "wavespeed", "modelslab" };
+        var registeredVideoClients = new[] { "falai", "huggingface", "runway", "replicate", "shotstack", "wavespeed", "modelslab", "magichour" };
         foreach (var key in AiMediaFallbackPolicy.VideoProviderOrder)
             Assert.Contains(key, registeredVideoClients);
     }

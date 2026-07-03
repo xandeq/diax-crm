@@ -37,7 +37,7 @@ public static class AiMediaFallbackPolicy
     /// </summary>
     public static readonly IReadOnlyList<string> VideoProviderOrder = new[]
     {
-        "falai", "wavespeed", "modelslab", "huggingface", "replicate"
+        "magichour", "falai", "wavespeed", "modelslab", "huggingface", "replicate"
     };
 
     /// <summary>
@@ -60,6 +60,7 @@ public static class AiMediaFallbackPolicy
     public static readonly IReadOnlyDictionary<string, string> PreferredVideoModel =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            ["magichour"] = "default",
             ["falai"] = "fal-ai/ltx-video",
             ["wavespeed"] = "wavespeed-ai/wan-2.2/t2v-480p-ultra-fast",
             ["modelslab"] = "wan2.2",
