@@ -44,6 +44,7 @@ const navGroups: NavGroup[] = [
     items: [
       { icon: Target, label: 'Pipeline', href: '/pipeline' },
       { icon: TrendingUp, label: 'Dashboard Comercial', href: '/dashboard-comercial' },
+      { icon: FileText, label: 'Propostas', href: '/propostas' },
       { icon: Users, label: 'Clientes', href: '/customers/' },
       { icon: TrendingUp, label: 'Leads', children: [
         { label: 'Todos os Leads', href: '/leads/' },
@@ -479,6 +480,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { label: 'Ir para Daily Briefings', href: '/daily-briefings', category: 'Navegação' },
     { label: 'Ir para Pipeline de Vendas', href: '/pipeline', category: 'Navegação' },
     { label: 'Ir para Dashboard Comercial', href: '/dashboard-comercial', category: 'Navegação' },
+    { label: 'Ir para Propostas', href: '/propostas', category: 'Navegação' },
     { label: 'Ir para Clientes', href: '/customers', category: 'Navegação' },
     { label: 'Ir para Leads', href: '/leads', category: 'Navegação' },
     { label: 'Ir para Helpdesk', href: '/helpdesk', category: 'Navegação' },
