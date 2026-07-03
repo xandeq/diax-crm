@@ -83,7 +83,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         var requestedCandidate = await ResolveRequestedCandidateAsync(requestedProviderKey, request.Model, ct);
 
         // 2. Projeto (criado uma vez, sobrevive às tentativas de fallback)
-        var project = await ResolveProjectAsync(request, userId, ct);
+        var (project, isNewProject) = await ResolveProjectAsync(request, userId, ct);
 
         // 3. Prompt final (template do projeto, se houver)
         string? templatePrompt = null;
@@ -100,7 +100,11 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         var attemptErrors = new List<string>();
 
         project.SetProcessing();
-        await _projectRepository.UpdateAsync(project, ct);
+        // NUNCA chamar UpdateAsync num projeto recém-Added (antes do SaveChanges):
+        // o EF muda o estado Added→Modified, o INSERT vira UPDATE de 0 linhas e o
+        // SaveChanges inteiro falha — era isso que impedia a persistência do histórico.
+        if (!isNewProject)
+            await _projectRepository.UpdateAsync(project, ct);
 
         // 4. Loop de tentativas: provider solicitado primeiro, depois cadeia de fallback
         GenerationCandidate? candidate = requestedCandidate;
@@ -148,7 +152,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
                 var durationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
 
                 return await PersistSuccessAsync(
-                    request, userId, project, candidate, results, finalPrompt,
+                    request, userId, project, isNewProject, candidate, results, finalPrompt,
                     requestId, durationMs, requestedProviderKey, attempted, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
@@ -189,7 +193,8 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
 
         // 5. Todas as tentativas falharam
         project.SetFailed();
-        await _projectRepository.UpdateAsync(project, ct);
+        if (!isNewProject)
+            await _projectRepository.UpdateAsync(project, ct);
         await TrySaveChangesAsync(requestId, CancellationToken.None);
 
         var aggregate = string.Join(" | ", attemptErrors);
@@ -207,6 +212,7 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         ImageGenerationRequestDto request,
         Guid userId,
         ImageGenerationProject project,
+        bool isNewProject,
         GenerationCandidate candidate,
         List<ImageGenerationResult> results,
         string finalPrompt,
@@ -262,7 +268,8 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
         }
 
         project.SetCompleted();
-        await _projectRepository.UpdateAsync(project, ct);
+        if (!isNewProject)
+            await _projectRepository.UpdateAsync(project, ct);
 
         // Persistência explícita — antes disso NADA foi commitado (AddAsync só faz stage).
         var persisted = await TrySaveChangesAsync(requestId, ct);
@@ -488,21 +495,21 @@ public class ImageGenerationService : IApplicationService, IImageGenerationServi
             .ToList();
     }
 
-    private async Task<ImageGenerationProject> ResolveProjectAsync(
+    private async Task<(ImageGenerationProject Project, bool IsNew)> ResolveProjectAsync(
         ImageGenerationRequestDto request, Guid userId, CancellationToken ct)
     {
         if (request.ProjectId.HasValue)
         {
             var existing = await _projectRepository.GetByIdAsync(request.ProjectId.Value, ct)
                 ?? throw new ArgumentException($"Projeto '{request.ProjectId}' não encontrado.");
-            return existing;
+            return (existing, false);
         }
 
         var project = new ImageGenerationProject(
             userId: userId,
             name: $"Geração {DateTime.UtcNow:yyyy-MM-dd HH:mm}");
         await _projectRepository.AddAsync(project, ct);
-        return project;
+        return (project, true);
     }
 
     private static void ValidateRequest(ImageGenerationRequestDto request)
