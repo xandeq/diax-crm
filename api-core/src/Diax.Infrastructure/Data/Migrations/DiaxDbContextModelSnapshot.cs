@@ -2106,6 +2106,9 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasDatabaseName("UX_EmailEvent_QueueItem_EventType")
                         .HasFilter("[queue_item_id] IS NOT NULL");
 
+                    b.HasIndex("CustomerId", "EventType")
+                        .HasDatabaseName("IX_EmailEvent_Customer_EventType");
+
                     b.ToTable("email_events", (string)null);
                 });
 
@@ -5474,6 +5477,10 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(256)")
                         .HasColumnName("created_by");
 
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("customer_id");
+
                     b.Property<string>("Description")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)")
@@ -5515,6 +5522,8 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("UserId");
 

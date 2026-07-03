@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   getPipelineBoard,
   movePipelineStage,
+  recomputeLeadScores,
   updatePipelineDeal,
   type PipelineBoard,
   type PipelineCard,
@@ -15,6 +16,7 @@ import {
   Loader2,
   Phone,
   RefreshCw,
+  Sparkles,
   Target,
   TrendingUp,
   Trophy,
@@ -64,6 +66,8 @@ export default function PipelinePage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
   const [valueDraft, setValueDraft] = useState('');
+  const [isScoring, setIsScoring] = useState(false);
+  const [scoringMsg, setScoringMsg] = useState<string | null>(null);
 
   const loadBoard = useCallback(async () => {
     setError(null);
@@ -187,6 +191,30 @@ export default function PipelinePage() {
             </div>
             <button
               type="button"
+              disabled={isScoring}
+              onClick={async () => {
+                setIsScoring(true);
+                setScoringMsg(null);
+                try {
+                  const s = await recomputeLeadScores();
+                  setScoringMsg(
+                    `✅ ${s.leadsScored} leads pontuados — 🔥 ${s.hot} quentes · ${s.warm} mornos · ${s.cold} frios` +
+                    (s.followUpTasksCreated > 0 ? ` · 📋 ${s.followUpTasksCreated} follow-ups criados em Tarefas` : ''));
+                  await loadBoard();
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Erro ao recalcular scores.');
+                } finally {
+                  setIsScoring(false);
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300 text-xs font-medium transition-all disabled:opacity-60"
+              title="Recalcula o score de todos os leads (aberturas/cliques de email + cadastro) e cria tarefas de follow-up para os quentes parados"
+            >
+              {isScoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              Recalcular scores
+            </button>
+            <button
+              type="button"
               onClick={loadBoard}
               className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all"
               title="Atualizar"
@@ -196,6 +224,16 @@ export default function PipelinePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Resultado do scoring ── */}
+      {scoringMsg && (
+        <div className="max-w-screen-2xl mx-auto px-6 pt-4">
+          <div className="flex items-center gap-2 rounded-xl bg-violet-500/10 border border-violet-500/25 px-4 py-3 text-sm text-violet-200">
+            <span className="flex-1">{scoringMsg}</span>
+            <button type="button" onClick={() => setScoringMsg(null)} className="text-violet-300/60 hover:text-violet-200">✕</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Erro ── */}
       {error && (

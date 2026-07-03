@@ -508,6 +508,9 @@ public static class DependencyInjection
         // ===== VIDEO JOB QUEUE =====
         services.AddHostedService<VideoJobWorker>();
 
+        // ===== LEAD SCORING (diário) =====
+        services.AddHostedService<Diax.Infrastructure.Workers.LeadScoringWorker>();
+
         return services;
     }
 }

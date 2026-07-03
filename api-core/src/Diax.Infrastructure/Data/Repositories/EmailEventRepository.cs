@@ -23,4 +23,21 @@ public class EmailEventRepository : IEmailEventRepository
     {
         await _db.EmailEvents.AddAsync(emailEvent, cancellationToken);
     }
+
+    public async Task<List<CustomerEngagementSummary>> GetEngagementSummaryAsync(
+        CancellationToken cancellationToken = default)
+    {
+        // Agregação no servidor usando o índice (customer_id, event_type)
+        return await _db.EmailEvents
+            .Where(e => e.CustomerId != null)
+            .GroupBy(e => e.CustomerId!.Value)
+            .Select(g => new CustomerEngagementSummary(
+                g.Key,
+                g.Count(e => e.EventType == EmailEventType.Opened),
+                g.Count(e => e.EventType == EmailEventType.Clicked),
+                g.Count(e => e.EventType == EmailEventType.Bounced),
+                g.Where(e => e.EventType == EmailEventType.Opened || e.EventType == EmailEventType.Clicked)
+                    .Max(e => (DateTime?)e.OccurredAt)))
+            .ToListAsync(cancellationToken);
+    }
 }

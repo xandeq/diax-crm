@@ -12,6 +12,12 @@ public class TaskItem : AuditableEntity, IUserOwnedEntity
     public DateTime? CompletedAt { get; set; }
     public bool IsArchived { get; set; } = false;
 
+    /// <summary>
+    /// Cliente/lead vinculado (opcional) — usado pelos follow-ups automáticos
+    /// do pipeline para evitar tasks duplicadas para o mesmo lead.
+    /// </summary>
+    public Guid? CustomerId { get; set; }
+
     // IUserOwnedEntity
     public Guid UserId { get; set; }
 
