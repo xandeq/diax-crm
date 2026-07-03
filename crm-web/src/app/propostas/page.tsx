@@ -6,6 +6,7 @@ import {
   listProposals,
   markProposalPaid,
   publicProposalUrl,
+  sendProposalEmail,
   PROPOSAL_STATUS_LABEL,
   type Proposal,
 } from '@/services/proposals';
@@ -17,6 +18,7 @@ import {
   Eye,
   FileText,
   Loader2,
+  Mail,
   RefreshCw,
   XCircle,
 } from 'lucide-react';
@@ -50,6 +52,23 @@ export default function ProposalsPage() {
   const [filter, setFilter] = useState('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sentMsg, setSentMsg] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  const sendEmail = async (p: Proposal) => {
+    setSendingId(p.id);
+    setError(null);
+    setSentMsg(null);
+    try {
+      const msg = await sendProposalEmail(p.id);
+      setSentMsg(`📧 "${p.title}": ${msg}`);
+      load(); // atualiza status (Rascunho → Enviada)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao enviar o email.');
+    } finally {
+      setSendingId(null);
+    }
+  };
   const [confirmAction, setConfirmAction] = useState<{ id: string; kind: 'pay' | 'cancel'; title: string } | null>(null);
 
   const load = useCallback(() => {
@@ -157,6 +176,14 @@ export default function ProposalsPage() {
           </div>
         </div>
       )}
+      {sentMsg && (
+        <div className="max-w-screen-xl mx-auto px-6 pt-4">
+          <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-4 py-3 text-sm text-emerald-300">
+            <Check className="h-4 w-4 shrink-0" /> <span className="flex-1">{sentMsg}</span>
+            <button type="button" onClick={() => setSentMsg(null)} className="text-emerald-300/60 hover:text-emerald-200">✕</button>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmação */}
       {confirmAction && (
@@ -233,6 +260,18 @@ export default function ProposalsPage() {
                     {copiedId === p.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                     Link
                   </button>
+                  {(p.status === 0 || p.status === 1 || p.status === 2) && (
+                    <button
+                      type="button"
+                      onClick={() => sendEmail(p)}
+                      disabled={sendingId === p.id}
+                      className="h-8 px-2.5 rounded-lg text-[11px] font-medium bg-sky-600/15 border border-sky-500/25 text-sky-300 hover:bg-sky-600/25 flex items-center gap-1 transition-all disabled:opacity-50"
+                      title="Envia a proposta por email ao cliente (com botão de aceite e PIX)"
+                    >
+                      {sendingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                      Email
+                    </button>
+                  )}
                   {(p.status === 1 || p.status === 2) && (
                     <button
                       type="button"

@@ -63,6 +63,15 @@ export async function cancelProposal(id: string): Promise<Proposal> {
   return apiFetch<Proposal>(`/proposals/${id}/cancel`, { method: 'POST' });
 }
 
+/** Envia a proposta por email ao cliente (fallback multi-provider; idempotente por dia). */
+export async function sendProposalEmail(id: string): Promise<string> {
+  const r = await apiFetch<{ message: string }>(`/proposals/${id}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify({ publicBaseUrl: window.location.origin }),
+  });
+  return r.message;
+}
+
 // Públicos (sem auth — usados pela página /proposta/[token])
 export async function getPublicProposal(token: string): Promise<PublicProposal> {
   return apiFetch<PublicProposal>(`/proposals/public/${token}`, { method: 'GET' });
