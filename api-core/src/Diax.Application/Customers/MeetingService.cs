@@ -1,4 +1,5 @@
 using Diax.Application.Common;
+using Diax.Application.Notifications;
 using Diax.Domain.Auth;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
@@ -49,6 +50,7 @@ public class MeetingService : IApplicationService
     private readonly IUserRepository _userRepository;
     private readonly ITaskRepository _taskRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ITelegramSender _telegramSender;
     private readonly ILogger<MeetingService> _logger;
 
     public MeetingService(
@@ -57,6 +59,7 @@ public class MeetingService : IApplicationService
         IUserRepository userRepository,
         ITaskRepository taskRepository,
         IUnitOfWork unitOfWork,
+        ITelegramSender telegramSender,
         ILogger<MeetingService> logger)
     {
         _meetingRepository = meetingRepository;
@@ -64,6 +67,7 @@ public class MeetingService : IApplicationService
         _userRepository = userRepository;
         _taskRepository = taskRepository;
         _unitOfWork = unitOfWork;
+        _telegramSender = telegramSender;
         _logger = logger;
     }
 
@@ -201,6 +205,24 @@ public class MeetingService : IApplicationService
         _logger.LogInformation(
             "Reunião agendada: {MeetingId} {Contact} em {SlotBrt} BRT (customer: {CustomerId})",
             meeting.Id, meeting.ContactEmail, brt, meeting.CustomerId);
+
+        // 🔔 Avisa o dono na hora (fire-safe — falha no Telegram não quebra a reserva)
+        try
+        {
+            static string Esc(string s) => s
+                .Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+            await _telegramSender.SendAsync(
+                $"📅 <b>Nova reunião agendada!</b>\n" +
+                $"{Esc(meeting.ContactName)} — <b>{brt:dd/MM} às {brt:HH:mm}</b> (Brasília)\n" +
+                $"Email: {Esc(meeting.ContactEmail)}" +
+                (meeting.ContactPhone != null ? $" · Tel: {Esc(meeting.ContactPhone)}" : "") +
+                (meeting.Notes != null ? $"\nAssunto: {Esc(meeting.Notes)}" : "") +
+                (meeting.CustomerId != null ? "\n<i>Lead já existente no CRM — contato registrado.</i>" : ""), ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao notificar Telegram sobre a reunião (ignorada)");
+        }
 
         return ToDto(meeting);
     }

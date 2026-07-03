@@ -1,4 +1,6 @@
+using System.Globalization;
 using Diax.Application.Common;
+using Diax.Application.Notifications;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Shared.Results;
@@ -49,22 +51,43 @@ public class ProposalService : IApplicationService
     private const string MerchantName = "Alexandre Queiroz";
     private const string MerchantCity = "Vitoria";
 
+    private static readonly CultureInfo PtBr = new("pt-BR");
+
     private readonly IProposalRepository _proposalRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ITelegramSender _telegramSender;
     private readonly ILogger<ProposalService> _logger;
 
     public ProposalService(
         IProposalRepository proposalRepository,
         ICustomerRepository customerRepository,
         IUnitOfWork unitOfWork,
+        ITelegramSender telegramSender,
         ILogger<ProposalService> logger)
     {
         _proposalRepository = proposalRepository;
         _customerRepository = customerRepository;
         _unitOfWork = unitOfWork;
+        _telegramSender = telegramSender;
         _logger = logger;
     }
+
+    /// <summary>Notificação fire-safe: falha no Telegram nunca quebra o fluxo público.</summary>
+    private async Task NotifyAsync(string html, CancellationToken ct)
+    {
+        try
+        {
+            await _telegramSender.SendAsync(html, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao notificar Telegram (ignorada)");
+        }
+    }
+
+    private static string Esc(string s) => s
+        .Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 
     public async Task<Result<ProposalDto>> CreateAsync(
         CreateProposalRequest request, Guid userId, CancellationToken ct = default)
@@ -129,6 +152,16 @@ public class ProposalService : IApplicationService
         await _proposalRepository.UpdateAsync(proposal, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
+        // 🔔 Primeira visualização = momento quente — avisa o dono na hora
+        if (proposal.ViewCount == 1 && proposal.Status is not (ProposalStatus.Paid or ProposalStatus.Cancelled))
+        {
+            await NotifyAsync(
+                $"👀 <b>Proposta visualizada agora!</b>\n" +
+                $"{Esc(proposal.Title)}\n" +
+                $"Cliente: {Esc(customer?.Name ?? "—")} · Valor: {proposal.Amount.ToString("C0", PtBr)}\n" +
+                $"<i>Momento quente para fazer contato.</i>", ct);
+        }
+
         string? pix = null;
         if (!string.IsNullOrWhiteSpace(proposal.PixKey) && !proposal.IsExpired
             && proposal.Status is not (ProposalStatus.Paid or ProposalStatus.Cancelled))
@@ -164,6 +197,7 @@ public class ProposalService : IApplicationService
         if (proposal == null)
             return Result.Failure<PublicProposalDto>(Error.NotFound("Proposal", "token"));
 
+        var statusBefore = proposal.Status;
         try
         {
             proposal.Accept();
@@ -176,7 +210,23 @@ public class ProposalService : IApplicationService
         await _proposalRepository.UpdateAsync(proposal, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
+        if (statusBefore == ProposalStatus.Accepted)
+            return await GetPublicAsync(token, ct); // clique repetido — sem nova notificação
+
         _logger.LogInformation("Proposal ACEITA pelo cliente: {ProposalId}", proposal.Id);
+
+        var acceptedCustomer = await _customerRepository.GetByIdAsync(proposal.CustomerId, ct);
+        var contact = string.Join(" · ", new[]
+        {
+            acceptedCustomer?.Phone, acceptedCustomer?.WhatsApp, acceptedCustomer?.Email,
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        await NotifyAsync(
+            $"✅ <b>PROPOSTA ACEITA!</b> 🎉\n" +
+            $"{Esc(proposal.Title)}\n" +
+            $"Cliente: {Esc(acceptedCustomer?.Name ?? "—")} · Valor: <b>{proposal.Amount.ToString("C0", PtBr)}</b>\n" +
+            (contact.Length > 0 ? $"Contato: {Esc(contact)}\n" : "") +
+            $"<i>Aguardando pagamento — marque como paga em crm.alexandrequeiroz.com.br/propostas quando o PIX cair.</i>", ct);
+
         return await GetPublicAsync(token, ct);
     }
 
