@@ -67,6 +67,23 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<Dictionary<CustomerStatus, int>> GetStatusCountsAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .GroupBy(c => c.Status)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+    }
+
+    public async Task<Dictionary<LeadSegment, int>> GetSegmentCountsAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(c => c.Status < CustomerStatus.Customer && c.Segment != null)
+            .GroupBy(c => c.Segment!.Value)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+    }
+
     public async Task<IEnumerable<Customer>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
     {
         var idList = ids.ToList();

@@ -28,4 +28,26 @@ public class ProposalRepository : Repository<Proposal>, IProposalRepository
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<List<(ProposalStatus Status, int Count, decimal Total)>> GetStatusSummaryAsync(
+        Guid userId, CancellationToken cancellationToken = default)
+    {
+        var rows = await DbSet
+            .Where(p => p.UserId == userId)
+            .GroupBy(p => p.Status)
+            .Select(g => new { g.Key, Count = g.Count(), Total = g.Sum(p => p.Amount) })
+            .ToListAsync(cancellationToken);
+        return rows.Select(r => (r.Key, r.Count, r.Total)).ToList();
+    }
+
+    public async Task<List<Proposal>> GetPaidSinceAsync(
+        Guid userId, DateTime sinceUtc, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(p => p.UserId == userId
+                && p.Status == ProposalStatus.Paid
+                && p.PaidAt != null
+                && p.PaidAt >= sinceUtc)
+            .ToListAsync(cancellationToken);
+    }
 }

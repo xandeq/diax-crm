@@ -59,6 +59,12 @@ public interface ICustomerRepository : IRepository<Customer>
     /// </summary>
     Task<IEnumerable<Customer>> GetBySourceAsync(LeadSource source, CancellationToken cancellationToken = default);
 
+    /// <summary>Contagem por status (GroupBy no servidor) — funil do dashboard comercial.</summary>
+    Task<Dictionary<CustomerStatus, int>> GetStatusCountsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Contagem por segmento (Hot/Warm/Cold) entre leads abertos.</summary>
+    Task<Dictionary<LeadSegment, int>> GetSegmentCountsAsync(CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Verifica se já existe um cliente com o e-mail informado.
     /// </summary>
