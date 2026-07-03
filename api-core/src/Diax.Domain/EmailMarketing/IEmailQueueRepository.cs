@@ -13,6 +13,12 @@ public interface IEmailQueueRepository : IRepository<EmailQueueItem>
     Task<int> CountQueuedByProviderAsync(EmailProvider provider, CancellationToken cancellationToken = default);
     Task<int> CountFailedByProviderSinceAsync(EmailProvider provider, DateTime fromUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailQueueItem>> GetFailedForRetryAsync(int maxAttempts, DateTime cutoffUtc, CancellationToken cancellationToken = default);
+    Task<int> CountByStatusAsync(EmailQueueStatus status, CancellationToken cancellationToken = default);
+
+    /// <summary>Itens Failed com tentativas esgotadas (fora do alcance do retry) — candidatos à DLQ.</summary>
+    Task<IReadOnlyList<EmailQueueItem>> GetExhaustedFailedAsync(int minAttempts, int take, CancellationToken cancellationToken = default);
+
+    Task<(IEnumerable<EmailQueueItem> Items, int TotalCount)> GetDeadLetteredPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Itens presos em Processing há mais tempo que o limite (crash entre MarkProcessing e

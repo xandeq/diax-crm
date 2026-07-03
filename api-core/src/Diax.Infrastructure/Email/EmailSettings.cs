@@ -27,4 +27,20 @@ public class EmailSettings
     /// do worker e recebem reassinalação automática dos itens pendentes.
     /// </summary>
     public List<string> DisabledProviders { get; set; } = [];
+
+    /// <summary>
+    /// Fallback in-cycle: falha provider-level → tenta imediatamente o(s) próximo(s)
+    /// provider(s) habilitado(s) no MESMO ciclo, em vez de esperar o backoff do retry.
+    /// Erros de destinatário (bounce etc.) nunca fazem fallback.
+    /// </summary>
+    public bool InCycleFallbackEnabled { get; set; } = true;
+
+    /// <summary>Máximo de providers alternativos tentados por item dentro do ciclo.</summary>
+    public int MaxFallbackProvidersPerItem { get; set; } = 2;
+
+    /// <summary>
+    /// Alertas operacionais via Telegram (dead-letter, breakers abertos). Requer
+    /// Telegram:BotToken/ChatId configurados; sem eles vira no-op silencioso.
+    /// </summary>
+    public bool OpsAlertsEnabled { get; set; } = true;
 }

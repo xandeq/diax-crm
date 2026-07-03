@@ -38,6 +38,17 @@ public class EmailQueueCycleProcessorTests
         }
     }
 
+    private sealed class RecordingAlerter : IEmailOpsAlerter
+    {
+        public readonly List<(string Key, string Message)> Alerts = [];
+
+        public Task NotifyAsync(string throttleKey, string htmlMessage, CancellationToken cancellationToken = default)
+        {
+            Alerts.Add((throttleKey, htmlMessage));
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed class Harness
     {
         public Mock<IEmailQueueRepository> QueueRepo { get; } = new();
@@ -45,6 +56,7 @@ public class EmailQueueCycleProcessorTests
         public PilotCircuitBreaker PilotBreaker { get; } = new();
         public EmailProviderCircuitBreaker ProviderBreaker { get; } = new(TimeSpan.FromMinutes(5));
         public QueueFakeSender Sender { get; }
+        public RecordingAlerter Alerter { get; } = new();
         public EmailSettings Settings { get; }
         public EmailQueueCycleProcessor Processor { get; }
 
@@ -52,7 +64,9 @@ public class EmailQueueCycleProcessorTests
             QueueFakeSender? sender = null,
             string[]? disabledProviders = null,
             string? sandboxRedirectTo = null,
-            Dictionary<string, int>? providerDailyLimits = null)
+            Dictionary<string, int>? providerDailyLimits = null,
+            bool inCycleFallback = false,
+            int maxFallbackProviders = 2)
         {
             Sender = sender ?? new QueueFakeSender();
             Settings = new EmailSettings
@@ -60,7 +74,9 @@ public class EmailQueueCycleProcessorTests
                 DailyLimit = 1000,
                 HourlyLimit = 1000,
                 PerProviderBatchSize = 20,
-                SandboxRedirectTo = sandboxRedirectTo ?? string.Empty
+                SandboxRedirectTo = sandboxRedirectTo ?? string.Empty,
+                InCycleFallbackEnabled = inCycleFallback,
+                MaxFallbackProvidersPerItem = maxFallbackProviders
             };
 
             // Defaults seguros: nenhuma pendência em nenhum provider, nada para retry.
@@ -72,6 +88,9 @@ public class EmailQueueCycleProcessorTests
                 .ReturnsAsync([]);
             QueueRepo
                 .Setup(r => r.GetFailedForRetryAsync(It.IsAny<int>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync([]);
+            QueueRepo
+                .Setup(r => r.GetExhaustedFailedAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync([]);
             QueueRepo
                 .Setup(r => r.CountSentSinceAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
@@ -108,6 +127,7 @@ public class EmailQueueCycleProcessorTests
                 services.BuildServiceProvider(),
                 Options.Create(Settings),
                 chainMonitor.Object,
+                Alerter,
                 NullLogger<EmailQueueCycleProcessor>.Instance);
         }
 
@@ -160,7 +180,7 @@ public class EmailQueueCycleProcessorTests
     }
 
     [Fact]
-    public async Task StaleProcessing_AtMaxAttempts_IsFailedAndCounted()
+    public async Task StaleProcessing_AtMaxAttempts_IsDeadLetteredAndCounted()
     {
         var h = new Harness();
         var campaignId = Guid.NewGuid();
@@ -175,9 +195,11 @@ public class EmailQueueCycleProcessorTests
 
         await h.Processor.ProcessOnceAsync(CancellationToken.None);
 
-        Assert.Equal(EmailQueueStatus.Failed, stale.Status);
+        // Antes: Failed terminal invisível. Agora: DLQ visível + alerta.
+        Assert.Equal(EmailQueueStatus.DeadLettered, stale.Status);
         Assert.Contains("Processing", stale.LastError);
         h.CampaignRepo.Verify(r => r.IncrementFailedAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Contains(h.Alerter.Alerts, a => a.Key == "dlq:stale");
     }
 
     // ───── P1-7: providers desabilitados e reassinalação no retry ─────
@@ -275,6 +297,99 @@ public class EmailQueueCycleProcessorTests
         Assert.Equal("sandbox@test.local", sent.RecipientEmail);
         Assert.Contains("[SANDBOX p/ lead-real@cliente.com]", sent.Subject);
         Assert.Equal(EmailQueueStatus.Sent, item.Status);
+    }
+
+    // ───── fallback in-cycle entre providers (auditoria §11) ─────
+
+    [Fact]
+    public async Task SendFails_ProviderLevel_FallsBackToNextProviderSameCycle()
+    {
+        // 1ª chamada (titular brevo) falha; 2ª (fallback) sucede — mesmo fake registrado em todas as keys.
+        var calls = 0;
+        var sender = new QueueFakeSender(_ => ++calls == 1
+            ? EmailSendResult.Fail("erro 500 do provider")
+            : EmailSendResult.Ok("fb-msg"));
+        var h = new Harness(sender: sender, inCycleFallback: true);
+        var campaignId = Guid.NewGuid();
+        var item = NewItem(EmailProvider.Brevo, campaignId);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        Assert.NotEqual(EmailProvider.Brevo, item.AssignedProvider); // reatribuído ao provider que salvou
+        Assert.Equal(2, sender.Sent.Count);                          // titular + 1 fallback, MESMO ciclo
+        h.CampaignRepo.Verify(r => r.IncrementSentAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
+        h.CampaignRepo.Verify(r => r.IncrementFailedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SendFails_RecipientError_DoesNotFallback()
+    {
+        var sender = new QueueFakeSender(_ => EmailSendResult.Fail("bounce: mailbox not found"));
+        var h = new Harness(sender: sender, inCycleFallback: true);
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Single(sender.Sent); // endereço ruim: NÃO queima os outros providers
+        Assert.Equal(EmailQueueStatus.Failed, item.Status); // tentativa 1 de 3 — segue para retry
+    }
+
+    [Fact]
+    public async Task SendFails_AllFallbacksFail_MarksFailedWithErrorChain()
+    {
+        var sender = new QueueFakeSender(_ => EmailSendResult.Fail("erro 500"));
+        var h = new Harness(sender: sender, inCycleFallback: true, maxFallbackProviders: 2);
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(3, sender.Sent.Count); // titular + 2 fallbacks
+        Assert.Equal(EmailQueueStatus.Failed, item.Status);
+        Assert.Contains("|", item.LastError); // cadeia de erros por provider preservada
+    }
+
+    // ───── DLQ: tentativas esgotadas viram DeadLettered + alerta ─────
+
+    [Fact]
+    public async Task ThirdAttemptFails_GoesToDeadLetter_AndAlerts()
+    {
+        var sender = new QueueFakeSender(_ => EmailSendResult.Fail("erro 500"));
+        var h = new Harness(sender: sender);
+        var campaignId = Guid.NewGuid();
+        var item = NewItem(EmailProvider.Brevo, campaignId);
+        item.MarkProcessing();
+        item.MarkProcessing();               // AttemptCount = 2
+        item.Requeue(DateTime.UtcNow.AddMinutes(-1));
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.DeadLettered, item.Status); // 3ª falha = fim da linha visível
+        h.CampaignRepo.Verify(r => r.IncrementFailedAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Contains(h.Alerter.Alerts, a => a.Key.StartsWith("dlq:") && a.Message.Contains(item.RecipientEmail));
+    }
+
+    [Fact]
+    public async Task ExhaustedFailedLegacy_IsSweptToDeadLetter()
+    {
+        var h = new Harness();
+        var legacy = NewItem(EmailProvider.Brevo);
+        legacy.MarkProcessing();
+        legacy.MarkProcessing();
+        legacy.MarkProcessing();             // AttemptCount = 3
+        legacy.MarkFailed("erro antigo");
+        h.QueueRepo
+            .Setup(r => r.GetExhaustedFailedAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([legacy]);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.DeadLettered, legacy.Status);
+        Assert.Contains(h.Alerter.Alerts, a => a.Key == "dlq:sweep");
     }
 
     // ───── caminho feliz continua funcionando ─────

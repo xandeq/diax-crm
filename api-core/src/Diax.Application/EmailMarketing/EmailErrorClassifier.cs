@@ -34,4 +34,22 @@ public static class EmailErrorClassifier
     // Rate-limit puro (sem sinal de auth) é transitório — não conta para a janela de erro
     public static bool IsIgnorable(string? errorMsg)
         => IsTransientRateLimit(errorMsg) && !IsCriticalAuthError(errorMsg);
+
+    /// <summary>
+    /// Erro do DESTINATÁRIO (endereço inválido/bounce/bloqueado) — trocar de provider
+    /// não resolve; o fallback in-cycle deve ser pulado para não queimar quota dos
+    /// outros providers com um endereço ruim.
+    /// </summary>
+    public static bool IsRecipientError(string? errorMsg)
+    {
+        if (string.IsNullOrEmpty(errorMsg)) return false;
+        return errorMsg.Contains("bounce", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("invalid recipient", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("recipient rejected", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("mailbox not found", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("unsubscribed", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("suppressed", StringComparison.OrdinalIgnoreCase)
+            || errorMsg.Contains("blocked address", StringComparison.OrdinalIgnoreCase);
+    }
 }
