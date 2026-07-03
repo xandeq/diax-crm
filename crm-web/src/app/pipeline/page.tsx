@@ -247,6 +247,12 @@ export default function PipelinePage() {
                       {isOver ? 'Solte aqui' : 'Vazio'}
                     </p>
                   )}
+                  {col.count > col.cards.length && (
+                    <p className="text-[10px] text-white/30 text-center py-1 bg-white/[0.03] rounded-lg border border-white/5"
+                      title="O board prioriza os negócios de maior valor e score. Defina valores nos leads para trazê-los para o topo.">
+                      mostrando top {col.cards.length} de {col.count}
+                    </p>
+                  )}
                   {col.cards.map(card => {
                     const idle = daysSince(card.lastContactAt);
                     const isUpdating = updatingId === card.id;
