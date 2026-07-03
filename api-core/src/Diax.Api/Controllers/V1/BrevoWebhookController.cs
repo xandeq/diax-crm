@@ -211,8 +211,16 @@ public class BrevoWebhookController : BaseApiController
 
         var queueItem = items.FirstOrDefault();
 
-        // Idempotência por item: só conta a PRIMEIRA abertura (open count = aberturas únicas).
-        if (queueItem != null && queueItem.OpenedAt.HasValue)
+        // Idempotência em duas camadas:
+        // - firstOpen: primeira abertura do item → conta no item e na campanha (aberturas únicas)
+        // - ledger: EmailEvent(Opened) por (queue item, tipo) — alimenta o lead scoring.
+        //   Itens abertos ANTES do ledger existir (jun/2026) têm OpenedAt mas não têm o
+        //   evento; o replay/backfill preenche o ledger sem duplicar contadores.
+        var firstOpen = queueItem != null && !queueItem.OpenedAt.HasValue;
+        var inLedger = queueItem != null &&
+            await _emailEventRepository.ExistsAsync(queueItem.Id, EmailEventType.Opened, cancellationToken);
+
+        if (queueItem != null && !firstOpen && inLedger)
         {
             _logger.LogInformation("Opened event ignored (already opened): ProviderMessageId={MessageId}", payload.MessageId);
             return;
@@ -220,18 +228,34 @@ public class BrevoWebhookController : BaseApiController
 
         if (queueItem != null)
         {
-            queueItem.RecordOpen();
+            if (firstOpen)
+                queueItem.RecordOpen();
+
+            if (!inLedger)
+            {
+                await _emailEventRepository.AddAsync(new EmailEvent(
+                    queueItem.UserId,
+                    queueItem.AssignedProvider,
+                    EmailEventType.Opened,
+                    queueItem.Id,
+                    queueItem.CustomerId,
+                    queueItem.CampaignId,
+                    payload.MessageId), cancellationToken);
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             _logger.LogInformation(
-                "Email opened: QueueItemId={QueueItemId}, ProviderMessageId={MessageId}, ReadCount={ReadCount}",
-                queueItem.Id, payload.MessageId, queueItem.ReadCount);
+                "Email opened: QueueItemId={QueueItemId}, ProviderMessageId={MessageId}, ReadCount={ReadCount}, FirstOpen={FirstOpen}",
+                queueItem.Id, payload.MessageId, queueItem.ReadCount, firstOpen);
         }
 
-        // Incrementa o contador da campanha pelo CampaignId do item (robusto, igual ao
-        // fluxo de 'delivered'), com fallback para o tag por compatibilidade. O tag do
-        // Brevo nem sempre chega como GUID puro, então não dá para depender só dele.
+        // Contador da campanha só na PRIMEIRA abertura do item (aberturas únicas) —
+        // replays/backfills não inflam a métrica. Fallback para o tag quando o item
+        // não foi localizado (comportamento original).
         var campaignId = queueItem?.CampaignId
             ?? (Guid.TryParse(payload.Tag, out var tagId) ? tagId : (Guid?)null);
+        if (queueItem != null && !firstOpen)
+            campaignId = null;
         if (campaignId.HasValue)
         {
             var campaign = await _emailCampaignRepository.GetByIdAsync(campaignId.Value, cancellationToken);
