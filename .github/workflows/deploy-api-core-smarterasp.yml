@@ -134,6 +134,8 @@ jobs:
             --arg hostgatorVendasPass "${{ secrets.HOSTGATOR_VENDAS_PASS }}" \
             --arg hostgatorContatoPass "${{ secrets.HOSTGATOR_CONTATO_PASS }}" \
             --arg hostgatorEnvioPass "${{ secrets.HOSTGATOR_ENVIO_PASS }}" \
+            --arg telegramBotToken "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            --arg telegramChatId "${{ secrets.TELEGRAM_CHAT_ID }}" \
             --arg googleSheetsJson "$GOOGLE_SHEETS_SA_JSON" \
             --arg googleSheetsSpreadsheetId "$GOOGLE_SHEETS_SPREADSHEET_ID" \
             --arg ga4PropertyId "$GA4_PROPERTY_ID" \
@@ -266,6 +268,10 @@ jobs:
               "Extrator": {
                 "Url": $extractorUrl,
                 "ApiToken": $extractorToken
+              },
+              "Telegram": {
+                "BotToken": $telegramBotToken,
+                "ChatId": $telegramChatId
               },
               "ServiceApiKey": $serviceApiKey,
               "Integrations": {

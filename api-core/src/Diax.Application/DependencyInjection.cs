@@ -61,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<LeadScoringService>();
         services.AddScoped<ProposalService>();
         services.AddScoped<MeetingService>();
+        services.AddScoped<CommercialBriefingService>();
         services.AddScoped<ILeadSanitizationService, LeadSanitizationService>();
         services.AddScoped<CreditCardService>();
         services.AddScoped<CreditCardGroupService>();

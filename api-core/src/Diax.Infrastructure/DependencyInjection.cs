@@ -513,6 +513,10 @@ public static class DependencyInjection
         // ===== LEAD SCORING (diário) =====
         services.AddHostedService<Diax.Infrastructure.Workers.LeadScoringWorker>();
 
+        // ===== TELEGRAM + BRIEFING COMERCIAL (diário) =====
+        services.AddHttpClient<Diax.Application.Notifications.ITelegramSender, Diax.Infrastructure.Notifications.TelegramSender>();
+        services.AddHostedService<Diax.Infrastructure.Workers.CommercialBriefingWorker>();
+
         return services;
     }
 }
