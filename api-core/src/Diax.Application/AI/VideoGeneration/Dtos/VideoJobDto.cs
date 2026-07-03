@@ -5,6 +5,7 @@ public record VideoJobDto(
     string Status,          // Queued | Processing | Completed | Failed
     string Provider,
     string Model,
+    string? Prompt,
     string? ProviderUsed,
     string? ModelUsed,
     string? VideoUrl,

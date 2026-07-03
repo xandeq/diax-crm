@@ -139,6 +139,7 @@ export interface VideoJobDto {
   status: VideoJobStatus;
   provider: string;
   model: string;
+  prompt?: string | null;
   providerUsed?: string | null;
   modelUsed?: string | null;
   videoUrl?: string | null;

@@ -1,6 +1,7 @@
 using Diax.Application.AI.MediaStorage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Diax.Infrastructure.Ai;
@@ -12,7 +13,15 @@ namespace Diax.Infrastructure.Ai;
 public class GeneratedMediaStorageService : IGeneratedMediaStorageService
 {
     private const string MediaFolder = "generated-media";
-    private const int MaxDownloadBytes = 25 * 1024 * 1024; // 25MB — imagens de IA raramente passam de 10MB
+    private const int MaxDownloadBytes = 25 * 1024 * 1024;      // 25MB — imagens de IA raramente passam de 10MB
+    private const long MaxVideoDownloadBytes = 200 * 1024 * 1024; // 200MB — vídeos curtos ficam em 5–30MB
+
+    private static readonly Dictionary<string, string> VideoMimeToExtension = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["video/mp4"] = ".mp4",
+        ["video/webm"] = ".webm",
+        ["video/quicktime"] = ".mov",
+    };
 
     private static readonly Dictionary<string, string> MimeToExtension = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -27,17 +36,22 @@ public class GeneratedMediaStorageService : IGeneratedMediaStorageService
     private readonly IWebHostEnvironment _environment;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<GeneratedMediaStorageService> _logger;
+    private readonly string? _publicBaseUrl;
 
     public GeneratedMediaStorageService(
         HttpClient httpClient,
         IWebHostEnvironment environment,
         IHttpContextAccessor httpContextAccessor,
+        IConfiguration configuration,
         ILogger<GeneratedMediaStorageService> logger)
     {
         _httpClient = httpClient;
-        _httpClient.Timeout = TimeSpan.FromSeconds(60);
+        _httpClient.Timeout = TimeSpan.FromSeconds(120); // vídeos de dezenas de MB
         _environment = environment;
         _httpContextAccessor = httpContextAccessor;
+        // Necessário fora de um request HTTP (ex.: VideoJobWorker) — sem HttpContext
+        // não há como derivar o host, e URL relativa não funciona no frontend (outro domínio).
+        _publicBaseUrl = configuration["MediaStorage:PublicBaseUrl"]?.TrimEnd('/');
         _logger = logger;
     }
 
@@ -152,6 +166,69 @@ public class GeneratedMediaStorageService : IGeneratedMediaStorageService
         return (bytes, extension);
     }
 
+    public async Task<string?> TrySaveVideoAsync(
+        string videoUrl,
+        Guid mediaId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(videoUrl) || !videoUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            using var response = await _httpClient.GetAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "[GeneratedMediaStorage] Download de vídeo falhou HTTP {Status} para media {MediaId}",
+                    (int)response.StatusCode, mediaId);
+                return null;
+            }
+
+            if (response.Content.Headers.ContentLength is > MaxVideoDownloadBytes)
+            {
+                _logger.LogWarning(
+                    "[GeneratedMediaStorage] Vídeo excede {Max}MB — mantendo URL do provider. Media {MediaId}",
+                    MaxVideoDownloadBytes / (1024 * 1024), mediaId);
+                return null;
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "video/mp4";
+            var extension = VideoMimeToExtension.TryGetValue(contentType, out var ext) ? ext : ".mp4";
+
+            var fileName = $"{mediaId:N}{extension}";
+            var folderPath = Path.Combine(_environment.WebRootPath ?? _environment.ContentRootPath, MediaFolder);
+            Directory.CreateDirectory(folderPath);
+            var filePath = Path.Combine(folderPath, fileName);
+
+            // Stream direto para disco (vídeos não cabem confortavelmente em memória)
+            await using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var httpStream = await response.Content.ReadAsStreamAsync(ct))
+            {
+                await httpStream.CopyToAsync(fileStream, ct);
+            }
+
+            var sizeBytes = new FileInfo(filePath).Length;
+            if (sizeBytes == 0)
+            {
+                File.Delete(filePath);
+                _logger.LogWarning("[GeneratedMediaStorage] Vídeo baixado vazio para media {MediaId}", mediaId);
+                return null;
+            }
+
+            _logger.LogInformation(
+                "[GeneratedMediaStorage] Vídeo {MediaId} salvo ({SizeMB:F1} MB) em {FileName}",
+                mediaId, sizeBytes / 1024.0 / 1024.0, fileName);
+
+            return BuildPublicUrl(fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[GeneratedMediaStorage] Falha ao salvar vídeo {MediaId}", mediaId);
+            return null;
+        }
+    }
+
     private string BuildPublicUrl(string fileName)
     {
         var httpContext = _httpContextAccessor.HttpContext;
@@ -162,6 +239,10 @@ public class GeneratedMediaStorageService : IGeneratedMediaStorageService
             var pathBase = httpContext.Request.PathBase.Value;
             return $"{scheme}://{host}{pathBase}/{MediaFolder}/{fileName}";
         }
+
+        // Fora de request (worker em background): usa a base configurada
+        if (!string.IsNullOrWhiteSpace(_publicBaseUrl))
+            return $"{_publicBaseUrl}/{MediaFolder}/{fileName}";
 
         return $"/{MediaFolder}/{fileName}";
     }
