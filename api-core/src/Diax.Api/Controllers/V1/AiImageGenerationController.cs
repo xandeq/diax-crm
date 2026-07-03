@@ -94,7 +94,7 @@ public class AiImageGenerationController : BaseAiController
             ct,
             async userId => {
                 var job = await _videoJobService.EnqueueAsync(request, userId, ct);
-                return StatusCode(202, job);
+                return StatusCode(202, AbsolutizeMediaUrls(job));
             }
         );
     }
@@ -111,7 +111,7 @@ public class AiImageGenerationController : BaseAiController
         if (job == null)
             return NotFound(new { Message = "Job não encontrado." });
 
-        return Ok(job);
+        return Ok(AbsolutizeMediaUrls(job));
     }
 
     /// <summary>Lista os jobs de vídeo do usuário (mais recentes primeiro).</summary>
@@ -123,6 +123,20 @@ public class AiImageGenerationController : BaseAiController
             return Unauthorized(new { Message = "Usuário não autenticado." });
 
         var jobs = await _videoJobService.ListAsync(userId.Value, take <= 0 ? 20 : take, ct);
-        return Ok(jobs);
+        return Ok(jobs.Select(AbsolutizeMediaUrls).ToList());
+    }
+
+    /// <summary>
+    /// O worker grava URLs de mídia relativas quando não há HttpContext/config —
+    /// aqui (sempre dentro de um request) resolvemos para URL absoluta da API,
+    /// já que o frontend roda em outro domínio e uma URL relativa quebraria.
+    /// </summary>
+    private VideoJobDto AbsolutizeMediaUrls(VideoJobDto dto)
+    {
+        if (dto.VideoUrl != null && dto.VideoUrl.StartsWith('/'))
+            dto = dto with { VideoUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{dto.VideoUrl}" };
+        if (dto.ThumbnailUrl != null && dto.ThumbnailUrl.StartsWith('/'))
+            dto = dto with { ThumbnailUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{dto.ThumbnailUrl}" };
+        return dto;
     }
 }
