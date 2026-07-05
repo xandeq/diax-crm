@@ -38,16 +38,10 @@ public class ElasticEmailSender : IEmailSender
         {
             var payload = new ElasticEmailRequest
             {
+                // v4 transactional espera "to" como lista de strings, não objetos
                 Recipients = new ElasticEmailRecipients
                 {
-                    To = [new ElasticEmailContact
-                    {
-                        Email = message.RecipientEmail,
-                        Fields = new Dictionary<string, string>
-                        {
-                            ["name"] = message.RecipientName ?? string.Empty
-                        }
-                    }]
+                    To = [message.RecipientEmail]
                 },
                 Content = new ElasticEmailContent
                 {
@@ -108,7 +102,7 @@ public class ElasticEmailSender : IEmailSender
             {
                 Recipients = new ElasticEmailRecipients
                 {
-                    To = message.To.Select(a => new ElasticEmailContact { Email = a.Address }).ToList()
+                    To = message.To.Select(a => a.Address).ToList()
                 },
                 Content = new ElasticEmailContent
                 {
@@ -150,13 +144,7 @@ public class ElasticEmailSender : IEmailSender
 
     private sealed class ElasticEmailRecipients
     {
-        public List<ElasticEmailContact> To { get; set; } = [];
-    }
-
-    private sealed class ElasticEmailContact
-    {
-        public string Email { get; set; } = string.Empty;
-        public Dictionary<string, string>? Fields { get; set; }
+        public List<string> To { get; set; } = [];
     }
 
     private sealed class ElasticEmailContent
