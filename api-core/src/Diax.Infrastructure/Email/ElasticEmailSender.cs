@@ -163,6 +163,7 @@ public class ElasticEmailSender : IEmailSender
 
     private sealed class ElasticEmailResponse
     {
+        [JsonPropertyName("TransactionID")]
         public string? TransactionId { get; set; }
     }
 }
