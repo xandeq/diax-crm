@@ -7,5 +7,6 @@ public enum EmailProvider
     Resend = 2,
     ElasticEmail = 3,
     MailerSend = 4,
-    SendGrid = 5
+    SendGrid = 5,
+    Mailtrap = 6
 }

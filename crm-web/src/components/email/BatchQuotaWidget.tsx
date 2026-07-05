@@ -11,6 +11,7 @@ const PROVIDER_ACCENT: Record<string, { bar: string; text: string; bg: string }>
   SendGrid:     { bar: 'bg-teal-500',   text: 'text-teal-700',   bg: 'bg-teal-50' },
   MailerSend:   { bar: 'bg-green-500',  text: 'text-green-700',  bg: 'bg-green-50' },
   ElasticEmail: { bar: 'bg-rose-500',   text: 'text-rose-700',   bg: 'bg-rose-50' },
+  Mailtrap:     { bar: 'bg-cyan-500',   text: 'text-cyan-700',   bg: 'bg-cyan-50' },
 }
 
 function barColor(pct: number) {

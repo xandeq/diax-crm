@@ -36,6 +36,7 @@ public class EmailProviderPolicy : IEmailProviderPolicy
         ("elasticemail", EmailProvider.ElasticEmail),
         ("mailersend",   EmailProvider.MailerSend),
         ("sendgrid",     EmailProvider.SendGrid),
+        ("mailtrap",     EmailProvider.Mailtrap),
     ];
 
     private readonly IOptionsMonitor<EmailProviderPolicyOptions> _options;

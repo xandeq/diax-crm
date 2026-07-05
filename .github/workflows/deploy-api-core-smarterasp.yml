@@ -113,6 +113,7 @@ jobs:
             --arg resendApiKey "${{ secrets.RESEND_API_KEY }}" \
             --arg sendgridApiKey "${{ secrets.SENDGRID_API_KEY }}" \
             --arg mailersendApiToken "${{ secrets.MAILERSEND_API_TOKEN }}" \
+            --arg mailtrapApiToken "${{ secrets.MAILTRAP_API_TOKEN }}" \
             --arg elasticemailApiKey "${{ secrets.ELASTICEMAIL_API_KEY }}" \
             --arg smtpHost "${{ secrets.SMTP_HOST }}" \
             --argjson smtpPort 465 \
@@ -246,6 +247,12 @@ jobs:
               },
               "MailerSend": {
                 "ApiToken": $mailersendApiToken,
+                "FromEmail": "contato@alexandrequeiroz.com.br",
+                "FromName": "Alexandre Queiroz Marketing Digital",
+                "ReplyTo": "contato@alexandrequeiroz.com.br"
+              },
+              "Mailtrap": {
+                "ApiToken": $mailtrapApiToken,
                 "FromEmail": "contato@alexandrequeiroz.com.br",
                 "FromName": "Alexandre Queiroz Marketing Digital",
                 "ReplyTo": "contato@alexandrequeiroz.com.br"

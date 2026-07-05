@@ -14,6 +14,7 @@ public class SmartPreselectResponse
     public int SendGridCount     => ProviderCounts.GetValueOrDefault("SendGrid");
     public int MailerSendCount   => ProviderCounts.GetValueOrDefault("MailerSend");
     public int ElasticEmailCount => ProviderCounts.GetValueOrDefault("ElasticEmail");
+    public int MailtrapCount     => ProviderCounts.GetValueOrDefault("Mailtrap");
 }
 
 public class PreselectedLeadDto

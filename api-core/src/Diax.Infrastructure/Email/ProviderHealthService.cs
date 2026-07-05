@@ -19,6 +19,7 @@ public class ProviderHealthService : IProviderHealthService
         (EmailProvider.ElasticEmail, "ElasticEmail"),
         (EmailProvider.MailerSend,   "MailerSend"),
         (EmailProvider.SendGrid,     "SendGrid"),
+        (EmailProvider.Mailtrap,     "Mailtrap"),
     ];
 
     public ProviderHealthService(IEmailQueueRepository repository, IOptions<EmailSettings> settings)
