@@ -51,3 +51,6 @@ service_account.json
 api-core/nul
 nul
 .playwright-mcp/
+
+# Local agent worktrees (machine-local paths, not shareable)
+.claude/worktrees/
