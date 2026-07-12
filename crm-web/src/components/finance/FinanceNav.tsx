@@ -6,6 +6,7 @@ import {
     Calendar,
     CreditCard,
     FileInput,
+    FileSearch,
     Landmark,
     LayoutDashboard,
     List,
@@ -55,6 +56,11 @@ const navItems = [
     name: 'Transferências',
     href: '/finance/transfers',
     icon: ArrowRightLeft
+  },
+  {
+    name: 'Auditoria Jun/Jul 2026',
+    href: '/finance/auditoria',
+    icon: FileSearch
   }
 ];
 
