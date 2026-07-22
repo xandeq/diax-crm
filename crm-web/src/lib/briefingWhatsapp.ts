@@ -63,6 +63,26 @@ function stripTags(s: string): string {
   return s.replace(/<[^>]+>/g, '');
 }
 
+// TLDs "reais" — evita transformar nomes de arquivo (app.py, README.md) em URL.
+const URL_TLDS = 'com|com\\.br|br|dev|ai|io|net|org|app|co|gov|edu|me|xyz|tech|info|site|online';
+
+/**
+ * Prefixa `https://` em URLs "nuas" em texto puro (ex.: `anthropic.com/news` que a
+ * rotina imprime "por extenso"). Não toca em emails, em URLs já com esquema, nem em
+ * tokens que não terminem num TLD conhecido.
+ */
+export function fixBareUrls(s: string): string {
+  const re = new RegExp(
+    `(?<![\\w/@.])((?:[a-z0-9][a-z0-9-]*\\.)+(?:${URL_TLDS}))(/[^\\s)\\]]*)?`,
+    'gi',
+  );
+  return s.replace(re, (m) => {
+    const trail = m.match(/[.,;:!?]+$/)?.[0] ?? '';
+    const core = trail ? m.slice(0, -trail.length) : m;
+    return 'https://' + core + trail;
+  });
+}
+
 /* ──────────────────────────── HTML → WhatsApp ───────────────────────── */
 
 export function htmlToWhatsApp(html: string): string {
@@ -137,6 +157,9 @@ export function htmlToWhatsApp(html: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .replace(/\n{2,}(?=• )/g, '\n') // bullets sempre coladas (lista compacta)
     .trim();
+
+  // 11. URLs "nuas" em texto puro ganham esquema (https/http/www)
+  s = fixBareUrls(s);
 
   return s;
 }

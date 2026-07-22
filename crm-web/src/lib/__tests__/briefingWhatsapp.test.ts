@@ -3,6 +3,7 @@ import {
   htmlToWhatsApp,
   normalizeUrl,
   decodeEntities,
+  fixBareUrls,
   splitBriefingSections,
   sectionToWhatsApp,
   briefingToWhatsApp,
@@ -45,6 +46,28 @@ describe('decodeEntities', () => {
   });
   it('deixa entidade desconhecida intacta', () => {
     expect(decodeEntities('&unknownthing;')).toBe('&unknownthing;');
+  });
+});
+
+describe('fixBareUrls', () => {
+  it('prefixa https em URL nua de texto puro', () => {
+    expect(fixBareUrls('Fonte: anthropic.com/news')).toBe('Fonte: https://anthropic.com/news');
+    expect(fixBareUrls('veja claude.ai hoje')).toBe('veja https://claude.ai hoje');
+    expect(fixBareUrls('docs.anthropic.com/en/api')).toBe('https://docs.anthropic.com/en/api');
+  });
+  it('não duplica esquema em URL já completa', () => {
+    expect(fixBareUrls('https://anthropic.com/news')).toBe('https://anthropic.com/news');
+    expect(fixBareUrls('www.anthropic.com/x')).toBe('https://www.anthropic.com/x');
+  });
+  it('não toca emails', () => {
+    expect(fixBareUrls('contato@alexandrequeiroz.com.br')).toBe('contato@alexandrequeiroz.com.br');
+  });
+  it('não toca nomes de arquivo (TLD desconhecido)', () => {
+    expect(fixBareUrls('rode app.py e README.md')).toBe('rode app.py e README.md');
+  });
+  it('pontuação final fica fora do link', () => {
+    expect(fixBareUrls('em anthropic.com/news.')).toBe('em https://anthropic.com/news.');
+    expect(fixBareUrls('fonte: anthropic.com/news:')).toBe('fonte: https://anthropic.com/news:');
   });
 });
 
