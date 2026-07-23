@@ -24,19 +24,32 @@ test.describe('Daily Briefings — Copiar para WhatsApp', () => {
 
     await page.goto('/daily-briefings/');
     const firstCard = page.locator('.db-card').first();
-    // pode não haver briefing HTML hoje — não falhar o suite
-    if (!(await firstCard.isVisible({ timeout: 15_000 }).catch(() => false))) {
+    // pode não haver briefing HTML hoje — não falhar o suite. waitFor() espera de verdade
+    // (isVisible() é imediato e daria falso-negativo enquanto a lista carrega).
+    const hasCards = await firstCard
+      .waitFor({ state: 'visible', timeout: 20_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!hasCards) {
       test.skip(true, 'Sem briefings hoje para testar.');
       return;
     }
 
-    await firstCard.click();
-    await expect(page.getByRole('button', { name: /Voltar/i }).first()).toBeVisible({ timeout: 10_000 });
-
-    // Painel WhatsApp aparece apenas em briefings HTML
+    // Painel WhatsApp aparece só em briefings HTML. Mira um card de fonte HTML conhecida
+    // (Claude / Codex / Finanças / Mercado / Radar). Fallback: primeiro card.
     const panel = page.locator('.wap');
-    if (!(await panel.isVisible({ timeout: 8_000 }).catch(() => false))) {
-      test.skip(true, 'Briefing do dia não é HTML (sem painel).');
+    const claudeCard = page.locator('.db-card', { hasText: /Claude/i }).first();
+    const target = (await claudeCard.count()) > 0 ? claudeCard : firstCard;
+    await target.click();
+
+    await expect(page.getByRole('button', { name: /Voltar/i }).first()).toBeVisible({ timeout: 10_000 });
+    // aguarda o corpo do briefing (react-query) montar antes de checar o painel
+    await page.locator('.briefing-html, .briefing-md').first()
+      .waitFor({ state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(2000);
+
+    if (!(await panel.isVisible({ timeout: 5_000 }).catch(() => false))) {
+      test.skip(true, 'Briefing alvo não renderizou painel (sem HTML hoje).');
       return;
     }
 
