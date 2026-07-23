@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { dailyBriefingsService } from '@/services/dailyBriefingsService';
 import { BriefingContent } from './BriefingContent';
+import { WhatsappCopyPanel } from './WhatsappCopyPanel';
 import type { BriefingCard } from '@/types/dailyBriefings';
 
 /* ═════════════════════════════════════ META ══════════════════ */
@@ -421,6 +422,9 @@ export default function DailyBriefingsClient() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.07, duration: 0.38, ease: EASE }}
                     >
+                      {detail.format === 'html' && (
+                        <WhatsappCopyPanel content={detail.content} accent={m.accent} rgb={m.rgb} />
+                      )}
                       <BriefingContent content={detail.content} format={detail.format} />
                     </motion.div>
 
