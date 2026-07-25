@@ -5,6 +5,7 @@ import {
   decodeEntities,
   fixBareUrls,
   splitBriefingSections,
+  splitSectionItems,
   sectionToWhatsApp,
   briefingToWhatsApp,
 } from '../briefingWhatsapp';
@@ -149,6 +150,63 @@ describe('splitBriefingSections', () => {
   });
   it('string vazia → []', () => {
     expect(splitBriefingSections('')).toEqual([]);
+  });
+});
+
+describe('splitSectionItems', () => {
+  it('cada bullet vira 1 item (sem o marcador)', () => {
+    const items = splitSectionItems({
+      title: 'TL;DR',
+      html: '<ul><li>Anthropic lançou Opus 4.8</li><li>Novo MCP de routines disponível</li></ul>',
+    });
+    expect(items).toEqual(['Anthropic lançou Opus 4.8', 'Novo MCP de routines disponível']);
+  });
+  it('cada card (parágrafo) vira 1 item, multi-linha preservado', () => {
+    const html =
+      '<table><tr><td><strong>Claude Schedule</strong><br>Agenda agentes.<br><a href="anthropic.com/s">anthropic.com/s</a></td></tr></table>' +
+      '<table><tr><td><strong>Cursor 2.0</strong><br>Composer novo.</td></tr></table>';
+    const items = splitSectionItems({ title: 'Notícias', html });
+    expect(items.length).toBe(2);
+    expect(items[0]).toContain('*Claude Schedule*');
+    expect(items[0]).toContain('https://anthropic.com/s');
+    expect(items[1]).toContain('*Cursor 2.0*');
+  });
+  it('remove heading da seção (h tag) dos itens', () => {
+    const items = splitSectionItems({
+      title: 'Notícias',
+      html: '<h2>NOTÍCIAS DO DIA</h2><p>Primeira notícia real aqui</p><p>Segunda notícia real aqui</p>',
+    });
+    expect(items).toEqual(['Primeira notícia real aqui', 'Segunda notícia real aqui']);
+  });
+  it('remove heading em td (linha toda maiúscula) dos itens', () => {
+    const items = splitSectionItems({
+      title: 'P&L',
+      html: '<table><tr><td><strong>P&L DA CARTEIRA</strong></td></tr></table>' +
+        '<table><tr><td>PETR4 37 cotas lucro parcial</td></tr></table>' +
+        '<table><tr><td>ITUB4 46 cotas no azul hoje</td></tr></table>',
+    });
+    expect(items.some((i) => /P&L DA CARTEIRA/.test(i))).toBe(false);
+    expect(items.length).toBe(2);
+  });
+  it('remove 1º item que casa com o título mesmo sem ser all-caps (ex. FIIs)', () => {
+    const items = splitSectionItems({
+      title: 'Radar FIIs',
+      html: '<table><tr><td><strong>🏢 RADAR FIIs</strong></td></tr></table>' +
+        '<table><tr><td>KNCR11 preço estável no dia</td></tr></table>' +
+        '<table><tr><td>MXRF11 leve alta hoje cedo</td></tr></table>',
+    });
+    expect(items.some((i) => /RADAR FIIs/.test(i))).toBe(false);
+    expect(items.length).toBe(2);
+  });
+  it('seção de prosa (1 item) → [] (só copiar bloco)', () => {
+    expect(splitSectionItems({ title: 'Conclusão', html: '<p>Foque em MCP esta semana.</p>' })).toEqual([]);
+  });
+  it('descarta ruído curto', () => {
+    const items = splitSectionItems({
+      title: 'X',
+      html: '<p>Item de verdade com conteúdo</p><p>—</p><p>Outro item real aqui</p>',
+    });
+    expect(items).toEqual(['Item de verdade com conteúdo', 'Outro item real aqui']);
   });
 });
 

@@ -141,7 +141,8 @@ export function htmlToWhatsApp(html: string): string {
   // 7. fronteiras de bloco → quebra de linha
   s = s.replace(/<br\s*\/?>/gi, '\n');
   s = s.replace(/<\/(td|th)>/gi, ' ');                                   // células na mesma linha
-  s = s.replace(/<\/(p|div|tr|table|ul|ol|h[1-6]|section|blockquote|article)>/gi, '\n');
+  s = s.replace(/<\/(p|div|blockquote)>/gi, '\n\n');                      // parágrafos = linha em branco
+  s = s.replace(/<\/(tr|table|ul|ol|h[1-6]|section|article)>/gi, '\n');
 
   // 8. remove qualquer tag restante
   s = stripTags(s);
@@ -193,6 +194,54 @@ export function sectionToWhatsApp(section: BriefingSection): string {
   const firstLine = body.split('\n', 1)[0]?.replace(/[*_~]/g, '').trim().toLowerCase();
   if (firstLine && firstLine === title.toLowerCase()) return body;
   return `*${title}*\n${body}`.trim();
+}
+
+/**
+ * Quebra uma seção em ITENS copiáveis, operando no texto WhatsApp já normalizado
+ * (agnóstico ao HTML): cada bullet vira 1 item; cada parágrafo (separado por linha
+ * em branco) vira 1 item. Seção de prosa (1 item só) → `[]` (o "copiar bloco" basta).
+ */
+export function splitSectionItems(section: BriefingSection): string[] {
+  // remove o heading da própria seção (redundante com o título do bloco)
+  const html = section.html.replace(/^\s*<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/i, '');
+  const body = htmlToWhatsApp(html);
+  if (!body) return [];
+
+  const items: string[] = [];
+  for (const para of body.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)) {
+    const lines = para.split('\n').map((l) => l.trim()).filter(Boolean);
+    const allBullets = lines.length > 0 && lines.every((l) => /^•\s/.test(l));
+    if (allBullets) {
+      for (const l of lines) items.push(l.replace(/^•\s*/, '').trim());
+    } else {
+      items.push(para);
+    }
+  }
+
+  // descarta ruído (linhas com quase nenhum caractere útil)
+  let clean = items.filter((s) => s.replace(/[*_~•\s]/g, '').length >= 6);
+  // 1º item que ainda é o cabeçalho da seção (all-caps curto OU casa com o título) → descarta
+  const titleNorm = alnum(section.title);
+  if (clean.length > 1) {
+    const firstNorm = alnum(clean[0].split('\n')[0]);
+    if (isHeadingLine(clean[0]) || (titleNorm.length >= 3 && firstNorm === titleNorm)) {
+      clean = clean.slice(1);
+    }
+  }
+  // 1 item só ≈ o bloco inteiro → não faz sentido "copiar por item"
+  return clean.length <= 1 ? [] : clean;
+}
+
+function alnum(s: string): string {
+  return (s || '').toLowerCase().replace(/[^a-z0-9à-ÿ]/gi, '');
+}
+
+/** Linha que parece cabeçalho: única, curta e sem letra minúscula. */
+function isHeadingLine(s: string): boolean {
+  if (s.includes('\n')) return false;
+  const line = s.replace(/[*_~]/g, '').trim();
+  const letters = line.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  return letters.length >= 3 && letters.length <= 42 && !/[a-zà-ÿ]/.test(line);
 }
 
 /** Briefing inteiro em texto WhatsApp (todos os blocos, separados por linha em branco). */
