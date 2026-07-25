@@ -67,6 +67,20 @@ test.describe('Daily Briefings — Copiar para WhatsApp', () => {
     const bareUrl = text.match(/(^|\s)(?!https?:\/\/)(?!www\.)([a-z0-9-]+\.(?:com|dev|ai|io|net|org|app|br)(?:\/\S*)?)(\s|$)/i);
     expect(bareUrl, `URL sem esquema encontrada: ${bareUrl?.[2]}`).toBeNull();
 
+    // Copiar por ITEM: expande a 1ª seção com chevron e copia um item.
+    const chevron = page.locator('.wap-chev').first();
+    if (await chevron.isVisible().catch(() => false)) {
+      await chevron.click();
+      const itemBtn = page.locator('.wap-item button', { hasText: /Copiar/i }).first();
+      await expect(itemBtn).toBeVisible({ timeout: 4_000 });
+      await itemBtn.click();
+      await expect(
+        page.locator('.wap-item button', { hasText: /Copiado/i }).first(),
+      ).toBeVisible({ timeout: 4_000 });
+      const itemText = await page.evaluate(() => navigator.clipboard.readText());
+      expect(itemText.trim().length).toBeGreaterThan(0);
+    }
+
     expect(jsErrors.filter((e) => !e.includes('ResizeObserver'))).toHaveLength(0);
   });
 });
