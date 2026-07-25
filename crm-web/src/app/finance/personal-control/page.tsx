@@ -121,6 +121,15 @@ function monthTitle(year: number, month: number) {
   return `${months[month - 1]} de ${year}`;
 }
 
+function addMonths(p: { year: number; month: number }, delta: number) {
+  const d = new Date(p.year, p.month - 1 + delta, 1);
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+function shortMonthLabel(p: { year: number; month: number }) {
+  return `${months[p.month - 1].slice(0, 3).toLowerCase()}/${String(p.year).slice(2)}`;
+}
+
 function incomeFormReset(): EditingState<CreatePersonalControlIncomeRequest> {
   const now = currentPeriod();
   return {
@@ -893,6 +902,11 @@ function Page() {
     startTransition(() => setPeriod(currentPeriod()));
   };
 
+  // Navegação absoluta (chips ±2 meses) — evita drift de deltas em cliques rápidos
+  const goToPeriod = (p: { year: number; month: number }) => {
+    startTransition(() => setPeriod(p));
+  };
+
   const saveStatus = async (
     kind: 'income' | 'expense' | 'subscription',
     id: string,
@@ -1351,21 +1365,54 @@ function Page() {
               pago/pendente e resumo consolidado do período.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" onClick={() => changeMonth(-1)} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              <ArrowLeft className="h-4 w-4" />
-              Mês anterior
-            </Button>
-            <Button variant="outline" onClick={resetToCurrentMonth} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              <RotateCcw className="h-4 w-4" />
-              Mês atual
-            </Button>
-            <Button variant="outline" onClick={() => changeMonth(1)} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-              Próximo mês
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white/90">
-              {isPending ? 'Atualizando...' : monthTitle(period.year, period.month)}
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="outline" onClick={() => changeMonth(-1)} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+                <ArrowLeft className="h-4 w-4" />
+                Mês anterior
+              </Button>
+              <Button variant="outline" onClick={resetToCurrentMonth} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+                <RotateCcw className="h-4 w-4" />
+                Mês atual
+              </Button>
+              <Button variant="outline" onClick={() => changeMonth(1)} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+                Próximo mês
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+            {/* Strip de navegação rápida: 2 meses antes · mês ativo · 2 meses depois */}
+            <div className="flex flex-wrap items-center gap-2">
+              {[-2, -1].map((delta) => {
+                const p = addMonths(period, delta);
+                return (
+                  <button
+                    key={delta}
+                    type="button"
+                    onClick={() => goToPeriod(p)}
+                    aria-label={`Ir para ${monthTitle(p.year, p.month)}`}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/60 transition-colors hover:bg-white/15 hover:text-white"
+                  >
+                    {shortMonthLabel(p)}
+                  </button>
+                );
+              })}
+              <div aria-current="date" className="rounded-xl border border-white/25 bg-white/20 px-4 py-2 text-sm font-semibold text-white">
+                {isPending ? 'Atualizando...' : monthTitle(period.year, period.month)}
+              </div>
+              {[1, 2].map((delta) => {
+                const p = addMonths(period, delta);
+                return (
+                  <button
+                    key={delta}
+                    type="button"
+                    onClick={() => goToPeriod(p)}
+                    aria-label={`Ir para ${monthTitle(p.year, p.month)}`}
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/60 transition-colors hover:bg-white/15 hover:text-white"
+                  >
+                    {shortMonthLabel(p)}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
