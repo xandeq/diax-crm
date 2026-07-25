@@ -74,7 +74,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { toast } from 'sonner';
 
@@ -863,29 +863,6 @@ function Page() {
   const toggleExpenseSort = (key: string) => setExpenseSort((prev) => nextSort(prev, key));
   const toggleSubscriptionSort = (key: string) => setSubscriptionSort((prev) => nextSort(prev, key));
 
-  // Resizable pane (Receitas / Despesas)
-  const [leftPct, setLeftPct] = useState(40);
-  const paneContainerRef = useRef<HTMLDivElement>(null);
-  const paneDrag = useRef({ active: false, containerLeft: 0, containerWidth: 0 });
-  const onDividerMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const rect = paneContainerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    paneDrag.current = { active: true, containerLeft: rect.left, containerWidth: rect.width };
-    const onMove = (ev: MouseEvent) => {
-      if (!paneDrag.current.active) return;
-      const pct = ((ev.clientX - paneDrag.current.containerLeft) / paneDrag.current.containerWidth) * 100;
-      setLeftPct(Math.min(Math.max(pct, 20), 75));
-    };
-    const onUp = () => {
-      paneDrag.current.active = false;
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  };
-
   // Feature 2 — PDF statement import
   type ParsedStatementTx = { description: string; amount: number; date: string; selected: boolean };
   const [pdfImportCard, setPdfImportCard] = useState<{ creditCardId: string; creditCardName: string } | null>(null);
@@ -1336,7 +1313,14 @@ function Page() {
     dayOfMonth: (i) => i.dayOfMonth,
     isPaid: (i) => i.isPaid,
   });
-  const sortedExpenses = sortedBy(monthView?.expenses ?? [], expenseSort, {
+  // Competência jun/2026 em diante: o grid "Despesas do mês" mostra só pagamentos à vista
+  // (débito/pix/dinheiro). Despesas no cartão de crédito não aparecem aqui — são quitadas via
+  // fatura do cartão. Filtro apenas de exibição; os registros permanecem no CRM.
+  const hideCreditExpenses = period.year > 2026 || (period.year === 2026 && period.month >= 6);
+  const visibleExpenses = hideCreditExpenses
+    ? (monthView?.expenses ?? []).filter((i) => i.paymentType !== 'credit')
+    : (monthView?.expenses ?? []);
+  const sortedExpenses = sortedBy(visibleExpenses, expenseSort, {
     name: (i) => i.name,
     amount: (i) => i.amount,
     paymentType: (i) => i.paymentType,
@@ -1500,9 +1484,9 @@ function Page() {
         </div>
       </SectionShell>
 
-      {/* Receitas / Despesas — resizable split pane */}
-      <div ref={paneContainerRef} className="flex items-stretch gap-0">
-        <div style={{ width: `${leftPct}%`, flexShrink: 0, minWidth: 0 }}>
+      {/* Despesas (linha inteira, topo) / Receitas (linha inteira, abaixo) */}
+      <div className="flex flex-col gap-6">
+        <div className="w-full min-w-0 order-2">
           <SectionShell title="Receitas do mês" description="Clique no badge de status para marcar como pago/pendente.">
             <div className="overflow-x-auto">
               <Table>
@@ -1562,17 +1546,8 @@ function Page() {
           </SectionShell>
         </div>
 
-        {/* Drag handle */}
-        <div
-          className="w-3 flex-shrink-0 cursor-col-resize flex items-stretch justify-center group"
-          onMouseDown={onDividerMouseDown}
-          title="Arrastar para redimensionar"
-        >
-          <div className="w-0.5 my-6 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <SectionShell title="Despesas do mês" description="Débito, crédito, vencimentos e cartão vinculado.">
+        <div className="w-full min-w-0 order-1">
+          <SectionShell title="Despesas do mês" description={hideCreditExpenses ? 'Somente à vista — débito, PIX, dinheiro. Despesas no cartão vão na fatura.' : 'Débito, crédito, vencimentos e cartão vinculado.'}>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -1601,7 +1576,7 @@ function Page() {
                 </TableBody>
               </Table>
             </div>
-            <ExpenseSummaryFooter expenses={monthView?.expenses ?? []} />
+            <ExpenseSummaryFooter expenses={visibleExpenses} />
           </SectionShell>
         </div>
       </div>
