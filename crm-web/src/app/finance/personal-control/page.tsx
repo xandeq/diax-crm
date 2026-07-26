@@ -661,17 +661,21 @@ function SalaryPlannerSection({
 }) {
   const buckets = buildSalaryBuckets(monthView, startingBalance);
   const remanejamentos = buildRemanejamentos(buckets);
+  // Colapsável — sempre inicia FECHADO
+  const [plannerOpen, setPlannerOpen] = useState(false);
 
   return (
     <Card className="shadow-sm">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 cursor-pointer select-none" onClick={() => setPlannerOpen((v) => !v)} role="button" aria-expanded={plannerOpen}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg">Planner de Salário</CardTitle>
             <CardDescription>Despesas diretas afetam o caixa; faturas de cartão entram pelo vencimento. Expand da fatura mostra transações reais ou recorrências previstas. <strong>Caixa</strong> = saldo líquido projetado considerando apenas contas em aberto (as pagas já estão no saldo).</CardDescription>
           </div>
+          <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${plannerOpen ? 'rotate-180' : ''}`} />
         </div>
       </CardHeader>
+      {plannerOpen && (
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           {buckets.map(({ day, nextDay, incomes, expensesAtVista, debitSubs, invoicesDue, totalIncome, totalCashOut, pendingTotal, periodBalance, runningBalance, investSuggestion }) => (
@@ -788,6 +792,7 @@ function SalaryPlannerSection({
         )}
 
       </CardContent>
+      )}
     </Card>
   );
 }
@@ -1379,57 +1384,7 @@ function Page() {
               pago/pendente e resumo consolidado do período.
             </p>
           </div>
-          <div className="flex flex-col items-start gap-3 lg:items-end">
-            <div className="flex flex-wrap items-center gap-3">
-              <Button variant="outline" onClick={() => changeMonth(-1)} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-                <ArrowLeft className="h-4 w-4" />
-                Mês anterior
-              </Button>
-              <Button variant="outline" onClick={resetToCurrentMonth} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-                <RotateCcw className="h-4 w-4" />
-                Mês atual
-              </Button>
-              <Button variant="outline" onClick={() => changeMonth(1)} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-                Próximo mês
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-            {/* Strip de navegação rápida: 2 meses antes · mês ativo · 2 meses depois */}
-            <div className="flex flex-wrap items-center gap-2">
-              {[-2, -1].map((delta) => {
-                const p = addMonths(period, delta);
-                return (
-                  <button
-                    key={delta}
-                    type="button"
-                    onClick={() => goToPeriod(p)}
-                    aria-label={`Ir para ${monthTitle(p.year, p.month)}`}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/60 transition-colors hover:bg-white/15 hover:text-white"
-                  >
-                    {shortMonthLabel(p)}
-                  </button>
-                );
-              })}
-              <div aria-current="date" className="rounded-xl border border-white/25 bg-white/20 px-4 py-2 text-sm font-semibold text-white">
-                {isPending ? 'Atualizando...' : monthTitle(period.year, period.month)}
-              </div>
-              {[1, 2].map((delta) => {
-                const p = addMonths(period, delta);
-                return (
-                  <button
-                    key={delta}
-                    type="button"
-                    onClick={() => goToPeriod(p)}
-                    aria-label={`Ir para ${monthTitle(p.year, p.month)}`}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/60 transition-colors hover:bg-white/15 hover:text-white"
-                  >
-                    {shortMonthLabel(p)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+                  </div>
       </div>
 
       <PatrimonioTotalCard
@@ -1629,6 +1584,43 @@ function Page() {
 
         <div className="w-full min-w-0 order-1">
           <SectionShell title="Despesas do mês" description={hideCreditExpenses ? 'Somente à vista — débito, PIX, dinheiro. Despesas no cartão vão na fatura.' : 'Débito, crédito, vencimentos e cartão vinculado.'}>
+            {/* Navegação de mês (movida do header) */}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => changeMonth(-1)} className="gap-1.5">
+                <ArrowLeft className="h-4 w-4" />
+                Mês anterior
+              </Button>
+              <Button variant="outline" size="sm" onClick={resetToCurrentMonth} className="gap-1.5">
+                <RotateCcw className="h-4 w-4" />
+                Mês atual
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => changeMonth(1)} className="gap-1.5">
+                Próximo mês
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
+              {[-2, -1].map((delta) => {
+                const p = addMonths(period, delta);
+                return (
+                  <button key={delta} type="button" onClick={() => goToPeriod(p)} aria-label={`Ir para ${monthTitle(p.year, p.month)}`}
+                    className="rounded-lg border bg-muted/40 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                    {shortMonthLabel(p)}
+                  </button>
+                );
+              })}
+              <div aria-current="date" className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm font-semibold">
+                {isPending ? 'Atualizando...' : monthTitle(period.year, period.month)}
+              </div>
+              {[1, 2].map((delta) => {
+                const p = addMonths(period, delta);
+                return (
+                  <button key={delta} type="button" onClick={() => goToPeriod(p)} aria-label={`Ir para ${monthTitle(p.year, p.month)}`}
+                    className="rounded-lg border bg-muted/40 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                    {shortMonthLabel(p)}
+                  </button>
+                );
+              })}
+            </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
