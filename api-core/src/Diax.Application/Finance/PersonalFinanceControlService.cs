@@ -452,6 +452,28 @@ public class PersonalFinanceControlService : IApplicationService
 
             var dayOfMonth = transaction.Date.Day;
 
+            // Conta ausente/inativa herdaria um template que NUNCA materializa (skip
+            // InvalidAccount silencioso em todos os meses). Fallback: primeira conta ativa.
+            var financialAccountId = transaction.FinancialAccountId;
+            if (transaction.PaymentMethod != PaymentMethod.CreditCard)
+            {
+                var srcAccount = financialAccountId.HasValue
+                    ? await _financialAccountRepository.GetByIdAndUserAsync(financialAccountId.Value, userId, cancellationToken)
+                    : null;
+                if (srcAccount == null || !srcAccount.IsActive)
+                {
+                    var accounts = await _financialAccountRepository.GetAllByUserIdAsync(userId, cancellationToken);
+                    var fallback = accounts.FirstOrDefault(a => a.IsActive);
+                    if (fallback != null)
+                    {
+                        _logger.LogWarning(
+                            "MakeExpenseRecurring: conta da despesa {ExpenseId} ausente/inativa; usando conta ativa {AccountId} ({AccountName})",
+                            expenseId, fallback.Id, fallback.Name);
+                        financialAccountId = fallback.Id;
+                    }
+                }
+            }
+
             var recurring = new RecurringTransaction
             {
                 UserId = userId,
@@ -467,7 +489,7 @@ public class PersonalFinanceControlService : IApplicationService
                 EndDate = endDate,
                 PaymentMethod = transaction.PaymentMethod,
                 CreditCardId = transaction.CreditCardId,
-                FinancialAccountId = transaction.FinancialAccountId,
+                FinancialAccountId = financialAccountId,
                 IsActive = true,
                 HasVariableAmount = transaction.HasVariableAmount,
                 Priority = 0,

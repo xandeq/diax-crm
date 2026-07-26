@@ -2258,11 +2258,17 @@ function Page() {
                   void qc.invalidateQueries({ queryKey: personalControlKeys.all });
                   const createdCount = result.created?.length ?? 0;
                   const cardSkipped = (result.skipped ?? []).filter((s) => s.skipReason === 'NoInvoiceFound' || s.skipReason === 'CreditCardSkipped').length;
+                  const accountSkipped = (result.skipped ?? []).filter((s) => s.skipReason === 'InvalidAccount' || s.skipReason === 'MissingAccount').length;
+                  const otherSkipped = (result.skipped ?? []).length - cardSkipped - accountSkipped;
                   if (createdCount > 0) {
                     const cardSuffix = cardSkipped > 0 ? ` ${cardSkipped} mês(es) de cartão sem fatura criada — gere a fatura e use "Copiar recorrências".` : '';
                     toast.success(`Despesa recorrente: replicada para ${createdCount} próximo${createdCount !== 1 ? 's' : ''} mês${createdCount !== 1 ? 'es' : ''}.${cardSuffix}`);
+                  } else if (accountSkipped > 0) {
+                    toast.warning('Recorrência criada, mas NENHUM mês foi replicado: a conta vinculada à despesa está inativa ou ausente. Edite a despesa e vincule uma conta ativa, depois use "Copiar recorrências".', { duration: 10000 });
                   } else if (cardSkipped > 0) {
                     toast.warning('Recorrência criada, mas nenhum mês foi replicado: as faturas de cartão dos meses futuros ainda não existem. Crie as faturas e use "Copiar recorrências".', { duration: 8000 });
+                  } else if (otherSkipped > 0) {
+                    toast.warning(`Recorrência criada, mas ${otherSkipped} mês(es) não replicado(s) (${[...new Set((result.skipped ?? []).map((s) => s.skipReason))].join(', ')}).`, { duration: 8000 });
                   } else {
                     toast.success('Despesa marcada como recorrente.');
                   }
