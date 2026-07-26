@@ -155,6 +155,7 @@ function expenseFormReset(): EditingState<CreatePersonalControlExpenseRequest> {
     amount: 0,
     paymentType: 'debit',
     dueDay: new Date().getDate(),
+    dueMonthOffset: 0,
     isPaid: false,
     paymentDate: undefined,
     creditCardId: '',
@@ -1148,6 +1149,7 @@ function Page() {
         amount: Number(expenseForm.amount),
         paymentType: expenseForm.paymentType,
         dueDay: Number(expenseForm.dueDay),
+        dueMonthOffset: Number(expenseForm.dueMonthOffset ?? 0),
         isPaid: Boolean(expenseForm.isPaid),
         paymentDate: expenseForm.paymentDate || undefined,
         details: expenseForm.details || undefined,
@@ -1235,6 +1237,7 @@ function Page() {
       amount: item.amount,
       paymentType: item.paymentType,
       dueDay: item.dueDay,
+      dueMonthOffset: item.dueMonthOffset ?? 0,
       isPaid: item.isPaid,
       paymentDate: item.paymentDate,
       creditCardId: item.creditCardId || '',
@@ -1623,7 +1626,7 @@ function Page() {
                       <TableCell><div className="space-y-1"><p className="font-medium flex items-center gap-1">{item.name}{item.hasVariableAmount && <span title="Valor variável — verificar mês a mês" className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">~valor</span>}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
                       <TableCell>{formatCurrency(item.amount)}</TableCell>
                       <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
-                      <TableCell>Dia {item.dueDay}</TableCell>
+                      <TableCell>{item.dueDate && (item.dueMonthOffset ?? 0) > 0 ? `${String(new Date(item.dueDate).getUTCDate()).padStart(2, '0')}/${String(new Date(item.dueDate).getUTCMonth() + 1).padStart(2, '0')}` : `Dia ${item.dueDay}`}</TableCell>
                       <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
                       <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
                       <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Tornar recorrente" onClick={() => setMakeRecurringDialog({ item })}><Repeat className="h-4 w-4 text-blue-500" /></Button><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
@@ -2056,6 +2059,20 @@ function Page() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label htmlFor="expense-amount">Valor</Label><Input id="expense-amount" type="number" min="0" step="0.01" value={expenseForm.amount} onChange={(event) => setExpenseForm((current) => ({ ...current, amount: Number(event.target.value) }))} /></div>
               <div className="space-y-2"><Label htmlFor="expense-due">Dia do vencimento</Label><Input id="expense-due" type="number" min="1" max="31" value={expenseForm.dueDay} onChange={(event) => setExpenseForm((current) => ({ ...current, dueDay: Number(event.target.value) }))} /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>Mês do vencimento</Label>
+              <Select value={String(expenseForm.dueMonthOffset ?? 0)} onValueChange={(value) => setExpenseForm((current) => ({ ...current, dueMonthOffset: Number(value) }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Mesmo mês da planilha</SelectItem>
+                  <SelectItem value="1">Mês seguinte</SelectItem>
+                  <SelectItem value="2">Daqui a 2 meses</SelectItem>
+                </SelectContent>
+              </Select>
+              {Number(expenseForm.dueMonthOffset ?? 0) > 0 && (
+                <p className="text-xs text-muted-foreground">A conta fica nesta planilha (competência), mas vence dia {expenseForm.dueDay} de {monthTitle(addMonths({ year: expenseForm.editingId ? expenseForm.year : period.year, month: expenseForm.editingId ? expenseForm.month : period.month }, Number(expenseForm.dueMonthOffset ?? 0)).year, addMonths({ year: expenseForm.editingId ? expenseForm.year : period.year, month: expenseForm.editingId ? expenseForm.month : period.month }, Number(expenseForm.dueMonthOffset ?? 0)).month)}.</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

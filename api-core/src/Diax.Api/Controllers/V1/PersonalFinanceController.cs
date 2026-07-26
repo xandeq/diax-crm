@@ -105,22 +105,23 @@ public class PersonalFinanceController : BaseApiController
             .Where(e => e.Status == TransactionStatus.Pending && !e.IsSubscription)
             .ToList();
 
+        // Vencimento efetivo: DueDate (vencimento cruzado) quando presente, senão Date
         var overdueList = pendingDebitExpenses
-            .Where(e => e.Date.Date < today)
-            .OrderBy(e => e.Date)
-            .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, date = e.Date, daysOverdue = (int)(today - e.Date.Date).TotalDays })
+            .Where(e => (e.DueDate ?? e.Date).Date < today)
+            .OrderBy(e => e.DueDate ?? e.Date)
+            .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, date = e.DueDate ?? e.Date, daysOverdue = (int)(today - (e.DueDate ?? e.Date).Date).TotalDays })
             .ToList();
 
         var dueTodayList = pendingDebitExpenses
-            .Where(e => e.Date.Date == today)
+            .Where(e => (e.DueDate ?? e.Date).Date == today)
             .OrderBy(e => e.Description)
             .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, paymentMethod = e.PaymentMethod.ToString() })
             .ToList();
 
         var dueThisWeekList = pendingDebitExpenses
-            .Where(e => e.Date.Date > today && e.Date.Date <= weekEnd)
-            .OrderBy(e => e.Date)
-            .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, date = e.Date, paymentMethod = e.PaymentMethod.ToString() })
+            .Where(e => (e.DueDate ?? e.Date).Date > today && (e.DueDate ?? e.Date).Date <= weekEnd)
+            .OrderBy(e => e.DueDate ?? e.Date)
+            .Select(e => new { id = e.Id, description = e.Description, amount = e.Amount, date = e.DueDate ?? e.Date, paymentMethod = e.PaymentMethod.ToString() })
             .ToList();
 
         var pendingSubscriptionsList = month.Items
@@ -310,7 +311,8 @@ public class PersonalFinanceController : BaseApiController
                 request.PaymentDate,
                 request.Details,
                 false,
-                request.HasVariableAmount),
+                request.HasVariableAmount,
+                DueDate: CreateDueDate(request.Year, request.Month, request.DueDay, request.DueMonthOffset)),
             userId.Value,
             cancellationToken);
 
@@ -364,7 +366,8 @@ public class PersonalFinanceController : BaseApiController
                 request.PaymentDate,
                 request.Details,
                 false,
-                request.HasVariableAmount),
+                request.HasVariableAmount,
+                DueDate: CreateDueDate(request.Year, request.Month, request.DueDay, request.DueMonthOffset)),
             userId.Value,
             cancellationToken);
 
@@ -696,6 +699,10 @@ public class PersonalFinanceController : BaseApiController
                 amount = item.Amount,
                 paymentType = item.PaymentMethod == PaymentMethod.CreditCard ? "credit" : "debit",
                 dueDay = item.Date.Day,
+                dueDate = item.DueDate,
+                dueMonthOffset = item.DueDate.HasValue
+                    ? ((item.DueDate.Value.Year - item.Date.Year) * 12 + item.DueDate.Value.Month - item.Date.Month)
+                    : 0,
                 isPaid = item.Status == TransactionStatus.Paid,
                 paymentDate = item.PaidDate,
                 details = item.Details,
@@ -842,6 +849,17 @@ public class PersonalFinanceController : BaseApiController
         return new DateTime(year, month, safeDay, 12, 0, 0, DateTimeKind.Utc);
     }
 
+    /// <summary>
+    /// Vencimento real quando cruza o mês: offset>0 desloca o mês do vencimento
+    /// mantendo o dia. Null quando vence no próprio mês da planilha.
+    /// </summary>
+    private static DateTime? CreateDueDate(int year, int month, int day, int dueMonthOffset)
+    {
+        if (dueMonthOffset <= 0) return null;
+        var target = new DateTime(year, month, 1).AddMonths(dueMonthOffset);
+        return CreateDate(target.Year, target.Month, day);
+    }
+
     private async Task<CreateRecurringTransactionRequest?> BuildSubscriptionTemplateRequestAsync(PersonalControlSubscriptionRequest request, Guid userId, CancellationToken cancellationToken)
     {
         Guid? accountId = null;
@@ -941,7 +959,8 @@ public class PersonalFinanceController : BaseApiController
         DateTime? PaymentDate = null,
         [StringLength(2000)] string? Details = null,
         string? CreditCardId = null,
-        bool HasVariableAmount = false);
+        bool HasVariableAmount = false,
+        [Range(0, 3)] int DueMonthOffset = 0);
 
     public record PersonalControlSubscriptionRequest(
         [Range(2000, 2100)] int Year,

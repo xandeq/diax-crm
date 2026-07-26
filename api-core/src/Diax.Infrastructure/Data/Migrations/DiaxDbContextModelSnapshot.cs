@@ -4376,6 +4376,10 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_subscription");
 
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("due_date");
+
                     b.Property<DateTime?>("PaidDate")
                         .HasColumnType("datetime2")
                         .HasColumnName("paid_date");

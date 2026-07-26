@@ -67,6 +67,13 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
     public DateTime? PaidDate { get; private set; }
 
     /// <summary>
+    /// Vencimento real quando difere do mês de competência (Date).
+    /// Null = vence no próprio mês da planilha (comportamento padrão).
+    /// Ex.: conta da planilha de julho com vencimento 10/09 → Date=jul, DueDate=10/09.
+    /// </summary>
+    public DateTime? DueDate { get; private set; }
+
+    /// <summary>
     /// Agrupa um par de transações de transferência (débito + crédito).
     /// Duas Transactions com o mesmo TransferGroupId são lados opostos da mesma transferência.
     /// </summary>
@@ -139,7 +146,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         string? details = null,
         Guid? recurringTransactionId = null,
         bool isSubscription = false,
-        bool hasVariableAmount = false)
+        bool hasVariableAmount = false,
+        DateTime? dueDate = null)
     {
         ValidateCommonFields(description, amount, userId);
 
@@ -161,7 +169,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
             Details = details,
             RecurringTransactionId = recurringTransactionId,
             IsSubscription = isSubscription,
-            HasVariableAmount = hasVariableAmount
+            HasVariableAmount = hasVariableAmount,
+            DueDate = dueDate
         };
 
         transaction.ValidateExpenseConstraints();
@@ -260,13 +269,15 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         DateTime? paidDate = null,
         string? details = null,
         bool? isSubscription = null,
-        bool? hasVariableAmount = null)
+        bool? hasVariableAmount = null,
+        DateTime? dueDate = null)
     {
         ValidateCommonFields(description, amount, UserId);
 
         Description = description;
         Amount = amount;
         Date = date;
+        DueDate = dueDate; // null = vence no próprio mês (limpa vencimento cruzado)
         PaymentMethod = paymentMethod;
         CategoryId = categoryId;
         IsRecurring = isRecurring;

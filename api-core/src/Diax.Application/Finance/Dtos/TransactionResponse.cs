@@ -28,5 +28,6 @@ public record TransactionResponse(
     Guid? AccountTransferId,
     Guid? RecurringTransactionId,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    DateTime? DueDate = null
 );

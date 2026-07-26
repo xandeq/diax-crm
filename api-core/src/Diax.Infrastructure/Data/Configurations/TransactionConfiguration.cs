@@ -46,6 +46,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(x => x.Status)
             .IsRequired();
 
+        // Vencimento real quando difere do mês de competência (Date). Null = mesmo mês.
+        builder.Property(x => x.DueDate)
+            .IsRequired(false)
+            .HasColumnName("due_date");
+
         builder.Property(x => x.TransferGroupId)
             .IsRequired(false);
 

@@ -16,5 +16,6 @@ public record UpdateTransactionRequest(
     DateTime? PaidDate = null,
     string? Details = null,
     bool? IsSubscription = null,
-    bool? HasVariableAmount = null
+    bool? HasVariableAmount = null,
+    DateTime? DueDate = null
 );

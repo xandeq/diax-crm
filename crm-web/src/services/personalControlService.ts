@@ -64,6 +64,10 @@ export interface PersonalControlExpenseItem {
   amount: number;
   paymentType: PersonalControlPaymentType;
   dueDay: number;
+  /** Vencimento real quando cruza o mês (ISO); ausente = vence no próprio mês. */
+  dueDate?: string;
+  /** 0 = mesmo mês; 1 = mês seguinte; 2 = daqui a 2 meses. */
+  dueMonthOffset?: number;
   isPaid: boolean;
   paymentDate?: string;
   details?: string;
@@ -122,6 +126,8 @@ export interface CreatePersonalControlExpenseRequest {
   amount: number;
   paymentType: PersonalControlPaymentType;
   dueDay: number;
+  /** 0 = vence no mesmo mês (padrão); 1 = mês seguinte; 2 = daqui a 2 meses. */
+  dueMonthOffset?: number;
   isPaid?: boolean;
   paymentDate?: string;
   details?: string;

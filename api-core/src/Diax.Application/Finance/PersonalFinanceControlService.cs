@@ -783,7 +783,8 @@ public class PersonalFinanceControlService : IApplicationService
             transaction.AccountTransferId,
             transaction.RecurringTransactionId,
             transaction.CreatedAt,
-            transaction.UpdatedAt);
+            transaction.UpdatedAt,
+            transaction.DueDate);
     }
 
     private static List<RecurringOccurrenceResponse> ExpandRecurringTemplate(
