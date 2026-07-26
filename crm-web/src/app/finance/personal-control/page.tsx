@@ -1136,9 +1136,14 @@ function Page() {
     event.preventDefault();
     setSavingKey('expense');
     try {
+      // Edição respeita o mês escolhido no seletor (mover de planilha); criação usa o mês em exibição.
+      const isEditing = Boolean(expenseForm.editingId);
+      const targetYear = isEditing ? expenseForm.year : period.year;
+      const targetMonth = isEditing ? expenseForm.month : period.month;
+      const moved = isEditing && (targetYear !== period.year || targetMonth !== period.month);
       const payload = {
-        year: period.year,
-        month: period.month,
+        year: targetYear,
+        month: targetMonth,
         name: expenseForm.name,
         amount: Number(expenseForm.amount),
         paymentType: expenseForm.paymentType,
@@ -1147,11 +1152,12 @@ function Page() {
         paymentDate: expenseForm.paymentDate || undefined,
         details: expenseForm.details || undefined,
         creditCardId: expenseForm.paymentType === 'credit' && expenseForm.creditCardId ? expenseForm.creditCardId : undefined,
+        hasVariableAmount: Boolean(expenseForm.hasVariableAmount),
       };
 
       if (expenseForm.editingId) {
         await personalControlService.updateExpense(expenseForm.editingId, payload);
-        toast.success('Despesa atualizada.');
+        toast.success(moved ? `Despesa movida para ${monthTitle(targetYear, targetMonth)}.` : 'Despesa atualizada.');
       } else {
         await personalControlService.createExpense(payload);
         toast.success('Despesa criada.');
@@ -1159,6 +1165,9 @@ function Page() {
       setExpenseForm(expenseFormReset());
       setExpenseDialogOpen(false);
       refresh();
+      if (moved) {
+        void qc.invalidateQueries({ queryKey: personalControlKeys.monthView(targetYear, targetMonth) });
+      }
     } catch (error) {
       console.error(error);
       toast.error('Falha ao salvar despesa.');
@@ -2067,6 +2076,30 @@ function Page() {
                 </Select>
               </div>
             </div>
+            {expenseForm.editingId ? (
+              <div className="space-y-2">
+                <Label>Mês da planilha (competência)</Label>
+                <Select
+                  value={`${expenseForm.year}-${expenseForm.month}`}
+                  onValueChange={(value) => {
+                    const [y, m] = value.split('-').map(Number);
+                    setExpenseForm((current) => ({ ...current, year: y, month: m }));
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 13 }, (_, i) => addMonths(period, i - 6)).map((p) => (
+                      <SelectItem key={`${p.year}-${p.month}`} value={`${p.year}-${p.month}`}>
+                        {monthTitle(p.year, p.month)}{p.year === period.year && p.month === period.month ? ' (atual)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(expenseForm.year !== period.year || expenseForm.month !== period.month) && (
+                  <p className="text-xs text-amber-600">Ao salvar, a despesa sai desta planilha e vai para {monthTitle(expenseForm.year, expenseForm.month)}.</p>
+                )}
+              </div>
+            ) : null}
             <div className="space-y-2"><Label htmlFor="expense-details">Detalhes</Label><Input id="expense-details" value={expenseForm.details || ''} onChange={(event) => setExpenseForm((current) => ({ ...current, details: event.target.value }))} /></div>
             <label className="flex items-center gap-2 cursor-pointer select-none text-sm">
               <input type="checkbox" className="rounded border-gray-300" checked={!!expenseForm.hasVariableAmount} onChange={(e) => setExpenseForm((c) => ({ ...c, hasVariableAmount: e.target.checked }))} />
