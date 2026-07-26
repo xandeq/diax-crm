@@ -850,6 +850,8 @@ function Page() {
   const [subscriptionForm, setSubscriptionForm] = useState(subscriptionFormReset);
   const [incomeDialogOpen, setIncomeDialogOpen] = useState(false);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  // Resumo consolidado colapsável — sempre inicia FECHADO
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
     kind: 'income' | 'expense' | 'subscription';
@@ -1442,6 +1444,23 @@ function Page() {
 
       <InvestIQWidget data={investiq} loading={investiqLoading} />
 
+      <section className="rounded-2xl border bg-card shadow-sm">
+        <button
+          type="button"
+          onClick={() => setSummaryOpen((v) => !v)}
+          aria-expanded={summaryOpen}
+          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+        >
+          <div>
+            <p className="text-sm font-semibold">Resumo consolidado do período</p>
+            <p className="text-xs text-muted-foreground">
+              Receitas {formatCurrency(summary?.totalIncome || 0)} · Despesas {formatCurrency(summary?.totalExpenses || 0)} · A pagar {formatCurrency(summary?.totalToPay || 0)}
+            </p>
+          </div>
+          <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${summaryOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {summaryOpen && (
+        <div className="space-y-4 px-5 pb-5">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title="Total de receitas" value={formatCurrency(summary?.totalIncome || 0)} description="Entradas fixas e recorrentes" icon={ArrowUpCircle} tone="green" />
         <MetricCard title="Total de despesas" value={formatCurrency(summary?.totalExpenses || 0)} description="Saídas do mês selecionado" icon={ArrowDownCircle} tone="red" />
@@ -1487,6 +1506,9 @@ function Page() {
           tone={(summary?.availableToInvest ?? 0) > 0 ? 'green' : 'red'}
         />
       </div>
+        </div>
+        )}
+      </section>
 
       {monthView && (
         <SalaryPlannerSection monthView={monthView} startingBalance={liquidCashBalance(accounts)} />
