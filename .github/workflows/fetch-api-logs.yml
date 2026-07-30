@@ -1,0 +1,25 @@
+name: Fetch API logs (debug)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List and fetch recent server logs
+        shell: bash
+        run: |
+          FTP="ftp://${{ secrets.SMARTERASP_FTP_SERVER }}/${{ secrets.SMARTERASP_FTP_REMOTE_DIR }}"
+          AUTH="${{ secrets.SMARTERASP_FTP_USERNAME }}:${{ secrets.SMARTERASP_FTP_PASSWORD }}"
+          echo "=== raiz ==="
+          curl --silent --user "$AUTH" "$FTP" | head -40
+          echo "=== logs/ ==="
+          curl --silent --user "$AUTH" "${FTP}logs/" | tail -30 || true
+          # baixa os 2 arquivos de log mais recentes
+          FILES=$(curl --silent --user "$AUTH" "${FTP}logs/" -l 2>/dev/null | tail -3)
+          echo "arquivos: $FILES"
+          for f in $FILES; do
+            echo "===== $f (últimas 120 linhas) ====="
+            curl --silent --user "$AUTH" "${FTP}logs/$f" | tail -120 || true
+          done
