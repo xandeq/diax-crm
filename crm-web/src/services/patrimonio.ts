@@ -26,6 +26,17 @@ export enum AssetClass {
     Exterior = 11,
     Milhas = 12,
     Cripto = 13,
+    Dinheiro = 14,
+    Fgts = 15,
+    Titulo = 16,
+    Etf = 17,
+    Bdr = 18,
+    CrowdfundingImob = 19,
+    CartaCredito = 20,
+    Joias = 21,
+    Arte = 22,
+    PropriedadeIntelectual = 23,
+    Negocio = 24,
     Outro = 99,
 }
 

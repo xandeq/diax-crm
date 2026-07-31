@@ -76,6 +76,61 @@ public enum AssetClass
     Cripto = 13,
 
     /// <summary>
+    /// Dinheiro em espécie / caixa
+    /// </summary>
+    Dinheiro = 14,
+
+    /// <summary>
+    /// FGTS (fonte de capital / saldo)
+    /// </summary>
+    Fgts = 15,
+
+    /// <summary>
+    /// Títulos públicos (Tesouro Direto, etc)
+    /// </summary>
+    Titulo = 16,
+
+    /// <summary>
+    /// ETFs (fundos de índice)
+    /// </summary>
+    Etf = 17,
+
+    /// <summary>
+    /// BDRs (recibos de ativos estrangeiros)
+    /// </summary>
+    Bdr = 18,
+
+    /// <summary>
+    /// Crowdfunding imobiliário
+    /// </summary>
+    CrowdfundingImob = 19,
+
+    /// <summary>
+    /// Carta de crédito (contemplada ou em aquisição)
+    /// </summary>
+    CartaCredito = 20,
+
+    /// <summary>
+    /// Joias
+    /// </summary>
+    Joias = 21,
+
+    /// <summary>
+    /// Obras de arte e colecionáveis
+    /// </summary>
+    Arte = 22,
+
+    /// <summary>
+    /// Propriedade intelectual (marcas, patentes, direitos autorais)
+    /// </summary>
+    PropriedadeIntelectual = 23,
+
+    /// <summary>
+    /// Negócio / operação (exportação, importação, dropshipping, empresa)
+    /// </summary>
+    Negocio = 24,
+
+    /// <summary>
     /// Outros ativos
     /// </summary>
     Outro = 99

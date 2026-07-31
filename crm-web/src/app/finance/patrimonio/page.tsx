@@ -81,6 +81,17 @@ const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
     [AssetClass.Exterior]: 'Exterior',
     [AssetClass.Milhas]: 'Milhas',
     [AssetClass.Cripto]: 'Cripto',
+    [AssetClass.Dinheiro]: 'Dinheiro (espécie)',
+    [AssetClass.Fgts]: 'FGTS',
+    [AssetClass.Titulo]: 'Títulos Públicos',
+    [AssetClass.Etf]: 'ETF',
+    [AssetClass.Bdr]: 'BDR',
+    [AssetClass.CrowdfundingImob]: 'Crowdfunding Imob.',
+    [AssetClass.CartaCredito]: 'Carta de Crédito',
+    [AssetClass.Joias]: 'Joias',
+    [AssetClass.Arte]: 'Obras de Arte',
+    [AssetClass.PropriedadeIntelectual]: 'Propriedade Intelectual',
+    [AssetClass.Negocio]: 'Negócio/Operação',
     [AssetClass.Outro]: 'Outro',
 };
 
