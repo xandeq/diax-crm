@@ -47,6 +47,20 @@ public record InvestIQOpportunitiesEnvelope(
     [property: JsonPropertyName("opportunities")] List<InvestIQOpportunityItem>? Opportunities
 );
 
+/// <summary>
+/// GET /integrations/market-snapshot do InvestIQ — cotações do dia (o VPS tem IP
+/// limpo nas fontes públicas; o IP compartilhado do SmarterASP é bloqueado).
+/// </summary>
+public record InvestIQMarketSnapshot(
+    [property: JsonPropertyName("usd_brl")] decimal? UsdBrl,
+    [property: JsonPropertyName("eur_brl")] decimal? EurBrl,
+    [property: JsonPropertyName("gbp_brl")] decimal? GbpBrl,
+    [property: JsonPropertyName("btc_brl")] decimal? BtcBrl,
+    [property: JsonPropertyName("gold_ounce_brl")] decimal? GoldOunceBrl,
+    [property: JsonPropertyName("gold_gram_brl")] decimal? GoldGramBrl,
+    [property: JsonPropertyName("fetched_at")] string? FetchedAt
+);
+
 // ─── Interface ───────────────────────────────────────────────────────────────
 
 public interface IInvestIQIntegrationService
@@ -55,6 +69,9 @@ public interface IInvestIQIntegrationService
         CancellationToken cancellationToken = default);
 
     Task<Result<List<InvestIQOpportunityItem>>> GetDailyOpportunitiesAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<Result<InvestIQMarketSnapshot>> GetMarketSnapshotAsync(
         CancellationToken cancellationToken = default);
 }
 
@@ -186,6 +203,53 @@ public class InvestIQIntegrationService : IInvestIQIntegrationService
         {
             _logger.LogError(ex, "Error calling InvestIQ opportunities-daily endpoint");
             return Result.Failure<List<InvestIQOpportunityItem>>(
+                new Error("InvestIQ.Exception", ex.Message));
+        }
+    }
+
+    public async Task<Result<InvestIQMarketSnapshot>> GetMarketSnapshotAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var baseUrl = _configuration["InvestIQ:BaseUrl"];
+        var integrationKey = _configuration["InvestIQ:IntegrationKey"];
+
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(integrationKey))
+        {
+            _logger.LogWarning("InvestIQ integration not configured (BaseUrl or IntegrationKey missing)");
+            return Result.Failure<InvestIQMarketSnapshot>(
+                new Error("InvestIQ.NotConfigured", "InvestIQ integration is not configured"));
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+            client.DefaultRequestHeaders.Add("X-Integration-Key", integrationKey);
+            client.Timeout = TimeSpan.FromSeconds(15);
+
+            var response = await client.GetAsync("integrations/market-snapshot", cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("InvestIQ market-snapshot returned {Status}: {Body}", response.StatusCode, body);
+                return Result.Failure<InvestIQMarketSnapshot>(
+                    new Error("InvestIQ.Error", $"InvestIQ returned {(int)response.StatusCode}"));
+            }
+
+            var snapshot = await response.Content.ReadFromJsonAsync<InvestIQMarketSnapshot>(
+                _json, cancellationToken);
+
+            if (snapshot is null)
+                return Result.Failure<InvestIQMarketSnapshot>(
+                    new Error("InvestIQ.ParseError", "Failed to parse InvestIQ response"));
+
+            return Result.Success(snapshot);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error calling InvestIQ market-snapshot endpoint");
+            return Result.Failure<InvestIQMarketSnapshot>(
                 new Error("InvestIQ.Exception", ex.Message));
         }
     }

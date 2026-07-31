@@ -5,6 +5,7 @@ using Diax.Application.Finance.Patrimonio.Dtos;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Diax.Application.Finance;
 
 namespace Diax.Application.Finance.Patrimonio;
 
@@ -32,15 +33,18 @@ public class MarketDataService : IApplicationService
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(30);
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IInvestIQIntegrationService _investIQ;
     private readonly IMemoryCache _cache;
     private readonly ILogger<MarketDataService> _logger;
 
     public MarketDataService(
         IHttpClientFactory httpClientFactory,
+        IInvestIQIntegrationService investIQ,
         IMemoryCache cache,
         ILogger<MarketDataService> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _investIQ = investIQ;
         _cache = cache;
         _logger = logger;
     }
@@ -50,6 +54,20 @@ public class MarketDataService : IApplicationService
     {
         if (_cache.TryGetValue(CacheKey, out MarketSnapshotResponse? cached) && cached is not null)
             return Result.Success(cached);
+
+        // 1) InvestIQ (VPS, IP limpo) — caminho que funciona em prod; o IP
+        //    compartilhado do SmarterASP é rate-limitado/bloqueado nas fontes públicas.
+        var viaInvestIQ = await _investIQ.GetMarketSnapshotAsync(cancellationToken);
+        if (viaInvestIQ.IsSuccess)
+        {
+            var snap = FromInvestIQ(viaInvestIQ.Value);
+            _cache.Set(CacheKey, snap, CacheTtl);
+            return Result.Success(snap);
+        }
+
+        _logger.LogWarning(
+            "InvestIQ market-snapshot unavailable ({Code}), trying direct sources",
+            viaInvestIQ.Error?.Code);
 
         var client = _httpClientFactory.CreateClient();
         client.Timeout = TimeSpan.FromSeconds(10);
@@ -142,6 +160,23 @@ public class MarketDataService : IApplicationService
                 ? Math.Round(goldOunce.Value / TroyOunceGrams, 2)
                 : null,
             FetchedAt: fetchedAt);
+    }
+
+    internal static MarketSnapshotResponse FromInvestIQ(InvestIQMarketSnapshot s)
+    {
+        var goldGram = s.GoldGramBrl;
+        if (goldGram is null && s.GoldOunceBrl.HasValue)
+            goldGram = Math.Round(s.GoldOunceBrl.Value / TroyOunceGrams, 2);
+
+        return new MarketSnapshotResponse(
+            UsdBrl: s.UsdBrl,
+            EurBrl: s.EurBrl,
+            GbpBrl: s.GbpBrl,
+            BtcBrl: s.BtcBrl,
+            GoldOunceBrl: s.GoldOunceBrl,
+            GoldGramBrl: goldGram,
+            FetchedAt: DateTime.TryParse(s.FetchedAt, CultureInfo.InvariantCulture,
+                DateTimeStyles.AdjustToUniversal, out var at) ? at : DateTime.UtcNow);
     }
 
     /// <summary>

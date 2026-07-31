@@ -1,3 +1,4 @@
+using Diax.Application.Finance;
 using Diax.Application.Finance.Patrimonio;
 
 namespace Diax.Tests.Application.Finance;
@@ -118,5 +119,30 @@ public class MarketDataServiceTests
 
         Assert.Equal(318752m, btc);
         Assert.Null(goldOunce);
+    }
+
+    // ── Fonte primária: InvestIQ (VPS com IP limpo) ──────────────────────────
+
+    [Fact]
+    public void FromInvestIQ_MapsAllFields()
+    {
+        var src = new InvestIQMarketSnapshot(5.06m, 5.81m, 6.79m, 318904m, 20606m, 662.5m,
+            "2026-07-31T15:10:00+00:00");
+
+        var snap = MarketDataService.FromInvestIQ(src);
+
+        Assert.Equal(5.06m, snap.UsdBrl);
+        Assert.Equal(662.5m, snap.GoldGramBrl);
+        Assert.Equal(new DateTime(2026, 7, 31, 15, 10, 0, DateTimeKind.Utc), snap.FetchedAt);
+    }
+
+    [Fact]
+    public void FromInvestIQ_MissingGoldGram_DerivesFromOunce()
+    {
+        var src = new InvestIQMarketSnapshot(null, null, null, null, 20606m, null, null);
+
+        var snap = MarketDataService.FromInvestIQ(src);
+
+        Assert.Equal(Math.Round(20606m / MarketDataService.TroyOunceGrams, 2), snap.GoldGramBrl);
     }
 }
