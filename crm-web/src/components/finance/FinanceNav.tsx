@@ -7,6 +7,7 @@ import {
     CreditCard,
     FileInput,
     FileSearch,
+    Gem,
     Landmark,
     LayoutDashboard,
     List,
@@ -31,6 +32,11 @@ const navItems = [
     name: 'Planilha Financeira',
     href: '/finance/personal-control',
     icon: Wallet
+  },
+  {
+    name: 'Patrimônio & Investimentos',
+    href: '/finance/patrimonio',
+    icon: Gem
   },
   {
     name: 'Transações',

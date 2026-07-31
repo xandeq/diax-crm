@@ -8,6 +8,7 @@ using Diax.Domain.Helpdesk;
 using Diax.Domain.Tasks;
 using Diax.Domain.Customers;
 using Diax.Domain.Finance;
+using Diax.Domain.Finance.Assets;
 using Diax.Domain.Finance.Planner;
 using Diax.Domain.Household;
 using Diax.Domain.ErrorLogs;
@@ -163,6 +164,10 @@ public class DiaxDbContext : DbContext
     public DbSet<SimulationRecommendation> SimulationRecommendations => Set<SimulationRecommendation>();
     public DbSet<CreditCardStrategy> CreditCardStrategies => Set<CreditCardStrategy>();
 
+    // Patrimônio & Investimentos (net worth)
+    public DbSet<Asset> Assets => Set<Asset>();
+    public DbSet<AssetValuation> AssetValuations => Set<AssetValuation>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -258,6 +263,7 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<SupportTicket>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<AiConversation>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<DailyBriefing>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<Asset>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.

@@ -14,6 +14,7 @@ import {
     Calendar,
     CreditCard,
     FileInput,
+    Gem,
     LayoutDashboard,
     ReceiptText,
     Repeat2,
@@ -93,6 +94,7 @@ function AnimatedBar({ pct, color }: { pct: number; color: string }) {
 const QUICK_LINKS = [
     { href: '/finance/morning-briefing', label: 'Morning Briefing',   Icon: Sun,           tint: 'rgba(245,158,11,0.12)',  fg: '#fbbf24' },
     { href: '/finance/personal-control', label: 'Planilha Financeira',Icon: BookOpen,       tint: 'rgba(16,185,129,0.12)', fg: '#34d399' },
+    { href: '/finance/patrimonio',       label: 'Patrimônio & Investimentos', Icon: Gem,    tint: 'rgba(20,184,166,0.12)', fg: '#2dd4bf' },
     { href: '/finance/transactions',     label: 'Transações',          Icon: ReceiptText,   tint: 'rgba(59,130,246,0.12)', fg: '#60a5fa' },
     { href: '/finance/planner',          label: 'Planner',             Icon: LayoutDashboard,tint:'rgba(148,163,184,0.12)',fg: '#94a3b8' },
     { href: '/finance/credit-cards',     label: 'Cartões',             Icon: CreditCard,    tint: 'rgba(244,63,94,0.12)',  fg: '#fb7185' },

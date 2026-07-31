@@ -151,6 +151,10 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Finance.Planner.MonthlySimulationService>();
         services.AddScoped<PersonalFinanceControlService>();
 
+        // ===== PATRIMÔNIO & INVESTIMENTOS (net worth) =====
+        services.AddScoped<Diax.Application.Finance.Patrimonio.AssetService>();
+        services.AddScoped<Diax.Application.Finance.Patrimonio.NetWorthService>();
+
         // ===== INVESTIQ INTEGRATION =====
         services.AddScoped<IInvestIQIntegrationService, InvestIQIntegrationService>();
 
