@@ -131,6 +131,11 @@ public enum AssetClass
     Negocio = 24,
 
     /// <summary>
+    /// Semoventes (gado, cavalos, rebanho)
+    /// </summary>
+    Semovente = 25,
+
+    /// <summary>
     /// Outros ativos
     /// </summary>
     Outro = 99

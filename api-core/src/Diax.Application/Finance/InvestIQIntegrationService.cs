@@ -38,6 +38,15 @@ public record InvestIQOpportunityItem(
     [property: JsonPropertyName("risk")] string? Risk
 );
 
+/// <summary>
+/// Envelope real do GET /integrations/opportunities-daily do InvestIQ
+/// ({"generated_at": ..., "opportunities": [...]}).
+/// </summary>
+public record InvestIQOpportunitiesEnvelope(
+    [property: JsonPropertyName("generated_at")] string? GeneratedAt,
+    [property: JsonPropertyName("opportunities")] List<InvestIQOpportunityItem>? Opportunities
+);
+
 // ─── Interface ───────────────────────────────────────────────────────────────
 
 public interface IInvestIQIntegrationService
@@ -163,8 +172,8 @@ public class InvestIQIntegrationService : IInvestIQIntegrationService
                     new Error("InvestIQ.Error", $"InvestIQ returned {(int)response.StatusCode}"));
             }
 
-            var opportunities = await response.Content.ReadFromJsonAsync<List<InvestIQOpportunityItem>>(
-                _json, cancellationToken);
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            var opportunities = ParseOpportunitiesPayload(payload);
 
             if (opportunities is null)
                 return Result.Failure<List<InvestIQOpportunityItem>>(
@@ -178,6 +187,30 @@ public class InvestIQIntegrationService : IInvestIQIntegrationService
             _logger.LogError(ex, "Error calling InvestIQ opportunities-daily endpoint");
             return Result.Failure<List<InvestIQOpportunityItem>>(
                 new Error("InvestIQ.Exception", ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// O endpoint retorna um envelope {"generated_at", "opportunities": [...]}; versões
+    /// antigas retornavam a lista direta. Aceita os dois formatos; null se ilegível.
+    /// </summary>
+    internal static List<InvestIQOpportunityItem>? ParseOpportunitiesPayload(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            return null;
+
+        try
+        {
+            var trimmed = payload.TrimStart();
+            if (trimmed.StartsWith('['))
+                return JsonSerializer.Deserialize<List<InvestIQOpportunityItem>>(payload, _json);
+
+            var envelope = JsonSerializer.Deserialize<InvestIQOpportunitiesEnvelope>(payload, _json);
+            return envelope?.Opportunities;
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 }

@@ -159,6 +159,7 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Finance.Patrimonio.OpportunityService>();
         services.AddScoped<Diax.Application.Finance.Patrimonio.NextActionService>();
         services.AddScoped<Diax.Application.Finance.Patrimonio.WealthProfileService>();
+        services.AddScoped<Diax.Application.Finance.Patrimonio.MarketDataService>();
 
         // ===== INVESTIQ INTEGRATION =====
         services.AddScoped<IInvestIQIntegrationService, InvestIQIntegrationService>();

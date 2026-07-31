@@ -37,6 +37,7 @@ export enum AssetClass {
     Arte = 22,
     PropriedadeIntelectual = 23,
     Negocio = 24,
+    Semovente = 25,
     Outro = 99,
 }
 
@@ -184,6 +185,16 @@ export interface NextAction {
     status: NextActionStatus;
 }
 
+export interface MarketSnapshot {
+    usdBrl?: number;
+    eurBrl?: number;
+    gbpBrl?: number;
+    btcBrl?: number;
+    goldOunceBrl?: number;
+    goldGramBrl?: number;
+    fetchedAt: string;
+}
+
 export interface WealthProfile {
     riskProfile: string;
     goalAmount?: number;
@@ -247,6 +258,9 @@ export const patrimonioService = {
     },
 
     // ── Zona 2 — Onde investir ──────────────────────────────────────────
+    getMarketSnapshot: async () => {
+        return apiFetch<MarketSnapshot>('/patrimonio/market-snapshot');
+    },
     getOpportunities: async () => {
         return apiFetch<Opportunity[]>('/patrimonio/opportunities');
     },

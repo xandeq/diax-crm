@@ -19,6 +19,7 @@ public class PatrimonioController : BaseApiController
     private readonly OpportunityService _opportunityService;
     private readonly NextActionService _nextActionService;
     private readonly WealthProfileService _wealthProfileService;
+    private readonly MarketDataService _marketDataService;
     private readonly ILogger<PatrimonioController> _logger;
 
     public PatrimonioController(
@@ -27,6 +28,7 @@ public class PatrimonioController : BaseApiController
         OpportunityService opportunityService,
         NextActionService nextActionService,
         WealthProfileService wealthProfileService,
+        MarketDataService marketDataService,
         ILogger<PatrimonioController> logger)
     {
         _assetService = assetService;
@@ -34,6 +36,7 @@ public class PatrimonioController : BaseApiController
         _opportunityService = opportunityService;
         _nextActionService = nextActionService;
         _wealthProfileService = wealthProfileService;
+        _marketDataService = marketDataService;
         _logger = logger;
     }
 
@@ -191,6 +194,25 @@ public class PatrimonioController : BaseApiController
                 return StatusCode(500, result.Error);
             }
             return BadRequest(result.Error);
+        }
+        return Ok(result.Value);
+    }
+
+    // ===== F3 — COTAÇÕES DO DIA (bens palpáveis / moeda forte) =====
+
+    [HttpGet("market-snapshot")]
+    public async Task<IActionResult> GetMarketSnapshot(CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        _logger.LogInformation("GET /api/v1/patrimonio/market-snapshot - Request received");
+        var result = await _marketDataService.GetSnapshotAsync(cancellationToken);
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("GET /api/v1/patrimonio/market-snapshot - Unavailable: {ErrorCode} - {ErrorMessage}",
+                result.Error?.Code, result.Error?.Message);
+            return StatusCode(503, result.Error);
         }
         return Ok(result.Value);
     }

@@ -225,7 +225,13 @@ public class OpportunityService : IApplicationService
                 25, 52m, "alto"),
             (AssetClass.Arte, null, "Vinho / whisky de investimento",
                 "Safras raras e casks valorizam em plataformas de investimento (en primeur). Dica: nicho — comece pequeno, priorize rótulos com liquidez de revenda e armazenagem certificada.",
-                26, 50m, "alto")
+                26, 50m, "alto"),
+            (AssetClass.Semovente, null, "Gado de corte (recria/engorda)",
+                "Ativo real cotado em arroba, com liquidez via leilão/frigorífico e histórico de acompanhar a inflação. Dica: comece por recria-engorda em parceria (boi de capim) ou pelo lado financeiro (FIAGRO/fundos do agro) antes de comprar cabeça própria.",
+                27, 57m, "alto"),
+            (AssetClass.Semovente, null, "Cavalo de genética (Quarto de Milha/Mangalarga)",
+                "Valorização vem de genética + desempenho comprovado em prova, não do animal comum. Dica: só entre com assessoria de haras e registro (ABQM/ABCCMM); custo mensal de cocheira e veterinário corrói o retorno de quem não é do meio.",
+                28, 48m, "alto")
         };
 
         return ideas

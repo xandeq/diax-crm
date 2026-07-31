@@ -38,6 +38,7 @@ import {
     AssetOwnership,
     AssetValuationSource,
     CreateAssetRequest,
+    MarketSnapshot,
     NetWorthSummary,
     NextAction,
     NextActionCategory,
@@ -79,6 +80,7 @@ const NET_WORTH_KEY = ['patrimonio', 'net-worth'] as const;
 const OPPORTUNITIES_KEY = ['patrimonio', 'opportunities'] as const;
 const ACTIONS_KEY = ['patrimonio', 'actions'] as const;
 const PROFILE_KEY = ['patrimonio', 'profile'] as const;
+const MARKET_SNAPSHOT_KEY = ['patrimonio', 'market-snapshot'] as const;
 
 // ─── Labels & styling maps ──────────────────────────────────────────────────
 
@@ -108,6 +110,7 @@ const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
     [AssetClass.Arte]: 'Obras de Arte',
     [AssetClass.PropriedadeIntelectual]: 'Propriedade Intelectual',
     [AssetClass.Negocio]: 'Negócio/Operação',
+    [AssetClass.Semovente]: 'Gado & Cavalos',
     [AssetClass.Outro]: 'Outro',
 };
 
@@ -255,6 +258,14 @@ export default function PatrimonioPage() {
     } = useQuery({
         queryKey: OPPORTUNITIES_KEY,
         queryFn: () => patrimonioService.getOpportunities(),
+    });
+
+    // Cotações do dia — best-effort: em erro a faixa simplesmente não aparece
+    const { data: marketSnapshot } = useQuery<MarketSnapshot>({
+        queryKey: MARKET_SNAPSHOT_KEY,
+        queryFn: () => patrimonioService.getMarketSnapshot(),
+        staleTime: 30 * 60 * 1000,
+        retry: 1,
     });
 
     const refreshOpportunitiesMutation = useMutation({
@@ -434,6 +445,7 @@ export default function PatrimonioPage() {
     const TANGIBLE_CLASSES: AssetClass[] = [
         AssetClass.Imovel, AssetClass.Ouro, AssetClass.Joias,
         AssetClass.Veiculo, AssetClass.Arte, AssetClass.Diamante,
+        AssetClass.Semovente,
     ];
     const isTangible = (c: AssetClass) => TANGIBLE_CLASSES.includes(c);
     const investiqOpportunities = opportunities.filter((o) => o.source === 'investiq').sort(sortByEaseThenScore);
@@ -755,6 +767,33 @@ export default function PatrimonioPage() {
                         Atualizar oportunidades
                     </Button>
                 </div>
+
+                {/* Cotações de hoje (AwesomeAPI, best-effort — some se a fonte falhar) */}
+                {marketSnapshot && (
+                    <div className="flex flex-wrap items-center gap-2 mb-5">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 mr-1 flex items-center gap-1">
+                            <CircleDollarSign className="h-3 w-3 text-amber-400" />
+                            Cotações de hoje
+                        </span>
+                        {([
+                            ['Ouro (g)', marketSnapshot.goldGramBrl],
+                            ['Dólar', marketSnapshot.usdBrl],
+                            ['Euro', marketSnapshot.eurBrl],
+                            ['Libra', marketSnapshot.gbpBrl],
+                            ['Bitcoin', marketSnapshot.btcBrl],
+                        ] as [string, number | undefined][]).map(([label, value]) =>
+                            value !== undefined && value !== null ? (
+                                <span
+                                    key={label}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900/40 border border-zinc-800/80 px-3 py-1 text-xs"
+                                >
+                                    <span className="text-zinc-400">{label}</span>
+                                    <span className="font-semibold tabular-nums text-zinc-100">{formatCurrency(value)}</span>
+                                </span>
+                            ) : null,
+                        )}
+                    </div>
+                )}
 
                 {opportunitiesLoading ? (
                     <div className="flex items-center justify-center py-10">
