@@ -431,8 +431,14 @@ export default function PatrimonioPage() {
         if (ea !== eb) return ea - eb;
         return b.score - a.score;
     };
+    const TANGIBLE_CLASSES: AssetClass[] = [
+        AssetClass.Imovel, AssetClass.Ouro, AssetClass.Joias,
+        AssetClass.Veiculo, AssetClass.Arte, AssetClass.Diamante,
+    ];
+    const isTangible = (c: AssetClass) => TANGIBLE_CLASSES.includes(c);
     const investiqOpportunities = opportunities.filter((o) => o.source === 'investiq').sort(sortByEaseThenScore);
-    const ideaOpportunities = opportunities.filter((o) => o.source === 'idea').sort(sortByEaseThenScore);
+    const tangibleOpportunities = opportunities.filter((o) => isTangible(o.class)).sort(sortByEaseThenScore);
+    const ideaOpportunities = opportunities.filter((o) => o.source === 'idea' && !isTangible(o.class)).sort(sortByEaseThenScore);
 
     const pendingActions = actions.filter((a) => a.status === 'pending');
     const resolvedActions = actions.filter((a) => a.status !== 'pending');
@@ -761,6 +767,21 @@ export default function PatrimonioPage() {
                     </div>
                 ) : (
                     <div className="space-y-8">
+                        {/* 🏆 Bens palpáveis (imóvel, ouro, joias, carro, arte) */}
+                        {tangibleOpportunities.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
+                                    <Gem className="h-3.5 w-3.5 text-teal-400" />
+                                    Bens palpáveis
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {tangibleOpportunities.map((opp) => (
+                                        <OpportunityCard key={opp.id} opportunity={opp} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Oportunidades do dia (InvestIQ) */}
                         <div>
                             <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
