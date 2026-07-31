@@ -17,6 +17,11 @@ public class NextActionRepository : Repository<NextAction>, INextActionRepositor
             .ToListAsync(ct);
     }
 
+    public async Task<bool> HasAnyOnOrAfterAsync(Guid userId, DateTime sinceUtc, CancellationToken ct = default)
+    {
+        return await DbSet.AnyAsync(x => x.UserId == userId && x.CreatedAt >= sinceUtc, ct);
+    }
+
     public async Task<NextAction?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet

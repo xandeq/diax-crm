@@ -51,6 +51,16 @@ public class NextActionService : IApplicationService
         try
         {
             _logger.LogInformation("Fetching pending next actions for user {UserId}", userId);
+
+            // Lazy: gera o plano do dia automaticamente na 1ª visita (se nada foi gerado hoje).
+            // Torna o copiloto "fresco todo dia" sem depender de cron externo (IIS não garante timers).
+            var today = DateTime.UtcNow.Date;
+            var generatedToday = await _nextActionRepository.HasAnyOnOrAfterAsync(userId, today, cancellationToken);
+            if (!generatedToday)
+            {
+                await GenerateAsync(userId, cancellationToken);
+            }
+
             var actions = await _nextActionRepository.GetPendingByUserIdAsync(userId, cancellationToken);
             return Result<IEnumerable<NextActionResponse>>.Success(actions.Select(MapToResponse));
         }
