@@ -151,6 +151,54 @@ export interface NetWorthSummary {
 }
 
 // =====================================================
+// PATRIMÔNIO & INVESTIMENTOS — ZONA 2/3 (Oportunidades, Ações, Perfil)
+// =====================================================
+
+export type OpportunitySource = 'investiq' | 'idea';
+export type OpportunityRisk = 'baixo' | 'medio' | 'alto';
+
+export interface Opportunity {
+    id: string;
+    class: AssetClass;
+    ticker?: string;
+    title: string;
+    thesis: string;
+    easeRank?: number;
+    score: number;
+    suggestedAllocationPct?: number;
+    source: OpportunitySource;
+    risk: OpportunityRisk;
+    generatedAt: string;
+}
+
+export type NextActionCategory = 'aporte' | 'diversificar' | 'rebalancear' | 'resgatar' | 'adquirir';
+export type NextActionStatus = 'pending' | 'done' | 'dismissed';
+
+export interface NextAction {
+    id: string;
+    title: string;
+    rationale: string;
+    category: NextActionCategory;
+    suggestedAmount?: number;
+    targetClass?: AssetClass;
+    status: NextActionStatus;
+}
+
+export interface WealthProfile {
+    riskProfile: string;
+    goalAmount?: number;
+    goalYears?: number;
+    targetAllocationJson?: string;
+}
+
+export interface UpdateWealthProfileRequest {
+    riskProfile: string;
+    goalAmount?: number;
+    goalYears?: number;
+    targetAllocationJson?: string;
+}
+
+// =====================================================
 // PATRIMÔNIO & INVESTIMENTOS — SERVICE
 // Base path: /patrimonio (see Diax.Api.Controllers.V1.PatrimonioController)
 // =====================================================
@@ -196,5 +244,41 @@ export const patrimonioService = {
     },
     getNetWorth: async () => {
         return apiFetch<NetWorthSummary>('/patrimonio/networth');
+    },
+
+    // ── Zona 2 — Onde investir ──────────────────────────────────────────
+    getOpportunities: async () => {
+        return apiFetch<Opportunity[]>('/patrimonio/opportunities');
+    },
+    refreshOpportunities: async () => {
+        return apiFetch<Opportunity[]>('/patrimonio/opportunities/refresh', {
+            method: 'POST',
+        });
+    },
+
+    // ── Zona 3 — Ações a tomar ───────────────────────────────────────────
+    getActions: async () => {
+        return apiFetch<NextAction[]>('/patrimonio/actions');
+    },
+    generateActions: async () => {
+        return apiFetch<NextAction[]>('/patrimonio/actions/generate', {
+            method: 'POST',
+        });
+    },
+    completeAction: async (id: string) => {
+        return apiFetch<void>(`/patrimonio/actions/${id}/complete`, {
+            method: 'POST',
+        });
+    },
+
+    // ── Perfil & Metas ────────────────────────────────────────────────
+    getProfile: async () => {
+        return apiFetch<WealthProfile>('/patrimonio/profile');
+    },
+    updateProfile: async (data: UpdateWealthProfileRequest) => {
+        return apiFetch<WealthProfile>('/patrimonio/profile', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     },
 };

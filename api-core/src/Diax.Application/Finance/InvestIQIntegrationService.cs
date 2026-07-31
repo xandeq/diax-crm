@@ -28,11 +28,24 @@ public record InvestIQPortfolioSummary(
     [property: JsonPropertyName("cached_at")] string CachedAt
 );
 
+public record InvestIQOpportunityItem(
+    [property: JsonPropertyName("asset_class")] string? AssetClass,
+    [property: JsonPropertyName("ticker")] string? Ticker,
+    [property: JsonPropertyName("title")] string Title,
+    [property: JsonPropertyName("thesis")] string? Thesis,
+    [property: JsonPropertyName("score")] decimal Score,
+    [property: JsonPropertyName("suggested_allocation_pct")] decimal? SuggestedAllocationPct,
+    [property: JsonPropertyName("risk")] string? Risk
+);
+
 // ─── Interface ───────────────────────────────────────────────────────────────
 
 public interface IInvestIQIntegrationService
 {
     Task<Result<InvestIQPortfolioSummary>> GetPortfolioSummaryAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<Result<List<InvestIQOpportunityItem>>> GetDailyOpportunitiesAsync(
         CancellationToken cancellationToken = default);
 }
 
@@ -46,6 +59,7 @@ public class InvestIQIntegrationService : IInvestIQIntegrationService
     };
 
     private const string CacheKey = "investiq:portfolio-summary";
+    private const string OpportunitiesCacheKey = "investiq:opportunities-daily";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
 
     private readonly IHttpClientFactory _httpClientFactory;
@@ -112,6 +126,57 @@ public class InvestIQIntegrationService : IInvestIQIntegrationService
         {
             _logger.LogError(ex, "Error calling InvestIQ integration endpoint");
             return Result.Failure<InvestIQPortfolioSummary>(
+                new Error("InvestIQ.Exception", ex.Message));
+        }
+    }
+
+    public async Task<Result<List<InvestIQOpportunityItem>>> GetDailyOpportunitiesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (_cache.TryGetValue(OpportunitiesCacheKey, out List<InvestIQOpportunityItem>? cached) && cached is not null)
+            return Result.Success(cached);
+
+        var baseUrl = _configuration["InvestIQ:BaseUrl"];
+        var integrationKey = _configuration["InvestIQ:IntegrationKey"];
+
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(integrationKey))
+        {
+            _logger.LogWarning("InvestIQ integration not configured (BaseUrl or IntegrationKey missing)");
+            return Result.Failure<List<InvestIQOpportunityItem>>(
+                new Error("InvestIQ.NotConfigured", "InvestIQ integration is not configured"));
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+            client.DefaultRequestHeaders.Add("X-Integration-Key", integrationKey);
+            client.Timeout = TimeSpan.FromSeconds(15);
+
+            var response = await client.GetAsync("integrations/opportunities-daily", cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("InvestIQ opportunities-daily returned {Status}: {Body}", response.StatusCode, body);
+                return Result.Failure<List<InvestIQOpportunityItem>>(
+                    new Error("InvestIQ.Error", $"InvestIQ returned {(int)response.StatusCode}"));
+            }
+
+            var opportunities = await response.Content.ReadFromJsonAsync<List<InvestIQOpportunityItem>>(
+                _json, cancellationToken);
+
+            if (opportunities is null)
+                return Result.Failure<List<InvestIQOpportunityItem>>(
+                    new Error("InvestIQ.ParseError", "Failed to parse InvestIQ response"));
+
+            _cache.Set(OpportunitiesCacheKey, opportunities, CacheTtl);
+            return Result.Success(opportunities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling InvestIQ opportunities-daily endpoint");
+            return Result.Failure<List<InvestIQOpportunityItem>>(
                 new Error("InvestIQ.Exception", ex.Message));
         }
     }

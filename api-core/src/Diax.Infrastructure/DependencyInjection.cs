@@ -207,6 +207,9 @@ public static class DependencyInjection
         services.AddScoped<ICreditCardGroupRepository, CreditCardGroupRepository>();
         services.AddScoped<IFinancialAccountRepository, FinancialAccountRepository>();
         services.AddScoped<Diax.Domain.Finance.Assets.IAssetRepository, AssetRepository>();
+        services.AddScoped<Diax.Domain.Finance.Assets.IInvestmentOpportunityRepository, InvestmentOpportunityRepository>();
+        services.AddScoped<Diax.Domain.Finance.Assets.INextActionRepository, NextActionRepository>();
+        services.AddScoped<Diax.Domain.Finance.Assets.IWealthProfileRepository, WealthProfileRepository>();
         services.AddScoped<ICreditCardInvoiceRepository, CreditCardInvoiceRepository>();
         services.AddScoped<IAccountTransferRepository, AccountTransferRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();

@@ -39,18 +39,31 @@ import {
     AssetValuationSource,
     CreateAssetRequest,
     NetWorthSummary,
+    NextAction,
+    NextActionCategory,
+    Opportunity,
+    OpportunityRisk,
     UpdateAssetRequest,
+    UpdateWealthProfileRequest,
+    WealthProfile,
     patrimonioService,
 } from '@/services/patrimonio';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+    CheckCircle2,
+    CircleDollarSign,
+    Compass,
     Gem,
     Layers,
+    Lightbulb,
+    ListChecks,
     Loader2,
     Pencil,
     PieChart,
     Plus,
+    RefreshCw,
     Sparkles,
+    Target,
     Trash2,
     Users,
     Wallet,
@@ -63,6 +76,9 @@ import { toast } from 'sonner';
 
 const ASSETS_KEY = ['patrimonio', 'assets'] as const;
 const NET_WORTH_KEY = ['patrimonio', 'net-worth'] as const;
+const OPPORTUNITIES_KEY = ['patrimonio', 'opportunities'] as const;
+const ACTIONS_KEY = ['patrimonio', 'actions'] as const;
+const PROFILE_KEY = ['patrimonio', 'profile'] as const;
 
 // ─── Labels & styling maps ──────────────────────────────────────────────────
 
@@ -121,6 +137,36 @@ const LIQUIDITY_BADGE_CLASS: Record<AssetLiquidity, string> = {
     [AssetLiquidity.Travado]: 'border-sky-500/20 bg-sky-500/10 text-sky-400',
     [AssetLiquidity.Contingente]: 'border-amber-500/20 bg-amber-500/10 text-amber-400',
 };
+
+const RISK_LABELS: Record<OpportunityRisk, string> = {
+    baixo: 'Baixo risco',
+    medio: 'Risco médio',
+    alto: 'Alto risco',
+};
+
+const RISK_BADGE_CLASS: Record<OpportunityRisk, string> = {
+    baixo: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400',
+    medio: 'border-amber-500/20 bg-amber-500/10 text-amber-400',
+    alto: 'border-rose-500/20 bg-rose-500/10 text-rose-400',
+};
+
+const ACTION_CATEGORY_LABELS: Record<NextActionCategory, string> = {
+    aporte: 'Aporte',
+    diversificar: 'Diversificar',
+    rebalancear: 'Rebalancear',
+    resgatar: 'Resgatar',
+    adquirir: 'Adquirir',
+};
+
+const ACTION_CATEGORY_BADGE_CLASS: Record<NextActionCategory, string> = {
+    aporte: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400',
+    diversificar: 'border-sky-500/20 bg-sky-500/10 text-sky-400',
+    rebalancear: 'border-teal-500/20 bg-teal-500/10 text-teal-400',
+    resgatar: 'border-amber-500/20 bg-amber-500/10 text-amber-400',
+    adquirir: 'border-violet-500/20 bg-violet-500/10 text-violet-400',
+};
+
+const RISK_PROFILE_OPTIONS = ['Conservador', 'Moderado', 'Arrojado', 'Agressivo'];
 
 const EMPTY_CREATE: CreateAssetRequest = {
     name: '',
@@ -200,6 +246,93 @@ export default function PatrimonioPage() {
     });
 
     const saving = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+
+    // ── Zona 2 — Onde investir ─────────────────────────────────────────────
+    const {
+        data: opportunities = [],
+        isLoading: opportunitiesLoading,
+        isError: opportunitiesError,
+    } = useQuery({
+        queryKey: OPPORTUNITIES_KEY,
+        queryFn: () => patrimonioService.getOpportunities(),
+    });
+
+    const refreshOpportunitiesMutation = useMutation({
+        mutationFn: () => patrimonioService.refreshOpportunities(),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: OPPORTUNITIES_KEY });
+            toast.success('Oportunidades atualizadas');
+        },
+        onError: () => toast.error('Erro ao atualizar oportunidades'),
+    });
+
+    // ── Zona 3 — Ações a tomar ──────────────────────────────────────────────
+    const {
+        data: actions = [],
+        isLoading: actionsLoading,
+        isError: actionsError,
+    } = useQuery({
+        queryKey: ACTIONS_KEY,
+        queryFn: () => patrimonioService.getActions(),
+    });
+
+    const generateActionsMutation = useMutation({
+        mutationFn: () => patrimonioService.generateActions(),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ACTIONS_KEY });
+            toast.success('Plano de ação gerado');
+        },
+        onError: () => toast.error('Erro ao gerar ações'),
+    });
+
+    const completeActionMutation = useMutation({
+        mutationFn: (id: string) => patrimonioService.completeAction(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ACTIONS_KEY });
+            toast.success('Ação concluída');
+        },
+        onError: () => toast.error('Erro ao concluir ação'),
+    });
+
+    // ── Perfil & Metas ───────────────────────────────────────────────────────
+    const { data: profile, isLoading: profileLoading } = useQuery({
+        queryKey: PROFILE_KEY,
+        queryFn: () => patrimonioService.getProfile(),
+    });
+
+    const updateProfileMutation = useMutation({
+        mutationFn: (data: UpdateWealthProfileRequest) => patrimonioService.updateProfile(data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: PROFILE_KEY });
+        },
+    });
+
+    const [showProfileEdit, setShowProfileEdit] = useState(false);
+    const [profileForm, setProfileForm] = useState<UpdateWealthProfileRequest | null>(null);
+
+    const openProfileEdit = () => {
+        setProfileForm({
+            riskProfile: profile?.riskProfile ?? 'Moderado',
+            goalAmount: profile?.goalAmount,
+            goalYears: profile?.goalYears,
+            targetAllocationJson: profile?.targetAllocationJson,
+        });
+        setShowProfileEdit(true);
+    };
+
+    const handleProfileSave = () => {
+        if (!profileForm || !profileForm.riskProfile.trim()) {
+            toast.error('Selecione um perfil de risco');
+            return;
+        }
+        updateProfileMutation.mutate(profileForm, {
+            onSuccess: () => {
+                toast.success('Perfil e metas atualizados');
+                setShowProfileEdit(false);
+            },
+            onError: () => toast.error('Erro ao atualizar perfil'),
+        });
+    };
 
     // ── Modals ─────────────────────────────────────────────────────────────
     const [showCreate, setShowCreate] = useState(false);
@@ -292,6 +425,18 @@ export default function PatrimonioPage() {
     const sortedByOwnership = netWorth ? [...netWorth.byOwnership].sort((a, b) => b.totalBRL - a.totalBRL) : [];
     const sortedByLiquidity = netWorth ? [...netWorth.byLiquidity].sort((a, b) => b.totalBRL - a.totalBRL) : [];
 
+    const sortByEaseThenScore = (a: Opportunity, b: Opportunity) => {
+        const ea = a.easeRank ?? Number.MAX_SAFE_INTEGER;
+        const eb = b.easeRank ?? Number.MAX_SAFE_INTEGER;
+        if (ea !== eb) return ea - eb;
+        return b.score - a.score;
+    };
+    const investiqOpportunities = opportunities.filter((o) => o.source === 'investiq').sort(sortByEaseThenScore);
+    const ideaOpportunities = opportunities.filter((o) => o.source === 'idea').sort(sortByEaseThenScore);
+
+    const pendingActions = actions.filter((a) => a.status === 'pending');
+    const resolvedActions = actions.filter((a) => a.status !== 'pending');
+
     return (
         <div className="container mx-auto px-4 py-6 max-w-7xl">
             {confirmDialogNode}
@@ -323,6 +468,47 @@ export default function PatrimonioPage() {
                     Erro ao carregar dados de patrimônio. Por favor, tente novamente.
                 </div>
             )}
+
+            {/* ── Perfil & Metas ── */}
+            <div className="rounded-2xl p-5 bg-[#0a130f]/40 border border-zinc-800/60 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-teal-500/10">
+                            <Target className="h-4 w-4 text-teal-400" />
+                        </div>
+                        <div>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block">Perfil de Risco</span>
+                            {profileLoading ? (
+                                <span className="text-sm text-zinc-500">Carregando...</span>
+                            ) : (
+                                <span className="text-sm font-semibold text-zinc-100">{profile?.riskProfile ?? 'Não definido'}</span>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-emerald-500/10">
+                            <CircleDollarSign className="h-4 w-4 text-emerald-400" />
+                        </div>
+                        <div>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block">Meta</span>
+                            {profileLoading ? (
+                                <span className="text-sm text-zinc-500">Carregando...</span>
+                            ) : profile?.goalAmount ? (
+                                <span className="text-sm font-semibold text-zinc-100">
+                                    {formatCurrency(profile.goalAmount)}
+                                    {profile.goalYears ? ` em ${profile.goalYears} ${profile.goalYears === 1 ? 'ano' : 'anos'}` : ''}
+                                </span>
+                            ) : (
+                                <span className="text-sm text-zinc-500">Nenhuma meta definida</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={openProfileEdit} className="gap-2 shrink-0">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar Perfil & Metas
+                </Button>
+            </div>
 
             {/* ── Stat cards ── */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -543,17 +729,138 @@ export default function PatrimonioPage() {
                 )}
             </div>
 
-            {/* ── Oportunidades do dia (F2 stub) ── */}
+            {/* ── Zona 2 — Onde investir ── */}
             <div className="rounded-2xl p-6 bg-[#0a130f]/40 border border-zinc-800/60 mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="h-4 w-4 text-teal-400" />
-                    <h2 className="text-sm font-semibold text-zinc-100">Oportunidades do dia</h2>
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                    <div className="flex items-center gap-2">
+                        <Compass className="h-4 w-4 text-teal-400" />
+                        <h2 className="text-sm font-semibold text-zinc-100">Onde investir</h2>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refreshOpportunitiesMutation.mutate()}
+                        disabled={refreshOpportunitiesMutation.isPending}
+                        className="gap-2"
+                    >
+                        {refreshOpportunitiesMutation.isPending
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <RefreshCw className="h-3.5 w-3.5" />}
+                        Atualizar oportunidades
+                    </Button>
                 </div>
-                <EmptyState
-                    icon={Sparkles}
-                    title="Em breve"
-                    description="Em breve — recomendações diárias multi-classe (ações, FIIs, RF, ouro, cripto, dólar/libra, imóveis, milhas...)"
-                />
+
+                {opportunitiesLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                        <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+                    </div>
+                ) : opportunitiesError ? (
+                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-center gap-2 text-sm font-semibold">
+                        <XCircle className="h-4 w-4 shrink-0" />
+                        Erro ao carregar oportunidades. Por favor, tente novamente.
+                    </div>
+                ) : (
+                    <div className="space-y-8">
+                        {/* Oportunidades do dia (InvestIQ) */}
+                        <div>
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">
+                                Oportunidades do dia
+                            </h3>
+                            {investiqOpportunities.length === 0 ? (
+                                <p className="text-xs text-zinc-500 bg-zinc-900/30 border border-dashed border-zinc-800 rounded-xl p-4">
+                                    Conecte o InvestIQ para oportunidades de mercado ao vivo.
+                                </p>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {investiqOpportunities.map((opp) => (
+                                        <OpportunityCard key={opp.id} opportunity={opp} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Ideias pra você */}
+                        <div>
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
+                                <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
+                                Ideias pra você
+                            </h3>
+                            {ideaOpportunities.length === 0 ? (
+                                <EmptyState
+                                    icon={Lightbulb}
+                                    title="Sem ideias no momento"
+                                    description="Cadastre mais ativos e defina sua meta para receber ideias personalizadas de diversificação."
+                                />
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {ideaOpportunities.map((opp) => (
+                                        <OpportunityCard key={opp.id} opportunity={opp} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ── Zona 3 — Ações a tomar ── */}
+            <div className="rounded-2xl p-6 bg-[#0a130f]/40 border border-zinc-800/60 mb-8">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                    <div className="flex items-center gap-2">
+                        <ListChecks className="h-4 w-4 text-teal-400" />
+                        <h2 className="text-sm font-semibold text-zinc-100">Ações a tomar</h2>
+                        {pendingActions.length > 0 && (
+                            <span className="h-5 px-2 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] flex items-center justify-center font-semibold border border-emerald-500/20">
+                                {pendingActions.length}
+                            </span>
+                        )}
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generateActionsMutation.mutate()}
+                        disabled={generateActionsMutation.isPending}
+                        className="gap-2"
+                    >
+                        {generateActionsMutation.isPending
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Sparkles className="h-3.5 w-3.5" />}
+                        Gerar ações
+                    </Button>
+                </div>
+
+                {actionsLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                        <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+                    </div>
+                ) : actionsError ? (
+                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-center gap-2 text-sm font-semibold">
+                        <XCircle className="h-4 w-4 shrink-0" />
+                        Erro ao carregar ações. Por favor, tente novamente.
+                    </div>
+                ) : actions.length === 0 ? (
+                    <EmptyState
+                        icon={ListChecks}
+                        title="Nenhuma ação pendente"
+                        description="Cadastre seus ativos e defina sua meta para gerar o plano de ação"
+                        actionLabel="Gerar ações"
+                        onAction={() => generateActionsMutation.mutate()}
+                    />
+                ) : (
+                    <div className="space-y-2">
+                        {pendingActions.map((action) => (
+                            <NextActionRow
+                                key={action.id}
+                                action={action}
+                                onComplete={() => completeActionMutation.mutate(action.id)}
+                                completing={completeActionMutation.isPending && completeActionMutation.variables === action.id}
+                            />
+                        ))}
+                        {resolvedActions.map((action) => (
+                            <NextActionRow key={action.id} action={action} resolved />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* ── Create Modal ── */}
@@ -612,6 +919,82 @@ export default function PatrimonioPage() {
                         </Button>
                         <Button onClick={handleEdit} disabled={saving}>
                             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Salvar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* ── Perfil & Metas Modal ── */}
+            <Dialog
+                open={showProfileEdit}
+                onOpenChange={(v) => {
+                    if (!updateProfileMutation.isPending) {
+                        setShowProfileEdit(v);
+                        if (!v) setProfileForm(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Perfil & Metas</DialogTitle>
+                    </DialogHeader>
+                    {profileForm && (
+                        <div className="space-y-3 py-2">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="pf-risk">Perfil de Risco</Label>
+                                <Select
+                                    value={profileForm.riskProfile}
+                                    onValueChange={(v) => setProfileForm((f) => (f ? { ...f, riskProfile: v } : f))}
+                                >
+                                    <SelectTrigger id="pf-risk"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {RISK_PROFILE_OPTIONS.map((opt) => (
+                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="pf-amount">Meta (R$)</Label>
+                                    <Input
+                                        id="pf-amount"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={profileForm.goalAmount ?? ''}
+                                        onChange={(e) => setProfileForm((f) => (f ? {
+                                            ...f,
+                                            goalAmount: e.target.value === '' ? undefined : parseFloat(e.target.value) || 0,
+                                        } : f))}
+                                        placeholder="Ex: 1000000"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="pf-years">Prazo (anos)</Label>
+                                    <Input
+                                        id="pf-years"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={profileForm.goalYears ?? ''}
+                                        onChange={(e) => setProfileForm((f) => (f ? {
+                                            ...f,
+                                            goalYears: e.target.value === '' ? undefined : parseInt(e.target.value, 10) || 0,
+                                        } : f))}
+                                        placeholder="Ex: 10"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowProfileEdit(false)} disabled={updateProfileMutation.isPending}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleProfileSave} disabled={updateProfileMutation.isPending}>
+                            {updateProfileMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                             Salvar
                         </Button>
                     </DialogFooter>
@@ -771,6 +1154,105 @@ function AssetForm({ form, onChange }: AssetFormProps) {
                     rows={3}
                 />
             </div>
+        </div>
+    );
+}
+
+// ─── Zona 2 — OpportunityCard ────────────────────────────────────────────────
+
+function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
+    return (
+        <div className="rounded-xl p-4 bg-zinc-900/30 border border-zinc-800/60 hover:border-zinc-700/60 transition-colors flex flex-col gap-2.5">
+            <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <Badge variant="outline" className="text-zinc-300 border-zinc-700 text-[10px]">
+                        {ASSET_CLASS_LABELS[opportunity.class]}
+                    </Badge>
+                    {opportunity.ticker && (
+                        <span className="text-[10px] font-mono font-semibold text-teal-400">{opportunity.ticker}</span>
+                    )}
+                </div>
+                <Badge className={cn('font-semibold text-[10px] shrink-0', RISK_BADGE_CLASS[opportunity.risk])}>
+                    {RISK_LABELS[opportunity.risk]}
+                </Badge>
+            </div>
+
+            <h4 className="text-sm font-semibold text-zinc-100 leading-snug">{opportunity.title}</h4>
+            <p className="text-xs text-zinc-400 leading-relaxed">{opportunity.thesis}</p>
+
+            <div className="flex items-center justify-between pt-2 mt-auto border-t border-white/5">
+                <span className="text-[10px] text-zinc-500">
+                    Score <span className="font-semibold text-zinc-300 tabular-nums">{opportunity.score.toFixed(1)}</span>
+                </span>
+                {opportunity.suggestedAllocationPct !== undefined && opportunity.suggestedAllocationPct !== null && (
+                    <span className="text-[10px] text-zinc-500">
+                        Alocação sugerida <span className="font-semibold text-emerald-400 tabular-nums">{opportunity.suggestedAllocationPct.toFixed(1)}%</span>
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── Zona 3 — NextActionRow ──────────────────────────────────────────────────
+
+interface NextActionRowProps {
+    action: NextAction;
+    onComplete?: () => void;
+    completing?: boolean;
+    resolved?: boolean;
+}
+
+function NextActionRow({ action, onComplete, completing, resolved }: NextActionRowProps) {
+    return (
+        <div
+            className={cn(
+                'flex items-start justify-between gap-4 p-4 rounded-xl border transition-colors',
+                resolved
+                    ? 'bg-zinc-900/10 border-zinc-800/40 opacity-60'
+                    : 'bg-zinc-900/30 border-zinc-800/60 hover:border-zinc-700/60',
+            )}
+        >
+            <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={cn('font-semibold text-[10px]', ACTION_CATEGORY_BADGE_CLASS[action.category])}>
+                        {ACTION_CATEGORY_LABELS[action.category]}
+                    </Badge>
+                    {action.targetClass !== undefined && action.targetClass !== null && (
+                        <Badge variant="outline" className="text-zinc-300 border-zinc-700 text-[10px]">
+                            {ASSET_CLASS_LABELS[action.targetClass]}
+                        </Badge>
+                    )}
+                    {resolved && (
+                        <span className="text-[10px] text-zinc-500 font-semibold">
+                            {action.status === 'done' ? 'Concluída' : 'Dispensada'}
+                        </span>
+                    )}
+                </div>
+                <p className={cn('text-sm font-semibold text-zinc-100', resolved && 'line-through decoration-zinc-600')}>
+                    {action.title}
+                </p>
+                <p className="text-xs text-zinc-400 leading-relaxed">{action.rationale}</p>
+                {action.suggestedAmount !== undefined && action.suggestedAmount !== null && (
+                    <p className="text-xs text-emerald-400 font-semibold tabular-nums">
+                        {formatCurrency(action.suggestedAmount)}
+                    </p>
+                )}
+            </div>
+            {!resolved && onComplete && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onComplete}
+                    disabled={completing}
+                    className="gap-1.5 shrink-0"
+                >
+                    {completing
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <CheckCircle2 className="h-3.5 w-3.5" />}
+                    Concluir
+                </Button>
+            )}
         </div>
     );
 }

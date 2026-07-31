@@ -168,6 +168,11 @@ public class DiaxDbContext : DbContext
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<AssetValuation> AssetValuations => Set<AssetValuation>();
 
+    // Patrimônio F2 — camada de inteligência (oportunidades, ações, perfil)
+    public DbSet<InvestmentOpportunity> InvestmentOpportunities => Set<InvestmentOpportunity>();
+    public DbSet<NextAction> NextActions => Set<NextAction>();
+    public DbSet<WealthProfile> WealthProfiles => Set<WealthProfile>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -264,6 +269,9 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<AiConversation>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<DailyBriefing>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<Asset>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<InvestmentOpportunity>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<NextAction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<WealthProfile>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.
