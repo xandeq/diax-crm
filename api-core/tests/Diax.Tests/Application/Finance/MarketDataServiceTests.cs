@@ -65,4 +65,58 @@ public class MarketDataServiceTests
         Assert.Equal(20000m, snapshot.GoldOunceBrl);
         Assert.NotNull(snapshot.GoldGramBrl);
     }
+
+    // ── Fallback: Frankfurter (base BRL → inverte) ───────────────────────────
+
+    [Fact]
+    public void ParseFrankfurter_InvertsBrlBaseRates()
+    {
+        // Formato real capturado 2026-07-31
+        const string json = """
+        {"amount":1.0,"base":"BRL","date":"2026-07-31","rates":{"EUR":0.17213,"GBP":0.1473,"USD":0.19769}}
+        """;
+
+        var (usd, eur, gbp) = MarketDataService.ParseFrankfurter(json);
+
+        Assert.Equal(Math.Round(1m / 0.19769m, 4), usd);
+        Assert.Equal(Math.Round(1m / 0.17213m, 4), eur);
+        Assert.Equal(Math.Round(1m / 0.1473m, 4), gbp);
+    }
+
+    [Fact]
+    public void ParseFrankfurter_MissingOrZeroRate_ReturnsNull()
+    {
+        const string json = """{"base":"BRL","rates":{"USD":0}}""";
+
+        var (usd, eur, gbp) = MarketDataService.ParseFrankfurter(json);
+
+        Assert.Null(usd);
+        Assert.Null(eur);
+        Assert.Null(gbp);
+    }
+
+    // ── Fallback: CoinGecko (BTC + PAXG proxy do ouro) ───────────────────────
+
+    [Fact]
+    public void ParseCoinGecko_MapsBtcAndPaxGold()
+    {
+        // Formato real capturado 2026-07-31
+        const string json = """{"bitcoin":{"brl":318752},"pax-gold":{"brl":20599}}""";
+
+        var (btc, goldOunce) = MarketDataService.ParseCoinGecko(json);
+
+        Assert.Equal(318752m, btc);
+        Assert.Equal(20599m, goldOunce);
+    }
+
+    [Fact]
+    public void ParseCoinGecko_MissingCoin_ReturnsNull()
+    {
+        const string json = """{"bitcoin":{"brl":318752}}""";
+
+        var (btc, goldOunce) = MarketDataService.ParseCoinGecko(json);
+
+        Assert.Equal(318752m, btc);
+        Assert.Null(goldOunce);
+    }
 }
