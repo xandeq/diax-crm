@@ -78,6 +78,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { ApiError } from '@/services/api';
 
 type EditingState<T> = T & { editingId: string | null };
 
@@ -884,6 +885,8 @@ function Page() {
   const [makeRecurringDialog, setMakeRecurringDialog] = useState<{ item: PersonalControlExpenseItem } | null>(null);
   const [recurringIndefinite, setRecurringIndefinite] = useState(true);
   const [recurringMonths, setRecurringMonths] = useState(12);
+  // Fallback p/ month view desatualizada: backend acusou AlreadyRecurring → próximo confirmar substitui
+  const [makeRecurringForceReplace, setMakeRecurringForceReplace] = useState(false);
   const [importingSheet, setImportingSheet] = useState(false);
   const [copyingRecurring, setCopyingRecurring] = useState(false);
   const [editingStatementId, setEditingStatementId] = useState<string | null>(null);
@@ -2320,7 +2323,7 @@ function Page() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(makeRecurringDialog)} onOpenChange={(open) => { if (!open) { setMakeRecurringDialog(null); setRecurringIndefinite(true); setRecurringMonths(12); } }}>
+      <Dialog open={Boolean(makeRecurringDialog)} onOpenChange={(open) => { if (!open) { setMakeRecurringDialog(null); setRecurringIndefinite(true); setRecurringMonths(12); setMakeRecurringForceReplace(false); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Tornar Recorrente</DialogTitle>
@@ -2328,6 +2331,12 @@ function Page() {
               {makeRecurringDialog ? `${makeRecurringDialog.item.name} — R$ ${makeRecurringDialog.item.amount.toFixed(2).replace('.', ',')}` : ''}
             </DialogDescription>
           </DialogHeader>
+          {(makeRecurringForceReplace || Boolean(makeRecurringDialog?.item.recurringTransactionId)) && (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-800">
+              Esta despesa já tem uma recorrência vinculada. Ao confirmar, as ocorrências futuras
+              que sobraram serão apagadas e novas serão criadas a partir deste mês.
+            </p>
+          )}
           <div className="space-y-4 py-2">
             <div className="flex gap-2">
               <Button type="button" variant={recurringIndefinite ? 'default' : 'outline'} size="sm" onClick={() => setRecurringIndefinite(true)}>Indefinido</Button>
@@ -2353,9 +2362,10 @@ function Page() {
               disabled={savingKey === `make-recurring-${makeRecurringDialog?.item.id}`}
               onClick={async () => {
                 if (!makeRecurringDialog) return;
+                const replace = makeRecurringForceReplace || Boolean(makeRecurringDialog.item.recurringTransactionId);
                 setSavingKey(`make-recurring-${makeRecurringDialog.item.id}`);
                 try {
-                  const result = await personalControlService.makeExpenseRecurring(makeRecurringDialog.item.id, recurringIndefinite ? null : recurringMonths);
+                  const result = await personalControlService.makeExpenseRecurring(makeRecurringDialog.item.id, recurringIndefinite ? null : recurringMonths, replace);
                   // A materialização atinge vários meses futuros — invalida todas as month views em cache.
                   void qc.invalidateQueries({ queryKey: personalControlKeys.all });
                   const createdCount = result.created?.length ?? 0;
@@ -2377,14 +2387,26 @@ function Page() {
                   setMakeRecurringDialog(null);
                   setRecurringIndefinite(true);
                   setRecurringMonths(12);
+                  setMakeRecurringForceReplace(false);
                 } catch (err) {
-                  toast.error('Falha ao tornar recorrente: ' + (err instanceof Error ? err.message : String(err)));
+                  // Month view desatualizada (vínculo não veio na listagem): pede a
+                  // confirmação de substituição e o próximo Confirmar envia replace=true.
+                  if (err instanceof ApiError && err.code === 'PersonalFinance.AlreadyRecurring') {
+                    setMakeRecurringForceReplace(true);
+                    toast.warning('Esta despesa já tem recorrência ativa. Clique em "Substituir recorrência" para apagar as ocorrências futuras restantes e recriar.', { duration: 8000 });
+                  } else {
+                    toast.error('Falha ao tornar recorrente: ' + (err instanceof Error ? err.message : String(err)));
+                  }
                 } finally {
                   setSavingKey(null);
                 }
               }}
             >
-              {savingKey === `make-recurring-${makeRecurringDialog?.item.id}` ? 'Salvando...' : 'Confirmar'}
+              {savingKey === `make-recurring-${makeRecurringDialog?.item.id}`
+                ? 'Salvando...'
+                : (makeRecurringForceReplace || Boolean(makeRecurringDialog?.item.recurringTransactionId))
+                  ? 'Substituir recorrência'
+                  : 'Confirmar'}
             </Button>
           </DialogFooter>
         </DialogContent>

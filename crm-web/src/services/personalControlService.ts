@@ -362,12 +362,14 @@ export const personalControlService = {
   makeExpenseRecurring: async (
     expenseId: string,
     months: number | null,
+    /** true = apaga as ocorrências futuras restantes da recorrência antiga e recria. */
+    replace = false,
   ): Promise<{ recurringTransactionId: string; created: CopyRecurringItem[]; skipped: CopyRecurringItem[] }> => {
     return apiFetch<{ recurringTransactionId: string; created: CopyRecurringItem[]; skipped: CopyRecurringItem[] }>(
       `${basePath}/expense/${expenseId}/make-recurring`,
       {
         method: 'POST',
-        body: JSON.stringify({ months }),
+        body: JSON.stringify({ months, replace }),
       },
     );
   },

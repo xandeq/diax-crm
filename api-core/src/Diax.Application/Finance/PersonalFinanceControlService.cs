@@ -430,6 +430,7 @@ public class PersonalFinanceControlService : IApplicationService
         Guid expenseId,
         int? months,
         Guid userId,
+        bool replace = false,
         CancellationToken cancellationToken = default)
     {
         try
@@ -443,17 +444,43 @@ public class PersonalFinanceControlService : IApplicationService
 
             if (transaction.RecurringTransactionId.HasValue)
             {
-                // Bloquear só quando o template ainda está vivo. Template inativo,
-                // encerrado (EndDate no passado) ou já excluído não deve prender a
-                // despesa para sempre — permite recriar a recorrência.
-                var linkedTemplate = await _recurringRepository.GetByIdAsync(transaction.RecurringTransactionId.Value, userId);
+                // Template vivo bloqueia a menos que o caller confirme a substituição
+                // (replace=true). Template inativo/encerrado/excluído nunca prende a
+                // despesa — segue direto para recriar.
+                var oldTemplateId = transaction.RecurringTransactionId.Value;
+                var linkedTemplate = await _recurringRepository.GetByIdAsync(oldTemplateId, userId);
                 var templateAlive = linkedTemplate is { IsActive: true }
                     && (!linkedTemplate.EndDate.HasValue || linkedTemplate.EndDate.Value >= DateTime.UtcNow.Date);
 
-                if (templateAlive)
+                if (templateAlive && !replace)
                     return Result.Failure<MakeRecurringResult>(new Error(
                         "PersonalFinance.AlreadyRecurring",
-                        "Esta despesa já está vinculada a um recorrente ativo. Para recriar, exclua a recorrência antiga (excluir despesa → opção 'Todas')."));
+                        "Esta despesa já está vinculada a um recorrente ativo. Confirme a substituição para apagar as ocorrências futuras restantes e recriar a recorrência."));
+
+                // Substituição: remove as instâncias FUTURAS que sobraram do recorrente
+                // antigo (meses passados ficam — são despesas reais já lançadas) e o
+                // template. As novas ocorrências são materializadas em seguida.
+                if (linkedTemplate != null)
+                {
+                    var futureStart = new DateTime(transaction.Date.Year, transaction.Date.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
+                    var leftovers = await _transactionRepository.GetByRecurringTransactionAsync(oldTemplateId, userId, futureStart, cancellationToken);
+                    var removed = 0;
+                    foreach (var leftover in leftovers.Where(l => l.Id != transaction.Id))
+                    {
+                        var deleted = await _transactionService.DeleteAsync(leftover.Id, userId, cancellationToken);
+                        if (deleted.IsSuccess)
+                            removed++;
+                        else
+                            _logger.LogWarning(
+                                "MakeExpenseRecurring(replace): falha ao excluir sobra {TransactionId} do template {TemplateId}: {Error}",
+                                leftover.Id, oldTemplateId, deleted.Error.Message);
+                    }
+
+                    await _recurringRepository.DeleteAsync(oldTemplateId, userId);
+                    _logger.LogInformation(
+                        "MakeExpenseRecurring(replace): template antigo {TemplateId} removido, {Removed} instância(s) futura(s) excluída(s)",
+                        oldTemplateId, removed);
+                }
             }
 
             // "Não Categorizado" seeded category — same fallback used elsewhere no sistema

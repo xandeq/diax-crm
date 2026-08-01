@@ -801,7 +801,7 @@ public class PersonalFinanceController : BaseApiController
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
-        var result = await _monthService.MakeExpenseRecurringAsync(expenseId, request.Months, userId.Value, cancellationToken);
+        var result = await _monthService.MakeExpenseRecurringAsync(expenseId, request.Months, userId.Value, request.Replace, cancellationToken);
         if (!result.IsSuccess)
             return BadRequest(new { code = result.Error.Code, message = result.Error.Message });
 
@@ -1002,5 +1002,5 @@ public class PersonalFinanceController : BaseApiController
         bool IsPaid,
         DateTime? PaymentDate = null);
 
-    public record MakeRecurringRequest(int? Months);
+    public record MakeRecurringRequest(int? Months, bool Replace = false);
 }

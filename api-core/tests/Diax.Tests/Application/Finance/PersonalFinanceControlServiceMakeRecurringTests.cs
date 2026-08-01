@@ -125,6 +125,44 @@ public class PersonalFinanceControlServiceMakeRecurringTests
     }
 
     [Fact]
+    public async Task MakeRecurring_ActiveTemplate_WithReplace_DeletesLeftoversAndRecreates()
+    {
+        var (userId, account, source, added, templates) = SetupHappyPath();
+        var oldTemplate = new RecurringTransaction { UserId = userId, IsActive = true, EndDate = null };
+        source.LinkToRecurringTemplate(oldTemplate.Id, false);
+
+        _recurringRepo.Setup(r => r.GetByIdAsync(oldTemplate.Id, userId)).ReturnsAsync(oldTemplate);
+
+        // Sobra do recorrente antigo em agosto (usuário apagou julho, agosto ficou)
+        var leftoverAug = Transaction.CreateExpense(
+            "Faxina Regiane", 210m, new DateTime(2026, 8, 20, 12, 0, 0, DateTimeKind.Utc),
+            PaymentMethod.DebitCard, null, false, userId,
+            financialAccountId: account.Id, status: TransactionStatus.Pending);
+        leftoverAug.LinkToRecurringTemplate(oldTemplate.Id, false);
+
+        _txRepo.Setup(r => r.GetByRecurringTransactionAsync(oldTemplate.Id, userId, It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Transaction> { leftoverAug });
+        _txRepo.Setup(r => r.GetByIdAndUserAsync(leftoverAug.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(leftoverAug);
+        _importedTxRepo.Setup(r => r.GetByTransactionIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ImportedTransaction>());
+
+        var deletedTxIds = new List<Guid>();
+        _txRepo.Setup(r => r.DeleteAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()))
+            .Callback<Transaction, CancellationToken>((t, _) => deletedTxIds.Add(t.Id))
+            .Returns(Task.CompletedTask);
+
+        var result = await BuildService().MakeExpenseRecurringAsync(source.Id, 3, userId, replace: true);
+
+        Assert.True(result.IsSuccess);
+        // Sobra futura removida + template antigo excluído + novo template vinculado
+        Assert.Contains(leftoverAug.Id, deletedTxIds);
+        _recurringRepo.Verify(r => r.DeleteAsync(oldTemplate.Id, userId), Times.Once);
+        var newTemplate = Assert.Single(templates);
+        Assert.Equal(newTemplate.Id, source.RecurringTransactionId);
+    }
+
+    [Fact]
     public async Task MakeRecurring_LinkedTemplateInactive_AllowsRecreation()
     {
         var (userId, account, source, added, templates) = SetupHappyPath();
