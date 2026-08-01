@@ -128,6 +128,7 @@ export function Header() {
                 <Link href="/finance/morning-briefing" className={menuItemClass} role="menuitem">Morning Briefing</Link>
                 <Link href="/finance" className={menuItemClass} role="menuitem">Dashboard Financeiro</Link>
                 <Link href="/finance/personal-control" className={menuItemClass} role="menuitem">Planilha Financeira</Link>
+                <Link href="/finance/patrimonio" className={menuItemClass} role="menuitem">Patrimônio &amp; Investimentos</Link>
                 <div className={separatorClass}></div>
                 <Link href="/finance/transactions" className={menuItemClass} role="menuitem">Transações</Link>
                 <Link href="/finance/planner" className={menuItemClass} role="menuitem">Planejador Financeiro</Link>
@@ -248,6 +249,7 @@ export function Header() {
               <Link href="/finance/morning-briefing" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Morning Briefing</Link>
               <Link href="/finance" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Dashboard Financeiro</Link>
               <Link href="/finance/personal-control" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Planilha Financeira</Link>
+              <Link href="/finance/patrimonio" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Patrimônio &amp; Investimentos</Link>
               <Link href="/finance/transactions" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Transações</Link>
               <Link href="/finance/planner" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Planejador Financeiro</Link>
               <Link href="/finance/tax-documents" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Imposto de Renda</Link>
