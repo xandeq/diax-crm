@@ -149,7 +149,7 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         bool hasVariableAmount = false,
         DateTime? dueDate = null)
     {
-        ValidateCommonFields(description, amount, userId);
+        ValidateCommonFields(description, amount, userId, allowZeroAmount: hasVariableAmount);
 
         var transaction = new Transaction
         {
@@ -272,7 +272,8 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         bool? hasVariableAmount = null,
         DateTime? dueDate = null)
     {
-        ValidateCommonFields(description, amount, UserId);
+        var variableExpense = Type == TransactionType.Expense && (hasVariableAmount ?? HasVariableAmount);
+        ValidateCommonFields(description, amount, UserId, allowZeroAmount: variableExpense);
 
         Description = description;
         Amount = amount;
@@ -361,12 +362,14 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         IsRecurring = true;
     }
 
-    private static void ValidateCommonFields(string description, decimal amount, Guid userId)
+    private static void ValidateCommonFields(string description, decimal amount, Guid userId, bool allowZeroAmount = false)
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("Description cannot be empty", nameof(description));
 
-        if (amount <= 0)
+        // Despesas de valor variável (ex.: fatura de cartão ainda não fechada) podem
+        // ser registradas com 0 e ter o valor definido depois.
+        if (allowZeroAmount ? amount < 0 : amount <= 0)
             throw new ArgumentException("Amount must be greater than zero", nameof(amount));
 
         if (userId == Guid.Empty)

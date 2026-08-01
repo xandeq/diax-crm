@@ -16,6 +16,7 @@ namespace Diax.Application.Finance;
 public class PersonalFinanceControlService : IApplicationService
 {
     private readonly ITransactionRepository _transactionRepository;
+    private readonly TransactionService _transactionService;
     private readonly IRecurringTransactionRepository _recurringRepository;
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly ICreditCardInvoiceRepository _creditCardInvoiceRepository;
@@ -28,6 +29,7 @@ public class PersonalFinanceControlService : IApplicationService
 
     public PersonalFinanceControlService(
         ITransactionRepository transactionRepository,
+        TransactionService transactionService,
         IRecurringTransactionRepository recurringRepository,
         ICreditCardRepository creditCardRepository,
         ICreditCardInvoiceRepository creditCardInvoiceRepository,
@@ -39,6 +41,7 @@ public class PersonalFinanceControlService : IApplicationService
         IGoogleSheetsService? googleSheetsService = null)
     {
         _transactionRepository = transactionRepository;
+        _transactionService = transactionService;
         _recurringRepository = recurringRepository;
         _creditCardRepository = creditCardRepository;
         _creditCardInvoiceRepository = creditCardInvoiceRepository;
@@ -439,7 +442,19 @@ public class PersonalFinanceControlService : IApplicationService
                 return Result.Failure<MakeRecurringResult>(new Error("PersonalFinance.InvalidType", "Apenas despesas podem ser tornadas recorrentes"));
 
             if (transaction.RecurringTransactionId.HasValue)
-                return Result.Failure<MakeRecurringResult>(new Error("PersonalFinance.AlreadyRecurring", "Esta despesa já está vinculada a um recorrente"));
+            {
+                // Bloquear só quando o template ainda está vivo. Template inativo,
+                // encerrado (EndDate no passado) ou já excluído não deve prender a
+                // despesa para sempre — permite recriar a recorrência.
+                var linkedTemplate = await _recurringRepository.GetByIdAsync(transaction.RecurringTransactionId.Value, userId);
+                var templateAlive = linkedTemplate is { IsActive: true }
+                    && (!linkedTemplate.EndDate.HasValue || linkedTemplate.EndDate.Value >= DateTime.UtcNow.Date);
+
+                if (templateAlive)
+                    return Result.Failure<MakeRecurringResult>(new Error(
+                        "PersonalFinance.AlreadyRecurring",
+                        "Esta despesa já está vinculada a um recorrente ativo. Para recriar, exclua a recorrência antiga (excluir despesa → opção 'Todas')."));
+            }
 
             // "Não Categorizado" seeded category — same fallback used elsewhere no sistema
             var defaultCategoryId = Guid.Parse("20000000-0000-0000-0000-000000000014");
@@ -529,6 +544,89 @@ public class PersonalFinanceControlService : IApplicationService
             _logger.LogError(ex, "MakeExpenseRecurring failed user={UserId} expense={ExpenseId}", userId, expenseId);
             return Result.Failure<MakeRecurringResult>(new Error("PersonalFinance.MakeRecurringFailed", "Falha ao tornar despesa recorrente"));
         }
+    }
+
+    /// <summary>
+    /// Exclui uma despesa respeitando o escopo escolhido (estilo Google Agenda):
+    /// Single = só esta instância; Following = esta e as seguintes (encerra o template);
+    /// All = todas as instâncias + template. Despesa sem vínculo recorrente ignora o escopo.
+    /// </summary>
+    public async Task<Result<DeleteExpenseScopedResult>> DeleteExpenseScopedAsync(
+        Guid expenseId,
+        ExpenseDeleteScope scope,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var transaction = await _transactionRepository.GetByIdAndUserAsync(expenseId, userId, cancellationToken);
+        if (transaction == null)
+            return Result.Failure<DeleteExpenseScopedResult>(new Error("PersonalFinance.NotFound", "Despesa não encontrada"));
+
+        if (scope == ExpenseDeleteScope.Single || !transaction.RecurringTransactionId.HasValue)
+        {
+            var single = await _transactionService.DeleteAsync(expenseId, userId, cancellationToken);
+            return single.IsSuccess
+                ? Result<DeleteExpenseScopedResult>.Success(new DeleteExpenseScopedResult(1, false, false))
+                : Result.Failure<DeleteExpenseScopedResult>(single.Error);
+        }
+
+        var templateId = transaction.RecurringTransactionId.Value;
+        var fromDate = scope == ExpenseDeleteScope.Following
+            ? new DateTime(transaction.Date.Year, transaction.Date.Month, 1, 0, 0, 0, DateTimeKind.Utc)
+            : (DateTime?)null;
+
+        var instances = (await _transactionRepository.GetByRecurringTransactionAsync(templateId, userId, fromDate, cancellationToken)).ToList();
+
+        // Garante que a instância clicada entra mesmo se houver divergência de data/vínculo
+        if (instances.All(t => t.Id != transaction.Id))
+            instances.Add(transaction);
+
+        var deletedCount = 0;
+        foreach (var instance in instances)
+        {
+            // Reusa a reversão de saldo + reset de ImportedTransactions do fluxo padrão
+            var deleted = await _transactionService.DeleteAsync(instance.Id, userId, cancellationToken);
+            if (deleted.IsSuccess)
+                deletedCount++;
+            else
+                _logger.LogWarning(
+                    "DeleteExpenseScoped: falha ao excluir instância {TransactionId} do template {TemplateId}: {Error}",
+                    instance.Id, templateId, deleted.Error.Message);
+        }
+
+        var templateEnded = false;
+        var templateDeleted = false;
+        var template = await _recurringRepository.GetByIdAsync(templateId, userId);
+
+        if (template != null)
+        {
+            if (scope == ExpenseDeleteScope.All)
+            {
+                await _recurringRepository.DeleteAsync(templateId, userId);
+                templateDeleted = true;
+            }
+            else // Following: encerra o template no mês anterior à instância excluída
+            {
+                var cutoff = fromDate!.Value.AddDays(-1);
+                if (template.StartDate > cutoff)
+                {
+                    template.IsActive = false;
+                }
+                else
+                {
+                    template.EndDate = cutoff;
+                }
+                await _recurringRepository.UpdateAsync(template);
+                templateEnded = true;
+            }
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "DeleteExpenseScoped user={UserId} expense={ExpenseId} scope={Scope} deleted={Deleted} templateEnded={Ended} templateDeleted={DeletedTemplate}",
+            userId, expenseId, scope, deletedCount, templateEnded, templateDeleted);
+
+        return Result<DeleteExpenseScopedResult>.Success(new DeleteExpenseScopedResult(deletedCount, templateEnded, templateDeleted));
     }
 
     public async Task<Result<ImportFromSheetResult>> ImportFromSheetAsync(

@@ -272,6 +272,9 @@ public class PersonalFinanceController : BaseApiController
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
+        if (request.Amount <= 0 && !request.HasVariableAmount)
+            return BadRequest(new { message = "Informe o valor da despesa (ou marque 'valor variável' para faturas ainda sem valor definido)." });
+
         var date = CreateDate(request.Year, request.Month, request.DueDay);
         var paymentMethod = request.PaymentType == "credit" ? PaymentMethod.CreditCard : PaymentMethod.DebitCard;
         Guid? accountId = null;
@@ -280,7 +283,7 @@ public class PersonalFinanceController : BaseApiController
         if (paymentMethod == PaymentMethod.CreditCard)
         {
             if (!Guid.TryParse(request.CreditCardId, out var parsedCardId))
-                return BadRequest(new { message = "Cartão de crédito inválido." });
+                return BadRequest(new { message = "Cartão de crédito inválido. Selecione o cartão vinculado à despesa." });
 
             var card = await _creditCardRepository.GetByIdAndUserAsync(parsedCardId, userId.Value, cancellationToken);
             if (card == null)
@@ -325,6 +328,9 @@ public class PersonalFinanceController : BaseApiController
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
+        if (request.Amount <= 0 && !request.HasVariableAmount)
+            return BadRequest(new { message = "Informe o valor da despesa (ou marque 'valor variável' para faturas ainda sem valor definido)." });
+
         var date = CreateDate(request.Year, request.Month, request.DueDay);
         var paymentMethod = request.PaymentType == "credit" ? PaymentMethod.CreditCard : PaymentMethod.DebitCard;
         Guid? accountId = null;
@@ -333,7 +339,7 @@ public class PersonalFinanceController : BaseApiController
         if (paymentMethod == PaymentMethod.CreditCard)
         {
             if (!Guid.TryParse(request.CreditCardId, out var parsedCardId))
-                return BadRequest(new { message = "Cartão de crédito inválido." });
+                return BadRequest(new { message = "Cartão de crédito inválido. Selecione o cartão vinculado à despesa." });
 
             creditCardId = parsedCardId;
         }
@@ -375,12 +381,23 @@ public class PersonalFinanceController : BaseApiController
     }
 
     [HttpDelete("expenses/{id:guid}")]
-    public async Task<IActionResult> DeleteExpense(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteExpense(Guid id, [FromQuery] string? scope, CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized();
 
-        var result = await _transactionService.DeleteAsync(id, userId.Value, cancellationToken);
+        var deleteScope = scope?.ToLowerInvariant() switch
+        {
+            null or "" or "single" => ExpenseDeleteScope.Single,
+            "following" => ExpenseDeleteScope.Following,
+            "all" => ExpenseDeleteScope.All,
+            _ => (ExpenseDeleteScope?)null
+        };
+
+        if (deleteScope == null)
+            return BadRequest(new { message = "Escopo de exclusão inválido. Use single, following ou all." });
+
+        var result = await _monthService.DeleteExpenseScopedAsync(id, deleteScope.Value, userId.Value, cancellationToken);
         return HandleResult(result);
     }
 
@@ -709,6 +726,8 @@ public class PersonalFinanceController : BaseApiController
                 creditCardId = item.CreditCardId,
                 creditCardName = item.CreditCardName,
                 hasVariableAmount = item.HasVariableAmount,
+                isRecurring = item.IsRecurring,
+                recurringTransactionId = item.RecurringTransactionId,
                 createdAt = item.CreatedAt,
                 updatedAt = item.UpdatedAt
             }),
@@ -952,7 +971,7 @@ public class PersonalFinanceController : BaseApiController
         [Range(2000, 2100)] int Year,
         [Range(1, 12)] int Month,
         [Required, StringLength(200, MinimumLength = 1)] string Name,
-        [Range(typeof(decimal), "0.01", "999999999.99")] decimal Amount,
+        [Range(typeof(decimal), "0.00", "999999999.99")] decimal Amount,
         [Required, StringLength(50, MinimumLength = 1)] string PaymentType,
         [Range(1, 31)] int DueDay,
         bool IsPaid = false,

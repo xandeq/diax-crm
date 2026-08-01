@@ -32,6 +32,7 @@ import {
   CreatePersonalControlExpenseRequest,
   CreatePersonalControlIncomeRequest,
   CreatePersonalControlSubscriptionRequest,
+  ExpenseDeleteScope,
   InvestIQPortfolioSummary,
   InvoiceTransactionItem,
   LinkedSubscriptionPreview,
@@ -79,6 +80,21 @@ import type { FormEvent, ReactNode } from 'react';
 import { toast } from 'sonner';
 
 type EditingState<T> = T & { editingId: string | null };
+
+/** Permite digitar o valor como texto (vírgula BR) até o submit. */
+type AmountEditable<T extends { amount: number }> = Omit<T, 'amount'> & { amount: number | string };
+
+/**
+ * Converte entrada BR/US para número: "1.234,56" → 1234.56, "1234,56" → 1234.56,
+ * "1234.56" → 1234.56. Retorna NaN para entrada inválida.
+ */
+function parseAmountInput(value: number | string): number {
+  if (typeof value === 'number') return value;
+  const raw = value.trim();
+  if (!raw) return NaN;
+  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw;
+  return parseFloat(normalized);
+}
 
 const months = [
   'Janeiro',
@@ -130,13 +146,13 @@ function shortMonthLabel(p: { year: number; month: number }) {
   return `${months[p.month - 1].slice(0, 3).toLowerCase()}/${String(p.year).slice(2)}`;
 }
 
-function incomeFormReset(): EditingState<CreatePersonalControlIncomeRequest> {
+function incomeFormReset(): EditingState<AmountEditable<CreatePersonalControlIncomeRequest>> {
   const now = currentPeriod();
   return {
     year: now.year,
     month: now.month,
     name: '',
-    amount: 0,
+    amount: '',
     dayOfMonth: new Date().getDate(),
     isRecurring: true,
     isPaid: true,
@@ -146,13 +162,13 @@ function incomeFormReset(): EditingState<CreatePersonalControlIncomeRequest> {
   };
 }
 
-function expenseFormReset(): EditingState<CreatePersonalControlExpenseRequest> {
+function expenseFormReset(): EditingState<AmountEditable<CreatePersonalControlExpenseRequest>> {
   const now = currentPeriod();
   return {
     year: now.year,
     month: now.month,
     name: '',
-    amount: 0,
+    amount: '',
     paymentType: 'debit',
     dueDay: new Date().getDate(),
     dueMonthOffset: 0,
@@ -165,13 +181,13 @@ function expenseFormReset(): EditingState<CreatePersonalControlExpenseRequest> {
   };
 }
 
-function subscriptionFormReset(): EditingState<CreatePersonalControlSubscriptionRequest> {
+function subscriptionFormReset(): EditingState<AmountEditable<CreatePersonalControlSubscriptionRequest>> {
   const now = currentPeriod();
   return {
     year: now.year,
     month: now.month,
     name: '',
-    amount: 0,
+    amount: '',
     billingFrequency: 'monthly',
     paymentType: 'credit',
     isPaid: false,
@@ -862,6 +878,8 @@ function Page() {
     kind: 'income' | 'expense' | 'subscription';
     id: string;
     name: string;
+    /** Despesa vinculada a um recorrente → dialog estilo Google Agenda com escopo. */
+    recurring?: boolean;
   } | null>(null);
   const [makeRecurringDialog, setMakeRecurringDialog] = useState<{ item: PersonalControlExpenseItem } | null>(null);
   const [recurringIndefinite, setRecurringIndefinite] = useState(true);
@@ -945,7 +963,7 @@ function Page() {
     }
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = async (scope: ExpenseDeleteScope = 'single') => {
     if (!deleteDialog) return;
 
     const { kind, id } = deleteDialog;
@@ -953,17 +971,30 @@ function Page() {
     try {
       if (kind === 'income') {
         await personalControlService.deleteIncome(id);
+        toast.success('Registro excluído.');
       } else if (kind === 'expense') {
-        await personalControlService.deleteExpense(id);
+        const result = await personalControlService.deleteExpense(id, scope);
+        const plural = result.deletedCount !== 1 ? 's' : '';
+        if (scope === 'all') {
+          toast.success(`Recorrência excluída: ${result.deletedCount} lançamento${plural} removido${plural}.`);
+        } else if (scope === 'following') {
+          toast.success(`${result.deletedCount} lançamento${plural} excluído${plural} (este e os seguintes). Recorrência encerrada.`);
+        } else {
+          toast.success('Despesa excluída.');
+        }
+        // Escopos além do mês atual afetam outras month views em cache
+        if (scope !== 'single') {
+          void qc.invalidateQueries({ queryKey: personalControlKeys.all });
+        }
       } else {
         await personalControlService.deleteSubscription(id);
+        toast.success('Registro excluído.');
       }
-      toast.success('Registro excluído.');
       setDeleteDialog(null);
       refresh();
     } catch (error) {
       console.error(error);
-      toast.error('Falha ao excluir registro.');
+      toast.error('Falha ao excluir: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setSavingKey(null);
     }
@@ -1108,13 +1139,18 @@ function Page() {
 
   const submitIncome = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const amount = parseAmountInput(incomeForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Informe um valor válido para a receita.');
+      return;
+    }
     setSavingKey('income');
     try {
       const payload = {
         year: period.year,
         month: period.month,
         name: incomeForm.name,
-        amount: Number(incomeForm.amount),
+        amount,
         dayOfMonth: Number(incomeForm.dayOfMonth),
         isRecurring: Boolean(incomeForm.isRecurring),
         isPaid: Boolean(incomeForm.isPaid),
@@ -1134,7 +1170,7 @@ function Page() {
       refresh();
     } catch (error) {
       console.error(error);
-      toast.error('Falha ao salvar receita.');
+      toast.error('Falha ao salvar receita: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setSavingKey(null);
     }
@@ -1142,6 +1178,20 @@ function Page() {
 
   const submitExpense = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const amountEmpty = typeof expenseForm.amount === 'string' && expenseForm.amount.trim() === '';
+    const amount = amountEmpty ? 0 : parseAmountInput(expenseForm.amount);
+    if (isNaN(amount) || amount < 0) {
+      toast.error('Informe um valor válido para a despesa.');
+      return;
+    }
+    if (amount === 0 && !expenseForm.hasVariableAmount) {
+      toast.error('Informe o valor da despesa — ou marque "Valor variável" para faturas ainda sem valor definido.');
+      return;
+    }
+    if (expenseForm.paymentType === 'credit' && !expenseForm.creditCardId) {
+      toast.error('Selecione o cartão de crédito vinculado à despesa.');
+      return;
+    }
     setSavingKey('expense');
     try {
       // Edição respeita o mês escolhido no seletor (mover de planilha); criação usa o mês em exibição.
@@ -1153,7 +1203,7 @@ function Page() {
         year: targetYear,
         month: targetMonth,
         name: expenseForm.name,
-        amount: Number(expenseForm.amount),
+        amount,
         paymentType: expenseForm.paymentType,
         dueDay: Number(expenseForm.dueDay),
         dueMonthOffset: Number(expenseForm.dueMonthOffset ?? 0),
@@ -1179,7 +1229,7 @@ function Page() {
       }
     } catch (error) {
       console.error(error);
-      toast.error('Falha ao salvar despesa.');
+      toast.error('Falha ao salvar despesa: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setSavingKey(null);
     }
@@ -1187,13 +1237,18 @@ function Page() {
 
   const submitSubscription = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const amount = parseAmountInput(subscriptionForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Informe um valor válido para a assinatura.');
+      return;
+    }
     setSavingKey('subscription');
     try {
       const payload = {
         year: period.year,
         month: period.month,
         name: subscriptionForm.name,
-        amount: Number(subscriptionForm.amount),
+        amount,
         billingFrequency: subscriptionForm.billingFrequency,
         paymentType: subscriptionForm.paymentType,
         isPaid: Boolean(subscriptionForm.isPaid),
@@ -1214,7 +1269,7 @@ function Page() {
       refresh();
     } catch (error) {
       console.error(error);
-      toast.error('Falha ao salvar assinatura.');
+      toast.error('Falha ao salvar assinatura: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setSavingKey(null);
     }
@@ -1643,7 +1698,7 @@ function Page() {
                       <TableCell>{item.dueDate && (item.dueMonthOffset ?? 0) > 0 ? `${String(new Date(item.dueDate).getUTCDate()).padStart(2, '0')}/${String(new Date(item.dueDate).getUTCMonth() + 1).padStart(2, '0')}` : `Dia ${item.dueDay}`}</TableCell>
                       <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
                       <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
-                      <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Tornar recorrente" onClick={() => setMakeRecurringDialog({ item })}><Repeat className="h-4 w-4 text-blue-500" /></Button><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
+                      <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Tornar recorrente" onClick={() => setMakeRecurringDialog({ item })}><Repeat className="h-4 w-4 text-blue-500" /></Button><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name, recurring: Boolean(item.recurringTransactionId) })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                     </TableRow>
                   )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
                 </TableBody>
@@ -2027,7 +2082,7 @@ function Page() {
           <form onSubmit={submitIncome} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="income-name">Nome</Label><Input id="income-name" value={incomeForm.name} onChange={(event) => setIncomeForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="income-amount">Valor</Label><Input id="income-amount" type="number" min="0" step="0.01" value={incomeForm.amount} onChange={(event) => setIncomeForm((current) => ({ ...current, amount: Number(event.target.value) }))} /></div>
+              <div className="space-y-2"><Label htmlFor="income-amount">Valor (R$)</Label><Input id="income-amount" type="text" inputMode="decimal" placeholder="0,00" value={String(incomeForm.amount)} onChange={(event) => setIncomeForm((current) => ({ ...current, amount: event.target.value }))} /></div>
               <div className="space-y-2"><Label htmlFor="income-day">Dia previsto</Label><Input id="income-day" type="number" min="1" max="31" value={incomeForm.dayOfMonth} onChange={(event) => setIncomeForm((current) => ({ ...current, dayOfMonth: Number(event.target.value) }))} /></div>
             </div>
             <div className="space-y-2"><Label htmlFor="income-details">Detalhes / Observações</Label><Input id="income-details" value={incomeForm.details || ''} onChange={(event) => setIncomeForm((current) => ({ ...current, details: event.target.value }))} /></div>
@@ -2071,7 +2126,7 @@ function Page() {
           <form onSubmit={submitExpense} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="expense-name">Nome</Label><Input id="expense-name" value={expenseForm.name} onChange={(event) => setExpenseForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="expense-amount">Valor</Label><Input id="expense-amount" type="number" min="0" step="0.01" value={expenseForm.amount} onChange={(event) => setExpenseForm((current) => ({ ...current, amount: Number(event.target.value) }))} /></div>
+              <div className="space-y-2"><Label htmlFor="expense-amount">Valor (R$)</Label><Input id="expense-amount" type="text" inputMode="decimal" placeholder="0,00" value={String(expenseForm.amount)} onChange={(event) => setExpenseForm((current) => ({ ...current, amount: event.target.value }))} /></div>
               <div className="space-y-2"><Label htmlFor="expense-due">Dia do vencimento</Label><Input id="expense-due" type="number" min="1" max="31" value={expenseForm.dueDay} onChange={(event) => setExpenseForm((current) => ({ ...current, dueDay: Number(event.target.value) }))} /></div>
             </div>
             <div className="space-y-2">
@@ -2153,7 +2208,7 @@ function Page() {
           <form onSubmit={submitSubscription} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="subscription-name">Nome</Label><Input id="subscription-name" value={subscriptionForm.name} onChange={(event) => setSubscriptionForm((current) => ({ ...current, name: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="subscription-amount">Valor</Label><Input id="subscription-amount" type="number" min="0" step="0.01" value={subscriptionForm.amount} onChange={(event) => setSubscriptionForm((current) => ({ ...current, amount: Number(event.target.value) }))} /></div>
+              <div className="space-y-2"><Label htmlFor="subscription-amount">Valor (R$)</Label><Input id="subscription-amount" type="text" inputMode="decimal" placeholder="0,00" value={String(subscriptionForm.amount)} onChange={(event) => setSubscriptionForm((current) => ({ ...current, amount: event.target.value }))} /></div>
               <div className="space-y-2">
                 <Label>Frequência</Label>
                 <Select value={subscriptionForm.billingFrequency} onValueChange={(value) => setSubscriptionForm((current) => ({ ...current, billingFrequency: value as PersonalControlBillingFrequency }))}>
@@ -2196,25 +2251,72 @@ function Page() {
 
       <Dialog open={Boolean(deleteDialog)} onOpenChange={(open) => !open && setDeleteDialog(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Excluir registro</DialogTitle>
-            <DialogDescription>
-              {deleteDialog ? `Tem certeza que deseja excluir "${deleteDialog.name}"? Essa ação não pode ser desfeita.` : ''}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteDialog(null)}>
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleteDialog ? savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` : false}
-            >
-              {deleteDialog && savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` ? 'Excluindo...' : 'Excluir'}
-            </Button>
-          </DialogFooter>
+          {deleteDialog?.kind === 'expense' && deleteDialog.recurring ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Excluir despesa recorrente</DialogTitle>
+                <DialogDescription>
+                  {`"${deleteDialog.name}" faz parte de uma recorrência. O que deseja excluir?`}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-2 py-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  disabled={savingKey === `delete-expense-${deleteDialog.id}`}
+                  onClick={() => confirmDelete('single')}
+                >
+                  Somente esta despesa
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  disabled={savingKey === `delete-expense-${deleteDialog.id}`}
+                  onClick={() => confirmDelete('following')}
+                >
+                  Esta e as seguintes
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="justify-start"
+                  disabled={savingKey === `delete-expense-${deleteDialog.id}`}
+                  onClick={() => confirmDelete('all')}
+                >
+                  Todas (encerra a recorrência)
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setDeleteDialog(null)}>
+                  Cancelar
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Excluir registro</DialogTitle>
+                <DialogDescription>
+                  {deleteDialog ? `Tem certeza que deseja excluir "${deleteDialog.name}"? Essa ação não pode ser desfeita.` : ''}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDeleteDialog(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => confirmDelete('single')}
+                  disabled={deleteDialog ? savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` : false}
+                >
+                  {deleteDialog && savingKey === `delete-${deleteDialog.kind}-${deleteDialog.id}` ? 'Excluindo...' : 'Excluir'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

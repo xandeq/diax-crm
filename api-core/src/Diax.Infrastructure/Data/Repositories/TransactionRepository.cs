@@ -142,6 +142,20 @@ public class TransactionRepository : Repository<Transaction>, ITransactionReposi
                 ct);
     }
 
+    public async Task<IEnumerable<Transaction>> GetByRecurringTransactionAsync(Guid recurringTransactionId, Guid userId, DateTime? fromDate = null, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .IgnoreQueryFilters()
+            .Where(t => t.UserId == userId && t.RecurringTransactionId == recurringTransactionId);
+
+        if (fromDate.HasValue)
+            query = query.Where(t => t.Date >= fromDate.Value);
+
+        return await query
+            .OrderBy(t => t.Date)
+            .ToListAsync(ct);
+    }
+
     public override async Task<PagedResult<Transaction>> GetPagedAsync(
         int page,
         int pageSize,

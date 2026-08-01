@@ -13,4 +13,5 @@ public interface ITransactionRepository : IRepository<Transaction>
     Task<IEnumerable<Transaction>> GetByAccountIdAsync(Guid financialAccountId, Guid userId, CancellationToken ct = default);
     Task<IEnumerable<Transaction>> GetByTransferGroupIdAsync(Guid transferGroupId, CancellationToken ct = default);
     Task<Transaction?> GetByRecurringTransactionForMonthAsync(Guid recurringTransactionId, int year, int month, Guid userId, CancellationToken ct = default);
+    Task<IEnumerable<Transaction>> GetByRecurringTransactionAsync(Guid recurringTransactionId, Guid userId, DateTime? fromDate = null, CancellationToken ct = default);
 }

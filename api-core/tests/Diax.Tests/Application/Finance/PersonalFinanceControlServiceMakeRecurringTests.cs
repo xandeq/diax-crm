@@ -24,10 +24,21 @@ public class PersonalFinanceControlServiceMakeRecurringTests
     private readonly Mock<ICreditCardGroupRepository> _groupRepo = new();
     private readonly Mock<IFinancialAccountRepository> _accountRepo = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<IImportedTransactionRepository> _importedTxRepo = new();
     private readonly IConfiguration _config = new ConfigurationBuilder().Build();
+
+    private TransactionService BuildTransactionService() => new(
+        _txRepo.Object,
+        new Mock<ITransactionCategoryRepository>().Object,
+        _accountRepo.Object,
+        _importedTxRepo.Object,
+        _invoiceRepo.Object,
+        _unitOfWork.Object,
+        NullLogger<TransactionService>.Instance);
 
     private PersonalFinanceControlService BuildService() => new(
         _txRepo.Object,
+        BuildTransactionService(),
         _recurringRepo.Object,
         _creditCardRepo.Object,
         _invoiceRepo.Object,
@@ -94,20 +105,74 @@ public class PersonalFinanceControlServiceMakeRecurringTests
     }
 
     [Fact]
-    public async Task MakeRecurring_AlreadyLinked_Fails()
+    public async Task MakeRecurring_AlreadyLinkedToActiveTemplate_Fails()
     {
         var userId = Guid.NewGuid();
         var account = NewAccount(userId);
         var source = NewSourceExpense(userId, account.Id);
-        source.LinkToRecurringTemplate(Guid.NewGuid(), false);
+        var activeTemplate = new RecurringTransaction { UserId = userId, IsActive = true, EndDate = null };
+        source.LinkToRecurringTemplate(activeTemplate.Id, false);
 
         _txRepo.Setup(r => r.GetByIdAndUserAsync(source.Id, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(source);
+        _recurringRepo.Setup(r => r.GetByIdAsync(activeTemplate.Id, userId))
+            .ReturnsAsync(activeTemplate);
 
         var result = await BuildService().MakeExpenseRecurringAsync(source.Id, 3, userId);
 
         Assert.False(result.IsSuccess);
         Assert.Equal("PersonalFinance.AlreadyRecurring", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task MakeRecurring_LinkedTemplateInactive_AllowsRecreation()
+    {
+        var (userId, account, source, added, templates) = SetupHappyPath();
+        var inactiveTemplate = new RecurringTransaction { UserId = userId, IsActive = false };
+        source.LinkToRecurringTemplate(inactiveTemplate.Id, false);
+
+        _recurringRepo.Setup(r => r.GetByIdAsync(inactiveTemplate.Id, userId))
+            .ReturnsAsync(inactiveTemplate);
+
+        var result = await BuildService().MakeExpenseRecurringAsync(source.Id, 3, userId);
+
+        Assert.True(result.IsSuccess);
+        var template = Assert.Single(templates);
+        Assert.Equal(template.Id, source.RecurringTransactionId);
+    }
+
+    [Fact]
+    public async Task MakeRecurring_LinkedTemplateEnded_AllowsRecreation()
+    {
+        var (userId, account, source, added, templates) = SetupHappyPath();
+        var endedTemplate = new RecurringTransaction
+        {
+            UserId = userId,
+            IsActive = true,
+            EndDate = DateTime.UtcNow.Date.AddMonths(-2),
+        };
+        source.LinkToRecurringTemplate(endedTemplate.Id, false);
+
+        _recurringRepo.Setup(r => r.GetByIdAsync(endedTemplate.Id, userId))
+            .ReturnsAsync(endedTemplate);
+
+        var result = await BuildService().MakeExpenseRecurringAsync(source.Id, 3, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(templates);
+    }
+
+    [Fact]
+    public async Task MakeRecurring_LinkedTemplateDeleted_AllowsRecreation()
+    {
+        var (userId, account, source, added, templates) = SetupHappyPath();
+        source.LinkToRecurringTemplate(Guid.NewGuid(), false);
+        // _recurringRepo.GetByIdAsync devolve null por padrão (template já excluído)
+
+        var result = await BuildService().MakeExpenseRecurringAsync(source.Id, 3, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(templates);
     }
 
     [Fact]

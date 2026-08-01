@@ -153,7 +153,15 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       try {
         const json = JSON.parse(text);
         // Prioritize 'message' field from API error response
-        if (json.message) errorMessage = json.message;
+        if (json.message) {
+          errorMessage = json.message;
+        } else if (json.errors && typeof json.errors === 'object') {
+          // ASP.NET ValidationProblemDetails: { title, errors: { field: [msgs] } }
+          const details = Object.values(json.errors as Record<string, string[]>).flat().join(' ');
+          errorMessage = details || json.title || errorMessage;
+        } else if (json.title) {
+          errorMessage = json.title;
+        }
         if (json.code) errorCode = json.code;
       } catch {
         // If parsing fails, use the raw text if available

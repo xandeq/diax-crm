@@ -25,10 +25,21 @@ public class PersonalFinanceControlServiceCopyRecurringTests
     private readonly Mock<ICreditCardGroupRepository> _groupRepo = new();
     private readonly Mock<IFinancialAccountRepository> _accountRepo = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<IImportedTransactionRepository> _importedTxRepo = new();
     private readonly IConfiguration _config = new ConfigurationBuilder().Build();
+
+    private TransactionService BuildTransactionService() => new(
+        _txRepo.Object,
+        new Mock<ITransactionCategoryRepository>().Object,
+        _accountRepo.Object,
+        _importedTxRepo.Object,
+        _invoiceRepo.Object,
+        _unitOfWork.Object,
+        NullLogger<TransactionService>.Instance);
 
     private PersonalFinanceControlService BuildService() => new(
         _txRepo.Object,
+        BuildTransactionService(),
         _recurringRepo.Object,
         _creditCardRepo.Object,
         _invoiceRepo.Object,

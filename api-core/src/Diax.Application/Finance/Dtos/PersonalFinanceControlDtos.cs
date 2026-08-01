@@ -142,3 +142,18 @@ public class LinkedSubscriptionPreview
     public Guid? CreditCardId { get; set; }
     public string? CreditCardName { get; set; }
 }
+
+/// <summary>
+/// Escopo de exclusão de uma despesa vinculada a um recorrente (estilo Google Agenda).
+/// </summary>
+public enum ExpenseDeleteScope
+{
+    /// <summary>Exclui somente a instância do mês.</summary>
+    Single,
+    /// <summary>Exclui esta instância e todas as seguintes; encerra o template.</summary>
+    Following,
+    /// <summary>Exclui todas as instâncias e o template.</summary>
+    All
+}
+
+public record DeleteExpenseScopedResult(int DeletedCount, bool TemplateEnded, bool TemplateDeleted);

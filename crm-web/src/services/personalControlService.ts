@@ -45,6 +45,15 @@ export interface PersonalControlCardSummary {
   availableCredit?: number;
 }
 
+/** Escopo de exclusão de despesa recorrente (estilo Google Agenda). */
+export type ExpenseDeleteScope = 'single' | 'following' | 'all';
+
+export interface DeleteExpenseScopedResult {
+  deletedCount: number;
+  templateEnded: boolean;
+  templateDeleted: boolean;
+}
+
 export interface PersonalControlIncomeItem {
   id: string;
   name: string;
@@ -74,6 +83,8 @@ export interface PersonalControlExpenseItem {
   creditCardId?: string;
   creditCardName?: string;
   hasVariableAmount?: boolean;
+  isRecurring?: boolean;
+  recurringTransactionId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -258,8 +269,8 @@ export const personalControlService = {
     });
   },
 
-  deleteExpense: async (id: string) => {
-    return apiFetch<void>(`${basePath}/expenses/${id}`, {
+  deleteExpense: async (id: string, scope: ExpenseDeleteScope = 'single') => {
+    return apiFetch<DeleteExpenseScopedResult>(`${basePath}/expenses/${id}?scope=${scope}`, {
       method: 'DELETE',
     });
   },
