@@ -1,6 +1,5 @@
 'use client';
 
-import { FinanceNav } from '@/components/finance/FinanceNav';
 import { useCreditCards } from '@/hooks/finance';
 import { CardBrand, CardKind } from '@/services/finance';
 import Link from 'next/link';
@@ -48,7 +47,6 @@ export default function CreditCardsPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <FinanceNav />
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
           <p className="text-zinc-400 text-sm animate-pulse">Carregando cartões de crédito...</p>
@@ -59,8 +57,6 @@ export default function CreditCardsPage() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <FinanceNav />
-
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">

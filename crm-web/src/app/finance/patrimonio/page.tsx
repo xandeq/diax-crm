@@ -1,7 +1,6 @@
 'use client';
 
 import { EmptyState } from '@/components/dashboard/EmptyState';
-import { FinanceNav } from '@/components/finance/FinanceNav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -451,7 +450,6 @@ export default function PatrimonioPage() {
     if (isLoading) {
         return (
             <div className="container mx-auto px-4 py-6 max-w-7xl">
-                <FinanceNav />
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
                     <p className="text-zinc-400 text-sm animate-pulse">Carregando patrimônio...</p>
@@ -486,8 +484,6 @@ export default function PatrimonioPage() {
     return (
         <div className="container mx-auto px-4 py-6 max-w-7xl">
             {confirmDialogNode}
-            <FinanceNav />
-
             {/* ── Header ── */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <div>

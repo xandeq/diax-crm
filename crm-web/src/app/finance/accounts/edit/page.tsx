@@ -1,6 +1,5 @@
 'use client';
 
-import { FinanceNav } from '@/components/finance/FinanceNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -96,7 +95,6 @@ function EditAccountContent() {
   if (!id) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <FinanceNav />
         <div className="max-w-xl mx-auto p-6 rounded-2xl border border-rose-500/20 bg-rose-500/5 text-rose-400 text-sm font-semibold">
           ID da conta não informado
         </div>
@@ -107,7 +105,6 @@ function EditAccountContent() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <FinanceNav />
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
           <p className="text-zinc-400 text-sm animate-pulse">Carregando dados da conta...</p>
@@ -118,8 +115,6 @@ function EditAccountContent() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <FinanceNav />
-
       <div className="max-w-xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <Button 
@@ -236,7 +231,6 @@ export default function EditAccountPage() {
   return (
     <Suspense fallback={
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <FinanceNav />
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
           <p className="text-zinc-400 text-sm">Preparando edição de conta...</p>

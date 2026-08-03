@@ -1,6 +1,5 @@
 'use client';
 
-import { FinanceNav } from '@/components/finance/FinanceNav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -262,8 +261,6 @@ export default function TransfersPage() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <FinanceNav />
-
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">

@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMarkExpensePaid, useMorningBriefing } from '@/hooks/finance';
-import { FinanceNav } from '@/components/finance/FinanceNav';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -47,7 +46,6 @@ export default function MorningBriefingClient() {
     if (isLoading) {
         return (
             <div className="space-y-6">
-                <FinanceNav />
                 <div className="flex flex-col items-center justify-center min-h-[350px] gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
                     <p className="text-zinc-400 text-sm animate-pulse">Compilando seu resumo financeiro...</p>
@@ -59,7 +57,6 @@ export default function MorningBriefingClient() {
     if (error || !data) {
         return (
             <div className="space-y-6">
-                <FinanceNav />
                 <div className="flex flex-col items-center justify-center min-h-[300px] gap-4 p-8 border border-zinc-800 border-dashed rounded-2xl bg-zinc-900/10">
                     <AlertTriangle className="h-10 w-10 text-rose-400 animate-bounce" />
                     <p className="text-zinc-400 text-sm text-center">Não foi possível carregar o briefing matinal.</p>
@@ -84,8 +81,6 @@ export default function MorningBriefingClient() {
 
     return (
         <div className="space-y-6">
-            <FinanceNav />
-
             {/* Header */}
             <div className="flex items-center justify-between pb-2">
                 <div>

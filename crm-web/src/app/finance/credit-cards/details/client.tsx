@@ -1,6 +1,5 @@
 'use client';
 
-import { FinanceNav } from '@/components/finance/FinanceNav';
 import { FinancialGrid } from '@/components/finance/FinancialGrid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,7 +68,6 @@ export function CreditCardDetailsClient() {
     if (loadingCard || loadingInvoices) {
         return (
             <div className="container mx-auto px-4 py-6 max-w-7xl">
-                <FinanceNav />
                 <div className="flex items-center justify-center min-h-[300px] gap-3">
                     <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
                     <span className="text-zinc-400 text-sm animate-pulse">Carregando detalhes do cartão...</span>
@@ -83,8 +81,6 @@ export function CreditCardDetailsClient() {
 
     return (
         <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
-            <FinanceNav />
-
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div className="flex items-center gap-3">
                     <Link href="/finance/credit-cards">
