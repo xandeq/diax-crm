@@ -231,7 +231,27 @@ public class OpportunityService : IApplicationService
                 27, 57m, "alto"),
             (AssetClass.Semovente, null, "Cavalo de genética (Quarto de Milha/Mangalarga)",
                 "Valorização vem de genética + desempenho comprovado em prova, não do animal comum. Dica: só entre com assessoria de haras e registro (ABQM/ABCCMM); custo mensal de cocheira e veterinário corrói o retorno de quem não é do meio.",
-                28, 48m, "alto")
+                28, 48m, "alto"),
+
+            // ─── 🎯 RADAR ES (pesquisa 03/08/2026 — terrenos ES + consórcio auto/carro surf) ───
+            (AssetClass.Imovel, null, "🎯 ES: Loteamento CBL — Serra Ville / Alta Ville (Aracruz)",
+                "Maior loteadora do ES: entrada ~10%, financiamento direto SEM análise de crédito, até 48x fixas. Tese dupla: Serra pega o Contorno do Mestre Álvaro (conclui fim de 2026; m² da Serra +110% em 4 anos) e Aracruz pega porto Imetame (opera 2026) + fábrica GWM. Ação: visitar plantão CBL (lotescbl.com.br) e priorizar lote de esquina/frente.",
+                15, 89m, "medio"),
+            (AssetClass.Imovel, null, "🎯 ES: Leilão 2ª praça — Serra/Cariacica/Viana (40-67% off)",
+                "Agregadores mostram ES com até 67% de deságio (Vila Velha 57%, Serra 52%, Cariacica 51%). Exemplo real: lote na Serra avaliado R$452k saiu a R$242,8k na 2ª praça (-40%). Ação: alertas de 'terreno até R$150k' em leilaoimovel.com.br/es, spyleiloes e leilaoninja (379 imóveis na Serra); checar matrícula, IPTU e ocupação ANTES do lance.",
+                16, 87m, "alto"),
+            (AssetClass.Imovel, null, "🎯 ES: Terreno urbano em Aracruz pré-porto",
+                "Porto Imetame começa a operar em 2026 e a GWM se instala na cidade — demanda por moradia e logística sobe, e o terreno urbano ainda é barato (assimetria alta). Prefeitura planeja leilões de áreas no 2º semestre/2026. Ação: monitorar Barra do Riacho e entorno antes da abertura do porto.",
+                16, 86m, "medio"),
+            (AssetClass.Imovel, null, "🎯 ES: Litoral sul 2ª quadra — Anchieta/Piúma/Guarapari",
+                "Samarco investe R$13 bi na retomada (100% da capacidade até 2028, pelotização em Ubu/Anchieta) e a orla de Guarapari já bate R$9k/m² — a 2ª quadra ainda não precificou. Anúncio real: Anchieta 360m² por R$144,9k. Cuidado: terreno de marinha na 1ª faixa (laudêmio ~5% SPU).",
+                17, 85m, "medio"),
+            (AssetClass.CartaCredito, null, "🎯 Consórcio auto: carta 70-80k + lance embutido",
+                "Rodobens (taxa desde 6,5%) ou Embracon, carta R$70-80k ≈ R$1.4-1.6k/mês em 60m. Entrar em grupo EM ANDAMENTO (contempla mais fácil, histórico de lances visível) e dar lance embutido 25% + 10-15% livre do bolso — média vencedora em grupos independentes é 22-32% → contemplação estimada em 3-8 meses. FGTS NÃO vale p/ auto. Fugir de taxa adm acima de 20%.",
+                4, 87m, "baixo"),
+            (AssetClass.Veiculo, null, "🎯 Carro de surf econômico: Fit / Cronos / Onix Plus",
+                "Top-3 custo-benefício p/ prancha + economia (FIPE ago/2026, seguro R$2,1-2,8k/ano): Honda Fit 2020-21 (R$74-88k, Magic Seat leva prancha inteira DENTRO, mecânica mais confiável), Fiat Cronos 2022 (R$66k, 525L, 15,5 km/l, peças baratas) e Onix Plus 2021-22 (R$62-76k, consumo líder, banco 60/40 = prancha + família). Combinar com a carta de consórcio contemplada.",
+                15, 83m, "baixo")
         };
 
         return ideas
