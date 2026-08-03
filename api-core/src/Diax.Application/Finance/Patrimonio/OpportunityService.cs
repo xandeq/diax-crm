@@ -140,6 +140,88 @@ public class OpportunityService : IApplicationService
     }
 
     /// <summary>
+    /// Injeta oportunidades externas no dia corrente (radar diário de bens palpáveis).
+    /// Garante que a geração do dia já rodou (senão o refresh posterior seria pulado
+    /// e as ideias curadas nunca nasceriam) e deduplica por título dentro do dia.
+    /// </summary>
+    public async Task<Result<IEnumerable<OpportunityResponse>>> IngestAsync(
+        Guid userId,
+        IngestOpportunitiesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var today = DateTime.UtcNow.Date;
+            var existing = await _repository.GetByGeneratedDateAsync(userId, today, cancellationToken);
+            if (existing.Count == 0)
+            {
+                var refresh = await RefreshDailyAsync(userId, cancellationToken);
+                if (!refresh.IsSuccess)
+                    return refresh;
+                existing = await _repository.GetByGeneratedDateAsync(userId, today, cancellationToken);
+            }
+
+            var seenTitles = new HashSet<string>(
+                existing.Select(o => o.Title), StringComparer.OrdinalIgnoreCase);
+
+            var generatedAt = DateTime.UtcNow;
+            var toInsert = new List<InvestmentOpportunity>();
+            foreach (var item in request.Items ?? Enumerable.Empty<IngestOpportunityItem>())
+            {
+                if (string.IsNullOrWhiteSpace(item.Title) || string.IsNullOrWhiteSpace(item.Thesis))
+                    continue;
+
+                var title = item.Title.Trim();
+                if (title.Length > 200)
+                    title = title[..200];
+                if (!seenTitles.Add(title))
+                    continue;
+
+                var thesis = item.Thesis.Trim();
+                if (thesis.Length > 1000)
+                    thesis = thesis[..1000];
+
+                var risk = item.Risk?.Trim().ToLowerInvariant() switch
+                {
+                    "baixo" => "baixo",
+                    "alto" => "alto",
+                    _ => "medio",
+                };
+
+                toInsert.Add(InvestmentOpportunity.Create(
+                    userId,
+                    item.Class,
+                    title,
+                    thesis,
+                    InvestmentOpportunity.SourceIdea,
+                    risk,
+                    generatedAt,
+                    score: item.Score ?? 75m,
+                    ticker: item.Ticker,
+                    easeRank: item.EaseRank));
+            }
+
+            if (toInsert.Count > 0)
+            {
+                await _repository.AddRangeAsync(toInsert, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            _logger.LogInformation(
+                "Ingested {Inserted}/{Received} opportunities for user {UserId}",
+                toInsert.Count, request.Items?.Count ?? 0, userId);
+
+            return Result<IEnumerable<OpportunityResponse>>.Success(toInsert.Select(MapToResponse));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to ingest opportunities for user {UserId}", userId);
+            return Result.Failure<IEnumerable<OpportunityResponse>>(
+                new Error("Opportunity.IngestFailed", "Failed to ingest opportunities. Please check server logs for details."));
+        }
+    }
+
+    /// <summary>
     /// Lista curada de ideias (Source="idea"), ordenada por facilidade de execução (EaseRank 1 = mais fácil).
     /// </summary>
     private static List<InvestmentOpportunity> BuildCuratedIdeas(Guid userId, DateTime generatedAt)

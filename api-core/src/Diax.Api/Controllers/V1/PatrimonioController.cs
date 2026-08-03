@@ -378,6 +378,29 @@ public class PatrimonioController : BaseApiController
         return Ok(result.Value);
     }
 
+    [HttpPost("opportunities/ingest")]
+    public async Task<IActionResult> IngestOpportunities(
+        [FromBody] IngestOpportunitiesRequest request, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        _logger.LogInformation("POST /api/v1/patrimonio/opportunities/ingest - Request received");
+        var result = await _opportunityService.IngestAsync(userId.Value, request, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            _logger.LogError("POST /api/v1/patrimonio/opportunities/ingest - Failed: {ErrorCode} - {ErrorMessage}",
+                result.Error?.Code, result.Error?.Message);
+
+            if (result.Error?.Code?.EndsWith("Failed") == true)
+            {
+                return StatusCode(500, result.Error);
+            }
+            return BadRequest(result.Error);
+        }
+        return Ok(result.Value);
+    }
+
     // ===== F2 — PRÓXIMAS AÇÕES (gap engine) =====
 
     [HttpGet("actions")]
