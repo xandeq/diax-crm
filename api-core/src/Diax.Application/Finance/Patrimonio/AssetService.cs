@@ -241,6 +241,13 @@ public class AssetService : IApplicationService
                     .OrderByDescending(v => v.AsOf)
                     .Select(MapToValuationResponse)
                     .ToList()
+                : null,
+            asset.HasFipeLink
+                ? new FipeLinkResponse(
+                    asset.FipeVehicleType!,
+                    asset.FipeBrandCode!,
+                    asset.FipeModelCode!,
+                    asset.FipeYearCode!)
                 : null
         );
     }

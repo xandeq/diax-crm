@@ -59,11 +59,19 @@ export enum AssetValuationSource {
     Indexed = 1,
     ManualDepreciation = 2,
     Manual = 3,
+    Fipe = 4,
 }
 
 // =====================================================
 // PATRIMÔNIO & INVESTIMENTOS — INTERFACES
 // =====================================================
+
+export interface FipeLink {
+    vehicleType: string;
+    brandCode: string;
+    modelCode: string;
+    yearCode: string;
+}
 
 export interface Asset {
     id: string;
@@ -79,6 +87,7 @@ export interface Asset {
     notes?: string;
     createdAt: string;
     updatedAt?: string;
+    fipe?: FipeLink | null;
 }
 
 export interface CreateAssetRequest {
@@ -185,6 +194,44 @@ export interface NextAction {
     status: NextActionStatus;
 }
 
+// ── FIPE (F4 — avaliação automática de veículos) ─────────────────────
+
+export type FipeVehicleType = 'cars' | 'motorcycles' | 'trucks';
+
+export interface FipeItem {
+    code: string;
+    name: string;
+}
+
+export interface FipePrice {
+    price: number;
+    brand: string;
+    model: string;
+    modelYear: number;
+    fuel?: string;
+    codeFipe?: string;
+    referenceMonth?: string;
+}
+
+export interface LinkFipeRequest {
+    vehicleType: FipeVehicleType;
+    brandCode: string;
+    modelCode: string;
+    yearCode: string;
+}
+
+export interface LinkFipeResponse {
+    assetId: string;
+    value: number;
+    referenceMonth?: string;
+    model: string;
+}
+
+export interface FipeRefreshResult {
+    checked: number;
+    updated: number;
+}
+
 export interface MarketSnapshot {
     usdBrl?: number;
     eurBrl?: number;
@@ -255,6 +302,38 @@ export const patrimonioService = {
     },
     getNetWorth: async () => {
         return apiFetch<NetWorthSummary>('/patrimonio/networth');
+    },
+
+    // ── FIPE (F4) ────────────────────────────────────────────────────────
+    getFipeBrands: async (vehicleType: FipeVehicleType) => {
+        return apiFetch<FipeItem[]>(`/patrimonio/fipe/${vehicleType}/brands`);
+    },
+    getFipeModels: async (vehicleType: FipeVehicleType, brandCode: string) => {
+        return apiFetch<FipeItem[]>(`/patrimonio/fipe/${vehicleType}/brands/${brandCode}/models`);
+    },
+    getFipeYears: async (vehicleType: FipeVehicleType, brandCode: string, modelCode: string) => {
+        return apiFetch<FipeItem[]>(
+            `/patrimonio/fipe/${vehicleType}/brands/${brandCode}/models/${modelCode}/years`);
+    },
+    getFipePrice: async (vehicleType: FipeVehicleType, brandCode: string, modelCode: string, yearCode: string) => {
+        return apiFetch<FipePrice>(
+            `/patrimonio/fipe/${vehicleType}/brands/${brandCode}/models/${modelCode}/years/${yearCode}`);
+    },
+    linkFipe: async (assetId: string, data: LinkFipeRequest) => {
+        return apiFetch<LinkFipeResponse>(`/patrimonio/assets/${assetId}/fipe-link`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    unlinkFipe: async (assetId: string) => {
+        return apiFetch<void>(`/patrimonio/assets/${assetId}/fipe-link`, {
+            method: 'DELETE',
+        });
+    },
+    refreshFipe: async () => {
+        return apiFetch<FipeRefreshResult>('/patrimonio/fipe/refresh', {
+            method: 'POST',
+        });
     },
 
     // ── Zona 2 — Onde investir ──────────────────────────────────────────

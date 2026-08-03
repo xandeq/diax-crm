@@ -22,6 +22,13 @@ public class Asset : AuditableEntity, IUserOwnedEntity
     public AssetValuationSource ValuationSource { get; private set; }
     public string? Notes { get; private set; }
 
+    // Vínculo com a tabela FIPE (só faz sentido para Class = Veiculo).
+    // Guardamos os códigos do drill-down (tipo/marca/modelo/ano) para reconsultar o preço todo mês.
+    public string? FipeVehicleType { get; private set; }
+    public string? FipeBrandCode { get; private set; }
+    public string? FipeModelCode { get; private set; }
+    public string? FipeYearCode { get; private set; }
+
     // Navigation properties
     public virtual ICollection<AssetValuation> Valuations { get; private set; } = new List<AssetValuation>();
 
@@ -121,6 +128,43 @@ public class Asset : AuditableEntity, IUserOwnedEntity
 
         return valuation;
     }
+
+    /// <summary>
+    /// Vincula o ativo a um veículo da tabela FIPE (códigos do drill-down marca/modelo/ano).
+    /// </summary>
+    public void LinkFipe(string vehicleType, string brandCode, string modelCode, string yearCode)
+    {
+        if (Class != AssetClass.Veiculo)
+            throw new ArgumentException("FIPE link is only supported for vehicle assets", nameof(vehicleType));
+
+        if (string.IsNullOrWhiteSpace(vehicleType) || string.IsNullOrWhiteSpace(brandCode) ||
+            string.IsNullOrWhiteSpace(modelCode) || string.IsNullOrWhiteSpace(yearCode))
+            throw new ArgumentException("All FIPE codes are required", nameof(vehicleType));
+
+        FipeVehicleType = vehicleType.Trim().ToLowerInvariant();
+        FipeBrandCode = brandCode.Trim();
+        FipeModelCode = modelCode.Trim();
+        FipeYearCode = yearCode.Trim();
+        ValuationSource = AssetValuationSource.Fipe;
+        SetUpdated();
+    }
+
+    /// <summary>
+    /// Remove o vínculo FIPE; o valor passa a ser mantido manualmente.
+    /// </summary>
+    public void UnlinkFipe()
+    {
+        FipeVehicleType = null;
+        FipeBrandCode = null;
+        FipeModelCode = null;
+        FipeYearCode = null;
+        ValuationSource = AssetValuationSource.Manual;
+        SetUpdated();
+    }
+
+    public bool HasFipeLink =>
+        FipeVehicleType is not null && FipeBrandCode is not null &&
+        FipeModelCode is not null && FipeYearCode is not null;
 
     private static void ValidateName(string name)
     {

@@ -50,6 +50,18 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
         builder.Property(x => x.Notes)
             .HasMaxLength(1000);
 
+        builder.Property(x => x.FipeVehicleType)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.FipeBrandCode)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.FipeModelCode)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.FipeYearCode)
+            .HasMaxLength(20);
+
         // Relationships
         builder.HasMany(x => x.Valuations)
             .WithOne(x => x.Asset)

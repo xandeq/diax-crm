@@ -161,6 +161,9 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Finance.Patrimonio.WealthProfileService>();
         services.AddScoped<Diax.Application.Finance.Patrimonio.MarketDataService>();
 
+        // ===== PATRIMÔNIO F4 — AVALIAÇÃO FIPE (veículos) =====
+        services.AddScoped<Diax.Application.Finance.Patrimonio.FipeService>();
+
         // ===== INVESTIQ INTEGRATION =====
         services.AddScoped<IInvestIQIntegrationService, InvestIQIntegrationService>();
 

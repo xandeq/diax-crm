@@ -16,5 +16,6 @@ public record AssetResponse(
     string? Notes,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    IReadOnlyList<AssetValuationResponse>? Valuations = null
+    IReadOnlyList<AssetValuationResponse>? Valuations = null,
+    FipeLinkResponse? Fipe = null
 );

@@ -20,6 +20,7 @@ public class PatrimonioController : BaseApiController
     private readonly NextActionService _nextActionService;
     private readonly WealthProfileService _wealthProfileService;
     private readonly MarketDataService _marketDataService;
+    private readonly FipeService _fipeService;
     private readonly ILogger<PatrimonioController> _logger;
 
     public PatrimonioController(
@@ -29,6 +30,7 @@ public class PatrimonioController : BaseApiController
         NextActionService nextActionService,
         WealthProfileService wealthProfileService,
         MarketDataService marketDataService,
+        FipeService fipeService,
         ILogger<PatrimonioController> logger)
     {
         _assetService = assetService;
@@ -37,6 +39,7 @@ public class PatrimonioController : BaseApiController
         _nextActionService = nextActionService;
         _wealthProfileService = wealthProfileService;
         _marketDataService = marketDataService;
+        _fipeService = fipeService;
         _logger = logger;
     }
 
@@ -193,6 +196,118 @@ public class PatrimonioController : BaseApiController
             {
                 return StatusCode(500, result.Error);
             }
+            return BadRequest(result.Error);
+        }
+        return Ok(result.Value);
+    }
+
+    // ===== F4 — AVALIAÇÃO FIPE (veículos) =====
+
+    [HttpGet("fipe/{vehicleType}/brands")]
+    public async Task<IActionResult> GetFipeBrands(string vehicleType, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _fipeService.GetBrandsAsync(vehicleType, cancellationToken);
+        return FipeCatalogResult(result);
+    }
+
+    [HttpGet("fipe/{vehicleType}/brands/{brandCode}/models")]
+    public async Task<IActionResult> GetFipeModels(
+        string vehicleType, string brandCode, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _fipeService.GetModelsAsync(vehicleType, brandCode, cancellationToken);
+        return FipeCatalogResult(result);
+    }
+
+    [HttpGet("fipe/{vehicleType}/brands/{brandCode}/models/{modelCode}/years")]
+    public async Task<IActionResult> GetFipeYears(
+        string vehicleType, string brandCode, string modelCode, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _fipeService.GetYearsAsync(vehicleType, brandCode, modelCode, cancellationToken);
+        return FipeCatalogResult(result);
+    }
+
+    [HttpGet("fipe/{vehicleType}/brands/{brandCode}/models/{modelCode}/years/{yearCode}")]
+    public async Task<IActionResult> GetFipePrice(
+        string vehicleType, string brandCode, string modelCode, string yearCode,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var result = await _fipeService.GetPriceAsync(vehicleType, brandCode, modelCode, yearCode, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            if (result.Error?.Code == "Fipe.Unavailable")
+                return StatusCode(503, result.Error);
+            return BadRequest(result.Error);
+        }
+        return Ok(result.Value);
+    }
+
+    [HttpPost("assets/{id}/fipe-link")]
+    public async Task<IActionResult> LinkFipe(
+        Guid id, [FromBody] LinkFipeRequest request, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        _logger.LogInformation("POST /api/v1/patrimonio/assets/{Id}/fipe-link - Request received", id);
+        var result = await _fipeService.LinkAsync(id, request, userId.Value, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            _logger.LogError("POST /api/v1/patrimonio/assets/{Id}/fipe-link - Failed: {ErrorCode} - {ErrorMessage}",
+                id, result.Error?.Code, result.Error?.Message);
+
+            if (result.Error?.Code == "Asset.NotFound")
+                return NotFound(result.Error);
+            if (result.Error?.Code == "Fipe.Unavailable")
+                return StatusCode(503, result.Error);
+            return BadRequest(result.Error);
+        }
+        return Ok(result.Value);
+    }
+
+    [HttpDelete("assets/{id}/fipe-link")]
+    public async Task<IActionResult> UnlinkFipe(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        _logger.LogInformation("DELETE /api/v1/patrimonio/assets/{Id}/fipe-link - Request received", id);
+        var result = await _fipeService.UnlinkAsync(id, userId.Value, cancellationToken);
+        if (!result.IsSuccess)
+            return NotFound(result.Error);
+        return NoContent();
+    }
+
+    [HttpPost("fipe/refresh")]
+    public async Task<IActionResult> RefreshFipe(CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        _logger.LogInformation("POST /api/v1/patrimonio/fipe/refresh - Request received");
+        var result = await _fipeService.RefreshAllAsync(userId.Value, cancellationToken);
+        if (!result.IsSuccess)
+            return BadRequest(result.Error);
+        return Ok(result.Value);
+    }
+
+    private IActionResult FipeCatalogResult(Diax.Shared.Results.Result<IReadOnlyList<FipeItemResponse>> result)
+    {
+        if (!result.IsSuccess)
+        {
+            if (result.Error?.Code == "Fipe.Unavailable")
+                return StatusCode(503, result.Error);
             return BadRequest(result.Error);
         }
         return Ok(result.Value);

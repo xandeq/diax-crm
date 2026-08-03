@@ -38,6 +38,7 @@ import {
     AssetOwnership,
     AssetValuationSource,
     CreateAssetRequest,
+    FipeVehicleType,
     MarketSnapshot,
     NetWorthSummary,
     NextAction,
@@ -51,6 +52,7 @@ import {
 } from '@/services/patrimonio';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+    Car,
     CheckCircle2,
     CircleDollarSign,
     Compass,
@@ -70,7 +72,7 @@ import {
     Wallet,
     XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // ─── Query keys ─────────────────────────────────────────────────────────────
@@ -132,7 +134,12 @@ const ASSET_VALUATION_SOURCE_LABELS: Record<AssetValuationSource, string> = {
     [AssetValuationSource.Indexed]: 'Indexado',
     [AssetValuationSource.ManualDepreciation]: 'Depreciação Manual',
     [AssetValuationSource.Manual]: 'Manual',
+    [AssetValuationSource.Fipe]: 'FIPE (automático)',
 };
+
+// Fipe é gerenciado pelo vínculo (botão FIPE do veículo), não escolhido à mão no form.
+const MANUAL_VALUATION_SOURCES = Object.entries(ASSET_VALUATION_SOURCE_LABELS)
+    .filter(([value]) => Number(value) !== AssetValuationSource.Fipe);
 
 const LIQUIDITY_BADGE_CLASS: Record<AssetLiquidity, string> = {
     [AssetLiquidity.Liquido]: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400',
@@ -344,6 +351,27 @@ export default function PatrimonioPage() {
             onError: () => toast.error('Erro ao atualizar perfil'),
         });
     };
+
+    // ── FIPE (F4) — refresh mensal lazy na 1ª visita (mesmo padrão das oportunidades) ──
+    const fipeRefreshFired = useRef(false);
+    useEffect(() => {
+        if (fipeRefreshFired.current) return;
+        fipeRefreshFired.current = true;
+        patrimonioService
+            .refreshFipe()
+            .then((r) => {
+                if (r.updated > 0) {
+                    qc.invalidateQueries({ queryKey: ASSETS_KEY });
+                    qc.invalidateQueries({ queryKey: NET_WORTH_KEY });
+                    toast.info(`Tabela FIPE atualizou ${r.updated} veículo(s)`);
+                }
+            })
+            .catch(() => {
+                // best-effort: FIPE fora do ar não afeta a página
+            });
+    }, [qc]);
+
+    const [fipeAsset, setFipeAsset] = useState<Asset | null>(null);
 
     // ── Modals ─────────────────────────────────────────────────────────────
     const [showCreate, setShowCreate] = useState(false);
@@ -694,6 +722,11 @@ export default function PatrimonioPage() {
                                                         A receber
                                                     </Badge>
                                                 )}
+                                                {asset.fipe && (
+                                                    <Badge className="border-sky-500/20 bg-sky-500/10 text-sky-400 text-[10px]">
+                                                        FIPE
+                                                    </Badge>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell>{ASSET_CLASS_LABELS[asset.class]}</TableCell>
@@ -722,6 +755,21 @@ export default function PatrimonioPage() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-1">
+                                                {asset.class === AssetClass.Veiculo && (
+                                                    <button
+                                                        onClick={() => setFipeAsset(asset)}
+                                                        title={asset.fipe ? 'Vínculo FIPE' : 'Avaliar pela FIPE'}
+                                                        className={cn(
+                                                            'p-2 rounded-lg transition-colors hover:bg-zinc-900/50',
+                                                            asset.fipe
+                                                                ? 'text-sky-400 hover:text-sky-300'
+                                                                : 'text-zinc-400 hover:text-sky-400',
+                                                        )}
+                                                    >
+                                                        <Car className="h-4 w-4" />
+                                                        <span className="sr-only">Avaliar pela FIPE</span>
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => openEdit(asset)}
                                                     className="p-2 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-zinc-900/50 transition-colors"
@@ -985,6 +1033,18 @@ export default function PatrimonioPage() {
                 </DialogContent>
             </Dialog>
 
+            {/* ── FIPE Modal (F4) ── */}
+            {fipeAsset && (
+                <FipeDialog
+                    asset={fipeAsset}
+                    onClose={() => setFipeAsset(null)}
+                    onChanged={() => {
+                        qc.invalidateQueries({ queryKey: ASSETS_KEY });
+                        qc.invalidateQueries({ queryKey: NET_WORTH_KEY });
+                    }}
+                />
+            )}
+
             {/* ── Perfil & Metas Modal ── */}
             <Dialog
                 open={showProfileEdit}
@@ -1151,7 +1211,7 @@ function AssetForm({ form, onChange }: AssetFormProps) {
                     >
                         <SelectTrigger id="af-valuation"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            {Object.entries(ASSET_VALUATION_SOURCE_LABELS).map(([value, label]) => (
+                            {MANUAL_VALUATION_SOURCES.map(([value, label]) => (
                                 <SelectItem key={value} value={value}>{label}</SelectItem>
                             ))}
                         </SelectContent>
@@ -1314,5 +1374,227 @@ function NextActionRow({ action, onComplete, completing, resolved }: NextActionR
                 </Button>
             )}
         </div>
+    );
+}
+
+// ─── FIPE Dialog (F4) ───────────────────────────────────────────────────────
+// Drill-down marca → modelo → ano na tabela FIPE; ao vincular, o backend já
+// registra a avaliação automática e o valor do veículo passa a acompanhar a FIPE.
+
+const FIPE_VEHICLE_TYPE_LABELS: Record<FipeVehicleType, string> = {
+    cars: 'Carro',
+    motorcycles: 'Moto',
+    trucks: 'Caminhão',
+};
+
+function FipeDialog({
+    asset,
+    onClose,
+    onChanged,
+}: {
+    asset: Asset;
+    onClose: () => void;
+    onChanged: () => void;
+}) {
+    const [vehicleType, setVehicleType] = useState<FipeVehicleType>(
+        (asset.fipe?.vehicleType as FipeVehicleType) ?? 'cars',
+    );
+    const [brandCode, setBrandCode] = useState<string>(asset.fipe?.brandCode ?? '');
+    const [modelCode, setModelCode] = useState<string>(asset.fipe?.modelCode ?? '');
+    const [yearCode, setYearCode] = useState<string>(asset.fipe?.yearCode ?? '');
+
+    const { data: brands = [], isLoading: brandsLoading } = useQuery({
+        queryKey: ['patrimonio', 'fipe', vehicleType, 'brands'],
+        queryFn: () => patrimonioService.getFipeBrands(vehicleType),
+        staleTime: 24 * 60 * 60 * 1000,
+    });
+
+    const { data: models = [], isLoading: modelsLoading } = useQuery({
+        queryKey: ['patrimonio', 'fipe', vehicleType, brandCode, 'models'],
+        queryFn: () => patrimonioService.getFipeModels(vehicleType, brandCode),
+        enabled: !!brandCode,
+        staleTime: 24 * 60 * 60 * 1000,
+    });
+
+    const { data: years = [], isLoading: yearsLoading } = useQuery({
+        queryKey: ['patrimonio', 'fipe', vehicleType, brandCode, modelCode, 'years'],
+        queryFn: () => patrimonioService.getFipeYears(vehicleType, brandCode, modelCode),
+        enabled: !!brandCode && !!modelCode,
+        staleTime: 24 * 60 * 60 * 1000,
+    });
+
+    const { data: price, isFetching: priceLoading } = useQuery({
+        queryKey: ['patrimonio', 'fipe', vehicleType, brandCode, modelCode, yearCode, 'price'],
+        queryFn: () => patrimonioService.getFipePrice(vehicleType, brandCode, modelCode, yearCode),
+        enabled: !!brandCode && !!modelCode && !!yearCode,
+        staleTime: 6 * 60 * 60 * 1000,
+        retry: 1,
+    });
+
+    const linkMutation = useMutation({
+        mutationFn: () =>
+            patrimonioService.linkFipe(asset.id, { vehicleType, brandCode, modelCode, yearCode }),
+        onSuccess: (r) => {
+            toast.success(
+                `Veículo vinculado à FIPE: ${formatCurrency(r.value)}${r.referenceMonth ? ` (ref. ${r.referenceMonth})` : ''}`,
+            );
+            onChanged();
+            onClose();
+        },
+        onError: () => toast.error('Erro ao vincular à FIPE'),
+    });
+
+    const unlinkMutation = useMutation({
+        mutationFn: () => patrimonioService.unlinkFipe(asset.id),
+        onSuccess: () => {
+            toast.success('Vínculo FIPE removido');
+            onChanged();
+            onClose();
+        },
+        onError: () => toast.error('Erro ao remover vínculo FIPE'),
+    });
+
+    const busy = linkMutation.isPending || unlinkMutation.isPending;
+    const canLink = !!brandCode && !!modelCode && !!yearCode && !!price && !busy;
+
+    return (
+        <Dialog open onOpenChange={(v) => { if (!busy && !v) onClose(); }}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Car className="h-4 w-4 text-sky-400" />
+                        Avaliar pela FIPE — {asset.name}
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-3 py-2">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="fipe-type">Tipo de veículo</Label>
+                        <Select
+                            value={vehicleType}
+                            onValueChange={(v) => {
+                                setVehicleType(v as FipeVehicleType);
+                                setBrandCode('');
+                                setModelCode('');
+                                setYearCode('');
+                            }}
+                        >
+                            <SelectTrigger id="fipe-type"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(FIPE_VEHICLE_TYPE_LABELS).map(([value, label]) => (
+                                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="fipe-brand">Marca</Label>
+                        <Select
+                            value={brandCode || undefined}
+                            onValueChange={(v) => {
+                                setBrandCode(v);
+                                setModelCode('');
+                                setYearCode('');
+                            }}
+                            disabled={brandsLoading}
+                        >
+                            <SelectTrigger id="fipe-brand">
+                                <SelectValue placeholder={brandsLoading ? 'Carregando marcas...' : 'Selecione a marca'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {brands.map((b) => (
+                                    <SelectItem key={b.code} value={b.code}>{b.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="fipe-model">Modelo</Label>
+                        <Select
+                            value={modelCode || undefined}
+                            onValueChange={(v) => {
+                                setModelCode(v);
+                                setYearCode('');
+                            }}
+                            disabled={!brandCode || modelsLoading}
+                        >
+                            <SelectTrigger id="fipe-model">
+                                <SelectValue placeholder={modelsLoading ? 'Carregando modelos...' : 'Selecione o modelo'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {models.map((m) => (
+                                    <SelectItem key={m.code} value={m.code}>{m.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="fipe-year">Ano</Label>
+                        <Select
+                            value={yearCode || undefined}
+                            onValueChange={setYearCode}
+                            disabled={!modelCode || yearsLoading}
+                        >
+                            <SelectTrigger id="fipe-year">
+                                <SelectValue placeholder={yearsLoading ? 'Carregando anos...' : 'Selecione o ano'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map((y) => (
+                                    <SelectItem key={y.code} value={y.code}>{y.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {(priceLoading || price) && (
+                        <div className="rounded-xl border border-sky-500/20 bg-sky-500/[0.06] p-4">
+                            {priceLoading ? (
+                                <div className="flex items-center gap-2 text-sm text-zinc-400">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Consultando tabela FIPE...
+                                </div>
+                            ) : price && (
+                                <div className="space-y-1">
+                                    <p className="text-xs text-zinc-400">{price.brand} · {price.model} · {price.modelYear}</p>
+                                    <p className="text-2xl font-bold text-sky-400 tabular-nums">
+                                        {formatCurrency(price.price)}
+                                    </p>
+                                    {price.referenceMonth && (
+                                        <p className="text-[11px] text-zinc-500">
+                                            Referência FIPE: {price.referenceMonth}
+                                            {price.codeFipe ? ` · código ${price.codeFipe}` : ''}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <DialogFooter className="gap-2">
+                    {asset.fipe && (
+                        <Button
+                            variant="outline"
+                            onClick={() => unlinkMutation.mutate()}
+                            disabled={busy}
+                            className="mr-auto text-rose-400 hover:text-rose-300"
+                        >
+                            {unlinkMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Remover vínculo
+                        </Button>
+                    )}
+                    <Button variant="outline" onClick={onClose} disabled={busy}>
+                        Cancelar
+                    </Button>
+                    <Button onClick={() => linkMutation.mutate()} disabled={!canLink}>
+                        {linkMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        {asset.fipe ? 'Atualizar vínculo' : 'Vincular e avaliar'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

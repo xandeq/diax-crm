@@ -23,5 +23,10 @@ public enum AssetValuationSource
     /// <summary>
     /// Valor informado manualmente pelo usuário
     /// </summary>
-    Manual = 3
+    Manual = 3,
+
+    /// <summary>
+    /// Tabela FIPE consultada automaticamente (veículos vinculados)
+    /// </summary>
+    Fipe = 4
 }
