@@ -1,0 +1,200 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Auditoria Financeira jul-ago/2026</title><style>
+:root{--bg:#0f1115;--card:#181b22;--tx:#e8eaf0;--mut:#9aa3b2;--acc:#4f8ef7;--warn:#f7b84f}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);max-width:960px;margin:0 auto;padding:24px;line-height:1.55}
+h1{color:var(--acc);font-size:1.6rem} h2{color:var(--acc);border-bottom:1px solid #2a2f3a;padding-bottom:6px;margin-top:36px}
+h3{color:var(--warn)} table{border-collapse:collapse;width:100%;margin:12px 0;font-size:.92rem}
+th,td{border:1px solid #2a2f3a;padding:6px 10px;text-align:left} th{background:#1f2430}
+tr:nth-child(even){background:#151922} blockquote{border-left:4px solid var(--warn);margin:12px 0;padding:8px 14px;background:#181c26;color:var(--mut)}
+li{margin:4px 0} hr{border-color:#2a2f3a} b{color:#fff}
+@media(max-width:640px){body{padding:12px} table{display:block;overflow-x:auto}}
+</style></head><body><h1>🧾 Auditoria Financeira — Faturas de Cartão (ciclo jul→ago/2026)</h1>
+<blockquote>Gerado em 05/08/2026 · Fontes: 5 faturas + extrato Santander 01/07–05/08 · <b>264 transações</b>, todas validadas ao centavo contra os totais oficiais (6/6 ✓)</blockquote>
+<h2>1. Resumo executivo</h2>
+<table>
+<tr><th>Indicador</th><th>Valor</th></tr>
+<tr><td><b>Total das 5 faturas (real)</b></td><td><b>R$ 14.593,54</b></td></tr>
+<tr><td>Valor que a planilha esperava</td><td>R$ 14.593,28 (Δ +0,26 — planilha precisa ✓)</td></tr>
+<tr><td>Resultado do mês (planilha)</td><td><b>−R$ 4.428,83</b> 🔴</td></tr>
+<tr><td>Gasto real do ciclo (sem transferências/faturas)</td><td>R$ 61.828,52</td></tr>
+<tr><td>Delivery (iFood, 3 canais)</td><td><b>R$ 2.096,71/mês</b></td></tr>
+<tr><td>IA/Tech (Anthropic, OpenAI, GitHub…)</td><td><b>R$ 2.093,99/mês</b> (majoritariamente PJ)</td></tr>
+<tr><td>Assinaturas identificadas</td><td>R$ 2.496,60/mês</td></tr>
+<tr><td>🔴 Em revisão (não identificado)</td><td>R$ 1.065,31</td></tr>
+<tr><td><b>Parcelamentos futuros comprometidos</b></td><td><b>R$ 26.697,40 (até jul/2027)</b></td></tr>
+<tr><td>Economia potencial mapeada</td><td>~R$ 1.300/mês (~R$ 15.600/ano)</td></tr>
+</table>
+<h3>⚠️ Os 5 achados mais graves</h3>
+<p>1. <b>Parcelamentos travados em R$ 26.697,40</b> — Latam Pass sozinho R$ 15.754,50; o app já projeta faturas de Set R$ 3.641,85 e Out R$ 3.166,80 <b>antes de qualquer compra nova</b>. 60,5% da fatura atual do Latam (R$ 4.311,55) é parcela antiga.</p>
+<p>2. <b>Anthropic Claude R$ 1.276,75 no ciclo</b> (sub R$ 1.169,66 no Gol Smiles = 51% daquela fatura + API R$ 107,09 no Nubank). A duplicidade de subs do ciclo passado morreu ✓, mas agora é o maior SaaS isolado.</p>
+<p>3. <b>Mês fechou negativo em R$ 4.428,83</b> e a conta operou no fio: saldo mínimo <b>R$ 83,18 em 09/07</b>, salvo por transferências próprias (R$ 26.450 de PF/PJ no período).</p>
+<p>4. <b>Delivery R$ 2.096,71 em 3 canais</b> (conta 1.140,61 + Latam 740,61 + Nubank 215,49) — de novo o vazamento invisível; era R$ 2.523,11 no ciclo passado (−17%, mas longe do teto de R$ 1.200).</p>
+<p>5. <b>Divergências a conferir</b>: aluguel Nexus veio R$ 9.575,14 vs planilha 9.511,00 (+64,14); Niuro/Demerge pagou R$ 11.312,86 vs previsto 11.788,77 (−475,91); AAdvantage tem R$ 94,44 não itemizado (fatura ditada — conferir PDF).</p>
+<h2>2. Faturas — visão real (5/5 conferidas ao centavo)</h2>
+<table>
+<tr><th>Cartão</th><th>Fatura REAL</th><th>Venc.</th><th>Status do cartão</th><th>Situação</th></tr>
+<tr><td>Itaú Latam Pass (0461)</td><td>R$ 7.122,33</td><td><b>17/08</b></td><td>ativo</td><td>⬜ pagar 17/08</td></tr>
+<tr><td>Nubank (3727)</td><td>R$ 2.804,72</td><td><b>15/08</b></td><td>ativo</td><td>⬜ pagar 15/08</td></tr>
+<tr><td>Sant. Gol Smiles (Visa 5959)</td><td>R$ 2.283,19</td><td><b>16/08</b></td><td><b>FREE</b> (sem anuidade/milhas)</td><td>⬜ débito automático</td></tr>
+<tr><td>Sant. AAdvantage (Master)</td><td>R$ 1.393,10</td><td><b>14/08</b></td><td><b>CANCELADO 09/07</b></td><td>⬜ pagar 14/08</td></tr>
+<tr><td>Itaú Tudo Azul (3299)</td><td>R$ 990,20</td><td>06/08</td><td><b>CANCELADO</b></td><td>✅ PAGA 05/08</td></tr>
+<tr><td><b>TOTAL</b></td><td><b>R$ 14.593,54</b></td><td></td><td></td><td>falta pagar R$ 13.603,34</td></tr>
+</table>
+<blockquote>💧 <b>Coreografia de caixa 14–17/08</b>: AAdvantage (1.393,10) dia 14 → Nubank (2.804,72) dia 15 → deixar ≥ R$ 2.283,19 na conta dia 16 (débito automático Gol) → Latam (7.122,33) dia 17. Total: R$ 13.603,34. Salário Exxon (~R$ 18,7k) entra dia 15.</blockquote>
+<p>Cartões cancelados <b>continuam faturando parcelas</b>: AAdvantage deve mais R$ 2.583,74 e Tudo Azul R$ 536,72 em faturas futuras.</p>
+<h2>3. Para onde foi o dinheiro (gasto real do ciclo, sem transferências)</h2>
+<table>
+<tr><th>Categoria</th><th>Total</th><th>%</th></tr>
+<tr><td>Moradia</td><td>R$ 17.217,53</td><td>27,8%</td></tr>
+<tr><td>Bebê/Família</td><td>R$ 13.193,51</td><td>21,3%</td></tr>
+<tr><td>Trabalho</td><td>R$ 9.044,85</td><td>14,6%</td></tr>
+<tr><td>Saúde</td><td>R$ 5.788,73</td><td>9,4%</td></tr>
+<tr><td>Compras</td><td>R$ 4.297,55</td><td>7,0%</td></tr>
+<tr><td>Mercado</td><td>R$ 2.212,50</td><td>3,6%</td></tr>
+<tr><td>Impostos e Tarifas</td><td>R$ 2.118,90</td><td>3,4%</td></tr>
+<tr><td>Restaurantes (delivery)</td><td>R$ 2.096,71</td><td>3,4%</td></tr>
+<tr><td>Tecnologia (IA/dev)</td><td>R$ 2.093,99</td><td>3,4%</td></tr>
+<tr><td>REVISÃO NECESSÁRIA</td><td>R$ 1.065,31</td><td>1,7%</td></tr>
+<tr><td>Cuidados Pessoais</td><td>R$ 747,00</td><td>1,2%</td></tr>
+<tr><td>Outros (hotel/doação)</td><td>R$ 731,70</td><td>1,2%</td></tr>
+<tr><td>Pets</td><td>R$ 483,33</td><td>0,8%</td></tr>
+<tr><td>Assinaturas (streaming)</td><td>R$ 341,10</td><td>0,6%</td></tr>
+<tr><td>Transporte</td><td>R$ 283,97</td><td>0,5%</td></tr>
+<tr><td>Juros e Encargos (IOF)</td><td>R$ 111,84</td><td>0,2%</td></tr>
+<tr><td><b>TOTAL</b></td><td><b>R$ 61.828,52</b></td><td>100%</td></tr>
+</table>
+<p>Notas: Moradia inclui aluguel ago (9.575,14) + 2 condomínios (1.595,41 jun + 1.715,41 jul) + energia + faxina + internet. A parcela do carro (R$ 3.005,29, paga 01/07) <b>não passou pela conta Santander</b> — saiu de outra conta (Itaú); some ao gasto real mental do mês.</p>
+<h3>Top 15 destinos do dinheiro</h3>
+<table>
+<tr><th>#</th><th>Estabelecimento/Destino</th><th>Total</th></tr>
+<tr><td>1</td><td>Nexus Imóveis (aluguel ago — conferir +64,14)</td><td>R$ 9.575,14</td></tr>
+<tr><td>2</td><td>FK Comércio (notebook Niuro PJ — <i>mesma compra já reportada no ciclo jun</i>)</td><td>R$ 7.977,91</td></tr>
+<tr><td>3</td><td>Dinara (contas + psicóloga + avulsos, 11 PIX)</td><td>R$ 6.240,00</td></tr>
+<tr><td>4</td><td>Nexus Imóveis (condomínios jun+jul)</td><td>R$ 3.310,82</td></tr>
+<tr><td>5</td><td>Hosana (faxina mensal + avulsos, 10 PIX)</td><td>R$ 3.281,00</td></tr>
+<tr><td>6</td><td>Fabíola (babá, 7 PIX)</td><td>R$ 2.570,00</td></tr>
+<tr><td>7</td><td>Delivery iFood (3 canais, 21 pedidos)</td><td>R$ 2.096,71</td></tr>
+<tr><td>8</td><td>Anthropic Claude (sub + API)</td><td>R$ 1.276,75</td></tr>
+<tr><td>9</td><td>All Care + Mediatorie (planos de saúde)</td><td>R$ 2.066,81</td></tr>
+<tr><td>10</td><td>Pluma Filmes (ensaio Celina)</td><td>R$ 1.020,00</td></tr>
+<tr><td>11</td><td>Vacinas Celina (Burian 1/5 + GCM 2/4)</td><td>R$ 486,10</td></tr>
+<tr><td>12</td><td>Imposto Federal (IRPF 815,54 + Simples 304,07)</td><td>R$ 1.119,61</td></tr>
+<tr><td>13</td><td>Fitness/estética (Jim.com 500 + Wellness 247)</td><td>R$ 747,00</td></tr>
+<tr><td>14</td><td>Hotel Azecyp Flamboyant (491 + parcela 1/10 190,70)</td><td>R$ 681,70</td></tr>
+<tr><td>15</td><td>Casafruti hortifruti (6 PIX + 2 cartão)</td><td>R$ 991,85</td></tr>
+</table>
+<h3>Delivery — o vazamento invisível (3 canais)</h3>
+<table>
+<tr><th>Canal</th><th>Valor</th></tr>
+<tr><td>iFood via Pix (conta, 12 pedidos líq.)</td><td>R$ 1.140,61</td></tr>
+<tr><td>IFD* no Itaú Latam (7 pedidos)</td><td>R$ 740,61</td></tr>
+<tr><td>iFood via NuPay (Nubank, 2 pedidos)</td><td>R$ 215,49</td></tr>
+<tr><td><b>Total delivery/mês</b></td><td><b>R$ 2.096,71</b> (≈ R$ 25.160/ano)</td></tr>
+</table>
+<p>Caiu 17% vs ciclo anterior (2.523,11), mas segue 75% acima do teto sugerido de R$ 1.200. Farmácia via iFood (+R$ 151,50) contada em Saúde.</p>
+<h2>4. Assinaturas e recorrências (24 itens — R$ 2.496,60)</h2>
+<table>
+<tr><th>Assinatura</th><th>Valor</th><th>Cartão</th><th>Tipo</th></tr>
+<tr><td>Anthropic* Claude Sub</td><td>R$ 1.169,66</td><td>S.Gol Smiles</td><td>💼 PJ</td></tr>
+<tr><td>Anota Ai (2× 121,50 — revisar)</td><td>R$ 243,00</td><td>Nubank</td><td>🏠 revisar</td></tr>
+<tr><td>Apple.com/Bill (4×: 99,90+66,90+29,90+24,90)</td><td>R$ 221,60</td><td>I.Latam Pass</td><td>🏠 pessoal</td></tr>
+<tr><td>GitHub Inc</td><td>R$ 109,07</td><td>Nubank</td><td>💼 PJ</td></tr>
+<tr><td>EBN *Hostinger</td><td>R$ 108,99</td><td>I.Tudo Azul</td><td>💼 PJ</td></tr>
+<tr><td>Anthropic API (2×)</td><td>R$ 107,09</td><td>Nubank</td><td>💼 PJ</td></tr>
+<tr><td>Hostgator</td><td>R$ 106,18</td><td>I.Latam Pass</td><td>💼 PJ</td></tr>
+<tr><td>OpenAI *ChatGPT</td><td>R$ 105,33</td><td>Nubank</td><td>💼 PJ</td></tr>
+<tr><td>Brapi Dev</td><td>R$ 59,99</td><td>S.Gol Smiles</td><td>💼 PJ</td></tr>
+<tr><td>Vindi *180Seguros (3/12)</td><td>R$ 51,77</td><td>S.Gol Smiles</td><td>❓ que seguro?</td></tr>
+<tr><td>Higgsfield</td><td>R$ 49,68</td><td>Nubank</td><td>💼 PJ</td></tr>
+<tr><td>Netflix</td><td>R$ 44,90</td><td>I.Latam Pass</td><td>🏠 pessoal</td></tr>
+<tr><td>Canva</td><td>R$ 35,00</td><td>Nubank</td><td>💼 PJ</td></tr>
+<tr><td>YouTube Premium</td><td>R$ 26,90</td><td>I.Latam Pass</td><td>🏠 pessoal</td></tr>
+<tr><td>Globoplay</td><td>R$ 22,90</td><td>I.Latam Pass</td><td>🏠 novo</td></tr>
+<tr><td>Spotify (débito conta)</td><td>R$ 12,90</td><td>Conta</td><td>🏠 pessoal</td></tr>
+<tr><td>Google/Microsoft OneDrive</td><td>R$ 11,90</td><td>I.Latam Pass</td><td>🏠 pessoal</td></tr>
+<tr><td>Jetshr (2× 4,87 — identificar)</td><td>R$ 9,74</td><td>Nubank</td><td>❓</td></tr>
+<tr><td><b>TOTAL</b></td><td><b>R$ 2.496,60</b></td><td></td><td></td></tr>
+</table>
+<p>Observações:</p>
+<li>✅ A <b>duplicidade Anthropic do ciclo passado morreu</b> (era AAdv + Gol; agora só Gol 1.169,66). Mas o valor subiu — validar plano Max vs uso.</li>
+<li><b>Apple 4×</b> persiste (R$ 221,60/mês) — Apple One/família economizaria ~R$ 70/mês.</li>
+<li><b>2 hospedagens</b> seguem (Hostgator 106,18 + Hostinger 108,99); Hostinger cobrava no Tudo Azul <b>cancelado</b> — a cobrança vai migrar ou falhar: reapontar para cartão PJ.</li>
+<li>GitHub/OpenAI/Canva agora só no Nubank (sem duplicidade neste ciclo ✓).</li>
+<h2>5. Parcelamentos — o que já está comprometido</h2>
+<table>
+<tr><th>Cartão</th><th>Parcelas futuras</th></tr>
+<tr><td>Itaú Latam Pass</td><td>R$ 15.754,50</td></tr>
+<tr><td>Nubank</td><td>R$ 6.002,17</td></tr>
+<tr><td>Santander AAdvantage (cancelado)</td><td>R$ 2.583,74</td></tr>
+<tr><td>Santander Gol Smiles</td><td>R$ 1.820,27</td></tr>
+<tr><td>Itaú Tudo Azul (cancelado)</td><td>R$ 536,72</td></tr>
+<tr><td><b>TOTAL comprometido</b></td><td><b>R$ 26.697,40</b> (~R$ 3,3k/mês até jul/2027)</td></tr>
+</table>
+<p>Maiores: Vivara 7× 498 (3.486) · Amazonmktplc*Csdasilva 6× 567,02 (3.402) · Magia Baby 3× 592,60 (1.778) · Hotel Flamboyant 9× 190,70 (1.716) · Amazon 7× 230,38 (1.613) · Tutusbaby Latam 9× 135,52 (1.220).</p>
+<p>✅ <b>9 contratos quitaram neste ciclo</b> (Porto Seguro 10/10, Kuruma 2/2, DBA 4/4, GoCase 6/6, Brapesca 2/2, Drogasil 3/3, Cirurgi 4/4, JO 2/2, Pet Center 2/2) → <b>libera ~R$ 1.400/mês a partir de setembro</b>. Recomendação mantida: <b>moratória de novos parcelamentos</b>.</p>
+<h2>6. Tarifas, juros e IOF</h2>
+<table>
+<tr><th>Item</th><th>Valor/mês</th><th>Ação</th></tr>
+<tr><td>Tarifa pacote conta Santander</td><td>R$ 99,95</td><td>Negociar isenção (2 salários caem aí)</td></tr>
+<tr><td>IOF internacional (Nubank USD)</td><td>R$ 12,95</td><td>Estrutural</td></tr>
+<tr><td>IOF cheque especial (ref jun)</td><td>R$ 4,45</td><td>Conta operou no fio de novo (mín 83,18)</td></tr>
+<tr><td>Anuidade Latam (62 − 2×31)</td><td>R$ 0,00 ✓</td><td>Redução aplicada</td></tr>
+<tr><td>Anuidade Tudo Azul (62 − 62)</td><td>R$ 0,00 ✓</td><td>Cartão cancelado</td></tr>
+<tr><td>Anuidades AAdv/Gol</td><td>R$ 0,00 ✓</td><td>Cancelado / virou FREE</td></tr>
+<tr><td><b>Total evitável</b></td><td><b>~R$ 104,40</b></td><td>≈ R$ 1.253/ano</td></tr>
+</table>
+<p>✅ Grande vitória vs ciclo passado: anuidades zeraram (eram ~R$ 202/mês + acelerador). Falta só a tarifa da conta.</p>
+<h2>7. Conta corrente — fluxo do período (01/07→05/08)</h2>
+<table>
+<tr><th>Fluxo</th><th>Valor</th></tr>
+<tr><td>Saldo inicial (01/07)</td><td>R$ 4.209,67</td></tr>
+<tr><td>Entradas reais (salários+Stripe+rendimento)</td><td>R$ 39.156,39</td></tr>
+<tr><td>Transferências recebidas (próprias PF/PJ)</td><td>R$ 26.450,00</td></tr>
+<tr><td>Estorno iFood</td><td>R$ 165,89</td></tr>
+<tr><td>Despesas pagas pela conta</td><td>−R$ 47.234,98</td></tr>
+<tr><td>Pagamentos de fatura de cartão</td><td>−R$ 17.243,05</td></tr>
+<tr><td>Estorno pareado (débito devolvido)</td><td>−R$ 165,89</td></tr>
+<tr><td>Saldo final (05/08)</td><td><b>R$ 5.338,03</b> ✓ conciliado ao centavo</td></tr>
+</table>
+<p>Notas de conciliação:</p>
+<li>Exxon/Nova Coop: <b>R$ 18.755,48</b> (15/07) ✓ exato vs planilha · KPIT: <b>R$ 8.981,36</b> vs 9.000 (−18,64) · Niuro/Demerge: <b>R$ 11.312,86</b> vs 11.788,77 (<b>−475,91 — conferir NF/retenções</b>).</li>
+<li>Faturas de junho pagas: Itaú 6.725,04 ✓ · Nubank 4.653,88 ✓ · Visa/Gol 2.509,28 ✓ · Master/AAdv 2.299,85 ✓ · Bradescard 64,80 ✓ · Tudo Azul jul 990,20 (05/08) ✓.</li>
+<li><b>Saldo mínimo R$ 83,18 em 09/07</b> — sobreviveu com PIX próprios; sem eles teria entrado no cheque especial (limite 2.800, ~8% a.m.).</li>
+<li>Tarifa de pacote R$ 99,95 cobrada em 15/07 (ref jun) — segue sem isenção.</li>
+<h2>8. Cartões — estratégia pós-reestruturação</h2>
+<table>
+<tr><th>Cartão</th><th>Situação</th><th>Recomendação</th></tr>
+<tr><td>Itaú Latam Pass</td><td>Ativo; 60,5% da fatura é parcela antiga; futuro 15.754,50</td><td><b>MANTER como principal</b>, mas pausar parcelamentos; anuidade zerada ✓</td></tr>
+<tr><td>Nubank</td><td>Ativo; futuro 6.002,17</td><td>Cartão de transbordo/NuPay; não pontua</td></tr>
+<tr><td>Sant. Gol Smiles</td><td><b>FREE</b> — sem anuidade e <b>sem milhas</b></td><td>Manter só p/ escoar parcelas (1.820,27); Claude Sub cai aqui — <b>migrar p/ cartão PJ</b></td></tr>
+<tr><td>Sant. AAdvantage</td><td><b>CANCELADO 09/07</b></td><td>Só pagar as parcelas restantes (2.583,74) até zerar</td></tr>
+<tr><td>Itaú Tudo Azul</td><td><b>CANCELADO</b></td><td>Só parcelas restantes (536,72, acaba ~out/26); Hostinger precisa de novo meio de pagamento</td></tr>
+</table>
+<p>A reestruturação de cartões planejada no ciclo passado <b>foi executada</b>: Tudo Azul cancelado ✓, AAdvantage cancelado ✓, Gol zerou anuidade ✓. Efeito colateral: Gol não gera mais milhas — o Latam vira o único cartão que pontua; concentrar gasto novo nele <b>depois</b> que as parcelas caírem.</p>
+<h2>9. Plano de ação</h2>
+<p><b>AGORA (até 17/08)</b></p>
+<li>[ ] Garantir a coreografia 14–17/08 (R$ 13.603,34 total; débito automático Gol dia 16)</li>
+<li>[ ] Conferir boleto Nexus (+R$ 64,14) e PDF do AAdvantage (Δ R$ 94,44)</li>
+<li>[ ] Cobrar diferença Niuro/Demerge (−R$ 475,91) ou entender retenção</li>
+<li>[ ] Reapontar Hostinger (cartão Tudo Azul cancelado) para cartão/conta PJ</li>
+<p><b>30 DIAS</b></p>
+<li>[ ] Negociar isenção da tarifa Santander (99,95/mês)</li>
+<li>[ ] Migrar Anthropic/GitHub/OpenAI/Canva/Brapi/hospedagens p/ conta PJ (dedução + tira do limite PF)</li>
+<li>[ ] Teto delivery R$ 1.200/mês num canal só (economia ~R$ 900/mês)</li>
+<li>[ ] Apple One/família (economia ~R$ 70/mês) · identificar Jetshr (9,74) e Vindi 180Seguros (51,77)</li>
+<li>[ ] Confirmar 2× Anota Ai no ciclo (121,50 em 11/07 e 02/08)</li>
+<p><b>60–90 DIAS</b></p>
+<li>[ ] Moratória de parcelamentos até Latam desalavancar (set: ~R$ 1.400/mês liberados)</li>
+<li>[ ] Zerar AAdvantage (2.583,74) e Tudo Azul (536,72) e encerrar de vez</li>
+<li>[ ] Colchão mínimo de R$ 2.000 na conta (evitar repetir o dia de R$ 83,18)</li>
+<p><b>Economia mapeada: ~R$ 1.300/mês ≈ R$ 15.600/ano</b> (delivery 900 + tarifa 100 + Apple 70 + Anota Ai 121,50 + miúdos) — sem contar dedução fiscal das ferramentas PJ.</p>
+<h2>10. Pendências que dependem de você</h2>
+<li>Δ AAdvantage R$ 94,44 (fatura ditada — conferir no PDF/app)</li>
+<li>Ifd*Drogarias Pacheco 23/07: valor R$ 43,95 obtido por fechamento matemático (print ilegível) — conferir no app</li>
+<li>Jim.com Atarcisia (305+195 = R$ 500) classificado como fitness/estética — confirmar o que é</li>
+<li>Pedro H. Galvão R$ 640 (15/07) e Attem R$ 500 (15/07) — confirmar (consulta? equipamento?)</li>
+<li>PIX a identificar (R$ 1.065,31): Narbany 80 · Núcleo Informação 76 · André Otávio 4× 440 · Allan 2× 236 · Valsir 30 · José 10 · Jetshr 9,74 · Δ AAdv 94,44</li>
+<li>Boleto Absoluta Consultoria R$ 442,91 (27/07) — recorrente? (apareceu tb no ciclo jun)</li>
+<hr>
+<p><i>Metodologia: transações transcritas das fontes originais (CSV Nubank, PDFs Itaú/extrato, prints Latam/Gol conferidos imagem a imagem, fatura AAdvantage ditada) e validadas por soma exata contra o total oficial de cada fonte (6/6 ✓). Categorização por regras determinísticas (build_julho.py); itens ambíguos marcados REVISÃO NECESSÁRIA. Estornos pareados (iFood 165,89) e pagamentos de fatura excluídos do gasto real. Janela do extrato (01/07–05/08) sobrepõe parcialmente a do relatório de junho (10/06–10/07): FK Comércio 7.977,91 e condomínio 1.595,41 aparecem em ambos.</i></p></body></html>

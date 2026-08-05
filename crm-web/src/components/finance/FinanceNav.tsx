@@ -66,6 +66,12 @@ const navItems = [
   {
     name: 'Auditoria Jun/Jul 2026',
     href: '/finance/auditoria',
+    icon: FileSearch,
+    exact: true
+  },
+  {
+    name: 'Auditoria Jul/Ago 2026',
+    href: '/finance/auditoria-julho',
     icon: FileSearch
   }
 ];
