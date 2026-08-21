@@ -66,13 +66,15 @@ public class EmailQueueCycleProcessorTests
             string? sandboxRedirectTo = null,
             Dictionary<string, int>? providerDailyLimits = null,
             bool inCycleFallback = false,
-            int maxFallbackProviders = 2)
+            int maxFallbackProviders = 2,
+            int batchSize = 50)
         {
             Sender = sender ?? new QueueFakeSender();
             Settings = new EmailSettings
             {
                 DailyLimit = 1000,
                 HourlyLimit = 1000,
+                BatchSize = batchSize,
                 PerProviderBatchSize = 20,
                 SandboxRedirectTo = sandboxRedirectTo ?? string.Empty,
                 InCycleFallbackEnabled = inCycleFallback,
@@ -135,7 +137,7 @@ public class EmailQueueCycleProcessorTests
         {
             QueueRepo
                 .Setup(r => r.GetPendingBatchByProviderAsync(provider, It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(items.ToList());
+                .ReturnsAsync((EmailProvider _, DateTime _, int take, CancellationToken _) => items.Take(take).ToList());
         }
     }
 
@@ -280,6 +282,35 @@ public class EmailQueueCycleProcessorTests
 
         Assert.Empty(h.Sender.Sent);
         Assert.Equal(EmailQueueStatus.Queued, item.Status); // aguarda o reset diário
+    }
+
+    [Fact]
+    public async Task GlobalBatchSize_LimitsTotalAcrossProviders()
+    {
+        var h = new Harness(batchSize: 10);
+        var brevoItems = Enumerable.Range(1, 6)
+            .Select(i => NewItem(EmailProvider.Brevo, email: $"brevo-{i}@example.com"))
+            .ToArray();
+        var mailjetItems = Enumerable.Range(1, 6)
+            .Select(i => NewItem(EmailProvider.Mailjet, email: $"mailjet-{i}@example.com"))
+            .ToArray();
+        h.SetupPending(EmailProvider.Brevo, brevoItems);
+        h.SetupPending(EmailProvider.Mailjet, mailjetItems);
+
+        var processed = await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(10, processed);
+        Assert.Equal(10, h.Sender.Sent.Count);
+        Assert.All(brevoItems, item => Assert.Equal(EmailQueueStatus.Sent, item.Status));
+        Assert.Equal(4, mailjetItems.Count(item => item.Status == EmailQueueStatus.Sent));
+        Assert.Equal(2, mailjetItems.Count(item => item.Status == EmailQueueStatus.Queued));
+        h.QueueRepo.Verify(
+            r => r.GetPendingBatchByProviderAsync(
+                EmailProvider.Mailjet,
+                It.IsAny<DateTime>(),
+                4,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // ───── sandbox mode ─────
