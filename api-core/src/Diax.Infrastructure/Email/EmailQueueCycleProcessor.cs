@@ -135,10 +135,16 @@ public class EmailQueueCycleProcessor
             perProvider, sentToday, dailyLimit, sentThisHour, hourlyLimit);
 
         var totalProcessed = 0;
+        var cycleBatchLimit = _settings.BatchSize <= 0 ? 10 : _settings.BatchSize;
         var chainLimits = _chainOptions.CurrentValue.ProviderDailyLimits;
 
         foreach (var provider in enabledProviders)
         {
+            if (totalProcessed >= cycleBatchLimit)
+            {
+                break;
+            }
+
             var serviceKey = EmailProviderPolicy.KeyOf(provider);
 
             if (_providerBreaker.IsOpen(serviceKey))
@@ -149,7 +155,7 @@ public class EmailQueueCycleProcessor
 
             // Limite diário POR PROVIDER (EmailChain) — antes o worker só tinha limite
             // global e podia estourar o teto do free tier de um provider isolado.
-            var take = perProvider;
+            var take = Math.Min(perProvider, cycleBatchLimit - totalProcessed);
             if (chainLimits.TryGetValue(serviceKey, out var providerDailyLimit) && providerDailyLimit > 0)
             {
                 var providerSentToday = await _repository.CountSentByProviderSinceAsync(provider, startOfDay, cancellationToken);
