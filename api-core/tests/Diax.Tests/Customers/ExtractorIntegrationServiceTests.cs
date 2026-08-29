@@ -382,6 +382,110 @@ public class ExtractorIntegrationServiceTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // IDEMPOTÊNCIA — lead sem contato (nem e-mail nem telefone) é pulado
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task ImportLeads_SkipsContactlessLead_NotSentAsCreate()
+    {
+        // Lead 1: só nome, SEM e-mail e SEM telefone/whatsapp → sem chave de dedup → pular.
+        // Lead 2: válido com e-mail → importa.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Sem Contato", Email = null, Phone = null, WhatsApp = null },
+            MakeLead(2, "Com Email", "com@email.com"),
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        // Apenas 1 lead chega ao import (o contactless foi descartado antes).
+        Assert.Equal(1, result.Value.TotalRecords);
+        Assert.Equal(1, result.Value.SuccessCount);
+        // O contactless NUNCA vira create.
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Name == "Sem Contato"),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Name == "Com Email"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_KeepsLeadWithPhone_NotDroppedByContactlessGuard()
+    {
+        // Sem e-mail mas COM telefone → tem chave de dedup (telefone) → o guard NÃO descarta:
+        // o lead chega ao import como registro (TotalRecords=1). O CustomerImportService pode
+        // depois rejeitá-lo por exigir e-mail — mas isso é uma decisão separada e rastreável,
+        // não o buraco de "duplicata sem chave" que o guard fecha.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Só Telefone", Email = null, Phone = "27999887766", WhatsApp = null },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        // Registro passou pelo guard (não foi silenciosamente descartado como contactless).
+        Assert.Equal(1, result.Value.TotalRecords);
+    }
+
+    [Fact]
+    public async Task ImportLeads_AllContactless_ReturnsNoLeadsFailure()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "A", Email = null, Phone = null, WhatsApp = null },
+            new() { Id = 2, ContactName = "B", Email = "  ", Phone = "  ", WhatsApp = "  " },
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PAGINATION/MALFORMED — agregação de páginas e resposta inválida (explícitos)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task ImportLeads_FullPageThenShortPage_AggregatesBothAndStops()
+    {
+        SetupExtractorPage(1, MakeLeads(100, startId: 1), total: 130);   // página cheia → continua
+        SetupExtractorPage(2, MakeLeads(30, startId: 101), total: 130);  // página curta → para
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(130, result.Value.TotalRecords);
+        _extractorMock.Verify(e => e.FetchLeadsAsync(null, null, null, null, 1, 100), Times.Once);
+        _extractorMock.Verify(e => e.FetchLeadsAsync(null, null, null, null, 2, 100), Times.Once);
+        _extractorMock.Verify(e => e.FetchLeadsAsync(null, null, null, null, 3, 100), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_MalformedResponse_NullValue_DoesNotCrash()
+    {
+        // FetchLeadsAsync devolve Success mas com corpo nulo (Leads = null).
+        _extractorMock
+            .Setup(e => e.FetchLeadsAsync(null, null, null, null, 1, 100))
+            .ReturnsAsync(Result.Success<ExtractorLeadsResponse>(new ExtractorLeadsResponse
+            {
+                Leads = null,
+                Total = null,
+                Page = null,
+                PerPage = null
+            }));
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Helpers
     // ═══════════════════════════════════════════════════════════════════════════
 
