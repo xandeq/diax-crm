@@ -294,6 +294,7 @@ def run_followups(st):
         AND c.name LIKE 'AQ - %'
         AND NOT EXISTS (SELECT 1 FROM email_suppressions s WHERE s.email = q.recipient_email)
         AND NOT EXISTS (SELECT 1 FROM email_events e WHERE e.queue_item_id = q.id AND e.event_type = 3)
+        AND NOT EXISTS (SELECT 1 FROM customers c2 WHERE c2.email = q.recipient_email AND c2.email_opt_out = 1)
       ORDER BY q.sent_at ASC""")
     rows = cur.fetchall(); cx.close()
     sent = 0
