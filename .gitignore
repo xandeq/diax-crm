@@ -54,3 +54,6 @@ nul
 
 # Local agent worktrees (machine-local paths, not shareable)
 .claude/worktrees/
+
+# evidencia de quarentena contem PII (emails de leads) — nunca commitar
+docs/email-marketing/quarantine-*.json
