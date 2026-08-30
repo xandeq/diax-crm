@@ -185,4 +185,25 @@ public class ExtractorServiceAuthTests
         Assert.Equal("acme.com", lead.Website);
         Assert.Equal(100, result.Value.PerPage);  // per_page    → PerPage
     }
+
+    // ─── 401 → (retry) → 403: vira Forbidden, sem 3ª chamada ─────────────────────
+    // Antes, um 403 no retry pós-401 caía no handler genérico em vez do erro acionável.
+
+    [Fact]
+    public async Task FetchLeads_When401ThenForbidden_ReturnsForbidden_NoFurtherRetry()
+    {
+        var handler = new SequencedHandler(
+            Resp(HttpStatusCode.Unauthorized),
+            Resp(HttpStatusCode.Forbidden));
+        var configProvider = ConfigProviderOk();
+        var sut = BuildSut(handler, configProvider.Object);
+
+        var result = await sut.FetchLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorServiceForbidden", result.Error.Code);
+        // 2 chamadas: 401 original + 1 retry que devolveu 403. Nenhuma terceira.
+        Assert.Equal(2, handler.CallCount);
+        Assert.DoesNotContain(FakeToken, result.Error.Message);
+    }
 }

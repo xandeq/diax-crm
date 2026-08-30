@@ -121,17 +121,34 @@ public class ExtractorService : IExtractorService
                 var freshConfigResult = await _configProvider.GetExtractorConfigAsync();
                 if (freshConfigResult.IsSuccess)
                 {
-                    var (_, freshToken) = freshConfigResult.Value;
+                    var (freshUrl, freshToken) = freshConfigResult.Value;
+                    // Reconstrói a URL a partir da base recarregada: a rotação/migração pode
+                    // trocar o HOST, não só o token. Reusar a `url` antiga mandaria a credencial
+                    // nova para o host obsoleto (recuperação falha + risco de exposição).
+                    var retryUrl = $"{freshUrl.TrimEnd('/')}/api/leads?{queryString}";
                     client.DefaultRequestHeaders.Remove("Authorization");
                     client.DefaultRequestHeaders.Add("Authorization", $"Bearer {freshToken}");
 
-                    response = await client.GetAsync(url);
+                    response = await client.GetAsync(retryUrl);
                 }
                 else
                 {
                     _logger.LogError(
                         "Falha ao recarregar config do Extrator durante retry de 401: {Error}",
                         freshConfigResult.Error.Message);
+                }
+
+                // 403 no retry (ex.: credencial recarregada sem escopo) — trata como o 403 inicial, sem novo retry.
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    _logger.LogError(
+                        "Extrator retornou 403 Forbidden no retry pós-401 (escopo/permissão insuficiente). Sem novo retry.");
+
+                    return Result.Failure<ExtractorLeadsResponse>(new Error(
+                        "ExtractorServiceForbidden",
+                        "O Extrator recusou a credencial de serviço (403 Forbidden) no retry. A credencial foi reconhecida mas " +
+                        "não possui o escopo/permissão necessário. Verifique se EXTRATOR_SERVICE_TOKEN corresponde entre " +
+                        "o segredo do CRM (tools/diax-extrator) e o cofre de segredos do Extrator (extratordedados/prod)."));
                 }
 
                 // Se AINDA está 401 após o retry (ou a config não recarregou), a credencial está de fato rejeitada.
