@@ -36,6 +36,22 @@
   plausíveis (.com.br/.adv.br). Nenhum lead do cohort quarentenado selecionável.
 - `SELECT` pós-update: 0 leads do cohort com `email_opt_out=0`; 205 marcados.
 
+## Extensão pós-revisão crítica (quarentena B)
+Crítico independente apontou lixo FORA do corte 26/08. Quarentena B aplicada (ID-bounded,
+75 leads, marca `quarantine-extrator-20260830b`, evidência `quarantine-extrator-20260830b.json`):
+lote 25/08 do extrator (FOX Detroit, Market Chameleon, Scaler…), 38 emails malformados `%20…`
+(recuperáveis corrigindo o email na triagem) e domínios lixo conhecidos (redcross.org,
+totalshape.com, sun.com, blok.ai, overchat.ai). Reversão: `quarantine_revert_20260830.py --mark b`.
+Dry-run final: plano de segunda = logistica(4) + advocacia(6), todos auditados, FUP 3 legítimos.
+
+### Riscos aceitos/documentados (do crítico)
+- Breaker é **fail-open** por design (`ensure_breaker_closed` auto-reseta) — decisão antiga, mantida.
+- Task roda com `InteractiveToken`/`DisallowStartIfOnBatteries` → máquina deslogada = não-envio silencioso.
+- Terça depende do guard `CRM_PUSH_ENABLED` na VPS (verificar journal seg. após 02:00 BRT).
+- Outros fluxos de envio (Outreach/Composer/send-bulk) não passam pelo `email_ok` do daily_waves;
+  opt-out cobre (checado server-side em `EmailMarketingService.cs:1165`), mas lixo elegível
+  pré-histórico ainda existe na base (triagem ampla pendente).
+
 ## Pendências (fora do caminho crítico de segunda)
 - Deployar os 34 commits da branch `semana3` do extrator (PULL autenticado + qualidade) e
   aposentar o snapshot `/opt/extrator-api`.
