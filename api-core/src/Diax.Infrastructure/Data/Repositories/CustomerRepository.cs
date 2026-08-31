@@ -174,8 +174,9 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
                 (c.CompanyName != null && c.CompanyName.ToLower().Contains(searchLower)));
         }
 
-        // Filtro por status exato (ignorado quando onlyLeads/onlyCustomers estão ativos)
-        if (status.HasValue && onlyLeads != true && onlyCustomers != true)
+        // Filtro por status exato — interseção com onlyLeads/onlyCustomers (um status fora
+        // da faixa da view retorna vazio, que é o resultado honesto, não a lista inteira)
+        if (status.HasValue)
         {
             query = query.Where(c => c.Status == status.Value);
         }
