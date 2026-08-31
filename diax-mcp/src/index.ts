@@ -544,12 +544,15 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
         4: "Customer", 5: "Inactive", 6: "Churned",
       };
 
+      // 0-3 vivem na view de leads (onlyLeads); 4-6 na de customers (onlyCustomers).
+      // Consultar o status na view errada retorna 0 — por isso o roteamento por faixa.
       const funnelCounts: Record<string, number> = {};
-      for (const [num, label] of Object.entries(statusLabels)) {
+      await Promise.all(Object.entries(statusLabels).map(async ([num, label]) => {
         const p = new URLSearchParams({ status: num, pageSize: "1", page: "1" });
-        const res = (await diaxFetch(`/api/v1/leads?${p}`)) as { totalCount?: number };
+        const path = Number(num) < 4 ? `/api/v1/leads?${p}` : `/api/v1/customers?onlyCustomers=true&${p}`;
+        const res = (await diaxFetch(path)) as { totalCount?: number };
         funnelCounts[label] = res?.totalCount ?? 0;
-      }
+      }));
 
       const taskList = (tasks as { items?: Array<{ status: number; dueDate?: string }> })?.items ?? [];
       const pendingTasks = taskList.filter((t) => t.status === 1 || t.status === 2).length;
