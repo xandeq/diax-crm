@@ -124,6 +124,20 @@ public class EmailQueueItem : AuditableEntity
     }
 
     /// <summary>
+    /// Cancelamento em tempo de despacho: supressão/opt-out detectados DEPOIS do
+    /// enqueue (o enqueue já filtra, mas bounce/unsubscribe podem chegar entre o
+    /// agendamento e o envio). Terminal — não incrementa AttemptCount, não entra
+    /// no retry nem na DLQ.
+    /// </summary>
+    public void MarkCancelled(string reason)
+    {
+        Status = EmailQueueStatus.Cancelled;
+        LastError = reason;
+        ProcessingStartedAt = null;
+        SetUpdated("system");
+    }
+
+    /// <summary>
     /// Requeue manual a partir da DLQ: zera as tentativas (ganha um ciclo completo
     /// de retries) e volta para a fila imediatamente.
     /// </summary>

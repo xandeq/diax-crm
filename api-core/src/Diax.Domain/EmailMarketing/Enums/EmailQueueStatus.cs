@@ -13,5 +13,13 @@ public enum EmailQueueStatus
     /// até um requeue manual. Sem este estado, itens exauridos ficavam como
     /// Failed invisível = email perdido em silêncio (auditoria §7/§12).
     /// </summary>
-    DeadLettered = 4
+    DeadLettered = 4,
+
+    /// <summary>
+    /// Cancelado no despacho: o destinatário entrou na suppression list ou virou
+    /// opt-out ENTRE o enqueue e o envio (bounce/unsubscribe via webhook, opt-out
+    /// manual). Terminal por design — não é falha de provider: não conta tentativa,
+    /// não entra no retry nem na DLQ.
+    /// </summary>
+    Cancelled = 5
 }
