@@ -8,6 +8,7 @@ using Diax.Domain.Customers.Enums;
 using Diax.Domain.EmailMarketing;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 using Diax.Domain.Audit;
@@ -83,11 +84,16 @@ public class ExtractorIntegrationServiceTests
             userRepoMock.Object,
             circuitBreakerMock.Object);
 
-        _sut = new ExtractorIntegrationService(
+        _sut = CreateSut();
+    }
+
+    /// <summary>Cria o SUT com options customizáveis (defaults de produção quando null).</summary>
+    private ExtractorIntegrationService CreateSut(ExtractorPullOptions? pullOptions = null) =>
+        new(
             _extractorMock.Object,
             _importService,
+            Options.Create(pullOptions ?? new ExtractorPullOptions()),
             Mock.Of<ILogger<ExtractorIntegrationService>>());
-    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // SMOKE TESTS — fluxo principal funciona
@@ -483,6 +489,149 @@ public class ExtractorIntegrationServiceTests
 
         Assert.True(result.IsFailure);
         Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // QUALITY FILTER — e-mail lixo rejeitado antes do import
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Theory]
+    [InlineData("contato%40site.com@gmail.com")] // '%' = encoding quebrado de scraping
+    [InlineData("teste@sun.com")]
+    [InlineData("bot@blok.ai")]
+    [InlineData("ai@overchat.ai")]
+    [InlineData("info@redcross.org")]
+    [InlineData("news@fox.com")]
+    [InlineData("tv@foxtv.com")]
+    [InlineData("hola@empresa.es")]
+    [InlineData("hei@yritys.fi")]
+    [InlineData("info@firma.eu")]
+    [InlineData("hola@negocio.com.ar")]
+    [InlineData("hola@tienda.cl")]
+    [InlineData("hola@tienda.com.mx")]
+    [InlineData("ola@empresa.pt")]
+    public async Task ImportLeads_QualityFilter_RejectsJunkEmails(string junkEmail)
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Junk Lead", Email = junkEmail },
+            MakeLead(2, "Lead Bom", "bom@empresa.com.br"),
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        // Só o lead bom chega ao import — o lixo foi rejeitado antes de criar.
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == junkEmail),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("contato@empresa.com.br")]
+    [InlineData("contato@empresa.com")]
+    [InlineData("vendas@clinica.med.br")]
+    public async Task ImportLeads_QualityFilter_AcceptsBrazilianAndComEmails(string goodEmail)
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Lead Válido", Email = goodEmail },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        Assert.Equal(1, result.Value.SuccessCount);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == goodEmail),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_DoesNotRejectPhoneOnlyLead()
+    {
+        // Lead sem e-mail (só telefone) não é caso do filtro de qualidade — passa adiante.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Só Telefone", Email = null, Phone = "27999887766" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_AllJunk_ReturnsNoLeadsFailure()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "A", Email = "a@sun.com" },
+            new() { Id = 2, ContactName = "B", Email = "b@empresa.es" },
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_BlockedTldsConfigurable()
+    {
+        // Config custom: só .xyz bloqueado → .es passa a ser aceito.
+        var sut = CreateSut(new ExtractorPullOptions
+        {
+            BlockedTlds = new List<string> { ".xyz" },
+            BlockedDomains = new List<string>()
+        });
+
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Espanhol Liberado", Email = "hola@empresa.es" },
+            new() { Id = 2, ContactName = "Xyz Bloqueado", Email = "x@dominio.xyz" },
+        }, total: 2);
+
+        var result = await sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "hola@empresa.es"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "x@dominio.xyz"),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_TldsWithoutLeadingDotAreNormalized()
+    {
+        // Config veio sem o '.' inicial ("es" em vez de ".es") → normaliza e ainda bloqueia,
+        // sem virar substring-match (ex.: "es" NÃO pode bloquear "empresa.com.br" por conter "es").
+        var sut = CreateSut(new ExtractorPullOptions
+        {
+            BlockedTlds = new List<string> { "es" },
+            BlockedDomains = new List<string>()
+        });
+
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Espanhol", Email = "hola@empresa.es" },
+            new() { Id = 2, ContactName = "Brasileiro", Email = "oi@lojases.com.br" },
+        }, total: 2);
+
+        var result = await sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "oi@lojases.com.br"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
