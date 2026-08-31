@@ -23,7 +23,9 @@ namespace Diax.Infrastructure.Email;
 ///  - limites por provider (EmailChain) contados do banco — sobrevivem a recycle;
 ///  - retry com reassinalação de provider + correção do FailedCount;
 ///  - reassinalação de itens presos em providers desabilitados;
-///  - sandbox mode (redireciona destinatários fora de produção).
+///  - sandbox mode (redireciona destinatários fora de produção);
+///  - recheck de suppression/opt-out no DESPACHO (não só no enqueue) — bounce ou
+///    unsubscribe que chega entre o agendamento e o envio cancela o item.
 /// </summary>
 public class EmailQueueCycleProcessor
 {
@@ -35,6 +37,7 @@ public class EmailQueueCycleProcessor
     private readonly IEmailQueueRepository _repository;
     private readonly IEmailCampaignRepository _campaignRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IEmailSuppressionRepository _suppressionRepository;
     private readonly IEmailTemplateEngine _templateEngine;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPilotCircuitBreaker _pilotBreaker;
@@ -53,6 +56,7 @@ public class EmailQueueCycleProcessor
         IEmailQueueRepository repository,
         IEmailCampaignRepository campaignRepository,
         ICustomerRepository customerRepository,
+        IEmailSuppressionRepository suppressionRepository,
         IEmailTemplateEngine templateEngine,
         IUnitOfWork unitOfWork,
         IPilotCircuitBreaker pilotBreaker,
@@ -70,6 +74,7 @@ public class EmailQueueCycleProcessor
         _repository = repository;
         _campaignRepository = campaignRepository;
         _customerRepository = customerRepository;
+        _suppressionRepository = suppressionRepository;
         _templateEngine = templateEngine;
         _unitOfWork = unitOfWork;
         _pilotBreaker = pilotBreaker;
@@ -135,6 +140,7 @@ public class EmailQueueCycleProcessor
             perProvider, sentToday, dailyLimit, sentThisHour, hourlyLimit);
 
         var totalProcessed = 0;
+        var cancelledSuppressed = 0;
         var cycleBatchLimit = _settings.BatchSize <= 0 ? 10 : _settings.BatchSize;
         var chainLimits = _chainOptions.CurrentValue.ProviderDailyLimits;
 
@@ -186,6 +192,11 @@ public class EmailQueueCycleProcessor
                 var outcome = await ProcessItemAsync(item, emailSender, serviceKey, cancellationToken);
                 totalProcessed++;
 
+                if (outcome == ItemOutcome.Cancelled)
+                {
+                    cancelledSuppressed++;
+                }
+
                 if (outcome == ItemOutcome.PilotBreakerOpened)
                 {
                     // Antes o ciclo continuava despachando o resto do lote (e os outros
@@ -214,6 +225,13 @@ public class EmailQueueCycleProcessor
             _logger.LogInformation("Ciclo concluído. Total: {Total}", totalProcessed);
         }
 
+        if (cancelledSuppressed > 0)
+        {
+            _logger.LogInformation(
+                "Supressão no despacho: {Count} item(s) cancelado(s) neste ciclo (suppression list/opt-out pós-enqueue).",
+                cancelledSuppressed);
+        }
+
         await RequeuePendingRetriesAsync(now, cancellationToken);
         return totalProcessed;
     }
@@ -222,6 +240,8 @@ public class EmailQueueCycleProcessor
     {
         Sent,
         Failed,
+        /// <summary>Suprimido/opt-out detectado no despacho — cancelado sem contar tentativa.</summary>
+        Cancelled,
         ProviderBreakerOpened,
         PilotBreakerOpened
     }
@@ -232,15 +252,55 @@ public class EmailQueueCycleProcessor
         string serviceKey,
         CancellationToken cancellationToken)
     {
-        item.MarkProcessing();
-        await _repository.UpdateAsync(item, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
+        // HARDENING: suppression list e opt-out eram checados só no ENQUEUE
+        // (QueueWithSmartAssignmentAsync). Um bounce/unsubscribe via webhook ou um
+        // opt-out manual que chega ENTRE o agendamento e o despacho deixava o item
+        // já enfileirado sair mesmo assim. Recheca aqui, ANTES de MarkProcessing:
+        // cancelamento não conta tentativa, não entra no retry nem na DLQ.
         Customer? customer = null;
         if (item.CustomerId.HasValue)
         {
             customer = await _customerRepository.GetByIdAsync(item.CustomerId.Value, cancellationToken);
         }
+
+        // Item avulso (sem CustomerId) pode mesmo assim ter um customer dono do
+        // email — lookup por email; se não existir customer, só a suppression vale.
+        customer ??= await _customerRepository.GetByEmailAsync(item.RecipientEmail, cancellationToken);
+
+        string? suppressedReason = null;
+        if (await _suppressionRepository.IsSuppressedAsync(item.UserId, item.RecipientEmail, cancellationToken))
+        {
+            suppressedReason = "suppressed at dispatch: destinatário na suppression list (bounce/unsubscribe pós-enqueue)";
+        }
+        else if (customer is { EmailOptOut: true })
+        {
+            suppressedReason = "suppressed at dispatch: customer com opt-out ativo (pós-enqueue)";
+        }
+
+        if (suppressedReason is not null)
+        {
+            item.MarkCancelled(suppressedReason);
+            if (item.CampaignId.HasValue)
+            {
+                // Mantém a contabilidade da campanha (CheckCompletion soma Sent+Failed
+                // contra TotalRecipients) sem registrar falha nos breakers — supressão
+                // não é erro de provider.
+                await _campaignRepository.IncrementFailedAsync(item.CampaignId.Value, cancellationToken);
+            }
+
+            await _repository.UpdateAsync(item, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Item {ItemId} cancelado no despacho para {Email}: {Reason}",
+                item.Id, item.RecipientEmail, suppressedReason);
+
+            return ItemOutcome.Cancelled;
+        }
+
+        item.MarkProcessing();
+        await _repository.UpdateAsync(item, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var unsubscribeUrl = _linkBuilder.BuildUnsubscribeUrl(item.UserId, item.RecipientEmail);
         var variables = EmailMarketingService.BuildRecipientTemplateVariables(
