@@ -5,6 +5,7 @@ using Diax.Domain.Audit;
 using Diax.Domain.Auth;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
+using Diax.Domain.Customers.Enums;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
 using Diax.Infrastructure.Email;
@@ -545,5 +546,81 @@ public class EmailQueueCycleProcessorTests
             Times.Once);
         Assert.Single(h.Sender.Sent);
         Assert.Equal(EmailQueueStatus.Sent, item.Status);
+    }
+
+    // ───── P1b: envio efetivo (SENT, não enqueue) avança Lead → Contacted ─────
+
+    [Fact]
+    public async Task SuccessfulSend_RegistersContact_AdvancesLeadToContacted()
+    {
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var customer = new Customer("Lead", item.RecipientEmail);
+        Assert.Equal(CustomerStatus.Lead, customer.Status);
+        h.CustomerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        Assert.Equal(CustomerStatus.Contacted, customer.Status);
+        Assert.NotNull(customer.LastContactAt);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SuccessfulSend_WithoutCustomerId_DoesNotTouchCustomerRepository()
+    {
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo, withCustomerId: false);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SuccessfulSend_CustomerMissing_StillMarksItemSent_NoThrow()
+    {
+        // CustomerId aponta pra um customer que sumiu entre o enqueue e o despacho —
+        // GetByIdAsync retorna null (default do Harness). O envio já foi confirmado
+        // pelo provider e não pode ser derrubado por isso.
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var processed = await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(1, processed);
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SuccessfulSend_ViaInCycleFallback_AlsoRegistersContact()
+    {
+        var calls = 0;
+        var fallbackSender = new QueueFakeSender(_ => ++calls == 1
+            ? EmailSendResult.Fail("erro 500 do provider")
+            : EmailSendResult.Ok("fb-msg"));
+        var h = new Harness(sender: fallbackSender, inCycleFallback: true);
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var customer = new Customer("Lead", item.RecipientEmail);
+        h.CustomerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        Assert.Equal(CustomerStatus.Contacted, customer.Status);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

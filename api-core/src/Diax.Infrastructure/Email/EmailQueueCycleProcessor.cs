@@ -345,6 +345,8 @@ public class EmailQueueCycleProcessor
                 _pilotBreaker.RecordSuccess();
             }
 
+            await RegisterCustomerContactAsync(item, cancellationToken);
+
             await _repository.UpdateAsync(item, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return ItemOutcome.Sent;
@@ -385,6 +387,8 @@ public class EmailQueueCycleProcessor
                     await _campaignRepository.IncrementSentAsync(item.CampaignId.Value, cancellationToken);
                     _pilotBreaker.RecordSuccess();
                 }
+
+                await RegisterCustomerContactAsync(item, cancellationToken);
 
                 await _repository.UpdateAsync(item, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -453,6 +457,42 @@ public class EmailQueueCycleProcessor
         return _providerBreaker.IsOpen(serviceKey)
             ? ItemOutcome.ProviderBreakerOpened
             : ItemOutcome.Failed;
+    }
+
+    /// <summary>
+    /// Avança Lead → Contacted no ENVIO efetivo (não no enqueue — RegisterEmailSent()
+    /// já roda lá, em EmailMarketingService, e só atualiza contador/LastEmailSentAt).
+    /// Nunca deve derrubar o ciclo de despacho: o email já foi confirmado enviado pelo
+    /// provider; um customer ausente/removido entre o enqueue e o despacho é só logado.
+    /// </summary>
+    private async Task RegisterCustomerContactAsync(EmailQueueItem item, CancellationToken cancellationToken)
+    {
+        if (!item.CustomerId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            var customer = await _customerRepository.GetByIdAsync(item.CustomerId.Value, cancellationToken);
+            if (customer is null)
+            {
+                _logger.LogWarning(
+                    "Item {ItemId} enviado, mas CustomerId {CustomerId} não foi encontrado — RegisterContact pulado.",
+                    item.Id, item.CustomerId.Value);
+                return;
+            }
+
+            customer.RegisterContact();
+            await _customerRepository.UpdateAsync(customer, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Falha ao registrar contato do customer {CustomerId} após envio do item {ItemId} — envio já confirmado, seguindo sem propagar.",
+                item.CustomerId, item.Id);
+        }
     }
 
     /// <summary>
