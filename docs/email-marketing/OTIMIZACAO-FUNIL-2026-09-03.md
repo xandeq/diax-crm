@@ -44,3 +44,51 @@ Estoque (2134) e cap (900) aguentam. Reavaliar os 560 webmail — PMEs BR usam g
 ## Scripts prontos
 - `funnel_analysis.py` — métricas do funil (rodar periodicamente).
 - `backfill_funnel_status.py` — P1a (aguarda ok).
+
+---
+## Atualização 03/09 (noite) — o que foi feito e o que falta
+
+### 🚨 Incidente do dia: 0 emails em 03/09
+PC dormindo às 08:40 → task rodou **13:13 BRT** (`StartWhenAvailable`) → `/schedule` recusou
+09:00 (já passado, 400) → o script ignorava a resposta → 11 campanhas ficaram **Draft** →
+`queue-with-assignment` bloqueou pelo readiness gate (400) → **0 agendados**. Telegram avisou
+"Agendados hoje: 0", mas sem a causa.
+- **Fix** (`daily_waves.py` + `waves_lib.py`, 10 testes offline): slots tolerantes a atraso
+  (slot no passado → agora+10min, gap 60min, corte às 17:00 BRT com alerta); resposta do
+  `/schedule` e do `queue` agora é verificada e o corpo do 400 vai pro log; Telegram lista
+  campanhas que falharam.
+- **Task**: `WakeToRun=true` (backup `task-backup-pre-waketorun-20260903.xml`). Se o PC estiver
+  em suspensão, acorda às 08:40; se desligado, roda ao ligar (com os slots novos).
+- ⛔ **Gate**: 11 drafts órfãos de 03/09 (`AQ - * - 2026-09-03 auto sA`, sem itens) — cancelar
+  (status=4) ou ignorar. UPDATE bloqueado em auto mode.
+
+### ✅ P1b — progressão automática (commit `2b1d9754`, 683/683 testes)
+Lead→Contacted no envio real (worker), Lead/Contacted→Qualified no clique (webhooks Brevo +
+Resend). Opens não contam (Apple MPP). ⛔ Gate: push + deploy da branch.
+
+### ✅ P3 — follow-up multi-toque (FUP2/FUP3)
+FUP2 (7-21d após FUP1, ângulo "análise gratuita", cap 30) e FUP3 (7-21d após FUP2, breakup,
+cap 20). Exclui: clicou, respondeu (IMAP), suprimido, opt-out, `status>=Qualified`, **caixas de
+função** (`ouvidoria@`, `rh@`, `denuncia@`, `.gov.br/.org.br`…). Dry-run 03/09: 189 na janela,
+43 excluídos, 30 saem amanhã. Estado em `daily-state.json` (`fup2_sent`/`fup3_sent`).
+
+### 🔴 P2 — DELIVERABILITY: achado novo, maior que DMARC
+**SPF faz 21 lookups DNS (limite RFC = 10) → PERMERROR.** Receptores tratam como SPF ausente;
+DMARC hoje só passa por DKIM. `include:websitewelcome.com` sozinho custa 8; `sendinblue.com` 5.
+Providers realmente usados (120d): Brevo (654), Resend (537), Mailjet (485, até 21/08),
+Mailtrap (135, até 25/08), SendGrid (286, até 27/06 — morto). DKIM presente p/ Brevo, Resend,
+Mailjet, SendGrid, ElasticEmail e HostGator (`default`). Resend usa `send.` (SPF próprio, não
+precisa estar na raiz).
+
+**Proposta (7 lookups)** — DNS fica no HostGator (`ns232/233.prodns.com.br`), editar via WHM:
+```
+v=spf1 ip4:108.167.132.0/24 include:eig.spf.a.cloudfilter.net include:sendinblue.com include:spf.mailjet.com ~all
+```
+(`ip4` = srv232 .96 + mail .104; `cloudfilter` = relay de saída da EIG/HostGator; SendGrid,
+ElasticEmail, MailerSend, `a`, `mx` saem.) Validar depois com o mesmo script de contagem.
+
+**DMARC** (após SPF sanear, 1 semana de intervalo):
+```
+v=DMARC1; p=quarantine; pct=25; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r
+```
+→ `pct=100` na semana seguinte. ⛔ Gate: DNS de produção.

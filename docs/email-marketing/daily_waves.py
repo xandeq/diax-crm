@@ -4,8 +4,12 @@
 1. WAVES: monta até 3 ondas x 4 segmentos x 20 do estoque nunca-contactado,
    rotação de nichos (state em previews/daily-state.json), template v2,
    agendadas 09:00 / 10:30 / 11:30 BRT do próprio dia.
-2. FOLLOW-UP (FUP1): 1 toque em quem recebeu wave há 4-14 dias e não clicou,
-   texto curto pessoal, via POST /integrations/send-email (idempotente), cap 40/dia.
+   Se a task rodar atrasada (PC dormindo), slots no passado são empurrados p/
+   agora+10min mantendo gap de 60min; depois das 17:00 BRT não agenda (waves_lib).
+2. FOLLOW-UP multi-toque, via POST /integrations/send-email (idempotente):
+   FUP1 (4-14d após a wave, não clicou, cap 40) · FUP2 (7-21d após FUP1, cap 30)
+   · FUP3 breakup (7-21d após FUP2, cap 20). Toda etapa exclui: clicou, respondeu,
+   suprimido, opt-out, status CRM >= Qualified.
 3. HOT LEADS: opens/clicks das últimas 24h -> digest no Telegram.
 Guardas: breaker fechado, aborta se já houver >=50 na fila do dia, suppressions.
 Uso: python daily_waves.py [--dry]  (--dry = só imprime o plano, não cria nada)
@@ -19,13 +23,16 @@ from fire_today_20 import (DIR, base, HEALTHY, PER_PROVIDER, ts, load_env, login
 from fire_w1_2707 import build_html_v2, SEGMENTS as SEG_W1
 from fire_w2w3_2707 import WAVES as W23
 import db as crmdb
+from waves_lib import compute_wave_slots, brt_label, fup_candidates, is_role_mailbox
 
 DRY = '--dry' in sys.argv
 STATE_FILE = DIR + 'previews/daily-state.json'
 LOG_DIR = DIR + 'logs/'
 MAX_PER_SEG = PER_PROVIDER * len(HEALTHY)   # 20
-WAVE_TIMES = [('12:00:00', '09:00'), ('13:30:00', '10:30'), ('14:30:00', '11:30')]  # (UTC sql, BRT label)
-FUP_CAP = 40
+# Slots-alvo 09:00/10:30/11:30 BRT vivem em waves_lib.WAVE_SLOTS_UTC (tolerantes a atraso).
+FUP_CAP = 40                 # FUP1
+FUP_CAPS = {2: 30, 3: 20}    # FUP2 / FUP3
+WAVE_ERRORS = []             # campanhas que falharam em schedule/queue (p/ alerta)
 MIN_SEG = 4  # menos que isso nao justifica campanha propria
 
 # ---------- COPY BANK (rotação) ----------
@@ -220,6 +227,16 @@ def build_waves(H, st):
     guard = already_queued_today()
     if guard >= 50:
         log_line(f'GUARD: {guard} itens já agendados hoje — pulando waves'); return []
+    # Horários tolerantes a atraso: task rodou 13:13 em 03/09 (PC dormindo) e o
+    # /schedule recusou 09:00 (passado) -> 0 emails. Calcula ANTES do fetch (caro).
+    now_utc = datetime.datetime.utcnow()
+    slots = compute_wave_slots(now_utc)
+    if not slots:
+        log_line(f'TARDE DEMAIS ({brt_label(now_utc)} BRT) — sem waves hoje')
+        tg_send(f'⚠️ Email waves: task rodou às {brt_label(now_utc)} BRT (após 17:00) — sem envio hoje. Ver PC/task.')
+        return []
+    if slots[0] != datetime.datetime.combine(now_utc.date(), datetime.time(12, 0)):
+        log_line(f'ATRASO: agora {brt_label(now_utc)} BRT -> ondas em {[brt_label(s) for s in slots]} BRT')
     se, sd, sc = set(), set(), set()
     plan, cursor = [], st.get('cursor', 0)
     tried = 0
@@ -243,9 +260,9 @@ def build_waves(H, st):
     fired = []
     for i, (cfg, leads) in enumerate(plan):
         wave_idx = i // 4
-        if wave_idx >= len(WAVE_TIMES): break
-        utc_sql, brt = WAVE_TIMES[wave_idx]
-        when_api = f'{today}T{utc_sql}Z'; when_sql = f'{today} {utc_sql}'
+        if wave_idx >= len(slots): break
+        when_dt = slots[wave_idx]; brt = brt_label(when_dt)
+        when_api = when_dt.strftime('%Y-%m-%dT%H:%M:%SZ'); when_sql = when_dt.strftime('%Y-%m-%d %H:%M:%S')
         leads = assign_providers(leads)
         subject = SUBJ_B.get(cfg['seg'], cfg['subject']) if variant == 'B' else cfg['subject']
         img = gen_image(cfg['img'], H, keyword=cfg['seg'])
@@ -259,12 +276,20 @@ def build_waves(H, st):
         if cr.status_code not in (200, 201):
             log_line(f'  {cfg["seg"]}: criacao {cr.status_code} {cr.text[:150]}'); continue
         cid = cr.json().get('id') or cr.json().get('campaignId')
-        requests.post(base + f'/api/v1/email-campaigns/campaigns/{cid}/schedule', headers=H2,
-                      json={'scheduledAt': when_api}, timeout=30)
+        # /schedule tira a campanha de Draft (readiness gate do queue). Se falhar
+        # (ex.: horário no passado -> 400), o queue também falha: não insistir.
+        sr = requests.post(base + f'/api/v1/email-campaigns/campaigns/{cid}/schedule', headers=H2,
+                           json={'scheduledAt': when_api}, timeout=30)
+        if sr.status_code not in (200, 201):
+            log_line(f'  {cfg["seg"]}: schedule {sr.status_code} {sr.text[:200]} (when={when_api})')
+            WAVE_ERRORS.append(f'{cfg["seg"]} schedule {sr.status_code}'); continue
         payload = [{'customerId': ld['id'], 'assignedProvider': ld['assignedProvider']} for ld in leads]
         r = requests.post(base + '/api/v1/email-providers/queue-with-assignment', headers=H2, timeout=60,
                           json={'campaignId': cid, 'leads': payload})
-        jr = r.json() if r.status_code in (200, 201, 202) else {}
+        if r.status_code not in (200, 201, 202):
+            log_line(f'  {cfg["seg"]}: queue {r.status_code} {r.text[:200]}')
+            WAVE_ERRORS.append(f'{cfg["seg"]} queue {r.status_code}'); continue
+        jr = r.json()
         moved = reschedule(cid, when_sql)
         fired.append({'seg': cfg['seg'], 'n': jr.get('queuedCount') or 0, 'brt': brt})
         log_line(f'  {cfg["seg"]:14} queue={r.status_code} n={jr.get("queuedCount")} skip={jr.get("skippedCount")} sched {brt} BRT (reag {moved})')
@@ -325,6 +350,107 @@ def run_followups(st):
         if ok:
             st['fup_sent'][em] = datetime.date.today().isoformat(); sent += 1
         log_line(f'FUP {em}: {resp.status_code}')
+    return sent
+
+
+# FUP2 (7-21d após FUP1): ângulo novo — oferta concreta e de baixo atrito.
+FUP2_HTML = ('<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#1f2937;max-width:560px;">'
+ '<p>Ol&aacute;!</p>'
+ '<p>Alexandre de novo &mdash; prometo ser breve. J&aacute; escrevi sobre <strong>{service}</strong> para a <strong>{empresa}</strong> '
+ 'e talvez o formato n&atilde;o tenha ajudado. Ent&atilde;o vou propor algo mais simples:</p>'
+ '<p>Posso fazer uma <strong>an&aacute;lise r&aacute;pida e gratuita</strong> de como a {empresa} aparece hoje no Google e no celular, '
+ 'com 2 ou 3 ajustes pr&aacute;ticos que costumam trazer mais contato de cliente. Sem compromisso e sem &ldquo;apresenta&ccedil;&atilde;o de vendas&rdquo;.</p>'
+ '<p>Se fizer sentido, &eacute; s&oacute; responder este email com <strong>&ldquo;pode enviar&rdquo;</strong> ou me chamar no '
+ '<a href="https://wa.me/5527999840101?text={wa}">WhatsApp (27) 99984-0101</a>.</p>'
+ '<p>Abra&ccedil;o,<br/><strong>Alexandre Queiroz</strong><br/>Engenheiro de software &middot; alexandrequeiroz.com.br</p></div>')
+
+# FUP3 (7-21d após FUP2): breakup — encerra a sequência com porta aberta.
+FUP3_HTML = ('<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#1f2937;max-width:560px;">'
+ '<p>Ol&aacute;!</p>'
+ '<p>Este &eacute; o meu &uacute;ltimo email sobre <strong>{service}</strong> para a <strong>{empresa}</strong> &mdash; '
+ 'n&atilde;o quero ser inconveniente.</p>'
+ '<p>Se em algum momento fizer sentido ter um site ou sistema que traga clientes de verdade, &eacute; s&oacute; me chamar no '
+ '<a href="https://wa.me/5527999840101?text={wa}">WhatsApp (27) 99984-0101</a>. Fico &agrave; disposi&ccedil;&atilde;o.</p>'
+ '<p>Desejo &oacute;timos neg&oacute;cios para a {empresa}!</p>'
+ '<p>Abra&ccedil;o,<br/><strong>Alexandre Queiroz</strong><br/>Engenheiro de software &middot; alexandrequeiroz.com.br</p></div>')
+
+FUP_STAGES = {
+    2: dict(prev='fup_sent',  key='fup2_sent', html=FUP2_HTML, tag='fup2', subj='Uma sugestão rápida para a {empresa}'),
+    3: dict(prev='fup2_sent', key='fup3_sent', html=FUP3_HTML, tag='fup3', subj='Último email — {empresa}'),
+}
+
+
+def fup_exclusions(emails):
+    """Quem NÃO deve receber mais toques: clicou, suprimido, opt-out, ou já avançou
+    no funil (status >= Qualified — P1b marca clicadores como Qualified)."""
+    if not emails: return set()
+    cx = crmdb.connect(); cur = cx.cursor()
+    out = set()
+    ems = list(emails)
+    for i in range(0, len(ems), 500):
+        chunk = ems[i:i+500]; marks = ','.join('?' * len(chunk))
+        cur.execute(f"""
+          SELECT LOWER(email) FROM email_suppressions WHERE LOWER(email) IN ({marks})
+          UNION SELECT LOWER(email) FROM customers WHERE LOWER(email) IN ({marks}) AND (email_opt_out=1 OR status>=2)
+          UNION SELECT DISTINCT LOWER(q.recipient_email) FROM email_events e JOIN email_queue_items q ON q.id=e.queue_item_id
+                WHERE e.event_type=3 AND LOWER(q.recipient_email) IN ({marks})""", *chunk, *chunk, *chunk)
+        out.update(r[0] for r in cur.fetchall())
+    cx.close()
+    return out
+
+
+def fup_context(emails):
+    """{email: (empresa, service)} a partir da última wave AQ enviada p/ o email."""
+    if not emails: return {}
+    cx = crmdb.connect(); cur = cx.cursor()
+    ctx = {}
+    ems = list(emails)
+    for i in range(0, len(ems), 500):
+        chunk = ems[i:i+500]; marks = ','.join('?' * len(chunk))
+        cur.execute(f"""
+          SELECT LOWER(q.recipient_email) em, MAX(q.recipient_name) nome, MAX(c.name) camp
+          FROM email_queue_items q JOIN email_campaigns c ON c.id=q.campaign_id
+          WHERE q.status=2 AND c.name LIKE 'AQ - %' AND LOWER(q.recipient_email) IN ({marks})
+          GROUP BY LOWER(q.recipient_email)""", *chunk)
+        for r in cur.fetchall():
+            m = re.match(r'AQ - (\w+) - ([^-]+) -', r.camp or '')
+            ctx[r.em] = (r.nome or 'sua empresa', (m.group(2).strip() if m else 'site profissional'))
+    cx.close()
+    return ctx
+
+
+def run_fup_stage(st, stage, replies):
+    """FUP2/FUP3: candidatos vêm do state da etapa anterior (email -> data)."""
+    cfg = FUP_STAGES[stage]
+    key = os.environ.get('DIAX_SEND_EMAIL_KEY')
+    if not key: log_line(f'FUP{stage}: sem DIAX_SEND_EMAIL_KEY — pulo'); return 0
+    prev = st.get(cfg['prev']) or {}
+    done = st.setdefault(cfg['key'], {})
+    today = datetime.date.today()
+    pool = fup_candidates(prev, done, today, 7, 21, set())
+    if not pool: return 0
+    excl = fup_exclusions(pool) | {e.lower() for e in replies} | {e for e in pool if is_role_mailbox(e)}
+    cands = [e for e in pool if e not in excl][:FUP_CAPS[stage]]
+    log_line(f'FUP{stage}: {len(pool)} na janela, {len(pool)-len([e for e in pool if e not in excl])} excluídos, {len(cands)} a enviar')
+    if not cands: return 0
+    ctx = fup_context(cands)
+    sent = 0
+    for em in cands:
+        empresa, service = ctx.get(em, ('sua empresa', 'site profissional'))
+        wa = urllib.parse.quote(f'Ola! Recebi seu email sobre {service}. Quero saber mais.')
+        body = cfg['html'].format(service=service, empresa=empresa, wa=wa)
+        subj = cfg['subj'].format(empresa=empresa)[:140]
+        if DRY:
+            log_line(f'DRY FUP{stage} -> {em} | {subj[:60]}'); sent += 1; continue
+        resp = requests.post(base + '/api/v1/integrations/send-email',
+            headers={'X-Integration-Key': key, 'Content-Type': 'application/json'}, timeout=40,
+            json={'fromEmail': 'contato@alexandrequeiroz.com.br', 'fromName': 'Alexandre Queiroz',
+                  'to': [{'address': em, 'display': empresa}], 'subject': subj, 'html': body,
+                  'tags': [cfg['tag']], 'allowUnaligned': False,
+                  'idempotencyKey': f'{cfg["tag"]}-{em}-{today.isoformat()}'})
+        if resp.status_code in (200, 201, 202):
+            done[em] = today.isoformat(); sent += 1
+        log_line(f'FUP{stage} {em}: {resp.status_code}')
     return sent
 
 # ---------- 3. HOT LEADS ----------
@@ -490,10 +616,12 @@ def main():
     if not ensure_breaker_closed(H):
         log_line('ABORT: breaker aberto'); tg_send('⚠️ Email waves ABORTADAS: circuit breaker aberto'); return
     fired = build_waves(H, st)
+    replies = scan_replies()          # antes dos FUPs: quem respondeu não recebe mais toque
     fups = run_followups(st)
+    fup2 = run_fup_stage(st, 2, replies)
+    fup3 = run_fup_stage(st, 3, replies)
     if not DRY: sync_bounce_suppressions()
     rows, hot = hot_leads_digest()
-    replies = scan_replies()
     crm_tasks = 0 if DRY else sync_hot_to_crm(H, hot, replies, st)
     if not DRY: save_state(st)
     total = sum(f['n'] for f in fired)
@@ -501,9 +629,11 @@ def main():
     hot_txt = '\n'.join(f"  🔥 {r.name or r.recipient_email} — {r.clicks or 0} click, {r.opens or 0} opens" for r in hot[:10]) or '  (nenhum)'
     msg = (f'📧 <b>Email waves {datetime.date.today().strftime("%d/%m")}</b>\n'
            f'Agendados hoje: <b>{total}</b>\n{seg_txt}\n'
-           f'Follow-ups enviados: <b>{fups}</b>\n'
+           f'Follow-ups: FUP1 <b>{fups}</b> · FUP2 <b>{fup2}</b> · FUP3 <b>{fup3}</b>\n'
            f'Leads quentes 24h ({len(hot)}):\n{hot_txt}'
            + (('\n💬 <b>RESPONDERAM (ligar!):</b>\n' + '\n'.join(f'  {e}' for e in replies[:10])) if replies else ''))
+    if WAVE_ERRORS:
+        msg += f'\n🚨 <b>{len(WAVE_ERRORS)} campanha(s) FALHARAM</b> (schedule/queue): ' + ', '.join(WAVE_ERRORS[:6])
     if crm_tasks:
         msg += f'\n📋 Tarefas criadas no CRM: {crm_tasks}'
     # sexta: relatório semanal + medição de pista
