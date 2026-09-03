@@ -58,6 +58,21 @@ def is_role_mailbox(email):
     return domain.endswith(ROLE_DOMAIN_SUFFIXES)
 
 
+ACHADO_MARK = '<!--ACHADO-->'
+
+
+def personalize_html(html, achado):
+    """Substitui o marcador do template pelo achado do site do lead (1 frase) ou o
+    remove. Inline dentro do <p> da intro — sem mexer no layout de tabelas do email."""
+    if not achado:
+        return html.replace(ACHADO_MARK, '')
+    a = achado[0].upper() + achado[1:]
+    if not a.endswith('.'): a += '.'
+    a = a.encode('ascii', 'xmlcharrefreplace').decode()   # entidades: seguro sem <meta charset>
+    box = ('<br/><br/><strong style="color:#c2410c;">Olhei o site de voc&ecirc;s:</strong> ' + a)
+    return html.replace(ACHADO_MARK, box)
+
+
 def fup_candidates(sent, done, today, min_days, max_days, exclude):
     """sent: {email: 'YYYY-MM-DD' da etapa anterior}; done: {email: ...} desta etapa.
     Retorna emails com min_days <= idade <= max_days, não feitos, não excluídos,

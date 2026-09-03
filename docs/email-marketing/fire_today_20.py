@@ -248,6 +248,7 @@ def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want):
                 seen_company.add(comp_key)
             picked.append({'id': it['id'], 'email': email,
                            'company': it.get('companyName') or it.get('name'),
+                           'website': (it.get('website') or '').strip(),
                            'score': it.get('leadScore') or 0})
             if len(picked) >= want:
                 break

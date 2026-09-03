@@ -52,6 +52,15 @@ def test_fup_candidates_window_and_exclusions():
 def test_fup_candidates_empty():
     assert fup_candidates({}, {}, D, 7, 21, set()) == []
 
+# --- personalize_html ---------------------------------------------------
+def test_personalize_html_inserts_finding_or_strips_marker():
+    from waves_lib import personalize_html, ACHADO_MARK
+    html = '<p>intro' + ACHADO_MARK + '</p>'
+    out = personalize_html(html, 'o site abre sem cadeado (HTTPS)')
+    assert ACHADO_MARK not in out and 'Olhei o site' in out and 'O site abre sem cadeado (HTTPS).' in out
+    assert personalize_html(html, '') == '<p>intro</p>'
+    assert personalize_html(html, None) == '<p>intro</p>'
+
 # --- is_role_mailbox ----------------------------------------------------
 def test_role_mailboxes_are_skipped_in_followups():
     from waves_lib import is_role_mailbox

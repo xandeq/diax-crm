@@ -23,7 +23,12 @@ from fire_today_20 import (DIR, base, HEALTHY, PER_PROVIDER, ts, load_env, login
 from fire_w1_2707 import build_html_v2, SEGMENTS as SEG_W1
 from fire_w2w3_2707 import WAVES as W23
 import db as crmdb
-from waves_lib import compute_wave_slots, brt_label, fup_candidates, is_role_mailbox
+from waves_lib import compute_wave_slots, brt_label, fup_candidates, is_role_mailbox, personalize_html, ACHADO_MARK
+from site_check import check_many, summarize_wave, summarize_fup
+try:
+    from copy_v3 import INTRO_V3, HOOK_V3   # intros que lideram com o mundo do leitor (skill cold-email)
+except ImportError:
+    INTRO_V3, HOOK_V3 = {}, {}
 
 DRY = '--dry' in sys.argv
 STATE_FILE = DIR + 'previews/daily-state.json'
@@ -125,6 +130,11 @@ SHORT_SUBJ = {
 for _k, _v in SHORT_SUBJ.items():
     if _k in COPY_BANK:
         COPY_BANK[_k]['subject'] = _v
+# Copy v3 (copy_v3.py): intro/hook lideram com o mundo do leitor, não com "Sou o Alexandre".
+for _k, _v in INTRO_V3.items():
+    if _k in COPY_BANK and _v: COPY_BANK[_k]['intro'] = _v
+for _k, _v in HOOK_V3.items():
+    if _k in COPY_BANK and _v: COPY_BANK[_k]['hook'] = _v
 
 # Variante B (A/B alternado por dia; comparação no relatório de sexta — campanha leva sufixo sA/sB)
 SUBJ_B = {
@@ -183,6 +193,27 @@ def reschedule(cid, when_sql):
     cur.execute("UPDATE email_queue_items SET scheduled_at=?, updated_at=SYSUTCDATETIME(), updated_by='daily_waves' WHERE campaign_id=? AND status=0", when_sql, cid)
     n = cur.rowcount; cx.commit(); cx.close(); return n
 
+def personalize_queue(cid, leads, site_res):
+    """Após o enfileiramento: troca o marcador do html_body de CADA item pelo achado
+    do site daquele lead (ou remove). O worker renderiza item.HtmlBody → vale por item.
+    Falha no meio é inócua: o marcador é comentário HTML, invisível se sobrar.
+    Idempotente (só toca itens que ainda têm o marcador)."""
+    by_cust = {ld['id'].lower(): ld for ld in leads}
+    cx = crmdb.connect(autocommit=False); cur = cx.cursor()
+    cur.execute("SELECT id, customer_id, html_body FROM email_queue_items WHERE campaign_id=? AND status=0 AND html_body LIKE ?",
+                cid, f'%{ACHADO_MARK}%')
+    rows = cur.fetchall(); n = 0
+    for r in rows:
+        ld = by_cust.get(str(r.customer_id).lower())
+        res = site_res.get((ld or {}).get('website') or '', {'findings': []})
+        achado = summarize_wave(res['findings'], (ld or {}).get('company') or 'sua empresa')
+        cur.execute("UPDATE email_queue_items SET html_body=?, updated_at=SYSUTCDATETIME(), updated_by='daily_waves_pers' WHERE id=?",
+                    personalize_html(r.html_body, achado), r.id)
+        n += 1 if achado else 0
+    cx.commit(); cx.close()
+    return n
+
+
 # ---------- 1. WAVES ----------
 
 def fetch_multi(terms, H, se, sd, sc, want):
@@ -233,9 +264,11 @@ def build_waves(H, st):
     slots = compute_wave_slots(now_utc)
     if not slots:
         log_line(f'TARDE DEMAIS ({brt_label(now_utc)} BRT) — sem waves hoje')
-        tg_send(f'⚠️ Email waves: task rodou às {brt_label(now_utc)} BRT (após 17:00) — sem envio hoje. Ver PC/task.')
-        return []
-    if slots[0] != datetime.datetime.combine(now_utc.date(), datetime.time(12, 0)):
+        if not DRY:
+            tg_send(f'⚠️ Email waves: task rodou às {brt_label(now_utc)} BRT (após 17:00) — sem envio hoje. Ver PC/task.')
+            return []
+        log_line('DRY: ignorando cutoff para montar o plano')
+    if slots and slots[0] != datetime.datetime.combine(now_utc.date(), datetime.time(12, 0)):
         log_line(f'ATRASO: agora {brt_label(now_utc)} BRT -> ondas em {[brt_label(s) for s in slots]} BRT')
     se, sd, sc = set(), set(), set()
     plan, cursor = [], st.get('cursor', 0)
@@ -250,8 +283,24 @@ def build_waves(H, st):
         log_line(f'  {niche}: {len(leads)} leads OK')
     st['cursor'] = (cursor + tried) % len(ROTATION)
 
+    # Diagnóstico real do site de cada lead (cache 30d) → 1 frase personalizada por email.
+    site_res = {}
+    try:
+        urls = [ld.get('website') or '' for _, leads in plan for ld in leads]
+        t0 = datetime.datetime.now()
+        site_res = check_many(urls, workers=8)
+        n_ach = sum(1 for r in site_res.values() if r['findings'])
+        log_line(f'site-check: {len(site_res)} sites em {(datetime.datetime.now()-t0).seconds}s — {n_ach} com achado')
+    except Exception as e:
+        log_line(f'site-check falhou (emails saem sem achado): {e}')
+
     if DRY:
-        log_line(f'DRY: plano = {[(c["seg"], len(l)) for c, l in plan]}'); return []
+        log_line(f'DRY: plano = {[(c["seg"], len(l)) for c, l in plan]}')
+        for cfg, leads in plan[:2]:
+            for ld in leads[:3]:
+                r = site_res.get(ld.get('website') or '', {'findings': []})
+                log_line(f'  DRY achado {ld["email"]}: {summarize_wave(r["findings"], ld["company"] or "empresa")[:110] or "(site ok)"}')
+        return []
 
     # A/B de subject: alterna a variante por dia; sufixo sA/sB no nome da campanha
     # permite comparar opens no relatório de sexta.
@@ -272,7 +321,8 @@ def build_waves(H, st):
         subject = SUBJ_B.get(cfg['seg'], cfg['subject']) if variant == 'B' else cfg['subject']
         img = gen_image(cfg['img'], H, keyword=cfg['seg'])
         if not img: log_line(f'  {cfg["seg"]}: sem imagem — pulo'); continue
-        html = build_html_v2(cfg['hook'], cfg['subhead'], img, cfg['intro'], cfg['bullets'], cfg['wa'])
+        # marcador no fim da intro: vira o achado do site por item (personalize_queue) ou some
+        html = build_html_v2(cfg['hook'], cfg['subhead'], img, cfg['intro'] + ACHADO_MARK, cfg['bullets'], cfg['wa'])
         H2 = login()
         cr = requests.post(base + '/api/v1/email-campaigns/campaigns', headers=H2, timeout=30,
                            json={'name': f'AQ - {cfg["seg"]} - {cfg["service"]} - {today} auto s{variant}',
@@ -296,6 +346,11 @@ def build_waves(H, st):
             WAVE_ERRORS.append(f'{cfg["seg"]} queue {r.status_code}'); continue
         jr = r.json()
         moved = reschedule(cid, when_sql)
+        try:
+            pers = personalize_queue(cid, leads, site_res)
+        except Exception as e:
+            pers = -1; log_line(f'  {cfg["seg"]}: personalize falhou (itens saem com intro padrão): {e}')
+        log_line(f'  {cfg["seg"]:14} personalizados={pers}')
         fired.append({'seg': cfg['seg'], 'n': jr.get('queuedCount') or 0, 'brt': brt})
         log_line(f'  {cfg["seg"]:14} queue={r.status_code} n={jr.get("queuedCount")} skip={jr.get("skippedCount")} sched {brt} BRT (reag {moved})')
     return fired
@@ -362,12 +417,12 @@ def run_followups(st):
 # FUP2 (7-21d após FUP1): ângulo novo — oferta concreta e de baixo atrito.
 FUP2_HTML = ('<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#1f2937;max-width:560px;">'
  '<p>Ol&aacute;!</p>'
- '<p>Alexandre de novo &mdash; prometo ser breve. J&aacute; escrevi sobre <strong>{service}</strong> para a <strong>{empresa}</strong> '
- 'e talvez o formato n&atilde;o tenha ajudado. Ent&atilde;o vou propor algo mais simples:</p>'
- '<p>Posso fazer uma <strong>an&aacute;lise r&aacute;pida e gratuita</strong> de como a {empresa} aparece hoje no Google e no celular, '
- 'com 2 ou 3 ajustes pr&aacute;ticos que costumam trazer mais contato de cliente. Sem compromisso e sem &ldquo;apresenta&ccedil;&atilde;o de vendas&rdquo;.</p>'
- '<p>Se fizer sentido, &eacute; s&oacute; responder este email com <strong>&ldquo;pode enviar&rdquo;</strong> ou me chamar no '
- '<a href="https://wa.me/5527999840101?text={wa}">WhatsApp (27) 99984-0101</a>.</p>'
+ '<p>Alexandre de novo &mdash; prometo ser breve. J&aacute; escrevi sobre <strong>{service}</strong> para a <strong>{empresa}</strong>, '
+ 'ent&atilde;o desta vez, em vez de falar, fui olhar.</p>'
+ '{analise}'
+ '<p>S&atilde;o ajustes que d&atilde;o para resolver em uma semana e costumam trazer mais contato de cliente. '
+ 'Se quiser, eu explico em 5 minutos no <a href="https://wa.me/5527999840101?text={wa}">WhatsApp (27) 99984-0101</a> &mdash; '
+ 'ou responde este email com <strong>&ldquo;pode explicar&rdquo;</strong>. Sem compromisso e sem &ldquo;apresenta&ccedil;&atilde;o de vendas&rdquo;.</p>'
  '<p>Abra&ccedil;o,<br/><strong>Alexandre Queiroz</strong><br/>Engenheiro de software &middot; alexandrequeiroz.com.br</p></div>')
 
 # FUP3 (7-21d após FUP2): breakup — encerra a sequência com porta aberta.
@@ -414,13 +469,15 @@ def fup_context(emails):
     for i in range(0, len(ems), 500):
         chunk = ems[i:i+500]; marks = ','.join('?' * len(chunk))
         cur.execute(f"""
-          SELECT LOWER(q.recipient_email) em, MAX(q.recipient_name) nome, MAX(c.name) camp
+          SELECT LOWER(q.recipient_email) em, MAX(q.recipient_name) nome, MAX(c.name) camp,
+                 MAX(cu.website) website
           FROM email_queue_items q JOIN email_campaigns c ON c.id=q.campaign_id
+          LEFT JOIN customers cu ON cu.id=q.customer_id
           WHERE q.status=2 AND c.name LIKE 'AQ - %' AND LOWER(q.recipient_email) IN ({marks})
           GROUP BY LOWER(q.recipient_email)""", *chunk)
         for r in cur.fetchall():
             m = re.match(r'AQ - (\w+) - ([^-]+) -', r.camp or '')
-            ctx[r.em] = (r.nome or 'sua empresa', (m.group(2).strip() if m else 'site profissional'))
+            ctx[r.em] = (r.nome or 'sua empresa', (m.group(2).strip() if m else 'site profissional'), (r.website or '').strip())
     cx.close()
     return ctx
 
@@ -440,13 +497,34 @@ def run_fup_stage(st, stage, replies):
     log_line(f'FUP{stage}: {len(pool)} na janela, {len(pool)-len([e for e in pool if e not in excl])} excluídos, {len(cands)} a enviar')
     if not cands: return 0
     ctx = fup_context(cands)
+    site_res = {}
+    if stage == 2:   # a "análise gratuita" é entregue de verdade: achados reais do site
+        try:
+            site_res = check_many([ctx[e][2] for e in cands if e in ctx], workers=8)
+        except Exception as e:
+            log_line(f'FUP2 site-check falhou: {e}')
     sent = 0
     for em in cands:
-        empresa, service = ctx.get(em, ('sua empresa', 'site profissional'))
+        empresa, service, website = ctx.get(em, ('sua empresa', 'site profissional', ''))
         wa = urllib.parse.quote(f'Ola! Recebi seu email sobre {service}. Quero saber mais.')
-        body = cfg['html'].format(service=service, empresa=empresa, wa=wa)
+        analise = ''
+        if stage == 2:
+            fs = site_res.get(website, {'findings': []})['findings']
+            items = summarize_fup(fs, empresa)
+            if items:
+                head = {1: 'Uma coisa que notei', 2: 'Duas coisas que notei', 3: 'Tr&ecirc;s coisas que notei'}[len(items)]
+                enc = lambda s: (s[0].upper() + s[1:] + '.').encode('ascii', 'xmlcharrefreplace').decode()
+                analise = (f'<p>{head} no site de voc&ecirc;s:</p><ol style="padding-left:20px;margin:0 0 16px 0;">'
+                           + ''.join(f'<li style="margin-bottom:6px;">{enc(i)}</li>' for i in items) + '</ol>')
+            else:
+                analise = ('<p>O site de voc&ecirc;s est&aacute; bem cuidado &mdash; abre r&aacute;pido, com cadeado e no celular. '
+                           'Ent&atilde;o o que costuma faltar &eacute; o pr&oacute;ximo passo: transformar quem entra em contato '
+                           '(agendamento, or&ccedil;amento ou cat&aacute;logo direto no WhatsApp).</p>')
+        body = cfg['html'].format(service=service, empresa=empresa, wa=wa, analise=analise)
         subj = cfg['subj'].format(empresa=empresa)[:140]
         if DRY:
+            if sent == 0:
+                open(DIR + f'previews/fup{stage}-preview.html', 'w', encoding='utf-8').write(body)
             log_line(f'DRY FUP{stage} -> {em} | {subj[:60]}'); sent += 1; continue
         resp = requests.post(base + '/api/v1/integrations/send-email',
             headers={'X-Integration-Key': key, 'Content-Type': 'application/json'}, timeout=40,

@@ -102,3 +102,22 @@ v=DMARC1; p=quarantine; pct=25; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r
    campanha (função monotônica).
 3. FUP: `idempotencyKey` tinha a data → crash antes de salvar o state = envio duplicado no dia
    seguinte. Agora `fupN-{email}` (estável por etapa/destinatário).
+
+---
+## 03/09 (tarde da noite) — personalização real por lead
+- **`site_check.py`** (12 testes): diagnóstico honesto do site de cada lead — sem site próprio /
+  só diretório (econodata, cliniguia…), fora do ar, SSL inválido, sem HTTPS, sem viewport (celular),
+  lento (>3s), sem botão de WhatsApp, rodapé ≥3 anos, sem meta description, título genérico.
+  Cache 30d em `previews/site-checks.json`; 8 threads; 101 sites em 35s no dry-run (74 com achado).
+- **Waves**: template ganha marcador `<!--ACHADO-->` no fim da intro; após o enfileiramento,
+  `personalize_queue` troca o marcador no `html_body` de cada item pela frase do achado mais grave
+  (só sev ≥ 50 — meta/título são técnicos demais p/ abrir conversa). Nível 3 da skill cold-email
+  (observação → problema) com fato verificado, não frase genérica.
+- **FUP2** deixa de pedir permissão e **entrega** a análise: "Uma/Duas/Três coisas que notei no
+  site de vocês" (lista real) — ou, se o site está ok, muda o ângulo p/ conversão (agendamento/
+  orçamento no WhatsApp). Preview em `previews/fup2-preview.html` (dry-run).
+- **Copy v3** (`copy_v3.py`, subagente c/ skill cold-email): 20 intros lideram com o mundo do
+  leitor (cena concreta do nicho → problema), sem "Sou o Alexandre…"; 3 hooks reescritos.
+  Só provas verificadas no site ("15 anos", "negócios do ES"); **não** usou clientes/números do
+  /portfolio (parecem placeholder — confirmar antes de citar "+200 projetos").
+- Ahrefs (conector) testado p/ DR do domínio: plano insuficiente → descartado.
