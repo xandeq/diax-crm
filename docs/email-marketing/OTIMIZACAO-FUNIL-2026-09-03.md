@@ -21,10 +21,11 @@ Cada item marca se precisa de gate do usuário (mutação prod / DNS / deploy / 
 - **Impacto**: visibilidade real do funil + 58 clicadores viram follow-up ativo = vendas resgatadas.
 
 ## Prioridade 2 — DELIVERABILITY (subir open 2,5%→15-25%)
-- DMARC `p=none` → `p=quarantine` após validar alinhamento.
-- SPF não inclui Resend (`include:_spf.resend.com` ou domínio de bounce).
-- DKIM Brevo: seletor `mail._domainkey` vazio — validar seletor real (brevo1/brevo2).
-- Rodar mail-tester.com num envio real p/ score spam.
+Verificado 03/09: **DKIM OK** nos dois (Brevo `brevo1`/`brevo2`, Resend `resend._domainkey`);
+bounce 30d = 0 (não há rejeição em massa). Gaps reais:
+- **DMARC `p=none`** → `p=quarantine` após validar alinhamento (hoje sem enforcement = receptores confiam menos).
+- **SPF não inclui Resend** — confirmar Return-Path do Resend alinha (custom bounce domain) ou add ao SPF.
+- Rodar mail-tester.com num envio real p/ score spam (parte do open baixo é Apple MPP mascarando, não spam).
 - ⛔ gate: DNS de produção (Cloudflare). **Fazer ANTES de escalar volume.**
 
 ## Prioridade 3 — FOLLOW-UP MULTI-TOQUE (2-3x conversão)
