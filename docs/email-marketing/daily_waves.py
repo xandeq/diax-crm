@@ -260,7 +260,12 @@ def build_waves(H, st):
     fired = []
     for i, (cfg, leads) in enumerate(plan):
         wave_idx = i // 4
-        if wave_idx >= len(slots): break
+        # Recalcula a cada campanha: fetch + geração de imagem + criação consomem
+        # minutos; um slot calculado no início pode já estar no passado aqui
+        # (compute_wave_slots é monotônica: nunca devolve slot anterior ao já usado).
+        slots = compute_wave_slots(datetime.datetime.utcnow())
+        if wave_idx >= len(slots):
+            log_line(f'  {cfg["seg"]}: sem slot restante hoje (cutoff) — fica p/ amanhã'); break
         when_dt = slots[wave_idx]; brt = brt_label(when_dt)
         when_api = when_dt.strftime('%Y-%m-%dT%H:%M:%SZ'); when_sql = when_dt.strftime('%Y-%m-%d %H:%M:%S')
         leads = assign_providers(leads)
@@ -345,7 +350,8 @@ def run_followups(st):
                   'subject': subj, 'html': body,
                   'tags': ['fup1'],
                   'allowUnaligned': False,
-                  'idempotencyKey': f'fup1-{em}-{datetime.date.today().isoformat()}'})
+                  # sem data: 1 FUP1 por destinatário, mesmo se o state não for salvo (crash)
+                  'idempotencyKey': f'fup1-{em}'})
         ok = resp.status_code in (200, 201, 202)
         if ok:
             st['fup_sent'][em] = datetime.date.today().isoformat(); sent += 1
@@ -447,7 +453,7 @@ def run_fup_stage(st, stage, replies):
             json={'fromEmail': 'contato@alexandrequeiroz.com.br', 'fromName': 'Alexandre Queiroz',
                   'to': [{'address': em, 'display': empresa}], 'subject': subj, 'html': body,
                   'tags': [cfg['tag']], 'allowUnaligned': False,
-                  'idempotencyKey': f'{cfg["tag"]}-{em}-{today.isoformat()}'})
+                  'idempotencyKey': f'{cfg["tag"]}-{em}'})   # estável: 1 por etapa/destinatário
         if resp.status_code in (200, 201, 202):
             done[em] = today.isoformat(); sent += 1
         log_line(f'FUP{stage} {em}: {resp.status_code}')

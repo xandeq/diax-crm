@@ -345,10 +345,12 @@ public class EmailQueueCycleProcessor
                 _pilotBreaker.RecordSuccess();
             }
 
-            await RegisterCustomerContactAsync(item, cancellationToken);
-
             await _repository.UpdateAsync(item, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Só depois do Sent persistido: falha aqui não pode reabrir o item
+            // (o provider já entregou — retry = email duplicado).
+            await RegisterCustomerContactAsync(item, cancellationToken);
             return ItemOutcome.Sent;
         }
 
@@ -388,10 +390,10 @@ public class EmailQueueCycleProcessor
                     _pilotBreaker.RecordSuccess();
                 }
 
-                await RegisterCustomerContactAsync(item, cancellationToken);
-
                 await _repository.UpdateAsync(item, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                await RegisterCustomerContactAsync(item, cancellationToken);
 
                 _logger.LogInformation(
                     "Item {ItemId}: fallback in-cycle {From} → {To} após falha ({Error}).",
@@ -485,6 +487,9 @@ public class EmailQueueCycleProcessor
 
             customer.RegisterContact();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
+            // Persistência própria, DEPOIS do Sent já salvo: se falhar (customer
+            // apagado/concorrência), o item não volta a Queued.
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {

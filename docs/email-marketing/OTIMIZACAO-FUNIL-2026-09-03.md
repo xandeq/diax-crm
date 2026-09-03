@@ -92,3 +92,13 @@ ElasticEmail, MailerSend, `a`, `mx` saem.) Validar depois com o mesmo script de 
 v=DMARC1; p=quarantine; pct=25; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r
 ```
 → `pct=100` na semana seguinte. ⛔ Gate: DNS de produção.
+
+### Review externo (Codex gpt-5.6-sol, plugin second-opinion) — 3 P1 corrigidos
+1. Worker: `RegisterContact` rodava antes do `SaveChanges` do item Sent → falha no customer
+   rolava back o Sent e o worker reenviava email já entregue. Agora Sent persiste primeiro;
+   o update do customer tem `SaveChanges` próprio dentro do try/catch.
+2. `daily_waves`: slots calculados no início; fetch+imagens+criação consumiam os 10 min de
+   folga e o `/schedule` voltava a receber horário passado. Agora recalcula antes de cada
+   campanha (função monotônica).
+3. FUP: `idempotencyKey` tinha a data → crash antes de salvar o state = envio duplicado no dia
+   seguinte. Agora `fupN-{email}` (estável por etapa/destinatário).

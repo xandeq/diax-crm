@@ -602,6 +602,30 @@ public class EmailQueueCycleProcessorTests
     }
 
     [Fact]
+    public async Task SuccessfulSend_CustomerPersistenceFails_ItemStaysSent_NoThrow()
+    {
+        // Review externo (Codex): a persistência do customer roda DEPOIS do Sent salvo e
+        // isolada — falha nela (concorrência, customer apagado) não pode reabrir o item,
+        // senão o worker reenvia um email que o provider já entregou.
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var customer = new Customer("Lead", item.RecipientEmail);
+        h.CustomerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+        h.CustomerRepo
+            .Setup(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DbUpdateConcurrencyException simulada"));
+
+        var processed = await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(1, processed);
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+    }
+
+    [Fact]
     public async Task SuccessfulSend_ViaInCycleFallback_AlsoRegistersContact()
     {
         var calls = 0;
