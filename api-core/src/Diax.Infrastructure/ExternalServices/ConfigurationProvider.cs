@@ -54,19 +54,9 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
             return Result.Success<(string, string)>((cachedUrl, cachedToken));
         }
 
-        // 1️⃣ AWS Secrets Manager (primária - dinâmica)
-        var awsResult = await TryLoadFromAwsSecretsManagerAsync();
-        if (awsResult != null && awsResult.IsSuccess)
-        {
-            var (url, token) = awsResult.Value;
-            _lastSource = "AWS Secrets Manager (tools/diax-extrator)";
-            if (_cache != null)
-                _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
-            _logger?.LogInformation("✓ Extrator config loaded from {Source}", _lastSource);
-            return awsResult;
-        }
-
-        // 2️⃣ IConfiguration (appsettings.Production.json baked no CI/CD - fallback offline-safe)
+        // 1️⃣ IConfiguration (env DIAX_* / appsettings.Production.json baked no CI/CD a partir dos
+        //    GitHub Secrets). É a fonte que o operador controla e rotaciona (gh secret set + deploy);
+        //    por isso vem ANTES do AWS SM — senão um segredo antigo no cofre "vence" a rotação.
         var configResult = TryLoadFromConfiguration();
         if (configResult.IsSuccess)
         {
@@ -74,8 +64,20 @@ public class ConfigurationProvider : Diax.Shared.Interfaces.IConfigurationProvid
             _lastSource = DetermineConfigurationSource();
             if (_cache != null)
                 _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
-            _logger?.LogInformation("✓ Extrator config loaded from {Source} (AWS SM unavailable, using fallback)", _lastSource);
+            _logger?.LogInformation("✓ Extrator config loaded from {Source}", _lastSource);
             return configResult;
+        }
+
+        // 2️⃣ AWS Secrets Manager (tools/diax-extrator) — fallback quando nada foi baked/configurado
+        var awsResult = await TryLoadFromAwsSecretsManagerAsync();
+        if (awsResult != null && awsResult.IsSuccess)
+        {
+            var (url, token) = awsResult.Value;
+            _lastSource = "AWS Secrets Manager (tools/diax-extrator)";
+            if (_cache != null)
+                _cache.Set(CACHE_KEY, (url, token, _lastSource), CACHE_DURATION);
+            _logger?.LogInformation("✓ Extrator config loaded from {Source} (config vazia, usando fallback)", _lastSource);
+            return awsResult;
         }
 
         // ❌ Nenhuma fonte disponível

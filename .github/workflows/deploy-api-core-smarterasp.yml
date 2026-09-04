@@ -281,6 +281,10 @@ jobs:
                 "ChatId": $telegramChatId
               },
               "ServiceApiKey": $serviceApiKey,
+              "ExtractorPull": {
+                "Enabled": true,
+                "DailyHourUtc": 15
+              },
               "Integrations": {
                 "DailyBriefingsKey": $dailyBriefingsKey,
                 "InvestIQKey": $investiqKey,
