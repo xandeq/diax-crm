@@ -298,6 +298,24 @@ public class Customer : AuditableEntity
     }
 
     /// <summary>
+    /// Avança o funil por ENGAJAMENTO (clique em link do email) — diferente de
+    /// <see cref="RegisterContact"/>, que reflete contato OUTBOUND (envio). Só sobe
+    /// Lead/Contacted para Qualified; nunca rebaixa e nunca mexe em Negotiating/
+    /// Customer/Inactive/Churned (não faz sentido "requalificar" quem já avançou ou
+    /// saiu do funil ativo). Não toca LastContactAt — isso é reservado para contato
+    /// outbound. Aberturas de email (open) não contam como engajamento aqui: o Apple
+    /// Mail Privacy Protection pré-carrega o pixel de rastreio, tornando opens não
+    /// confiáveis como sinal de interesse real.
+    /// </summary>
+    public void RegisterEngagement()
+    {
+        if (Status is CustomerStatus.Lead or CustomerStatus.Contacted)
+        {
+            Status = CustomerStatus.Qualified;
+        }
+    }
+
+    /// <summary>
     /// Atualiza as observações.
     /// </summary>
     public void UpdateNotes(string? notes)

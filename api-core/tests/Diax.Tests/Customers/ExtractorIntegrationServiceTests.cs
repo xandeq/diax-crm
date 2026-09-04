@@ -8,6 +8,7 @@ using Diax.Domain.Customers.Enums;
 using Diax.Domain.EmailMarketing;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 using Diax.Domain.Audit;
@@ -83,11 +84,16 @@ public class ExtractorIntegrationServiceTests
             userRepoMock.Object,
             circuitBreakerMock.Object);
 
-        _sut = new ExtractorIntegrationService(
+        _sut = CreateSut();
+    }
+
+    /// <summary>Cria o SUT com options customizáveis (defaults de produção quando null).</summary>
+    private ExtractorIntegrationService CreateSut(ExtractorPullOptions? pullOptions = null) =>
+        new(
             _extractorMock.Object,
             _importService,
+            Options.Create(pullOptions ?? new ExtractorPullOptions()),
             Mock.Of<ILogger<ExtractorIntegrationService>>());
-    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // SMOKE TESTS — fluxo principal funciona
@@ -379,6 +385,253 @@ public class ExtractorIntegrationServiceTests
 
         Assert.True(result.IsFailure);
         Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // IDEMPOTÊNCIA — lead sem contato (nem e-mail nem telefone) é pulado
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task ImportLeads_SkipsContactlessLead_NotSentAsCreate()
+    {
+        // Lead 1: só nome, SEM e-mail e SEM telefone/whatsapp → sem chave de dedup → pular.
+        // Lead 2: válido com e-mail → importa.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Sem Contato", Email = null, Phone = null, WhatsApp = null },
+            MakeLead(2, "Com Email", "com@email.com"),
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        // Apenas 1 lead chega ao import (o contactless foi descartado antes).
+        Assert.Equal(1, result.Value.TotalRecords);
+        Assert.Equal(1, result.Value.SuccessCount);
+        // O contactless NUNCA vira create.
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Name == "Sem Contato"),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Name == "Com Email"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_KeepsLeadWithPhone_NotDroppedByContactlessGuard()
+    {
+        // Sem e-mail mas COM telefone → tem chave de dedup (telefone) → o guard NÃO descarta:
+        // o lead chega ao import como registro (TotalRecords=1). O CustomerImportService pode
+        // depois rejeitá-lo por exigir e-mail — mas isso é uma decisão separada e rastreável,
+        // não o buraco de "duplicata sem chave" que o guard fecha.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Só Telefone", Email = null, Phone = "27999887766", WhatsApp = null },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        // Registro passou pelo guard (não foi silenciosamente descartado como contactless).
+        Assert.Equal(1, result.Value.TotalRecords);
+    }
+
+    [Fact]
+    public async Task ImportLeads_AllContactless_ReturnsNoLeadsFailure()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "A", Email = null, Phone = null, WhatsApp = null },
+            new() { Id = 2, ContactName = "B", Email = "  ", Phone = "  ", WhatsApp = "  " },
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PAGINATION/MALFORMED — agregação de páginas e resposta inválida (explícitos)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task ImportLeads_FullPageThenShortPage_AggregatesBothAndStops()
+    {
+        SetupExtractorPage(1, MakeLeads(100, startId: 1), total: 130);   // página cheia → continua
+        SetupExtractorPage(2, MakeLeads(30, startId: 101), total: 130);  // página curta → para
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(130, result.Value.TotalRecords);
+        _extractorMock.Verify(e => e.FetchLeadsAsync(null, null, null, null, 1, 100), Times.Once);
+        _extractorMock.Verify(e => e.FetchLeadsAsync(null, null, null, null, 2, 100), Times.Once);
+        _extractorMock.Verify(e => e.FetchLeadsAsync(null, null, null, null, 3, 100), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_MalformedResponse_NullValue_DoesNotCrash()
+    {
+        // FetchLeadsAsync devolve Success mas com corpo nulo (Leads = null).
+        _extractorMock
+            .Setup(e => e.FetchLeadsAsync(null, null, null, null, 1, 100))
+            .ReturnsAsync(Result.Success<ExtractorLeadsResponse>(new ExtractorLeadsResponse
+            {
+                Leads = null,
+                Total = null,
+                Page = null,
+                PerPage = null
+            }));
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // QUALITY FILTER — e-mail lixo rejeitado antes do import
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Theory]
+    [InlineData("contato%40site.com@gmail.com")] // '%' = encoding quebrado de scraping
+    [InlineData("teste@sun.com")]
+    [InlineData("bot@blok.ai")]
+    [InlineData("ai@overchat.ai")]
+    [InlineData("info@redcross.org")]
+    [InlineData("news@fox.com")]
+    [InlineData("tv@foxtv.com")]
+    [InlineData("hola@empresa.es")]
+    [InlineData("hei@yritys.fi")]
+    [InlineData("info@firma.eu")]
+    [InlineData("hola@negocio.com.ar")]
+    [InlineData("hola@tienda.cl")]
+    [InlineData("hola@tienda.com.mx")]
+    [InlineData("ola@empresa.pt")]
+    public async Task ImportLeads_QualityFilter_RejectsJunkEmails(string junkEmail)
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Junk Lead", Email = junkEmail },
+            MakeLead(2, "Lead Bom", "bom@empresa.com.br"),
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        // Só o lead bom chega ao import — o lixo foi rejeitado antes de criar.
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == junkEmail),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("contato@empresa.com.br")]
+    [InlineData("contato@empresa.com")]
+    [InlineData("vendas@clinica.med.br")]
+    public async Task ImportLeads_QualityFilter_AcceptsBrazilianAndComEmails(string goodEmail)
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Lead Válido", Email = goodEmail },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        Assert.Equal(1, result.Value.SuccessCount);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == goodEmail),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_DoesNotRejectPhoneOnlyLead()
+    {
+        // Lead sem e-mail (só telefone) não é caso do filtro de qualidade — passa adiante.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Só Telefone", Email = null, Phone = "27999887766" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_AllJunk_ReturnsNoLeadsFailure()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "A", Email = "a@sun.com" },
+            new() { Id = 2, ContactName = "B", Email = "b@empresa.es" },
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_BlockedTldsConfigurable()
+    {
+        // Config custom: só .xyz bloqueado → .es passa a ser aceito.
+        var sut = CreateSut(new ExtractorPullOptions
+        {
+            BlockedTlds = new List<string> { ".xyz" },
+            BlockedDomains = new List<string>()
+        });
+
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Espanhol Liberado", Email = "hola@empresa.es" },
+            new() { Id = 2, ContactName = "Xyz Bloqueado", Email = "x@dominio.xyz" },
+        }, total: 2);
+
+        var result = await sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "hola@empresa.es"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "x@dominio.xyz"),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_QualityFilter_TldsWithoutLeadingDotAreNormalized()
+    {
+        // Config veio sem o '.' inicial ("es" em vez de ".es") → normaliza e ainda bloqueia,
+        // sem virar substring-match (ex.: "es" NÃO pode bloquear "empresa.com.br" por conter "es").
+        var sut = CreateSut(new ExtractorPullOptions
+        {
+            BlockedTlds = new List<string> { "es" },
+            BlockedDomains = new List<string>()
+        });
+
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Espanhol", Email = "hola@empresa.es" },
+            new() { Id = 2, ContactName = "Brasileiro", Email = "oi@lojases.com.br" },
+        }, total: 2);
+
+        var result = await sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "oi@lojases.com.br"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

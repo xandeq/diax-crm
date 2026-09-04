@@ -431,6 +431,48 @@ public class CustomerImportServiceTests
     }
 
     [Fact]
+    public async Task Import_DoublePull_IsIdempotent_NoDuplicateCreatedOnSecondImport()
+    {
+        // Simula dois PULLs consecutivos do Extrator com o MESMO conjunto de leads.
+        // 1º pull: repositório não conhece os e-mails → cria. 2º pull: repositório devolve
+        // os customers já criados → deve enriquecer/ignorar, nunca duplicar.
+        var rows = new List<ImportCustomerRow>
+        {
+            new("Lead A", "a@test.com", Phone: "27999000001"),
+            new("Lead B", "b@test.com", Phone: "27999000002"),
+        };
+        var request = new BulkImportRequest(rows, LeadSource.Scraping);
+
+        var created = new List<Customer>();
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => created.Add(c))
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        // 1º PULL — nenhum existente
+        var first = await _sut.ImportAsync(request, "pull-1.json");
+
+        Assert.Equal(2, first.SuccessCount);
+        Assert.Equal(2, created.Count);
+
+        // 2º PULL — repositório agora conhece os leads criados (dedup por e-mail)
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("a@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(created[0]);
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("b@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(created[1]);
+
+        var createdCountBeforeSecondPull = created.Count;
+        var second = await _sut.ImportAsync(request, "pull-2.json");
+
+        // Nenhum customer NOVO criado no 2º pull → zero duplicatas.
+        Assert.Equal(createdCountBeforeSecondPull, created.Count);
+        Assert.Equal(0, second.SuccessCount);   // nada de novo para enriquecer (dados idênticos)
+        Assert.Equal(2, second.SkippedCount);   // ambos reconhecidos como duplicata já existente
+    }
+
+    [Fact]
     public async Task Import_ShouldReject_WhenLeadIsDuplicateInBatch()
     {
         // Arrange

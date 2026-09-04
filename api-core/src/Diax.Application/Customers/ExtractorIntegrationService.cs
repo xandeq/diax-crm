@@ -3,6 +3,7 @@ using Diax.Application.Customers.Services;
 using Diax.Domain.Customers.Enums;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Diax.Application.Customers;
 
@@ -22,17 +23,34 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
     private readonly IExtractorService _extractorService;
     private readonly CustomerImportService _customerImportService;
     private readonly ILogger<ExtractorIntegrationService> _logger;
+    private readonly IReadOnlyList<string> _blockedDomains;
+    private readonly IReadOnlyList<string> _blockedTlds;
 
     private const int PageSize = 100;
 
     public ExtractorIntegrationService(
         IExtractorService extractorService,
         CustomerImportService customerImportService,
+        IOptions<ExtractorPullOptions> pullOptions,
         ILogger<ExtractorIntegrationService> logger)
     {
         _extractorService = extractorService;
         _customerImportService = customerImportService;
         _logger = logger;
+
+        var options = pullOptions.Value;
+
+        // Normaliza uma vez: domínio sem '@' inicial, TLD sempre com '.' inicial, tudo lowercase.
+        _blockedDomains = (options.BlockedDomains ?? [])
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Select(d => d.Trim().TrimStart('@').ToLowerInvariant())
+            .ToList();
+
+        _blockedTlds = (options.BlockedTlds ?? [])
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim().ToLowerInvariant())
+            .Select(t => t.StartsWith('.') ? t : "." + t)
+            .ToList();
     }
 
     /// <summary>
@@ -48,6 +66,8 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         CancellationToken cancellationToken = default)
     {
         var allLeads = new List<ImportCustomerRow>();
+        var skippedContactless = 0;
+        var rejectedLowQuality = 0;
         var page = 1;
 
         _logger.LogInformation(
@@ -73,8 +93,22 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             foreach (var lead in leads)
             {
                 var row = MapToImportRow(lead);
-                if (row != null)
-                    allLeads.Add(row);
+
+                if (row == null)
+                {
+                    skippedContactless++;
+                    continue;
+                }
+
+                // Filtro de qualidade: e-mail lixo conhecido (%, domínios bloqueados, TLDs estrangeiros)
+                // nunca entra no CRM — rejeita ANTES de criar/enriquecer.
+                if (IsLowQualityEmail(row.Email))
+                {
+                    rejectedLowQuality++;
+                    continue;
+                }
+
+                allLeads.Add(row);
             }
 
             _logger.LogInformation("Página {Page}: {Count} leads obtidos (total acumulado: {Total})",
@@ -85,6 +119,20 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
                 break;
 
             page++;
+        }
+
+        if (skippedContactless > 0)
+        {
+            _logger.LogInformation(
+                "Ignorados {Skipped} lead(s) sem nome ou sem contato (e-mail/telefone) — evita duplicatas sem chave de dedup.",
+                skippedContactless);
+        }
+
+        if (rejectedLowQuality > 0)
+        {
+            _logger.LogInformation(
+                "Filtro de qualidade: {Rejected} lead(s) rejeitado(s) por e-mail lixo ('%', domínio bloqueado ou TLD estrangeiro).",
+                rejectedLowQuality);
         }
 
         if (allLeads.Count == 0)
@@ -111,6 +159,38 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         return Result.Success(importResult);
     }
 
+    /// <summary>
+    /// Detecta e-mails lixo conhecidos do Extrator: '%' no endereço (encoding quebrado de scraping),
+    /// domínios bloqueados (sun.com, blok.ai, etc.) e TLDs estrangeiros óbvios (.es, .ar, ...).
+    /// .com e .com.br NUNCA são rejeitados por TLD. Lead sem e-mail (só telefone) passa —
+    /// o filtro julga só o e-mail; validação de contato é responsabilidade a jusante.
+    /// </summary>
+    private bool IsLowQualityEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        if (email.Contains('%'))
+            return true;
+
+        var at = email.LastIndexOf('@');
+        if (at < 0 || at == email.Length - 1)
+            return false; // malformado sem domínio → deixa a validação de e-mail a jusante rejeitar com erro rastreável
+
+        var domain = email[(at + 1)..].Trim().ToLowerInvariant();
+
+        if (_blockedDomains.Contains(domain))
+            return true;
+
+        foreach (var tld in _blockedTlds)
+        {
+            if (domain.EndsWith(tld, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+
     private static ImportCustomerRow? MapToImportRow(ExtractorLead lead)
     {
         // Nome é obrigatório — prioriza ContactName, fallback para CompanyName
@@ -119,6 +199,21 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             : lead.CompanyName;
 
         if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        // IDEMPOTÊNCIA: a deduplicação efetiva a jusante (CustomerImportService) é por EMAIL —
+        // e-mail válido é obrigatório para qualquer fonte (linha ~344 faz `continue` sem e-mail),
+        // então o ramo GetByPhoneAsync é inalcançável neste fluxo (leads só-telefone acabam como
+        // falha rastreável, nunca criam). Pulls repetidos do mesmo e-mail casam o registro existente
+        // (update, não create) → idempotente. O lead.Id do Extrator só vai para Notes (rastreabilidade),
+        // não é chave de dedup. Aqui pulamos apenas os leads SEM e-mail E SEM telefone/whatsapp: sem
+        // qualquer contato eles jamais dedupam e sujariam a base — melhor um pré-skip que um "create órfão".
+        // Nota: dedup durável por lead.Id (coluna ExternalId) fica como recomendação (migração em prod).
+        var usablePhone = !string.IsNullOrWhiteSpace(lead.WhatsApp) ? lead.WhatsApp : lead.Phone;
+        var hasEmail = !string.IsNullOrWhiteSpace(lead.Email);
+        var hasPhone = !string.IsNullOrWhiteSpace(usablePhone);
+
+        if (!hasEmail && !hasPhone)
             return null;
 
         var noteParts = new List<string>();

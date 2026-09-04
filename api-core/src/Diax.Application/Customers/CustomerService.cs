@@ -489,6 +489,7 @@ public class CustomerService : IApplicationService
                 EmailQueueStatus.Sent => ("email_sent", "E-mail enviado", "success", email.SentAt ?? email.CreatedAt),
                 EmailQueueStatus.Failed => ("email_failed", "Falha no envio do e-mail", "error", email.UpdatedAt ?? email.CreatedAt),
                 EmailQueueStatus.Processing => ("email_queued", "E-mail em processamento", "info", email.ProcessingStartedAt ?? email.CreatedAt),
+                EmailQueueStatus.Cancelled => ("email_cancelled", "E-mail cancelado (supressão/opt-out)", "warning", email.UpdatedAt ?? email.CreatedAt),
                 _ => ("email_queued", "E-mail agendado", "info", email.ScheduledAt)
             };
 

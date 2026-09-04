@@ -5,6 +5,7 @@ using Diax.Domain.Audit;
 using Diax.Domain.Auth;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
+using Diax.Domain.Customers.Enums;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
 using Diax.Infrastructure.Email;
@@ -53,6 +54,8 @@ public class EmailQueueCycleProcessorTests
     {
         public Mock<IEmailQueueRepository> QueueRepo { get; } = new();
         public Mock<IEmailCampaignRepository> CampaignRepo { get; } = new();
+        public Mock<ICustomerRepository> CustomerRepo { get; } = new();
+        public Mock<IEmailSuppressionRepository> SuppressionRepo { get; } = new();
         public PilotCircuitBreaker PilotBreaker { get; } = new();
         public EmailProviderCircuitBreaker ProviderBreaker { get; } = new(TimeSpan.FromMinutes(5));
         public QueueFakeSender Sender { get; }
@@ -101,6 +104,17 @@ public class EmailQueueCycleProcessorTests
                 .Setup(r => r.CountSentByProviderSinceAsync(It.IsAny<EmailProvider>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(0);
 
+            // Defaults: ninguém suprimido, nenhum customer conhecido (só a suppression valeria).
+            SuppressionRepo
+                .Setup(r => r.IsSuppressedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            CustomerRepo
+                .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Customer?)null);
+            CustomerRepo
+                .Setup(r => r.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Customer?)null);
+
             var chainOptions = new EmailChainOptions
             {
                 ProviderDailyLimits = providerDailyLimits ?? new()
@@ -117,7 +131,8 @@ public class EmailQueueCycleProcessorTests
             Processor = new EmailQueueCycleProcessor(
                 QueueRepo.Object,
                 CampaignRepo.Object,
-                new Mock<ICustomerRepository>().Object,
+                CustomerRepo.Object,
+                SuppressionRepo.Object,
                 new EmailTemplateEngine(),
                 new Mock<IUnitOfWork>().Object,
                 PilotBreaker,
@@ -144,7 +159,8 @@ public class EmailQueueCycleProcessorTests
     private static EmailQueueItem NewItem(
         EmailProvider provider = EmailProvider.Brevo,
         Guid? campaignId = null,
-        string email = "lead@example.com")
+        string email = "lead@example.com",
+        bool withCustomerId = true)
     {
         return new EmailQueueItem(
             Guid.NewGuid(),
@@ -153,7 +169,7 @@ public class EmailQueueCycleProcessorTests
             "Assunto",
             "<p>corpo {{unsubscribe_url}}</p>",
             DateTime.UtcNow.AddMinutes(-1),
-            customerId: Guid.NewGuid(),
+            customerId: withCustomerId ? Guid.NewGuid() : null,
             campaignId: campaignId,
             assignedProvider: provider);
     }
@@ -442,5 +458,193 @@ public class EmailQueueCycleProcessorTests
         Assert.Contains($"{EmailTestDefaults.PublicBaseUrl}/unsubscribe?token=", sent.HtmlBody);
         Assert.DoesNotContain("diaxcrm.com.br", sent.HtmlBody);
         h.CampaignRepo.Verify(r => r.IncrementSentAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // ───── HARDENING: recheck de suppression/opt-out no DESPACHO ─────
+    // Antes só o enqueue checava — bounce/unsubscribe entre o agendamento e o
+    // despacho deixava o item enfileirado sair mesmo assim.
+
+    [Fact]
+    public async Task SuppressedAtDispatch_IsCancelled_NotSent_NoRetryNoDlq()
+    {
+        var h = new Harness();
+        var campaignId = Guid.NewGuid();
+        var item = NewItem(EmailProvider.Brevo, campaignId, "bounced@cliente.com");
+        h.SetupPending(EmailProvider.Brevo, item);
+        h.SuppressionRepo
+            .Setup(r => r.IsSuppressedAsync(item.UserId, "bounced@cliente.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true); // entrou na suppression DEPOIS do enqueue
+
+        var processed = await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Empty(h.Sender.Sent);                              // nada sai para o provider
+        Assert.Equal(EmailQueueStatus.Cancelled, item.Status);    // terminal, não Failed/DLQ
+        Assert.Equal(0, item.AttemptCount);                       // não conta como tentativa de retry
+        Assert.Contains("suppressed at dispatch", item.LastError);
+        Assert.Equal(1, processed);                               // consumiu o slot do ciclo
+        // Não é erro de provider: sem alerta de DLQ e sem abrir breaker.
+        Assert.DoesNotContain(h.Alerter.Alerts, a => a.Key.StartsWith("dlq:"));
+        Assert.False(h.PilotBreaker.IsOpen);
+        // Contabilidade da campanha fecha (CheckCompletion soma Sent+Failed).
+        h.CampaignRepo.Verify(r => r.IncrementFailedAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
+        h.QueueRepo.Verify(r => r.UpdateAsync(item, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CustomerOptOutAtDispatch_IsCancelled_NotSent()
+    {
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var optedOut = new Customer("Lead", item.RecipientEmail);
+        optedOut.OptOutEmail(); // opt-out DEPOIS do enqueue
+        h.CustomerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(optedOut);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Empty(h.Sender.Sent);
+        Assert.Equal(EmailQueueStatus.Cancelled, item.Status);
+        Assert.Equal(0, item.AttemptCount);
+        Assert.Contains("opt-out", item.LastError);
+        Assert.DoesNotContain(h.Alerter.Alerts, a => a.Key.StartsWith("dlq:"));
+    }
+
+    [Fact]
+    public async Task OptOutWithoutCustomerId_IsFoundByEmail_AndCancelled()
+    {
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo, email: "avulso@cliente.com", withCustomerId: false);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var optedOut = new Customer("Avulso", "avulso@cliente.com");
+        optedOut.OptOutEmail();
+        h.CustomerRepo
+            .Setup(r => r.GetByEmailAsync("avulso@cliente.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(optedOut);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Empty(h.Sender.Sent);
+        Assert.Equal(EmailQueueStatus.Cancelled, item.Status);
+    }
+
+    [Fact]
+    public async Task NotSuppressedAndNoOptOut_SendsNormally()
+    {
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        // O recheck foi consultado com o dono e o email do item — e o envio seguiu.
+        h.SuppressionRepo.Verify(
+            r => r.IsSuppressedAsync(item.UserId, item.RecipientEmail, It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.Single(h.Sender.Sent);
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+    }
+
+    // ───── P1b: envio efetivo (SENT, não enqueue) avança Lead → Contacted ─────
+
+    [Fact]
+    public async Task SuccessfulSend_RegistersContact_AdvancesLeadToContacted()
+    {
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var customer = new Customer("Lead", item.RecipientEmail);
+        Assert.Equal(CustomerStatus.Lead, customer.Status);
+        h.CustomerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        Assert.Equal(CustomerStatus.Contacted, customer.Status);
+        Assert.NotNull(customer.LastContactAt);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SuccessfulSend_WithoutCustomerId_DoesNotTouchCustomerRepository()
+    {
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo, withCustomerId: false);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SuccessfulSend_CustomerMissing_StillMarksItemSent_NoThrow()
+    {
+        // CustomerId aponta pra um customer que sumiu entre o enqueue e o despacho —
+        // GetByIdAsync retorna null (default do Harness). O envio já foi confirmado
+        // pelo provider e não pode ser derrubado por isso.
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var processed = await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(1, processed);
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SuccessfulSend_CustomerPersistenceFails_ItemStaysSent_NoThrow()
+    {
+        // Review externo (Codex): a persistência do customer roda DEPOIS do Sent salvo e
+        // isolada — falha nela (concorrência, customer apagado) não pode reabrir o item,
+        // senão o worker reenvia um email que o provider já entregou.
+        var h = new Harness();
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var customer = new Customer("Lead", item.RecipientEmail);
+        h.CustomerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+        h.CustomerRepo
+            .Setup(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DbUpdateConcurrencyException simulada"));
+
+        var processed = await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(1, processed);
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+    }
+
+    [Fact]
+    public async Task SuccessfulSend_ViaInCycleFallback_AlsoRegistersContact()
+    {
+        var calls = 0;
+        var fallbackSender = new QueueFakeSender(_ => ++calls == 1
+            ? EmailSendResult.Fail("erro 500 do provider")
+            : EmailSendResult.Ok("fb-msg"));
+        var h = new Harness(sender: fallbackSender, inCycleFallback: true);
+        var item = NewItem(EmailProvider.Brevo);
+        h.SetupPending(EmailProvider.Brevo, item);
+
+        var customer = new Customer("Lead", item.RecipientEmail);
+        h.CustomerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        Assert.Equal(CustomerStatus.Contacted, customer.Status);
+        h.CustomerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

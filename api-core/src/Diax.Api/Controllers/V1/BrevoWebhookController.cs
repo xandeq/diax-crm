@@ -331,6 +331,8 @@ public class BrevoWebhookController : BaseApiController
                     queueItem.CustomerId,
                     queueItem.CampaignId,
                     payload.MessageId), cancellationToken);
+
+                await RegisterCustomerEngagementAsync(queueItem, cancellationToken);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -349,6 +351,43 @@ public class BrevoWebhookController : BaseApiController
             _logger.LogInformation(
                 "Click count incremented for CampaignId={CampaignId}, new ClickCount={ClickCount}",
                 campaignId.Value, campaign.ClickCount);
+        }
+    }
+
+    /// <summary>
+    /// P1b: clique é sinal de engajamento real → Lead/Contacted avança para Qualified
+    /// (Customer.RegisterEngagement, nunca rebaixa). Abertura de email não conta (Apple
+    /// MPP torna opens não confiáveis). Nunca propaga falha — o click já foi registrado
+    /// no ledger/campanha; um customer ausente é só logado. Chamada já protegida pela
+    /// idempotência do ledger (email_events) feita acima, no chamador.
+    /// </summary>
+    private async Task RegisterCustomerEngagementAsync(EmailQueueItem queueItem, CancellationToken cancellationToken)
+    {
+        if (!queueItem.CustomerId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            var customer = await _customerRepository.GetByIdAsync(queueItem.CustomerId.Value, cancellationToken);
+            if (customer is null)
+            {
+                _logger.LogWarning(
+                    "Click event: CustomerId {CustomerId} não encontrado — RegisterEngagement pulado.",
+                    queueItem.CustomerId.Value);
+                return;
+            }
+
+            customer.RegisterEngagement();
+            await _customerRepository.UpdateAsync(customer, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Falha ao registrar engajamento do customer {CustomerId} no clique do item {ItemId}.",
+                queueItem.CustomerId, queueItem.Id);
         }
     }
 

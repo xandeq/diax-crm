@@ -212,16 +212,20 @@ Required GitHub Secrets:
 
 ### Extrator de Dados Integration
 
-The CRM connects to the Extrator de Dados API for lead scraping. Configuration is **fully managed** and auto-loaded from AWS Secrets Manager.
+**Single data-flow direction — PULL only.** The CRM is the sole synchronization authority: it PULLS leads from the Extrator via `GET {url}/api/leads` (server-to-server, `ExtractorService`). The Extrator does NOT push to the CRM automatically — its legacy auto-push (post-batch auto-sync + 09:00 scheduler + nightly pipeline sync) is disabled behind `CRM_PUSH_ENABLED=0`. Do NOT re-enable both directions.
 
-**AWS Secret:** `tools/diax-extrator` ✓ Auto-configured
+**Service auth.** The CRM authenticates to the Extrator with an explicit **service token** sent as `Authorization: Bearer <token>`. The Extrator validates it in constant time against its own secret store (`EXTRATOR_SERVICE_TOKEN`); it is NOT a user session. The same value must exist in both stores:
+- CRM side (sender): AWS SM `tools/diax-extrator`, key `EXTRATOR_API_TOKEN` (read by `LeadsController.GetExtractorConfig()` → `ConfigurationProvider`).
+- Extrator side (validator): AWS SM `extratordedados/prod` (or env), key `EXTRATOR_SERVICE_TOKEN`.
+
+**AWS Secret:** `tools/diax-extrator`
 - **URL:** `http://185.173.110.180:8000` (Hostinger VPS, Flask backend via Gunicorn)
-- **Health:** `GET /api/health` → `{"db":"postgresql","status":"ok"}` ✓ Verified
-- **Token:** `2ZvTMgRQBkhPOjb0LOQJ_cf_5ehOgEXxFWTju5NnNe49i_m-HmNOyq6dWwyCH12OLKJZtIJ44A7VyVX8Qew8cA` (auto-generated, secure)
-- **Zero manual configuration** — fully automated setup
+- **Health:** `GET /api/health` → `{"db":"postgresql","status":"ok"}`
+- **Token:** stored only in AWS Secrets Manager — **never in source control**. (The previously committed literal was leaked and must be rotated; see rotation runbook.)
+
+**Auth failure behavior.** On `401`, `ExtractorService` invalidates the config cache, reloads once, and retries once; if still `401` it fails with an actionable `ExtractorServiceUnauthorized` error (check token parity between the two stores). On `403` it fails immediately (`ExtractorServiceForbidden`, no retry). The token is never logged.
 
 **Auto-load flow:**
-- Backend: `LeadsController.GetExtractorConfig()` reads from AWS SM (path: `/diax-crm/`) → `{ url, token }`
-- Frontend: `useEffect` on `/leads/import` calls `apiFetch('/leads/extrator-config')`, auto-populates state
-- UI: Shows loading → success → ready for "Buscar Leads" button
-- **Status:** ✓ Deployed, tested, fully operational
+- Backend: `LeadsController.GetExtractorConfig()` reads from AWS SM → `{ url, token }` (token stays server-side).
+- Frontend: `useEffect` on `/leads/import` calls `apiFetch('/leads/extrator-config')`, auto-populates state.
+- Import runs through `ExtractorIntegrationService` → `CustomerImportService`, which dedups by **email** (a valid email is mandatory for all import sources, so repeated pulls of the same email match the existing customer and update rather than create — idempotent). Leads with no email and no phone are pre-skipped so no unkeyed duplicate is ever created. A durable `ExternalId` (extrator `lead.Id`) column is recommended for cross-pull dedup of email-changing leads (prod EF migration — not yet applied).

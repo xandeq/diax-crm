@@ -216,6 +216,22 @@ def email_ok(email, seen_emails, seen_domains):
         return False, 'tld-estrangeiro'
     return True, 'ok'
 
+_MX_CACHE = None
+
+
+def _mx_deliverable(domain):
+    """Domínio lixo/placeholder ou sem MX/A -> não enfileira (cache 30d, salvo no exit)."""
+    global _MX_CACHE
+    try:
+        import atexit, mx_check
+        if _MX_CACHE is None:
+            _MX_CACHE = mx_check.load_cache()
+            atexit.register(lambda: mx_check.save_cache(_MX_CACHE))
+        return mx_check.deliverable_domain(domain, _MX_CACHE)
+    except Exception:
+        return True   # falha da checagem nunca bloqueia o envio
+
+
 def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want):
     """Busca leads do CRM por nicho, filtra corporativo+nunca+BR+dedup."""
     picked = []
@@ -238,6 +254,9 @@ def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want):
             ok, _ = email_ok(email, seen_emails, seen_domains)
             if not ok:
                 continue
+            # MX/placeholder antes de enfileirar: bounce 7,5% na semana 04/09 (instagram.local, wixpress)
+            if not _mx_deliverable(email.split('@', 1)[1]):
+                continue
             comp = (it.get('companyName') or it.get('name') or '').strip().lower()
             comp_key = re.sub(r'[^a-z0-9]', '', comp)
             if comp_key and comp_key in seen_company:
@@ -248,6 +267,7 @@ def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want):
                 seen_company.add(comp_key)
             picked.append({'id': it['id'], 'email': email,
                            'company': it.get('companyName') or it.get('name'),
+                           'website': (it.get('website') or '').strip(),
                            'score': it.get('leadScore') or 0})
             if len(picked) >= want:
                 break

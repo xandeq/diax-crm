@@ -195,7 +195,45 @@ public class ResendWebhookController : BaseApiController
             await _emailCampaignRepository.UpdateAsync(campaign, ct);
         }
 
+        await RegisterCustomerEngagementAsync(item, ct);
+
         await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// P1b: clique é sinal de engajamento real → Lead/Contacted avança para Qualified
+    /// (Customer.RegisterEngagement, nunca rebaixa). Abertura de email não conta (Apple
+    /// MPP torna opens não confiáveis). Nunca propaga falha — o click já foi registrado
+    /// na campanha; um customer ausente é só logado.
+    /// </summary>
+    private async Task RegisterCustomerEngagementAsync(EmailQueueItem item, CancellationToken ct)
+    {
+        if (!item.CustomerId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            var customer = await _customerRepository.GetByIdAsync(item.CustomerId.Value, ct);
+            if (customer is null)
+            {
+                _logger.LogWarning(
+                    "Click event: CustomerId {CustomerId} não encontrado — RegisterEngagement pulado.",
+                    item.CustomerId.Value);
+                return;
+            }
+
+            customer.RegisterEngagement();
+            await _customerRepository.UpdateAsync(customer, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Falha ao registrar engajamento do customer {CustomerId} no clique do item {ItemId}.",
+                item.CustomerId, item.Id);
+        }
     }
 
     private async Task HandleBounceAsync(string email, CancellationToken ct)

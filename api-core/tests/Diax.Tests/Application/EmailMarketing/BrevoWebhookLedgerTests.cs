@@ -5,9 +5,11 @@ using Diax.Domain.Audit;
 using Diax.Domain.Auth;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
+using Diax.Domain.Customers.Enums;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
 using Diax.Infrastructure.Email;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -144,5 +146,55 @@ public class BrevoWebhookLedgerTests
 
         Assert.Single(_ledger, e => e.EventType == EmailEventType.Spam);
         Assert.Equal(1, campaign.UnsubscribeCount);
+    }
+
+    // ───── P1b: clique avança o funil (Lead/Contacted → Qualified) ─────
+
+    [Fact]
+    public async Task Click_AdvancesLeadCustomerToQualified()
+    {
+        var (item, campaign, messageId) = SetupSentItem();
+        var customer = new Customer("Lead", "lead@example.com");
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+
+        await _sut.HandleWebhook(Payload("click", messageId, campaign.Id), CancellationToken.None);
+
+        Assert.Equal(CustomerStatus.Qualified, customer.Status);
+        _customerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Click_DeliveredTwice_OnlyRegistersEngagementOnce()
+    {
+        // A idempotência do ledger (Clicked já existente) precisa impedir a segunda
+        // chamada de RegisterEngagement — não que faria diferença no status (idempotente
+        // por natureza), mas o repositório não deve ser tocado de novo.
+        var (item, campaign, messageId) = SetupSentItem();
+        var customer = new Customer("Lead", "lead@example.com");
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(item.CustomerId!.Value, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customer);
+        var payload = Payload("click", messageId, campaign.Id);
+
+        await _sut.HandleWebhook(payload, CancellationToken.None);
+        await _sut.HandleWebhook(payload, CancellationToken.None); // reentrega
+
+        Assert.Equal(CustomerStatus.Qualified, customer.Status);
+        _customerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Click_CustomerMissing_DoesNotThrow_ClickStillCounted()
+    {
+        var (_, campaign, messageId) = SetupSentItem();
+        // _customerRepo.GetByIdAsync não configurado para este CustomerId → retorna null.
+
+        var result = await _sut.HandleWebhook(Payload("click", messageId, campaign.Id), CancellationToken.None);
+
+        Assert.IsType<OkResult>(result);
+        Assert.Equal(1, campaign.ClickCount);
+        _customerRepo.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
