@@ -48,6 +48,21 @@ ROLE_LOCALPARTS = {
 ROLE_DOMAIN_SUFFIXES = ('.gov.br', '.org.br', '.edu.br', '.jus.br', '.leg.br', '.mil.br')
 
 
+FOREIGN_HOSTS = ('euskalnet.net', 'euskaltel.', 'telefonica.net', 'gmail.es', 'hotmail.es', 'yahoo.es')
+FOREIGN_NAME_RE = r'\b(en|de) vitoria\b|gasteiz|abogad|\balava\b|\bálava\b|\bespaña\b|\bspain\b'
+
+
+def is_foreign_lead(email, company=''):
+    """Extrator mistura Vitória-ES com Vitoria-Gasteiz (Espanha). Sinais: TLD .es,
+    provedores bascos, 'en Vitoria'/'abogados'/'Gasteiz' no nome."""
+    import re as _re
+    em = (email or '').lower()
+    dom = em.rsplit('@', 1)[-1]
+    if dom.endswith('.es') or any(dom.endswith(h) or dom.startswith(h) for h in FOREIGN_HOSTS):
+        return True
+    return bool(_re.search(FOREIGN_NAME_RE, (company or '').lower()))
+
+
 def is_role_mailbox(email):
     """Caixa institucional/de função — nunca vira cliente, só queima reputação.
     Aplicado nos follow-ups (a wave inicial já saiu; não repetir o erro)."""
@@ -66,9 +81,11 @@ def personalize_html(html, achado):
     remove. Inline dentro do <p> da intro — sem mexer no layout de tabelas do email."""
     if not achado:
         return html.replace(ACHADO_MARK, '')
+    import html as _html
     a = achado[0].upper() + achado[1:]
     if not a.endswith('.'): a += '.'
-    a = a.encode('ascii', 'xmlcharrefreplace').decode()   # entidades: seguro sem <meta charset>
+    # texto pode carregar trechos da página do lead: escapa <>&" e converte não-ASCII em entidades
+    a = _html.escape(a, quote=True).encode('ascii', 'xmlcharrefreplace').decode()
     box = ('<br/><br/><strong style="color:#c2410c;">Olhei o site de voc&ecirc;s:</strong> ' + a)
     return html.replace(ACHADO_MARK, box)
 

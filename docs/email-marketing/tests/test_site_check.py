@@ -43,8 +43,33 @@ def test_bad_site_findings_ordered_by_severity():
     assert c.index('no_viewport') < c.index('no_whatsapp') < c.index('old_copyright')
 
 def test_http_error_is_single_top_finding():
-    fs = analyze('', final_url='https://x.com.br/', status=503, elapsed=1.0, nbytes=0)
+    fs = analyze('', final_url='https://x.com.br/', status=500, elapsed=1.0, nbytes=0)
     assert codes(fs) == ['down']
+
+def test_bot_block_is_inconclusive_not_down():
+    # review Codex: 403/429/503 p/ robô ≠ site fora do ar — nenhuma afirmação
+    for st in (401, 403, 429, 503):
+        fs = analyze('', 'https://x.com.br/', st, 1.0, 0)
+        assert codes(fs) == ['inconclusive'], st
+        assert summarize_wave(fs, 'X') == ''
+        assert summarize_fup(fs, 'X') is None
+    assert summarize_fup(None, 'X') is None
+
+def test_private_targets_rejected():
+    from site_check import is_public_ip, safe_url
+    for ip in ('127.0.0.1', '10.1.2.3', '192.168.0.10', '172.16.5.5', '169.254.169.254', '0.0.0.0', '::1', 'fd00::1'):
+        assert not is_public_ip(ip), ip
+    assert is_public_ip('8.8.8.8') and is_public_ip('2001:4860:4860::8888')
+    assert safe_url('ftp://x.com.br/') is None
+    assert safe_url('http://localhost/') is None
+    assert safe_url('http://127.0.0.1:8000/') is None
+    assert safe_url('http://169.254.169.254/latest/meta-data') is None
+
+def test_short_title_keeps_raw_text_for_renderer_to_escape():
+    html = GOOD.replace('Clínica Vida — Cardiologia em Vitória ES', '<b>Home')
+    fs = analyze(html, 'https://a.com.br/', 200, 0.5, 1000)
+    t = [f for f in fs if f.code == 'short_title'][0]
+    assert t.extra == '<b>Home'
 
 def test_ssl_invalid_flag():
     fs = analyze(GOOD, final_url='https://x.com.br/', status=200, elapsed=0.5, nbytes=1000, ssl_invalid=True)

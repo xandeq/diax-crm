@@ -14,7 +14,7 @@
 Guardas: breaker fechado, aborta se já houver >=50 na fila do dia, suppressions.
 Uso: python daily_waves.py [--dry]  (--dry = só imprime o plano, não cria nada)
 """
-import os, sys, json, re, datetime, urllib.parse, requests
+import os, sys, json, re, datetime, urllib.parse, requests, html as _html
 
 sys.path.insert(0, 'D:/claude-code/diax-crm/docs/email-marketing/')
 sys.path.insert(0, r'C:\Users\acq20\.claude\skills\financas\scripts')
@@ -23,7 +23,8 @@ from fire_today_20 import (DIR, base, HEALTHY, PER_PROVIDER, ts, load_env, login
 from fire_w1_2707 import build_html_v2, SEGMENTS as SEG_W1
 from fire_w2w3_2707 import WAVES as W23
 import db as crmdb
-from waves_lib import compute_wave_slots, brt_label, fup_candidates, is_role_mailbox, personalize_html, ACHADO_MARK
+from waves_lib import (compute_wave_slots, brt_label, fup_candidates, is_role_mailbox, is_foreign_lead,
+                       personalize_html, ACHADO_MARK)
 from site_check import check_many, summarize_wave, summarize_fup
 try:
     from copy_v3 import INTRO_V3, HOOK_V3   # intros que lideram com o mundo do leitor (skill cold-email)
@@ -492,7 +493,8 @@ def run_fup_stage(st, stage, replies):
     today = datetime.date.today()
     pool = fup_candidates(prev, done, today, 7, 21, set())
     if not pool: return 0
-    excl = fup_exclusions(pool) | {e.lower() for e in replies} | {e for e in pool if is_role_mailbox(e)}
+    excl = (fup_exclusions(pool) | {e.lower() for e in replies}
+            | {e for e in pool if is_role_mailbox(e) or is_foreign_lead(e)})
     cands = [e for e in pool if e not in excl][:FUP_CAPS[stage]]
     log_line(f'FUP{stage}: {len(pool)} na janela, {len(pool)-len([e for e in pool if e not in excl])} excluídos, {len(cands)} a enviar')
     if not cands: return 0
@@ -506,20 +508,26 @@ def run_fup_stage(st, stage, replies):
     sent = 0
     for em in cands:
         empresa, service, website = ctx.get(em, ('sua empresa', 'site profissional', ''))
+        if is_foreign_lead(em, empresa):
+            log_line(f'FUP{stage} {em}: pulado (lead estrangeiro: {empresa[:40]})'); continue
         wa = urllib.parse.quote(f'Ola! Recebi seu email sobre {service}. Quero saber mais.')
         analise = ''
         if stage == 2:
-            fs = site_res.get(website, {'findings': []})['findings']
-            items = summarize_fup(fs, empresa)
+            res = site_res.get(website)          # None = check não rodou/falhou → NÃO afirmar nada
+            items = summarize_fup(res['findings'], empresa) if res else None
             if items:
                 head = {1: 'Uma coisa que notei', 2: 'Duas coisas que notei', 3: 'Tr&ecirc;s coisas que notei'}[len(items)]
-                enc = lambda s: (s[0].upper() + s[1:] + '.').encode('ascii', 'xmlcharrefreplace').decode()
+                enc = lambda s: _html.escape(s[0].upper() + s[1:] + '.', quote=True).encode('ascii', 'xmlcharrefreplace').decode()
                 analise = (f'<p>{head} no site de voc&ecirc;s:</p><ol style="padding-left:20px;margin:0 0 16px 0;">'
                            + ''.join(f'<li style="margin-bottom:6px;">{enc(i)}</li>' for i in items) + '</ol>')
-            else:
+            elif items == []:                    # verificado e ok: muda o ângulo, sem inventar defeito
                 analise = ('<p>O site de voc&ecirc;s est&aacute; bem cuidado &mdash; abre r&aacute;pido, com cadeado e no celular. '
                            'Ent&atilde;o o que costuma faltar &eacute; o pr&oacute;ximo passo: transformar quem entra em contato '
                            '(agendamento, or&ccedil;amento ou cat&aacute;logo direto no WhatsApp).</p>')
+            else:                                # não verificável (bloqueio/falha): oferta neutra
+                analise = ('<p>Em vez de pedir uma reuni&atilde;o, prefiro propor algo concreto: uma <strong>an&aacute;lise r&aacute;pida e '
+                           'gratuita</strong> de como a {empresa} aparece hoje no Google e no celular, com 2 ou 3 ajustes pr&aacute;ticos.</p>'
+                           ).replace('{empresa}', _html.escape(empresa, quote=True).encode('ascii', 'xmlcharrefreplace').decode())
         body = cfg['html'].format(service=service, empresa=empresa, wa=wa, analise=analise)
         subj = cfg['subj'].format(empresa=empresa)[:140]
         if DRY:

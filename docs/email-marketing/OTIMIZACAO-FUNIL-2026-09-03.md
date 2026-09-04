@@ -121,3 +121,13 @@ v=DMARC1; p=quarantine; pct=25; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r
   Só provas verificadas no site ("15 anos", "negócios do ES"); **não** usou clientes/números do
   /portfolio (parecem placeholder — confirmar antes de citar "+200 projetos").
 - Ahrefs (conector) testado p/ DR do domínio: plano insuficiente → descartado.
+
+### Review externo #2 (Codex) sobre o diagnóstico — 4 achados, todos corrigidos
+1. **SSRF**: URL do lead vem de fonte externa; agora só http(s) com host resolvendo p/ IP público
+   e cada redirect validado (`safe_url`/`resolve_public`, máx. 5 saltos).
+2. **403/429/503 ≠ fora do ar**: viram `inconclusive` (sev 0) — nenhuma afirmação no email.
+3. **Falha do check virava "site ok"**: `summarize_fup` devolve `None` (não verificado) e o FUP2
+   cai numa oferta neutra; só afirma "bem cuidado" quando verificou de fato.
+4. **Escape HTML**: título vindo da página do lead é escapado na renderização (wave e FUP2).
+Extra: "lento" media DNS+redirects+fila das threads (21/99 falsos) → agora `r.elapsed` da resposta
+final e corte 4s (5/129). Leads de Vitoria-Gasteiz (ES) excluídos dos FUPs (`is_foreign_lead`).

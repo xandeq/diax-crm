@@ -61,6 +61,22 @@ def test_personalize_html_inserts_finding_or_strips_marker():
     assert personalize_html(html, '') == '<p>intro</p>'
     assert personalize_html(html, None) == '<p>intro</p>'
 
+def test_personalize_html_escapes_markup_from_lead_page():
+    from waves_lib import personalize_html, ACHADO_MARK
+    out = personalize_html('<p>' + ACHADO_MARK + '</p>', 'título genérico ("<script>x</script>") — ruim & tal')
+    assert '<script>' not in out and '&lt;script&gt;' in out and '&amp;' in out
+    assert 'í' not in out and '&#237;' in out   # não-ASCII vira entidade numérica
+
+# --- is_foreign_lead ----------------------------------------------------
+def test_foreign_vitoria_gasteiz_leads_detected():
+    from waves_lib import is_foreign_lead
+    assert is_foreign_lead('zabalgana.cv@euskalnet.net', 'Centro Veterinario En Vitoria')
+    assert is_foreign_lead('info@clinica.es', 'Clinica Dental')
+    assert is_foreign_lead('monica@abogadavitoria.com', 'Abogada Vitoria')
+    assert is_foreign_lead('x@y.com', 'Terapia Breve Vitoria-Gasteiz')
+    assert not is_foreign_lead('contato@construtoravitoria.com.br', 'Construtora Vitória')
+    assert not is_foreign_lead('adm@hotelprainha.com.br', 'Hotel Prainha Vila Velha')
+
 # --- is_role_mailbox ----------------------------------------------------
 def test_role_mailboxes_are_skipped_in_followups():
     from waves_lib import is_role_mailbox
