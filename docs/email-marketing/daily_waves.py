@@ -26,6 +26,8 @@ import db as crmdb
 from waves_lib import (compute_wave_slots, brt_label, fup_candidates, is_role_mailbox, is_foreign_lead,
                        personalize_html, ACHADO_MARK)
 from site_check import check_many, summarize_wave, summarize_fup
+from niche_perf import cut_list as niche_cut_list, refresh as niche_refresh, format_niche_report
+from reply_watch import lead_context as reply_lead_context, hot_whatsapp_draft, wa_link
 try:
     from copy_v3 import INTRO_V3, HOOK_V3   # intros que lideram com o mundo do leitor (skill cold-email)
 except ImportError:
@@ -274,8 +276,11 @@ def build_waves(H, st):
     se, sd, sc = set(), set(), set()
     plan, cursor = [], st.get('cursor', 0)
     tried = 0
+    cut = set(niche_cut_list())
+    if cut: log_line(f'nichos fora da rotação (0 sinal em 30d): {sorted(cut)}')
     while len(plan) < 12 and tried < len(ROTATION):
         niche = ROTATION[(cursor + tried) % len(ROTATION)]; tried += 1
+        if niche in cut: continue
         cfg = COPY_BANK[niche]
         leads = fetch_multi(cfg['search_terms'], H, se, sd, sc, MAX_PER_SEG)
         if len(leads) < MIN_SEG:
@@ -620,11 +625,24 @@ def sync_hot_to_crm(H, hot, replies, st):
         if em in done: continue
         if create_crm_task(H, f'📧 RESPONDEU wave: {em}', f'Lead respondeu email de prospecção. Responder HOJE: {em}', priority=4, due_days=0):
             done[em] = datetime.date.today().isoformat(); created += 1
-    for r in hot:
+    hot_new = [r for r in hot if r.recipient_email not in done]
+    try:
+        ctx = reply_lead_context([r.recipient_email.lower() for r in hot_new]) if hot_new else {}
+    except Exception as e:
+        log_line(f'lead_context falhou: {e}'); ctx = {}
+    for r in hot_new:
         em = r.recipient_email
-        if em in done: continue
         why = f'{r.clicks or 0} click(s), {r.opens or 0} opens'
-        if create_crm_task(H, f'🔥 Lead quente wave: {r.name or em}', f'{em} — {why}. Ligar/WhatsApp em 24h (janela quente).', priority=3, due_days=1):
+        lead = dict(ctx.get(em.lower(), {})); lead.setdefault('name', r.name or ''); lead['email'] = em
+        try:   # achado real do site → mensagem de WhatsApp pronta (1 a 1, sem risco de ban)
+            res = check_many([lead.get('website') or ''], workers=1).get(lead.get('website') or '', {'findings': []})
+            lead['findings'] = summarize_fup(res['findings'], lead['name'] or 'vocês') or []
+        except Exception:
+            lead['findings'] = []
+        wa_txt = hot_whatsapp_draft(lead); link = wa_link(lead.get('phone', ''), wa_txt)
+        desc = (f'{em} — {why}. Ligar/WhatsApp em 24h (janela quente).\n\nWHATSAPP PRONTO:\n{wa_txt}'
+                + (f'\n\nLINK: {link}' if link else '\n\n(sem telefone no CRM — buscar no site/Google)'))
+        if create_crm_task(H, f'🔥 Lead quente wave: {r.name or em}', desc, priority=3, due_days=1):
             done[em] = datetime.date.today().isoformat(); created += 1
     return created
 
@@ -645,8 +663,13 @@ def db_housekeeping():
     encheu tudo em 30/07 (worker+endpoints 500 por filegroup FULL). Nunca mais."""
     cx = crmdb.connect(autocommit=True); cur = cx.cursor()
     freed = {}
-    cur.execute("DELETE TOP (5000) FROM audit_logs WHERE timestamp_utc < DATEADD(day,-30,SYSUTCDATETIME())")
-    freed['audit_logs'] = cur.rowcount
+    # audit_logs = 279 MB de 467 em 04/09 (66k linhas; 5k/semana não acompanhava o worker).
+    # Retenção 14d, em lotes de 5k (log de transação pequeno na quota), até 60k por rodada.
+    freed['audit_logs'] = 0
+    for _ in range(12):
+        cur.execute("DELETE TOP (5000) FROM audit_logs WHERE timestamp_utc < DATEADD(day,-14,SYSUTCDATETIME())")
+        freed['audit_logs'] += cur.rowcount
+        if cur.rowcount < 5000: break
     cur.execute("DELETE TOP (5000) FROM app_logs WHERE timestamp_utc < DATEADD(day,-14,SYSUTCDATETIME())")
     freed['app_logs'] = cur.rowcount
     cur.execute("UPDATE email_queue_items SET html_body='[purged]' WHERE status=2 AND sent_at < DATEADD(day,-7,SYSUTCDATETIME()) AND html_body<>'[purged]'")
@@ -734,6 +757,12 @@ def main():
             msg += '\n\n' + weekly_report()
         except Exception as e:
             log_line(f'weekly_report falhou: {e}')
+        try:   # kill/scale por nicho: grava previews/niche-stats.json (a rotação lê na segunda)
+            msg += '\n\n' + format_niche_report(niche_refresh(30))
+        except Exception as e:
+            log_line(f'niche_refresh falhou: {e}')
+    # segunda e sexta: purge (quota 500MB; audit_logs cresce ~15k linhas/semana com o worker)
+    if datetime.date.today().weekday() in (0, 4) and not DRY:
         try:
             freed, dbsize = db_housekeeping()
             msg += f'\n🧹 DB: {dbsize:.0f} MB (purge: audit {freed["audit_logs"]}, logs {freed["app_logs"]}, bodies {freed["html_body"]})'
@@ -741,6 +770,7 @@ def main():
                 msg += '\n🚨 <b>DB perto da quota (500MB)!</b>'
         except Exception as e:
             log_line(f'housekeeping falhou: {e}')
+    if datetime.date.today().weekday() == 4:   # sexta: medição de pista + reposição
         runway = stock_runway(H)
         msg += f'\n📦 Estoque amostrado (8 nichos): {runway} leads'
         if runway < 120:

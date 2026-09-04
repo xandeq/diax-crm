@@ -131,3 +131,22 @@ v=DMARC1; p=quarantine; pct=25; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r
 4. **Escape HTML**: título vindo da página do lead é escapado na renderização (wave e FUP2).
 Extra: "lento" media DNS+redirects+fila das threads (21/99 falsos) → agora `r.elapsed` da resposta
 final e corte 4s (5/129). Leads de Vitoria-Gasteiz (ES) excluídos dos FUPs (`is_foreign_lead`).
+
+---
+## 04/09 (sexta) — VALIDAÇÃO REAL + resposta em <1h + kill/scale + higiene
+**Task 08:40 rodou com o código novo**: 101 agendados (12 nichos, 3 ondas), ~51 itens com achado
+do site, FUP1 11, FUP2 29 (análise real entregue). Primeira resposta citando "a análise realizada
+sobre o nosso site" chegou no mesmo dia (negativa, mas prova que o FUP2 é lido).
+- **`reply_watch.py`** + task `DIAX-Reply-Watch` (seg-sex 08-19, a cada 30 min, XML no repo):
+  IMAP por UID → ignora auto-reply/bounce → intenção (positivo/negativo/neutro) → rascunho de
+  email + WhatsApp com o achado real do site → Telegram na hora + tarefa Urgente no CRM +
+  status Qualified (positivo/neutro) ou supressão (negativo). Dry-run: 21 msgs, 3 respostas.
+- **`niche_perf.py`**: kill/scale por nicho (30d): ≥150 envios e 0 clique/resposta → sai da
+  rotação (`niche-stats.json`, lido pelo daily_waves); top-3 por sinal/envio no relatório de sexta.
+  Hoje nenhum corte (amostras de 4-31 envios/nicho) — a regra passa a valer com volume.
+- **Lead quente → WhatsApp pronto**: tarefa traz mensagem 1-a-1 com o achado + link `wa.me` (ou
+  aviso "sem telefone no CRM").
+- **Bounce 10/133 (7,5%)** na semana: `mx_check.py` (placeholder/.local/wixpress + MX/A com cache 30d)
+  antes de enfileirar. Domínios reais com caixa morta seguem passando (só SMTP verify pegaria).
+- **DB 467/500 MB**: `audit_logs` = 279 MB (66k linhas). Purge agora retém 14d em lotes de 5k
+  (até 60k/rodada) e roda segunda e sexta. Se não bastar: `DBCC SHRINKFILE` (gate).
