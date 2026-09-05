@@ -4,9 +4,9 @@ milestone: v1.3
 milestone_name: Pipeline de Aquisição
 status: active
 stopped_at: null
-last_updated: "2026-09-05T15:20:00.000Z"
+last_updated: "2026-09-05T16:10:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** v1.3 — Defining requirements (roadmap em criação)
+**Current focus:** v1.3 — Phase 7 (Extração — Qualidade na Entrada), aguardando `/gsd:plan-phase 7`
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-05 — Milestone v1.3 (Pipeline de Aquisição) started
+Phase: 7 (Extração — Qualidade na Entrada) — not started
+Plan: — (roadmap created, plans not yet generated)
+Status: Roadmap created — 2 phases (7, 8), 6/6 requirements mapped. Next: `/gsd:plan-phase 7`
+Last activity: 2026-09-05 — ROADMAP.md and STATE.md updated with v1.3 phases (Phase 7-8)
 
 **v1.2 (Agentes de IA) segue PAUSADO em paralelo** — não é o milestone atual, mas não foi
 concluído nem abandonado. Ver "v1.2 — Pausado" em Accumulated Context abaixo antes de tocar em
@@ -129,7 +129,7 @@ Não resolvido, não abandonado — só não é o foco agora.**
 ### Pending Todos
 
 **v1.3 (atual):**
-- Roadmap ainda não criado — próximo passo é spawnar o gsd-roadmapper
+- Roadmap criado (Phase 7: Extração — Qualidade na Entrada; Phase 8: Import — Dedup e Score em Tempo Real) — próximo passo é `/gsd:plan-phase 7`
 
 **v1.2 (pausado, preservado):**
 - Phase 2 Wave 2 — executar 02-03 (IAgentTool/IAgentHandler/IAgentOrchestratorService + AgentOrchestratorService + CommercialAgentHandler + DI)
@@ -146,6 +146,8 @@ migration não integrada, commits locais não pushados).
 ## Session Continuity
 
 Last session: 2026-09-05
-Stopped at: Milestone v1.3 iniciado — requisitos definidos (EXTR-01..03, IMPT-01..03), roadmap
-em criação (gsd-roadmapper).
+Stopped at: Roadmap de v1.3 criado — Phase 7 (Extração — Qualidade na Entrada, EXTR-01..03) e
+Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
+segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
+`/gsd:plan-phase 7`.
 Resume file: None
