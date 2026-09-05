@@ -1,16 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: — Produtividade Pessoal
-status: "Roadmap created — 2 phases (7, 8), 6/6 requirements mapped. Next: `/gsd:plan-phase 7`"
+milestone: v1.3
+milestone_name: Pipeline de Aquisição
+status: active
 stopped_at: Phase 7 context gathered
-last_updated: "2026-09-05T15:19:29.421Z"
-last_activity: 2026-09-05 — ROADMAP.md and STATE.md updated with v1.3 phases (Phase 7-8)
+last_updated: "2026-09-05T16:30:00.000Z"
+last_activity: 2026-09-05 — Phase 7 context capturado; roadmap reordenado (milestone atual no topo)
+resume_file: .planning/phases/07-extra-o-qualidade-na-entrada/07-CONTEXT.md
 progress:
-  total_phases: 7
+  total_phases: 2
   completed_phases: 0
-  total_plans: 4
-  completed_plans: 2
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # State — DIAX CRM
