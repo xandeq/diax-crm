@@ -1,15 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Pipeline de Aquisição
-status: active
-stopped_at: null
-last_updated: "2026-09-05T16:10:00.000Z"
+milestone: v1.1
+milestone_name: — Produtividade Pessoal
+status: "Roadmap created — 2 phases (7, 8), 6/6 requirements mapped. Next: `/gsd:plan-phase 7`"
+stopped_at: Phase 7 context gathered
+last_updated: "2026-09-05T15:19:29.421Z"
+last_activity: 2026-09-05 — ROADMAP.md and STATE.md updated with v1.3 phases (Phase 7-8)
 progress:
-  total_phases: 2
+  total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 4
+  completed_plans: 2
 ---
 
 # State — DIAX CRM
@@ -94,6 +95,7 @@ qualquer arquivo de `src/Diax.Domain/Agents/*` ou correlatos.
 - [Phase 02-funda-o-de-agentes]: Payload column is nvarchar(max) via HasColumnType fluent config to support arbitrary JSON tool inputs
 - v1.3: escopo confirmado com o usuário = Extração (A) + Import CRM (B) do backlog original;
   Email (C) e WhatsApp (D) foram pra v2 (adiados, não descartados) — ver REQUIREMENTS.md
+
 - v1.3: dedup por email é a raiz do problema de rastreabilidade (mesmo negócio muda de email
   entre passadas do scraper) — `Customer.ExternalId` resolve na causa, não é cosmético
 
@@ -112,26 +114,32 @@ Não resolvido, não abandonado — só não é o foco agora.**
 
 - Pausa: 2026-05-29, após Phase 2 Wave 1 (2 de 4 plans). Motivo: outra sessão do Claude Code CLI
   mexendo no mesmo repo — pausado para evitar cross-data/conflito.
+
 - **Risco de migration**: `20260529134701_AddAgentFoundation` JÁ FOI APLICADA ao SQL Server de
   PRODUÇÃO e altera o `ApplicationDbContextModelSnapshot`. Se outra sessão criar outra migration
   antes desta ser integrada, há risco de conflito de snapshot/ordem.
+
 - **Arquivos tocados pela Phase 2** (evitar editar em outro trabalho até v1.2 ser retomado ou
   formalmente encerrado): `src/Diax.Domain/Agents/*`, `src/Diax.Application/Agents/*`,
   `src/Diax.Application/AiChat/IAnthropicChatClient.cs`,
   `src/Diax.Infrastructure/.../AnthropicChatClient.cs`, `src/Diax.Domain/AiChat/AiConversation.cs`,
   `IAiChatRepository`/repo, `src/Diax.Infrastructure/Data/Migrations/20260529134701_AddAgentFoundation*`,
   `DependencyInjection.cs`, `tests/Diax.Tests/Application/Agents/*`.
+
 - **Nada foi pushado** — todos os commits da Phase 2 são locais em `main` (auto-deploy só dispara
   no push). Confirmar isso continua verdadeiro antes de qualquer push de v1.3 pra `main`.
+
 - Retomar com: `/gsd:execute-phase 2` (pula 02-01/02-02 já com SUMMARY, segue da Wave 2:
   02-03 orquestrador, 02-04 controller).
 
 ### Pending Todos
 
 **v1.3 (atual):**
+
 - Roadmap criado (Phase 7: Extração — Qualidade na Entrada; Phase 8: Import — Dedup e Score em Tempo Real) — próximo passo é `/gsd:plan-phase 7`
 
 **v1.2 (pausado, preservado):**
+
 - Phase 2 Wave 2 — executar 02-03 (IAgentTool/IAgentHandler/IAgentOrchestratorService + AgentOrchestratorService + CommercialAgentHandler + DI)
 - Phase 2 Wave 3 — executar 02-04 (AgentsController {type}/chat|confirm|conversations + RBAC + AiUsageTracking)
 - Retomar com: `/gsd:execute-phase 2` (pula 02-01/02-02 já com SUMMARY, segue da Wave 2)
@@ -145,9 +153,9 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-05
-Stopped at: Roadmap de v1.3 criado — Phase 7 (Extração — Qualidade na Entrada, EXTR-01..03) e
+Last session: 2026-09-05T15:19:29.415Z
+Stopped at: Phase 7 context gathered
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
-Resume file: None
+Resume file: .planning/phases/07-extra-o-qualidade-na-entrada/07-CONTEXT.md
