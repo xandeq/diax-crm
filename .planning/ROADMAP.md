@@ -53,7 +53,16 @@ posterior no score
   4. A ponte Python (`import_extrator_bridge.py`/`mx_check.py`) e o worker .NET aplicam o mesmo
      critério de MX — não há mais divergência entre os dois caminhos de import
 
-**Plans:** TBD
+**Plans:** 7 plans (6 waves)
+
+Plans:
+- [ ] 07-01-PLAN.md — Classificacao pura de site (WebsiteClassifier/WebsiteKind) + filtro de dominio-lixo (JunkDomainFilter) [wave 1]
+- [ ] 07-02-PLAN.md — Abstracao de DNS: IMxLookupService + DnsClient.NET 1.8.0 + interpretador puro [wave 1]
+- [ ] 07-03-PLAN.md — Dominio e schema EF: Customer.WebsiteKind/ExternalId, contadores em CustomerImport, tabela mx_cache_entries [wave 2]
+- [ ] 07-04-PLAN.md — Checagem de MX com cache no loop do ExtractorIntegrationService + instrumentacao [wave 3]
+- [ ] 07-05-PLAN.md — Contadores de rejeicao persistidos + WebsiteKind gravado no import [wave 4]
+- [ ] 07-06-PLAN.md — Historico de import consultavel por periodo (GET /customers/imports?from&to) [wave 5]
+- [ ] 07-07-PLAN.md — Migration unica (D-07) + aplicacao em producao [wave 6, checkpoint]
 
 ---
 
@@ -87,7 +96,7 @@ inputs do score calculado no import)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Extração — Qualidade na Entrada | 0/? | Not started | — |
+| 7. Extração — Qualidade na Entrada | 0/7 | Planned | — |
 | 8. Import — Dedup e Score em Tempo Real | 0/? | Not started | — |
 
 ### Coverage Map (v1.3)
