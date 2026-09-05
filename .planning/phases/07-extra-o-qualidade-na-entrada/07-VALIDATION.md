@@ -17,7 +17,7 @@ created: 2026-09-05
 
 | Property | Value |
 |----------|-------|
-| **Framework** | xUnit + Moq + FluentAssertions (.NET 8 / net10.0 test target) |
+| **Framework** | xUnit + Moq (.NET 8 / net10.0 test target) — **sem FluentAssertions**, ver aviso abaixo |
 | **Config file** | `api-core/tests/Diax.Tests/Diax.Tests.csproj` (existente) |
 | **Quick run command** | `dotnet test -c Release --no-build --filter "FullyQualifiedName~ExtractorIntegration"` |
 | **Full suite command** | `dotnet test -c Release --no-build` (a partir de `api-core/`) |
