@@ -1,30 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Agentes de IA
-status: paused
-stopped_at: "PAUSED após Wave 1 (02-01 + 02-02). Waves 2-3 (02-03 orquestrador, 02-04 controller) NÃO iniciadas. Pausa solicitada — outra sessão do Claude Code CLI mexe no mesmo repo (evitar cross-data)."
-last_updated: "2026-05-29T13:52:10.548Z"
+milestone: v1.3
+milestone_name: Pipeline de Aquisição
+status: active
+stopped_at: null
+last_updated: "2026-09-05T15:20:00.000Z"
 progress:
-  total_phases: 5
+  total_phases: 0
   completed_phases: 0
-  total_plans: 4
-  completed_plans: 2
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # State — DIAX CRM
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-28)
+See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 02 — funda-o-de-agentes
+**Current focus:** v1.3 — Defining requirements (roadmap em criação)
 
 ## Current Position
 
-Phase: 02 (funda-o-de-agentes) — EXECUTING
-Plan: 3 of 4
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-09-05 — Milestone v1.3 (Pipeline de Aquisição) started
+
+**v1.2 (Agentes de IA) segue PAUSADO em paralelo** — não é o milestone atual, mas não foi
+concluído nem abandonado. Ver "v1.2 — Pausado" em Accumulated Context abaixo antes de tocar em
+qualquer arquivo de `src/Diax.Domain/Agents/*` ou correlatos.
 
 ## Performance Metrics
 
@@ -54,6 +60,10 @@ Plan: 3 of 4
 - Deploy automático via GitHub Actions (push to main)
 - SEMPRE usar `update-db.ps1` para migrations (nunca dotnet ef direto em produção)
 - Frontend é static export — sem SSR, sem server actions Next.js
+- Branch `chore/email-automation-versioned` acumula o trabalho de email/WhatsApp/extração de
+  03-05/09 (PRs #95-#97 merged em `main` via squash — merges seguintes nessa branch vão mostrar
+  `mergeStateStatus=CONFLICTING` fantasma; resolver com `git merge origin/main` + `checkout --ours`
+  depois de confirmar com `git diff` que não há divergência real de conteúdo)
 
 ### Architecture
 
@@ -62,6 +72,12 @@ Plan: 3 of 4
 - Existing AI infra: IAnthropicChatClient, AiChatService, AiConversation, GroupAiAccess, AiUsageTracking
 - Existing services to reuse by agent: Commercial→ICustomerRepository/OutreachService/AiOutreachAbTest; Support→customer timeline/ITicketService; Personal→IAppointmentService/FinancialSummaryService/AppointmentService
 - Existing ai-chat page/component to reuse in /agentes UI
+- Pipeline extração→CRM: `ExtractorPullWorker` (.NET, diário 12:00 BRT) puxa de
+  `ExtractorIntegrationService` → filtra qualidade (`IsLowQualityEmail`) + geo
+  (`IsOutsideTargetGeo`, `ExtractorPullOptions.AllowedStates/AllowedDdds`) → `CustomerImportService`.
+  Ponte manual Python (`docs/email-marketing/import_extrator_bridge.py`) é fallback/paralelo, tem
+  filtros próprios (`mx_check.py`, `waves_lib.in_target_geo`) que ainda não foram trazidos pro C#
+  — é exatamente o gap do v1.3 (EXTR-01).
 
 ### Decisions
 
@@ -76,6 +92,10 @@ Plan: 3 of 4
 - [Phase 02-funda-o-de-agentes]: CompleteWithToolsAsync is opt-in third method on IAnthropicChatClient — tools array gated by if-block, no-tools body provably identical to existing paths
 - [Phase 02-funda-o-de-agentes]: AgentPendingAction stored in DB table (not in-memory/signed token) - survives restarts, auditable, consistent with EF Core patterns
 - [Phase 02-funda-o-de-agentes]: Payload column is nvarchar(max) via HasColumnType fluent config to support arbitrary JSON tool inputs
+- v1.3: escopo confirmado com o usuário = Extração (A) + Import CRM (B) do backlog original;
+  Email (C) e WhatsApp (D) foram pra v2 (adiados, não descartados) — ver REQUIREMENTS.md
+- v1.3: dedup por email é a raiz do problema de rastreabilidade (mesmo negócio muda de email
+  entre passadas do scraper) — `Customer.ExternalId` resolve na causa, não é cosmético
 
 ### Testing Protocol
 
@@ -83,22 +103,49 @@ Plan: 3 of 4
 - Smoke tests + Playwright e2e + regression tests por wave
 - Migrations via update-db.ps1 antes de qualquer teste
 - git push apenas com autorização explícita do usuário (auto-deploy via GitHub Actions)
+- api-core: build/test SEMPRE com `-c Release` (Smart App Control bloqueia DLL de teste Debug)
+
+### v1.2 — Pausado (contexto preservado, não é o milestone atual)
+
+⚠️ **Este bloco descreve o estado do v1.2 (Agentes de IA) no momento em que v1.3 começou.
+Não resolvido, não abandonado — só não é o foco agora.**
+
+- Pausa: 2026-05-29, após Phase 2 Wave 1 (2 de 4 plans). Motivo: outra sessão do Claude Code CLI
+  mexendo no mesmo repo — pausado para evitar cross-data/conflito.
+- **Risco de migration**: `20260529134701_AddAgentFoundation` JÁ FOI APLICADA ao SQL Server de
+  PRODUÇÃO e altera o `ApplicationDbContextModelSnapshot`. Se outra sessão criar outra migration
+  antes desta ser integrada, há risco de conflito de snapshot/ordem.
+- **Arquivos tocados pela Phase 2** (evitar editar em outro trabalho até v1.2 ser retomado ou
+  formalmente encerrado): `src/Diax.Domain/Agents/*`, `src/Diax.Application/Agents/*`,
+  `src/Diax.Application/AiChat/IAnthropicChatClient.cs`,
+  `src/Diax.Infrastructure/.../AnthropicChatClient.cs`, `src/Diax.Domain/AiChat/AiConversation.cs`,
+  `IAiChatRepository`/repo, `src/Diax.Infrastructure/Data/Migrations/20260529134701_AddAgentFoundation*`,
+  `DependencyInjection.cs`, `tests/Diax.Tests/Application/Agents/*`.
+- **Nada foi pushado** — todos os commits da Phase 2 são locais em `main` (auto-deploy só dispara
+  no push). Confirmar isso continua verdadeiro antes de qualquer push de v1.3 pra `main`.
+- Retomar com: `/gsd:execute-phase 2` (pula 02-01/02-02 já com SUMMARY, segue da Wave 2:
+  02-03 orquestrador, 02-04 controller).
 
 ### Pending Todos
 
+**v1.3 (atual):**
+- Roadmap ainda não criado — próximo passo é spawnar o gsd-roadmapper
+
+**v1.2 (pausado, preservado):**
 - Phase 2 Wave 2 — executar 02-03 (IAgentTool/IAgentHandler/IAgentOrchestratorService + AgentOrchestratorService + CommercialAgentHandler + DI)
 - Phase 2 Wave 3 — executar 02-04 (AgentsController {type}/chat|confirm|conversations + RBAC + AiUsageTracking)
 - Retomar com: `/gsd:execute-phase 2` (pula 02-01/02-02 já com SUMMARY, segue da Wave 2)
 
 ### Blockers/Concerns
 
-⚠️ **SESSÃO PARALELA ATIVA (2026-05-29):** Outra sessão do Claude Code CLI implementa funcionalidades no MESMO repo. Phase 2 foi PAUSADA após Wave 1 para evitar cross-data/conflito.
-- **Risco de migration:** a migration `20260529134701_AddAgentFoundation` JÁ FOI APLICADA ao SQL Server de PRODUÇÃO e altera o `ApplicationDbContextModelSnapshot`. Se a outra sessão criar outra migration, haverá conflito de snapshot/ordem. Coordenar: a outra sessão deve dar `add-migration` SOMENTE após integrar estes commits.
-- **Arquivos já tocados pela Phase 2 (evitar editar na outra sessão):** `src/Diax.Domain/Agents/*`, `src/Diax.Application/Agents/*`, `src/Diax.Application/AiChat/IAnthropicChatClient.cs`, `src/Diax.Infrastructure/.../AnthropicChatClient.cs`, `src/Diax.Domain/AiChat/AiConversation.cs`, `IAiChatRepository`/repo, `src/Diax.Infrastructure/Data/Migrations/20260529134701_AddAgentFoundation*`, `DependencyInjection.cs`, `tests/Diax.Tests/Application/Agents/*`.
-- **Nada foi pushado** — todos os commits são locais em `main` (auto-deploy só dispara no push).
+Nenhum blocker ativo para v1.3 no momento do início.
+
+Ver "v1.2 — Pausado" acima para o blocker preservado daquele milestone (sessão concorrente,
+migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-05-29
-Stopped at: PAUSED após Wave 1 (Phase 2). Waves 2-3 pendentes. Pausa por sessão paralela no mesmo repo.
+Last session: 2026-09-05
+Stopped at: Milestone v1.3 iniciado — requisitos definidos (EXTR-01..03, IMPT-01..03), roadmap
+em criação (gsd-roadmapper).
 Resume file: None
