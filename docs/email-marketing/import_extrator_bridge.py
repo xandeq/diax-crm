@@ -22,6 +22,7 @@ import re
 import requests
 from fire_today_20 import load_env, login, base
 import db as crmdb   # dedup real contra o CRM (o endpoint /customers/import NAO dedupa p/ source=4)
+from waves_lib import in_target_geo
 
 PHONE_CONCAT = re.compile(r'^\d{4,}')   # "99245-7124atendimento@" = telefone colado no email
 
@@ -42,7 +43,8 @@ BLOCKED_DOMAINS = {'sun.com','blok.ai','overchat.ai','redcross.org','fox.com','f
 # TLDs estrangeiros/institucionais + placeholders sintéticos do scraper (.local, google_maps, etc)
 BLOCKED_TLD = ('.es','.fi','.eu','.ar','.cl','.mx','.pt','.co.uk','.ca','.com.au','.de','.fr',
                '.it','.nl','.se','.no','.dk','.pl','.ru','.ua','.cn','.jp','.kr','.us','.uk',
-               '.nz','.au','.gov','.govt.nz','.local','.gov.br','.be','.co','.io','.app','.info','.xyz')
+               '.nz','.au','.gov','.govt.nz','.local','.gov.br','.be','.co','.io','.app','.info','.xyz',
+               '.ch','.at','.ie','.cz','.hu','.ro','.gr','.tr','.il','.in','.za','.sg','.hk','.tw')
 # local-part placeholder do scraper (google maps / redes) — nunca é email real
 BAD_LOCAL_PREFIX = ('phone_', 'ig_', 'fb_', 'tw_', 'yt_', 'wa_', 'tel_', 'maps_')
 BAD_DOMAIN_SUBSTR = ('.local', 'google_maps', 'instagram.', 'facebook.', 'example.', 'noreply', 'no-reply', 'sentry.')
@@ -67,7 +69,12 @@ def fetch_from_extrator():
         print('SSH/extrator falhou:', out.stderr[:300]); sys.exit(1)
     return out.stdout.splitlines()
 
+ALL_STATES = '--all-states' in sys.argv   # desliga o filtro geográfico (default: só ES / DDD 27-28)
+REJECTED_GEO = 0
+
+
 def build(lines):
+    global REJECTED_GEO
     rows, rejected, seen = [], 0, set()
     for line in lines:
         p = line.rstrip('\n').split('|')
@@ -76,6 +83,8 @@ def build(lines):
         ce = clean(email)
         if not ce or ce in seen:
             rejected += ce is None; continue
+        if not ALL_STATES and not in_target_geo(state, phone):
+            REJECTED_GEO += 1; continue
         seen.add(ce)
         rows.append({'name': company.strip() or ce.split('@')[0], 'email': ce,
                      'phone': phone.strip(), 'companyName': company.strip(),
@@ -97,7 +106,7 @@ def main():
     before = len(rows)
     rows = [r for r in rows if r['email'] not in have]
     dup = before - len(rows)
-    print(f'extrator: {len(lines)} novos | limpos: {before} | rejeitados(lixo): {rejected} | ja no CRM: {dup} | a importar: {len(rows)}')
+    print(f'extrator: {len(lines)} novos | limpos: {before} | rejeitados(lixo): {rejected} | fora do ES: {REJECTED_GEO} | ja no CRM: {dup} | a importar: {len(rows)}')
     if DRY:
         for r in rows[:15]: print('  ', r['email'], '|', r['name'][:40], '|', r['city'])
         return

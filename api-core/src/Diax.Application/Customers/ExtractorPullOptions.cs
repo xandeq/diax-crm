@@ -52,4 +52,16 @@ public class ExtractorPullOptions
         ".mx",
         ".pt"
     };
+
+    /// <summary>
+    /// UFs aceitas no import do Extrator (negócio local, Grande Vitória-ES). Comparação
+    /// exata, case-insensitive. Lista vazia desliga o filtro geográfico (aceita qualquer UF).
+    /// </summary>
+    public List<string> AllowedStates { get; set; } = new() { "ES" };
+
+    /// <summary>
+    /// DDDs aceitos como fallback quando o lead não vem com UF preenchida — usados para
+    /// inferir a região a partir do telefone/whatsapp.
+    /// </summary>
+    public List<string> AllowedDdds { get; set; } = new() { "27", "28" };
 }

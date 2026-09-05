@@ -25,6 +25,8 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
     private readonly ILogger<ExtractorIntegrationService> _logger;
     private readonly IReadOnlyList<string> _blockedDomains;
     private readonly IReadOnlyList<string> _blockedTlds;
+    private readonly IReadOnlyList<string> _allowedStates;
+    private readonly IReadOnlyList<string> _allowedDdds;
 
     private const int PageSize = 100;
 
@@ -51,6 +53,16 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             .Select(t => t.Trim().ToLowerInvariant())
             .Select(t => t.StartsWith('.') ? t : "." + t)
             .ToList();
+
+        _allowedStates = (options.AllowedStates ?? [])
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim().ToUpperInvariant())
+            .ToList();
+
+        _allowedDdds = (options.AllowedDdds ?? [])
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Select(d => d.Trim())
+            .ToList();
     }
 
     /// <summary>
@@ -68,6 +80,7 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         var allLeads = new List<ImportCustomerRow>();
         var skippedContactless = 0;
         var rejectedLowQuality = 0;
+        var skippedByGeo = 0;
         var page = 1;
 
         _logger.LogInformation(
@@ -108,6 +121,14 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
                     continue;
                 }
 
+                // Filtro geográfico: negócio é local (Grande Vitória-ES) — o Extrator devolve
+                // leads do Brasil inteiro, então descarta lead fora da UF/DDD alvo ANTES do import.
+                if (IsOutsideTargetGeo(lead))
+                {
+                    skippedByGeo++;
+                    continue;
+                }
+
                 allLeads.Add(row);
             }
 
@@ -133,6 +154,13 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             _logger.LogInformation(
                 "Filtro de qualidade: {Rejected} lead(s) rejeitado(s) por e-mail lixo ('%', domínio bloqueado ou TLD estrangeiro).",
                 rejectedLowQuality);
+        }
+
+        if (skippedByGeo > 0)
+        {
+            _logger.LogInformation(
+                "Filtro geográfico: {SkippedByGeo} lead(s) ignorado(s) por UF/DDD fora da região alvo ({AllowedStates} / {AllowedDdds}).",
+                skippedByGeo, string.Join(",", _allowedStates), string.Join(",", _allowedDdds));
         }
 
         if (allLeads.Count == 0)
@@ -189,6 +217,35 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Detecta lead fora da região alvo (Grande Vitória-ES): rejeita ANTES do import.
+    /// Prioriza a UF do lead (campo `state`); quando ausente, infere pelo DDD do
+    /// telefone/whatsapp. Lead sem UF e sem telefone é considerado fora da região —
+    /// geo não verificável não deve ser aceito silenciosamente.
+    /// </summary>
+    private bool IsOutsideTargetGeo(ExtractorLead lead)
+    {
+        if (_allowedStates.Count == 0)
+            return false;
+
+        var state = lead.State?.Trim().ToUpperInvariant();
+
+        if (!string.IsNullOrEmpty(state))
+            return !_allowedStates.Contains(state);
+
+        var rawPhone = !string.IsNullOrWhiteSpace(lead.WhatsApp) ? lead.WhatsApp : lead.Phone;
+        var digits = new string((rawPhone ?? string.Empty).Where(char.IsDigit).ToArray());
+
+        if (digits.Length >= 12 && digits.StartsWith("55", StringComparison.Ordinal))
+            digits = digits[2..];
+
+        if (digits.Length < 2)
+            return true; // sem UF e sem telefone válido → geo não verificável, rejeita
+
+        var ddd = digits[..2];
+        return !_allowedDdds.Contains(ddd);
     }
 
     private static ImportCustomerRow? MapToImportRow(ExtractorLead lead)
