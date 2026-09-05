@@ -1,0 +1,125 @@
+{
+  "name": "WA Outreach 1-a-1 (DIAX leads)",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "5 9 * * 1-5"}]}},
+      "id": "n1", "name": "Seg-sex 09:05", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 0]
+    },
+    {
+      "parameters": {"filePath": "D:\\claude-code\\diax-crm\\docs\\email-marketing\\previews\\whatsapp-leads.json"},
+      "id": "n2", "name": "Ler whatsapp-leads.json", "type": "n8n-nodes-base.readBinaryFile", "typeVersion": 1, "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// CAP 20/dia, só P1-P3 (mude MAX_PRIO p/ 4 depois de medir). Dedupe por chat_id no dia via staticData.\nconst MAX_PRIO = 3, CAP = 20;\nconst raw = Buffer.from($input.first().binary.data.data, 'base64').toString('utf8');\nconst leads = JSON.parse(raw).leads;\nconst sd = $getWorkflowStaticData('global');\nconst today = new Date().toISOString().slice(0,10);\nif (sd.day !== today) { sd.day = today; sd.sent = []; }\nconst done = new Set(sd.sent || []);\nconst out = leads.filter(l => l.priority <= MAX_PRIO && !done.has(l.chat_id)).slice(0, CAP);\nreturn out.map(l => ({ json: l }));"
+      },
+      "id": "n3", "name": "Filtrar P1-P3 + cap", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [440, 0]
+    },
+    {
+      "parameters": {"options": {}},
+      "id": "n4", "name": "Um por vez", "type": "n8n-nodes-base.splitInBatches", "typeVersion": 3, "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "url": "=http://127.0.0.1:3000/api/contacts/check-exists?phone={{ $json.phone_e164 }}&session=default",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "httpHeaderAuth", "options": {}
+      },
+      "id": "n5", "name": "WAHA check-exists", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [880, 0],
+      "credentials": {"httpHeaderAuth": {"id": "FyQzLibob5SsjmDF", "name": "WAHA (X-Api-Key)"}}
+    },
+    {
+      "parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "loose"}, "conditions": [{"id": "c1", "leftValue": "={{ $json.numberExists }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true"}}], "combinator": "and"}, "options": {}},
+      "id": "n6", "name": "Existe no WhatsApp?", "type": "n8n-nodes-base.if", "typeVersion": 2, "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST", "url": "http://127.0.0.1:3000/api/startTyping",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $('Um por vez').item.json.chat_id }) }}", "options": {}
+      },
+      "id": "n7", "name": "startTyping", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1320, -120],
+      "credentials": {"httpHeaderAuth": {"id": "FyQzLibob5SsjmDF", "name": "WAHA (X-Api-Key)"}}
+    },
+    {
+      "parameters": {"amount": 3, "unit": "seconds"},
+      "id": "n8", "name": "Digitando 3s", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [1540, -120]
+    },
+    {
+      "parameters": {
+        "method": "POST", "url": "http://127.0.0.1:3000/api/sendText",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $('Um por vez').item.json.chat_id, text: $('Um por vez').item.json.message }) }}", "options": {}
+      },
+      "id": "n9", "name": "sendText", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1760, -120],
+      "credentials": {"httpHeaderAuth": {"id": "FyQzLibob5SsjmDF", "name": "WAHA (X-Api-Key)"}}
+    },
+    {
+      "parameters": {
+        "method": "POST", "url": "https://api.alexandrequeiroz.com.br/api/v1/integrations/whatsapp-event",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customerId: $('Um por vez').item.json.id, event: 'sent', provider: 'waha', messageId: String($json.id || '') }) }}",
+        "options": {}
+      },
+      "id": "n10", "name": "CRM: marcar enviado", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1980, -120],
+      "credentials": {"httpHeaderAuth": {"id": "CRIAR_CRED_X-Integration-Key", "name": "DIAX CRM (X-Integration-Key)"}}
+    },
+    {
+      "parameters": {
+        "jsCode": "// registra no dia p/ dedupe + jitter 45-120s\nconst sd = $getWorkflowStaticData('global');\nsd.sent = sd.sent || [];\nsd.sent.push($('Um por vez').item.json.chat_id);\nreturn [{ json: { wait: 45 + Math.floor(Math.random()*75) } }];"
+      },
+      "id": "n11", "name": "Marcar + jitter", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [2200, -120]
+    },
+    {
+      "parameters": {"amount": "={{ $json.wait }}", "unit": "seconds"},
+      "id": "n12", "name": "Espera 45-120s", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [2420, -120]
+    },
+    {
+      "parameters": {
+        "method": "POST", "url": "https://api.alexandrequeiroz.com.br/api/v1/integrations/whatsapp-event",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ customerId: $('Um por vez').item.json.id, event: 'failed', provider: 'waha', text: 'numero nao existe no WhatsApp' }) }}",
+        "options": {}
+      },
+      "id": "n13", "name": "CRM: nao existe", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1320, 140],
+      "credentials": {"httpHeaderAuth": {"id": "CRIAR_CRED_X-Integration-Key", "name": "DIAX CRM (X-Integration-Key)"}}
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=📱 WA outreach {{ $now.toFormat('dd/MM') }}: {{ $('Filtrar P1-P3 + cap').all().length }} na fila do dia. Ver tarefas no CRM p/ respostas.",
+        "additionalFields": {}
+      },
+      "id": "n14", "name": "Telegram resumo", "type": "n8n-nodes-base.telegram", "typeVersion": 1.2, "position": [880, 260],
+      "credentials": {"telegramApi": {"id": "CRIAR_OU_USAR_CRED_TELEGRAM", "name": "Telegram AQ bot"}}
+    }
+  ],
+  "connections": {
+    "Seg-sex 09:05": {"main": [[{"node": "Ler whatsapp-leads.json", "type": "main", "index": 0}]]},
+    "Ler whatsapp-leads.json": {"main": [[{"node": "Filtrar P1-P3 + cap", "type": "main", "index": 0}]]},
+    "Filtrar P1-P3 + cap": {"main": [[{"node": "Um por vez", "type": "main", "index": 0}]]},
+    "Um por vez": {"main": [[{"node": "Telegram resumo", "type": "main", "index": 0}], [{"node": "WAHA check-exists", "type": "main", "index": 0}]]},
+    "WAHA check-exists": {"main": [[{"node": "Existe no WhatsApp?", "type": "main", "index": 0}]]},
+    "Existe no WhatsApp?": {"main": [[{"node": "startTyping", "type": "main", "index": 0}], [{"node": "CRM: nao existe", "type": "main", "index": 0}]]},
+    "startTyping": {"main": [[{"node": "Digitando 3s", "type": "main", "index": 0}]]},
+    "Digitando 3s": {"main": [[{"node": "sendText", "type": "main", "index": 0}]]},
+    "sendText": {"main": [[{"node": "CRM: marcar enviado", "type": "main", "index": 0}]]},
+    "CRM: marcar enviado": {"main": [[{"node": "Marcar + jitter", "type": "main", "index": 0}]]},
+    "Marcar + jitter": {"main": [[{"node": "Espera 45-120s", "type": "main", "index": 0}]]},
+    "Espera 45-120s": {"main": [[{"node": "Um por vez", "type": "main", "index": 0}]]},
+    "CRM: nao existe": {"main": [[{"node": "Um por vez", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1", "timezone": "America/Sao_Paulo"},
+  "staticData": null,
+  "meta": {"templateCredsSetupCompleted": false},
+  "__notas_para_import": [
+    "Importar INATIVO; criar credencial httpHeaderAuth 'DIAX CRM (X-Integration-Key)' com header X-Integration-Key = DIAX_SEND_EMAIL_KEY e trocar o id CRIAR_CRED_X-Integration-Key nos 2 nós.",
+    "Cred WAHA FyQzLibob5SsjmDF: confirmar que é httpHeaderAuth com X-Api-Key (se for outro tipo, ajustar nodeCredentialType).",
+    "$env.TELEGRAM_CHAT_ID exige N8N_BLOCK_ENV_ACCESS_IN_NODE=false no n8n.env; senão colar o chat id.",
+    "Teste: rodar manual com CAP=1 e MAX_PRIO=1 (2 leads P1) antes de ativar o cron.",
+    "Inbound: no workflow 'WAHA Bot - Atendente IA' (8nKTlX4Y7Hy1EUEn) adicionar IF logo após o webhook: se payload.from ∈ chat_ids do whatsapp-leads.json → POST whatsapp-event {phone, event:'reply', text} + Telegram, e NÃO seguir p/ a IA."
+  ]
+}

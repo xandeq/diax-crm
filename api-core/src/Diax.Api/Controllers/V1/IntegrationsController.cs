@@ -6,7 +6,11 @@ using Diax.Application.Briefings.Dtos;
 using Diax.Application.EmailMarketing;
 using Diax.Application.EmailMarketing.Dispatch;
 using Diax.Application.Integrations;
+using Diax.Application.Integrations.Dtos;
 using Diax.Domain.Auth;
+using Diax.Domain.Common;
+using Diax.Domain.Customers;
+using Diax.Domain.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +32,9 @@ public class IntegrationsController : BaseApiController
     private readonly IUserRepository _userRepository;
     private readonly IEmailDispatchService _emailDispatch;
     private readonly IProviderQuotaGuard _quotaGuard;
+    private readonly ICustomerRepository _customerRepository;
+    private readonly ITaskRepository _taskRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
     private readonly ILogger<IntegrationsController> _logger;
 
@@ -37,6 +44,9 @@ public class IntegrationsController : BaseApiController
         IUserRepository userRepository,
         IEmailDispatchService emailDispatch,
         IProviderQuotaGuard quotaGuard,
+        ICustomerRepository customerRepository,
+        ITaskRepository taskRepository,
+        IUnitOfWork unitOfWork,
         IConfiguration configuration,
         ILogger<IntegrationsController> logger)
     {
@@ -45,6 +55,9 @@ public class IntegrationsController : BaseApiController
         _userRepository = userRepository;
         _emailDispatch = emailDispatch;
         _quotaGuard = quotaGuard;
+        _customerRepository = customerRepository;
+        _taskRepository = taskRepository;
+        _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
     }
@@ -271,6 +284,163 @@ public class IntegrationsController : BaseApiController
                 exhausted       = s.DailyRemaining == 0 || s.WeeklyRemaining == 0
             })
         });
+    }
+
+    /// <summary>
+    /// Callback do sender externo (n8n + WAHA): o CRM é a fonte de verdade do outreach,
+    /// então o WhatsApp reporta de volta o que aconteceu com cada mensagem enviada.
+    /// "sent" registra o envio outbound; "reply" avança o funil e cria uma task urgente
+    /// para o dono responder; "optout" desativa novos disparos; "failed" só é logado.
+    /// </summary>
+    [HttpPost("whatsapp-event")]
+    public async Task<IActionResult> WhatsAppEvent(
+        [FromHeader(Name = "X-Integration-Key")] string? integrationKey,
+        [FromBody] WhatsAppEventIntegrationRequest? request,
+        CancellationToken ct)
+    {
+        // Chave dedicada se existir; senão a mesma do send-email (é o que o deploy de prod baked).
+        var configuredKey = _configuration["Integrations:WhatsAppEventKey"];
+        if (string.IsNullOrWhiteSpace(configuredKey))
+            configuredKey = _configuration["Integrations:SendEmailKey"];
+
+        if (string.IsNullOrWhiteSpace(configuredKey))
+        {
+            _logger.LogError("Integrations:WhatsAppEventKey/SendEmailKey não configurada");
+            return StatusCode(503, new { error = "Integrations.NotConfigured", message = "whatsapp-event integration not configured" });
+        }
+
+        if (string.IsNullOrWhiteSpace(integrationKey) || !TimingSafeEquals(integrationKey, configuredKey))
+        {
+            _logger.LogWarning("whatsapp-event: X-Integration-Key inválida ou ausente");
+            return Unauthorized(new { error = "Integrations.Unauthorized", message = "Invalid integration key" });
+        }
+
+        if (request is null)
+            return BadRequest(new { error = "Integrations.Validation", message = "Body é obrigatório" });
+
+        if (request.CustomerId is null && string.IsNullOrWhiteSpace(request.Phone))
+            return BadRequest(new { error = "Integrations.Validation", message = "customerId ou phone é obrigatório" });
+
+        var normalizedEvent = request.Event?.Trim().ToLowerInvariant();
+        if (normalizedEvent is not ("sent" or "reply" or "optout" or "failed"))
+            return BadRequest(new { error = "Integrations.Validation", message = "event inválido — use sent, reply, optout ou failed" });
+
+        var customer = request.CustomerId is { } customerId
+            ? await _customerRepository.GetByIdAsync(customerId, ct)
+            : await FindCustomerByPhoneAsync(request.Phone!, ct);
+
+        if (customer is null)
+        {
+            _logger.LogWarning("whatsapp-event: customer não encontrado (event={Event})", normalizedEvent);
+            return NotFound(new { error = "Integrations.CustomerNotFound", message = "Customer not found" });
+        }
+
+        var taskCreated = false;
+        string? taskSkippedReason = null;
+
+        switch (normalizedEvent)
+        {
+            case "sent":
+                customer.RegisterWhatsAppSent();
+                customer.RegisterContact();
+                await _customerRepository.UpdateAsync(customer, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                break;
+
+            case "reply":
+                customer.RegisterEngagement();
+                await _customerRepository.UpdateAsync(customer, ct);
+
+                var ownerUserId = await ResolveOwnerUserIdAsync(ct);
+                if (ownerUserId is null)
+                {
+                    taskSkippedReason = "Integrations:DefaultUserId/Auth:AdminEmail não configurado";
+                    _logger.LogWarning("whatsapp-event reply: task não criada para customer {CustomerId} — {Reason}", customer.Id, taskSkippedReason);
+                }
+                else
+                {
+                    var text = request.Text?.Trim();
+                    var description = string.IsNullOrWhiteSpace(text)
+                        ? null
+                        : (text.Length > 256 ? text[..256] : text); // coluna description é nvarchar(256)
+
+                    await _taskRepository.AddAsync(new TaskItem
+                    {
+                        Title = $"💬 WhatsApp respondeu: {customer.Name}",
+                        Description = description,
+                        Priority = TaskItemPriority.Urgent,
+                        DueDate = DateTime.UtcNow.Date.AddHours(21),
+                        UserId = ownerUserId.Value,
+                        CustomerId = customer.Id,
+                    }, ct);
+                    taskCreated = true;
+                }
+
+                await _unitOfWork.SaveChangesAsync(ct);
+                break;
+
+            case "optout":
+                customer.OptOutWhatsApp();
+                await _customerRepository.UpdateAsync(customer, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                break;
+
+            case "failed":
+                _logger.LogWarning("whatsapp-event failed: customer {CustomerId}", customer.Id);
+                break;
+        }
+
+        _logger.LogInformation("whatsapp-event processed: customer {CustomerId} event {Event}", customer.Id, normalizedEvent);
+
+        return Ok(new
+        {
+            customerId = customer.Id,
+            @event = normalizedEvent,
+            status = (int)customer.Status,
+            whatsAppSentCount = customer.WhatsAppSentCount,
+            taskCreated,
+            taskSkippedReason
+        });
+    }
+
+    /// <summary>
+    /// Resolve o customer por telefone quando o sender não manda o customerId.
+    /// Compara os ÚLTIMOS 10-11 dígitos (DDD+número), ignorando toda a formatação
+    /// (parênteses, hífen, DDI, sufixo "@c.us" do WAHA etc.) tanto do lado do input
+    /// quanto do Phone/WhatsApp armazenados (que ficam em texto livre).
+    /// </summary>
+    private async Task<Customer?> FindCustomerByPhoneAsync(string phone, CancellationToken ct)
+    {
+        var inputDigits = DigitsOnly(phone);
+        if (inputDigits.Length < 10) return null;
+
+        var candidates = await _customerRepository.FindAsync(
+            c => c.Phone != null || c.WhatsApp != null, ct);
+
+        return candidates.FirstOrDefault(c =>
+            PhoneDigitsMatch(c.WhatsApp, inputDigits) || PhoneDigitsMatch(c.Phone, inputDigits));
+    }
+
+    private static string DigitsOnly(string? value) =>
+        value is null ? string.Empty : new string(value.Where(char.IsDigit).ToArray());
+
+    /// <summary>
+    /// Compara os últimos 10 ou 11 dígitos de dois telefones — cobre o caso do
+    /// nono dígito móvel estar presente em um lado e ausente no outro.
+    /// </summary>
+    private static bool PhoneDigitsMatch(string? candidatePhone, string inputDigits)
+    {
+        var candidateDigits = DigitsOnly(candidatePhone);
+        if (candidateDigits.Length < 10 || inputDigits.Length < 10) return false;
+
+        var maxTake = Math.Min(11, Math.Min(candidateDigits.Length, inputDigits.Length));
+        for (var take = maxTake; take >= 10; take--)
+        {
+            if (candidateDigits[^take..] == inputDigits[^take..])
+                return true;
+        }
+
+        return false;
     }
 
     private async Task<Guid?> ResolveOwnerUserIdAsync(CancellationToken ct)

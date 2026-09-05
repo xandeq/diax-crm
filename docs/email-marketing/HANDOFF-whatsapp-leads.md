@@ -45,18 +45,28 @@ X-Api-Key: <WAHA_API_KEY do ~/.claude/.secrets.env>   Content-Type: application/
 ```
 Sucesso = resposta com `id` (`fromMe:true`). Marcar "digitando" antes (`POST /api/startTyping` 2-4 s) deixa natural.
 
-## 5. Escrever de volta no CRM (obrigatório — senão o email e o WhatsApp se atropelam)
-Após envio OK (Python/db.py, ou nó MSSQL no n8n):
-```sql
-UPDATE customers SET whats_app_sent_count = ISNULL(whats_app_sent_count,0)+1,
-       last_whats_app_sent_at = SYSUTCDATETIME(), updated_by='waha-local', updated_at=SYSUTCDATETIME()
- WHERE id = '<id>';
+## 5. Escrever de volta no CRM (obrigatório — o CRM é quem controla)
+**Um único endpoint, sem login, mesma chave do send-email** (`DIAX_SEND_EMAIL_KEY` do `.secrets.env`):
 ```
-Resposta do lead → `POST /api/v1/tasks` `{"title":"💬 WhatsApp respondeu: <nome>","description":"<texto>","priority":4,"dueDate":"<hoje>T21:00:00Z"}`
-(login da opção C) e `PATCH /api/v1/customers/<id>/status {"status":2}`. Opt-out → `UPDATE customers SET whats_app_opt_out=1 …`.
-O `daily_waves.py`/`reply_watch.py` já leem `whats_app_opt_out` e cooldown de 30 d no export.
+POST https://api.alexandrequeiroz.com.br/api/v1/integrations/whatsapp-event
+X-Integration-Key: <DIAX_SEND_EMAIL_KEY>      Content-Type: application/json
+{"customerId":"<id do JSON>", "event":"sent",   "provider":"waha", "messageId":"<id do WAHA>"}
+{"customerId":"<id>",         "event":"reply",  "text":"<o que o lead escreveu>"}
+{"phone":"5527999990000",     "event":"optout"}          # phone serve quando não há customerId
+{"customerId":"<id>",         "event":"failed", "text":"<erro>"}
+```
+O que o CRM faz: `sent` → `whats_app_sent_count+1`, `last_whats_app_sent_at`, Lead→Contacted ·
+`reply` → status Qualified + **tarefa Urgente** p/ o Alexandre · `optout` → `whats_app_opt_out=1` (sai de
+todo export) · `failed` → só log. Resposta 200 `{customerId, event, status, whatsAppSentCount, taskCreated}`;
+401 chave errada; 404 lead não achado; 400 evento inválido.
+Helper local: `python wa_event.py <customerId|phone> sent|reply|optout|failed ["texto"]`.
+No n8n: nó HTTP Request logo após o `sendText` (e no ramo "lead" do inbound com `event=reply`).
+Fallback só se a API estiver fora (SQL direto): `UPDATE customers SET whats_app_sent_count=ISNULL(whats_app_sent_count,0)+1,
+last_whats_app_sent_at=SYSUTCDATETIME(), updated_by='waha-local' WHERE id='<id>'`.
+O `export_whatsapp_leads.py` respeita `whats_app_opt_out` e cooldown de 30 d em `last_whats_app_sent_at`.
 
-## 6. Fluxo sugerido no n8n ("WA Outreach 1-a-1")
+## 6. Fluxo no n8n ("WA Outreach 1-a-1") — **JSON pronto p/ importar**: `n8n-wa-outreach-1a1.json`
+(mesma pasta; ler `__notas_para_import` dentro do arquivo: credencial `X-Integration-Key`, cred WAHA, teste com CAP=1).
 Cron seg-sex 09:05 → ler JSON → filtrar `priority<=3 && !enviado_hoje` → `Limit 20` → loop:
 `check-exists` → `startTyping` → `Wait 2-4s` → `sendText` → MSSQL update → `Wait 45-120s` (random) →
 fim: Telegram resumo (`n enviados`, `n pulados`). Inbound: no `waha-bot`, primeiro nó *IF from ∈ leads.json*
