@@ -63,6 +63,22 @@ def is_foreign_lead(email, company=''):
     return bool(_re.search(FOREIGN_NAME_RE, (company or '').lower()))
 
 
+TARGET_STATES = {'ES'}
+TARGET_DDDS = {'27', '28'}
+
+
+def in_target_geo(state, phone, states=TARGET_STATES, ddds=TARGET_DDDS):
+    """Negócio é local (Grande Vitória). Estado informado decide; sem estado, o DDD decide;
+    sem nenhum dos dois = não verificável = fora. Extrator devolve SP num batch 'grande_vitoria_es'."""
+    st = (state or '').strip().upper()
+    if st:
+        return st in states
+    import re as _re
+    d = _re.sub(r'\D', '', phone or '')
+    if d.startswith('55') and len(d) >= 12: d = d[2:]
+    return len(d) >= 10 and d[:2] in ddds
+
+
 def is_role_mailbox(email):
     """Caixa institucional/de função — nunca vira cliente, só queima reputação.
     Aplicado nos follow-ups (a wave inicial já saiu; não repetir o erro)."""

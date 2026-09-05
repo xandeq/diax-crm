@@ -168,7 +168,7 @@ public class ExtractorServiceAuthTests
         const string wire =
             "{\"leads\":[{\"id\":42,\"company_name\":\"Acme\",\"contact_name\":\"Joao\"," +
             "\"email\":\"a@a.com\",\"phone\":\"27999\",\"whatsapp\":\"5527999\"," +
-            "\"crm_status\":\"novo\",\"tags\":\"x\",\"website\":\"acme.com\"}]," +
+            "\"crm_status\":\"novo\",\"tags\":\"x\",\"website\":\"acme.com\",\"state\":\"ES\",\"city\":\"Vitoria\"}]," +
             "\"total\":1,\"page\":1,\"per_page\":100}";
         var handler = new SequencedHandler(Resp(HttpStatusCode.OK, wire));
         var sut = BuildSut(handler, ConfigProviderOk().Object);
@@ -183,6 +183,8 @@ public class ExtractorServiceAuthTests
         Assert.Equal("novo", lead.CrmStatus);     // crm_status  → CrmStatus
         Assert.Equal("5527999", lead.WhatsApp);   // whatsapp    → WhatsApp
         Assert.Equal("acme.com", lead.Website);
+        Assert.Equal("ES", lead.State);           // state       → State
+        Assert.Equal("Vitoria", lead.City);       // city        → City
         Assert.Equal(100, result.Value.PerPage);  // per_page    → PerPage
     }
 

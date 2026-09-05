@@ -269,4 +269,10 @@ public class ExtractorLead
 
     [JsonPropertyName("website")]
     public string? Website { get; set; }
+
+    [JsonPropertyName("state")]
+    public string? State { get; set; }
+
+    [JsonPropertyName("city")]
+    public string? City { get; set; }
 }

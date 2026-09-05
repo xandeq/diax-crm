@@ -67,6 +67,21 @@ def test_personalize_html_escapes_markup_from_lead_page():
     assert '<script>' not in out and '&lt;script&gt;' in out and '&amp;' in out
     assert 'í' not in out and '&#237;' in out   # não-ASCII vira entidade numérica
 
+# --- in_target_geo ------------------------------------------------------
+def test_geo_state_decides_when_present():
+    from waves_lib import in_target_geo
+    assert in_target_geo('ES', '(11) 99999-0000')          # estado manda
+    assert in_target_geo(' es ', '')
+    assert not in_target_geo('SP', '(27) 99999-0000')      # SP explícito, mesmo com DDD 27
+
+def test_geo_ddd_decides_when_state_missing():
+    from waves_lib import in_target_geo
+    assert in_target_geo('', '+55 (27) 99999-0000')
+    assert in_target_geo(None, '2833334444')
+    assert not in_target_geo('', '(11) 3333-4444')
+    assert not in_target_geo('', '')                        # não verificável = fora
+    assert not in_target_geo('', '999')
+
 # --- is_foreign_lead ----------------------------------------------------
 def test_foreign_vitoria_gasteiz_leads_detected():
     from waves_lib import is_foreign_lead

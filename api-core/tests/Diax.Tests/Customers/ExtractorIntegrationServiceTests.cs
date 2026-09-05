@@ -257,7 +257,7 @@ public class ExtractorIntegrationServiceTests
     {
         SetupExtractorPage(1, new List<ExtractorLead>
         {
-            new() { Id = 1, ContactName = "João Silva", CompanyName = "Acme Corp", Email = "joao@acme.com" }
+            new() { Id = 1, ContactName = "João Silva", CompanyName = "Acme Corp", Email = "joao@acme.com", State = "ES" }
         }, total: 1);
 
         var result = await _sut.ImportLeadsAsync();
@@ -272,7 +272,7 @@ public class ExtractorIntegrationServiceTests
     {
         SetupExtractorPage(1, new List<ExtractorLead>
         {
-            new() { Id = 1, ContactName = null, CompanyName = "Fallback Inc", Email = "info@fallback.com" }
+            new() { Id = 1, ContactName = null, CompanyName = "Fallback Inc", Email = "info@fallback.com", State = "ES" }
         }, total: 1);
 
         var result = await _sut.ImportLeadsAsync();
@@ -288,7 +288,7 @@ public class ExtractorIntegrationServiceTests
         SetupExtractorPage(1, new List<ExtractorLead>
         {
             new() { Id = 1, ContactName = null, CompanyName = null, Email = "a@a.com" },
-            new() { Id = 2, ContactName = "Valid Name", Email = "b@b.com" },
+            new() { Id = 2, ContactName = "Valid Name", Email = "b@b.com", State = "ES" },
         }, total: 2);
 
         var result = await _sut.ImportLeadsAsync();
@@ -302,7 +302,7 @@ public class ExtractorIntegrationServiceTests
     {
         SetupExtractorPage(1, new List<ExtractorLead>
         {
-            new() { Id = 42, ContactName = "Test", Email = "t@t.com", Website = "https://test.com", CrmStatus = "novo" }
+            new() { Id = 42, ContactName = "Test", Email = "t@t.com", Website = "https://test.com", CrmStatus = "novo", State = "ES" }
         }, total: 1);
 
         await _sut.ImportLeadsAsync();
@@ -320,7 +320,7 @@ public class ExtractorIntegrationServiceTests
     {
         SetupExtractorPage(1, new List<ExtractorLead>
         {
-            new() { Id = 1, ContactName = "Test", Email = "t@t.com", Tags = "ES,Web Design" }
+            new() { Id = 1, ContactName = "Test", Email = "t@t.com", Tags = "ES,Web Design", State = "ES" }
         }, total: 1);
 
         await _sut.ImportLeadsAsync();
@@ -536,7 +536,7 @@ public class ExtractorIntegrationServiceTests
     {
         SetupExtractorPage(1, new List<ExtractorLead>
         {
-            new() { Id = 1, ContactName = "Lead Válido", Email = goodEmail },
+            new() { Id = 1, ContactName = "Lead Válido", Email = goodEmail, State = "ES" },
         }, total: 1);
 
         var result = await _sut.ImportLeadsAsync();
@@ -592,8 +592,8 @@ public class ExtractorIntegrationServiceTests
 
         SetupExtractorPage(1, new List<ExtractorLead>
         {
-            new() { Id = 1, ContactName = "Espanhol Liberado", Email = "hola@empresa.es" },
-            new() { Id = 2, ContactName = "Xyz Bloqueado", Email = "x@dominio.xyz" },
+            new() { Id = 1, ContactName = "Espanhol Liberado", Email = "hola@empresa.es", State = "ES" },
+            new() { Id = 2, ContactName = "Xyz Bloqueado", Email = "x@dominio.xyz", State = "ES" },
         }, total: 2);
 
         var result = await sut.ImportLeadsAsync();
@@ -606,6 +606,112 @@ public class ExtractorIntegrationServiceTests
         _customerRepoMock.Verify(r => r.AddAsync(
             It.Is<Customer>(c => c.Email == "x@dominio.xyz"),
             It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GEO FILTER — negócio local (Grande Vitória-ES); Extrator devolve leads de todo o Brasil
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task ImportLeads_GeoFilter_SkipsLeadOutsideAllowedState()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Fora de ES", Email = "fora@empresa.com.br", State = "SP" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_GeoFilter_AcceptsLeadWithLowercaseAllowedState()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Dentro de ES", Email = "dentro@empresa.com.br", State = "es" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "dentro@empresa.com.br"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_GeoFilter_NoState_FallsBackToAllowedDddInPhone()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "DDD 27", Email = "ddd27@empresa.com.br", State = null, Phone = "(27) 99999-0000" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "ddd27@empresa.com.br"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_GeoFilter_NoState_SkipsLeadWithOutOfRangeDdd()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "DDD 11", Email = "ddd11@empresa.com.br", State = null, Phone = "+55 (11) 3333-4444" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_GeoFilter_NoStateAndNoPhone_SkipsAsUnverifiableGeo()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Sem Geo", Email = "semgeo@empresa.com.br", State = null, Phone = null, WhatsApp = null },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("ExtractorImport.NoLeads", result.Error.Code);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_GeoFilter_EmptyAllowedStates_DisablesGeoFilter()
+    {
+        var sut = CreateSut(new ExtractorPullOptions
+        {
+            AllowedStates = new List<string>(),
+            AllowedDdds = new List<string>()
+        });
+
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "SP Liberado", Email = "sp@empresa.com.br", State = "SP" },
+        }, total: 1);
+
+        var result = await sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == "sp@empresa.com.br"),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -621,8 +727,8 @@ public class ExtractorIntegrationServiceTests
 
         SetupExtractorPage(1, new List<ExtractorLead>
         {
-            new() { Id = 1, ContactName = "Espanhol", Email = "hola@empresa.es" },
-            new() { Id = 2, ContactName = "Brasileiro", Email = "oi@lojases.com.br" },
+            new() { Id = 1, ContactName = "Espanhol", Email = "hola@empresa.es", State = "ES" },
+            new() { Id = 2, ContactName = "Brasileiro", Email = "oi@lojases.com.br", State = "ES" },
         }, total: 2);
 
         var result = await sut.ImportLeadsAsync();
