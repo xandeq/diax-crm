@@ -50,22 +50,21 @@ public class LeadScoringServiceTests
     {
         var lead = new Customer("Clicador", "c@t.com");
         var eng = Eng(lead.Id, opens: 2, clicks: 1, last: Now.AddDays(-2));
-        // opens≥1 (+15) + click≥1 (+25) + recência ≤7d (+15) = 55... + dados 0 → Warm alto
+        // opens≥1 (+5) + click≥1 (+25) + recência ≤7d (+15) = 45... + fit 0 → ainda Hot
         var score = LeadScoringService.CalculateScore(lead, eng, Now);
-        Assert.Equal(55, score);
+        Assert.Equal(45, score);
     }
 
     [Fact]
     public void CalculateScore_FullProfileAndEngagement_IsHot()
     {
         var lead = MakeLead("Completo", phone: "27999990000", website: "https://x.com");
-        lead.UpdateTags("hotel,vitoria");
         lead.UpdateClassification(null, null, false, isEligibleForCampaigns: true);
         var eng = Eng(lead.Id, opens: 4, clicks: 2, last: Now.AddDays(-1));
 
         var score = LeadScoringService.CalculateScore(lead, eng, Now);
-        // dados 35 + opens 25 + click 25 + recência 15 = 100
-        Assert.Equal(100, score);
+        // fit 25 (site 5 + tel 5 + elegível 5 + DDD ES 10) + opens 10 + click 25 + recência 15 = 75
+        Assert.Equal(75, score);
     }
 
     [Fact]
@@ -87,6 +86,86 @@ public class LeadScoringServiceTests
         var ancient = LeadScoringService.CalculateScore(lead, Eng(lead.Id, opens: 1, last: Now.AddDays(-90)), Now);
         Assert.True(recent > old);
         Assert.True(old > ancient);
+    }
+
+    [Fact]
+    public void CalculateScore_CompleteRegistration_NoEngagement_DDD11_IsCold()
+    {
+        var lead = MakeLead("Cadastro Completo SP", phone: "11999990000", website: "https://x.com");
+        lead.UpdateClassification(null, null, false, isEligibleForCampaigns: true);
+
+        var score = LeadScoringService.CalculateScore(lead, null, Now);
+
+        Assert.True(score < LeadScoringService.WarmThreshold);
+    }
+
+    [Fact]
+    public void CalculateScore_CompleteRegistration_NoEngagement_DDD27_StillCold()
+    {
+        var lead = MakeLead("Cadastro Completo ES", phone: "27999990000", website: "https://x.com");
+        lead.UpdateClassification(null, null, false, isEligibleForCampaigns: true);
+
+        var score = LeadScoringService.CalculateScore(lead, null, Now);
+
+        // fit sozinho (máx 25: site+tel+elegível+DDD local) nunca chega a Warm (30)
+        Assert.True(score < LeadScoringService.WarmThreshold);
+    }
+
+    [Fact]
+    public void CalculateScore_CompleteRegistration_DDD27_PlusOneOpen_ReachesWarm()
+    {
+        var lead = MakeLead("Cadastro Completo ES Aberto", phone: "27999990000", website: "https://x.com");
+        lead.UpdateClassification(null, null, false, isEligibleForCampaigns: true);
+        var eng = Eng(lead.Id, opens: 1);
+
+        var score = LeadScoringService.CalculateScore(lead, eng, Now);
+
+        Assert.True(score >= LeadScoringService.WarmThreshold);
+    }
+
+    [Fact]
+    public void CalculateScore_ClickWithinWeek_EsPhoneAndWebsite_IsHot()
+    {
+        var lead = MakeLead("Quente ES", phone: "27999990000", website: "https://x.com");
+        var eng = Eng(lead.Id, clicks: 1, last: Now.AddDays(-2));
+
+        var score = LeadScoringService.CalculateScore(lead, eng, Now);
+
+        Assert.True(score >= LeadScoringService.HotThreshold);
+    }
+
+    [Fact]
+    public void CalculateScore_QualifiedStatus_WithoutEmailEvents_ReachesWarm()
+    {
+        var lead = MakeLead("Qualificado Sem Email", phone: "27999990000");
+        lead.UpdateStatus(CustomerStatus.Qualified);
+
+        var score = LeadScoringService.CalculateScore(lead, null, Now);
+
+        Assert.True(score >= LeadScoringService.WarmThreshold);
+    }
+
+    [Fact]
+    public void CalculateScore_Bounce_DropsOtherwiseHotLead_BelowHotThreshold()
+    {
+        var lead = MakeLead("Quente Com Bounce", phone: "27999990000", website: "https://x.com");
+        var eng = Eng(lead.Id, clicks: 1, bounces: 1, last: Now.AddDays(-2));
+
+        var score = LeadScoringService.CalculateScore(lead, eng, Now);
+
+        Assert.True(score < LeadScoringService.HotThreshold);
+    }
+
+    [Fact]
+    public void CalculateScore_PhoneWithCountryCodeAndFormatting_StillDetectsEsDdd()
+    {
+        var esLead = MakeLead("ES Formatado", phone: "+55 (28) 99999-0000");
+        var spLead = MakeLead("SP Formatado", phone: "(11) 99999-0000");
+
+        var esScore = LeadScoringService.CalculateScore(esLead, null, Now);
+        var spScore = LeadScoringService.CalculateScore(spLead, null, Now);
+
+        Assert.Equal(spScore + 10, esScore); // só o bônus de DDD local diferencia os dois
     }
 
     // ── RecomputeAllAsync ────────────────────────────────────────────────────

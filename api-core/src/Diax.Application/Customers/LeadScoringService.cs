@@ -101,24 +101,28 @@ public class LeadScoringService : IApplicationService
     }
 
     /// <summary>
-    /// Score 0–100. Engajamento de email pesa mais que cadastro:
-    /// quem ABRE e CLICA está comprando — quem só tem telefone bonito, não.
+    /// Score 0–100. Fit de cadastro (site, telefone/WhatsApp, elegibilidade e DDD local
+    /// 27/28 — mercado é Vitória-ES) vale no máximo 25, sempre abaixo do limiar Warm por
+    /// si só. Quem empurra para Warm/Hot é engajamento real: aberturas e cliques de email
+    /// e o avanço de Status para Qualified/Negotiating (só ocorre via clique, resposta ou
+    /// WhatsApp — tratado como sinal forte de intenção). Bounce e opt-out (email ou
+    /// WhatsApp) penalizam.
     /// </summary>
     public static int CalculateScore(Customer lead, CustomerEngagementSummary? engagement, DateTime nowUtc)
     {
         var score = 0;
 
-        // ── Completude de cadastro (máx 35) ──
-        if (!string.IsNullOrWhiteSpace(lead.Website)) score += 10;
-        if (!string.IsNullOrWhiteSpace(lead.Phone) || !string.IsNullOrWhiteSpace(lead.WhatsApp)) score += 10;
-        if (!string.IsNullOrWhiteSpace(lead.Tags)) score += 5;
-        if (lead.IsEligibleForCampaigns) score += 10;
+        // ── Fit de cadastro (máx 25) ──
+        if (!string.IsNullOrWhiteSpace(lead.Website)) score += 5;
+        if (!string.IsNullOrWhiteSpace(lead.Phone) || !string.IsNullOrWhiteSpace(lead.WhatsApp)) score += 5;
+        if (lead.IsEligibleForCampaigns) score += 5;
+        if (HasLocalDdd(lead.WhatsApp) || HasLocalDdd(lead.Phone)) score += 10; // mercado local: Vitória-ES
 
-        // ── Engajamento de email (máx 50) ──
+        // ── Engajamento de email (máx 35) ──
         if (engagement != null)
         {
-            if (engagement.OpenCount >= 1) score += 15;
-            if (engagement.OpenCount >= 3) score += 10;
+            if (engagement.OpenCount >= 1) score += 5;
+            if (engagement.OpenCount >= 3) score += 5;
             if (engagement.ClickCount >= 1) score += 25;
 
             // ── Recência do engajamento (máx 15) ──
@@ -133,9 +137,27 @@ public class LeadScoringService : IApplicationService
             if (engagement.BounceCount >= 1) score -= 30; // email inválido — despriorizar
         }
 
+        // ── Intenção qualificada (clique/resposta/WhatsApp levaram o Status adiante) ──
+        if (lead.Status is CustomerStatus.Qualified or CustomerStatus.Negotiating) score += 15;
+
         if (lead.EmailOptOut) score -= 15; // saiu da lista — só vale por telefone
+        if (lead.WhatsAppOptOut) score -= 15; // saiu do WhatsApp também
 
         return Math.Clamp(score, 0, 100);
+    }
+
+    /// <summary>
+    /// DDD 27/28 (Grande Vitória-ES) no telefone informado, após normalizar (só dígitos,
+    /// removendo o "55" de código do país quando presente).
+    /// </summary>
+    private static bool HasLocalDdd(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return false;
+
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.Length >= 12 && digits.StartsWith("55")) digits = digits[2..];
+
+        return digits.StartsWith("27") || digits.StartsWith("28");
     }
 
     private async Task<int> CreateFollowUpTasksAsync(
