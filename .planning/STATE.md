@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-09-06T09:32:30.386Z"
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-09-06T09:32:37.712Z"
 progress:
   total_phases: 2
   completed_phases: 0
@@ -96,6 +96,7 @@ Plan: 3 of 7
 
 - [Phase 07]: WebsiteClassifier/JunkDomainFilter são cópias verbatim de site_check.py/mx_check.py (D-08) — sem reinventar as listas
 - [Phase 07]: 07-02: MxResponseInterpreter isolates DNS decision logic (Valid/NoMx/Unverified) as pure function from DnsClient.NET types for offline deterministic testing
+- [Phase 07]: 07-02: D-02 confirmed in code — SERVFAIL(2)/NotImplemented(4)/Refused(5) resolve to Unverified same as ConnectionTimeout, only NXDOMAIN(3) and empty MX+A resolve to NoMx
 
 ### Testing Protocol
 
@@ -151,8 +152,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-06T09:32:18.228Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-09-06T09:32:37.708Z
+Stopped at: Completed 07-02-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
