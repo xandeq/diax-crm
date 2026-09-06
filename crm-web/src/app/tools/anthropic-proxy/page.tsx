@@ -169,6 +169,26 @@ export default function AnthropicProxyPage() {
       q: 'Setei em um PowerShell (5.1) e não aparece no PowerShell 7 (pwsh), ou vice-versa',
       a: 'Variáveis setadas só com $env: valem apenas pra sessão/processo aberto. Já as salvas como "User" (SetEnvironmentVariable) valem pra qualquer shell novo (5.1, 7, cmd, VS Code) — mas só a partir do PRÓXIMO processo aberto depois de salvar, nunca no que já está rodando.',
     },
+    {
+      q: '"Not logged in · Please run /login" mesmo com ANTHROPIC_BASE_URL e ANTHROPIC_API_KEY certos, e o banner mostrando "API Usage Billing"',
+      a: (
+        <>
+          Causa real: seu modelo padrão é <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>opus[1m]</code> (Opus com contexto de 1M tokens) —
+          esse alias só funciona pela sessão OAuth do claude.ai (planos Max/Team), não é servido via API key genérica + proxy.
+          O CLI detecta a env var e troca o banner pra &quot;API Usage Billing&quot;, mas ao tentar rodar esse modelo específico
+          esbarra na exigência de OAuth e mostra o erro genérico de login em vez de um erro claro de modelo incompatível.
+          <br /><br />
+          <strong style={{ color: '#D1FAE5' }}>Não rode /logout</strong> — isso derruba sua sessão claude.ai de verdade e quebra
+          qualquer MCP/integração conectada por OAuth nessa mesma conta. O fix é só trocar o modelo:
+          dentro do CLI rode <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>/model</code> e
+          escolha um sem &quot;(1M context)&quot;, ou sete antes de abrir o claude:
+          <br />
+          <code style={{ display: 'inline-block', marginTop: 6, background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>
+            $env:ANTHROPIC_MODEL = &quot;claude-sonnet-4-5-20250929&quot;
+          </code>
+        </>
+      ),
+    },
   ];
 
   const faqs = [
