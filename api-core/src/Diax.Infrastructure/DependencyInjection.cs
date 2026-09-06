@@ -202,6 +202,7 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Customers.IApifyIntegrationService, Diax.Application.Customers.ApifyIntegrationService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerImportRepository, CustomerImportRepository>();
+        services.AddScoped<IMxCacheRepository, MxCacheRepository>();
 
         // ===== DNS / MX CHECK (EXTR-01) =====
         // LookupClient é thread-safe e caro de construir (mantém sockets) → singleton, mesmo
