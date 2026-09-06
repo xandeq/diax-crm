@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
-stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-09-06T09:40:21.495Z"
+stopped_at: Completed 07-04-PLAN.md
+last_updated: "2026-09-06T09:54:49.717Z"
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 7
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 ## Current Position
 
 Phase: 07 (extra-o-qualidade-na-entrada) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Plan: 4 of 7
 | Phase 07 P01 | 12min | 2 tasks | 5 files |
 | Phase 07 P02 | 15min | 2 tasks | 6 files |
 | Phase 07 P03 | 25min | 3 tasks | 12 files |
+| Phase 07 P04 | 55min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,9 @@ Plan: 4 of 7
 - [Phase 07]: 07-02: D-02 confirmed in code — SERVFAIL(2)/NotImplemented(4)/Refused(5) resolve to Unverified same as ConnectionTimeout, only NXDOMAIN(3) and empty MX+A resolve to NoMx
 - [Phase 07]: [Phase 07] 07-03: MxCacheEntry.ResultCode fica int no Domain (nao MxCheckResult) - Domain nao referencia Application, conversao fica pro consumidor em 07-04
 - [Phase 07]: [Phase 07] 07-03: zero migration gerada (D-07) - migration unica coordenando WebsiteKind+ExternalId+contadores+mx_cache_entries sai no plano 07-07
+- [Phase 07]: 07-04: D-02 confirmada em codigo — MxCheckResult.Unverified nunca aciona o continue de rejeicao no loop de import; so NoMx rejeita
+- [Phase 07]: 07-04: MX check roda em LOTE apos a paginacao completa (nao por lead), reaproveitando cache persistente + paralelismo configuravel (default 8)
+- [Phase 07]: 07-04: JunkDomainFilter.IsJunk adicionado como short-circuit em IsLowQualityEmail — expos colisao de fixtures de teste pre-existentes (empresa.com.br/email.com/test.com), corrigidas para dominios nao-lixo
 
 ### Testing Protocol
 
@@ -155,8 +159,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-06T09:40:21.491Z
-Stopped at: Completed 07-03-PLAN.md
+Last session: 2026-09-06T09:54:49.713Z
+Stopped at: Completed 07-04-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
