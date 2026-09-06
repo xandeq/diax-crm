@@ -44,6 +44,23 @@ public class CustomerImport : AuditableEntity
     /// </summary>
     public string? ErrorDetails { get; private set; }
 
+    // ===== CONTADORES DE REJEIÇÃO POR RODADA (EXTR-02 / decisão D-04) =====
+    // Agregados, NÃO por lead: o banco está em ~467/500 MB de quota e ~900 leads/dia são
+    // rejeitados — uma tabela por lead precisaria de purge desde o primeiro dia (D-05).
+    // Consultável por período via o índice IX_CustomerImports_CreatedAt que já existe.
+
+    /// <summary>Leads descartados por UF/DDD fora da região alvo.</summary>
+    public int GeoRejectedCount { get; private set; }
+
+    /// <summary>Leads descartados por e-mail lixo (domínio bloqueado, TLD estrangeiro, '%', domínio placeholder).</summary>
+    public int LowQualityEmailRejectedCount { get; private set; }
+
+    /// <summary>Leads descartados porque o domínio de e-mail comprovadamente não recebe e-mail (sem MX e sem A).</summary>
+    public int NoMxRejectedCount { get; private set; }
+
+    /// <summary>Leads que casaram com um Customer já existente (update, não create).</summary>
+    public int DuplicateRejectedCount { get; private set; }
+
     // ===== CONSTRUTORES =====
 
     /// <summary>
@@ -65,9 +82,26 @@ public class CustomerImport : AuditableEntity
         Status = ImportStatus.Processing;
         SuccessCount = 0;
         FailedCount = 0;
+        GeoRejectedCount = 0;
+        LowQualityEmailRejectedCount = 0;
+        NoMxRejectedCount = 0;
+        DuplicateRejectedCount = 0;
     }
 
     // ===== MÉTODOS DE DOMÍNIO =====
+
+    /// <summary>
+    /// Registra os contadores agregados de rejeição desta rodada de import (EXTR-02).
+    /// Não altera Status/SuccessCount/FailedCount — pode ser chamado antes ou depois de Complete.
+    /// Valores negativos são normalizados para 0.
+    /// </summary>
+    public void RecordRejectionCounts(int geo, int lowQualityEmail, int noMx, int duplicate)
+    {
+        GeoRejectedCount = Math.Max(0, geo);
+        LowQualityEmailRejectedCount = Math.Max(0, lowQualityEmail);
+        NoMxRejectedCount = Math.Max(0, noMx);
+        DuplicateRejectedCount = Math.Max(0, duplicate);
+    }
 
     /// <summary>
     /// Marca a importação como concluída com os resultados.
