@@ -72,7 +72,12 @@ public record ImportHistoryResponse(
     int SuccessCount,
     int FailedCount,
     string? ErrorDetails,
-    DateTime CreatedAt)
+    DateTime CreatedAt,
+    // ===== EXTR-02: motivos de rejeição desta rodada =====
+    int GeoRejectedCount = 0,
+    int LowQualityEmailRejectedCount = 0,
+    int NoMxRejectedCount = 0,
+    int DuplicateRejectedCount = 0)
 {
     /// <summary>
     /// Converte a entidade CustomerImport para DTO de resposta.
@@ -88,6 +93,10 @@ public record ImportHistoryResponse(
             import.SuccessCount,
             import.FailedCount,
             import.ErrorDetails,
-            import.CreatedAt);
+            import.CreatedAt,
+            import.GeoRejectedCount,
+            import.LowQualityEmailRejectedCount,
+            import.NoMxRejectedCount,
+            import.DuplicateRejectedCount);
     }
 }
