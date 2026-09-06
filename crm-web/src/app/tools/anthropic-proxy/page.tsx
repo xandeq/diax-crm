@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, AlertTriangle, ShieldAlert, Laptop } from 'lucide-react';
+import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, AlertTriangle, ShieldAlert, Laptop, RefreshCw } from 'lucide-react';
 
 const PROXY_URL = 'https://api.alexandrequeiroz.com.br/proxy';
 const PROXY_MESSAGES_URL = `${PROXY_URL}/v1/messages`;
@@ -507,6 +507,66 @@ $env:ANTHROPIC_API_KEY = "${SERVICE_KEY}"
         <div>
           <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>4. Limpar uma variável setada errada (nível User):</p>
           <CodeBlock lang="powershell" code={`[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", $null, "User")`} />
+        </div>
+      </Section>
+
+      {/* Reset Completo */}
+      <Section icon={RefreshCw} title="Reset Completo — Começar do Zero" color="#DC2626">
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: '#9CA3AF', lineHeight: 1.7 }}>
+          Se já tentou os métodos acima em várias combinações e continua com erro de login/401, o mais rápido é zerar
+          <strong style={{ color: '#D1FAE5' }}> TODAS</strong> as variáveis relacionadas (não só as 2-3 óbvias),
+          limpar o cache de login local do Claude Code, e recomeçar do zero. Siga a ordem — cada bloco é um comando único, cole exatamente como está.
+        </p>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>1. Feche TUDO primeiro: todas as janelas do VS Code, todos os terminais, o Claude Code.</p>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+            2. Abre um PowerShell novo (fora do VS Code) e zera TODAS as variáveis de auth do Claude Code, nos dois escopos (User e Machine) de uma vez:
+          </p>
+          <CodeBlock lang="powershell" code={`$vars = "ANTHROPIC_API_KEY","ANTHROPIC_AUTH_TOKEN","ANTHROPIC_BASE_URL","ANTHROPIC_MODEL","ANTHROPIC_PROFILE","ANTHROPIC_FEDERATION_RULE_ID","ANTHROPIC_ORGANIZATION_ID","ANTHROPIC_SERVICE_ACCOUNT_ID","ANTHROPIC_IDENTITY_TOKEN_FILE","ANTHROPIC_IDENTITY_TOKEN","ANTHROPIC_WORKSPACE_ID","CLAUDE_CODE_USE_BEDROCK","CLAUDE_CODE_USE_VERTEX","CLAUDE_CODE_OAUTH_TOKEN"; foreach ($v in $vars) { [System.Environment]::SetEnvironmentVariable($v, $null, "User"); [System.Environment]::SetEnvironmentVariable($v, $null, "Machine") }`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>3. Confirma que ficou tudo vazio (não deve aparecer nenhuma linha):</p>
+          <CodeBlock lang="powershell" code={`Get-ChildItem Env: | Where-Object { $_.Name -like "*ANTHROPIC*" -or $_.Name -like "*CLAUDE_CODE*" }`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+            4. Apaga o cache de login local do Claude Code nessa máquina (não afeta outras máquinas nem outras contas — é só o token salvo localmente):
+          </p>
+          <CodeBlock lang="powershell" code={`Remove-Item "$env:USERPROFILE\\.claude\\.credentials.json" -ErrorAction SilentlyContinue`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>5. Recria o settings.json do zero, já com o conteúdo correto:</p>
+          <CodeBlock lang="powershell" code={`Set-Content -Path "$env:USERPROFILE\\.claude\\settings.json" -Value '{"model":"claude-sonnet-4-5-20250929","env":{"ANTHROPIC_BASE_URL":"${PROXY_URL}","ANTHROPIC_API_KEY":"${SERVICE_KEY}"}}' -Encoding utf8`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>6. Reinicia o notebook (garante que nada ficou em cache de sessão/processo aberto):</p>
+          <CodeBlock lang="powershell" code={`Restart-Computer`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+            7. Depois de reiniciar, abre um PowerShell PURO primeiro (não o VS Code ainda) e confirma que continua tudo vazio:
+          </p>
+          <CodeBlock lang="powershell" code={`Get-ChildItem Env: | Where-Object { $_.Name -like "*ANTHROPIC*" -or $_.Name -like "*CLAUDE_CODE*" }`} />
+        </div>
+
+        <div>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>8. Abre o Claude Code:</p>
+          <CodeBlock lang="powershell" code={`claude`} />
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>
+            Como o cache de login foi apagado, deve aparecer um menu <strong style={{ color: '#D1FAE5' }}>&quot;Login Method&quot;</strong> com
+            3 opções — escolha explicitamente a opção <strong style={{ color: '#D1FAE5' }}>&quot;2. Anthropic Console account · API usage billing&quot;</strong> (não
+            a opção 1, que é login via claude.ai/OAuth). Confirme que o banner mostra <strong style={{ color: '#D1FAE5' }}>Sonnet 4.5 · API Usage Billing</strong> e
+            testa digitando <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>oi</code>.
+          </p>
         </div>
       </Section>
 
