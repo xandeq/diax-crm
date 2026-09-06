@@ -133,6 +133,7 @@ public static class DependencyInjection
 
         // ===== EXTRATOR INTEGRATION =====
         services.AddScoped<IExtractorService, ExtractorService>();
+        services.AddScoped<ICachedMxCheckService, CachedMxCheckService>();
         services.AddScoped<IExtractorIntegrationService, ExtractorIntegrationService>();
 
         // ===== BLOG & API KEYS SERVICES =====

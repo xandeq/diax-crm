@@ -35,6 +35,17 @@ public class MxCacheEntry : AuditableEntity
         CheckedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Construtor usado por seeds/testes para forjar a idade da entrada (TTL determinístico).
+    /// Produção sempre usa o construtor de 2 args (CheckedAt = DateTime.UtcNow).
+    /// </summary>
+    public MxCacheEntry(string domain, int resultCode, DateTime checkedAtUtc)
+    {
+        Domain = Normalize(domain);
+        ResultCode = resultCode;
+        CheckedAt = checkedAtUtc;
+    }
+
     /// <summary>Regrava o resultado e reinicia o TTL.</summary>
     public void Refresh(int resultCode)
     {
