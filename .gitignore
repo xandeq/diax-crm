@@ -57,3 +57,6 @@ nul
 
 # evidencia de quarentena contem PII (emails de leads) â€” nunca commitar
 docs/email-marketing/quarantine-*.json
+
+# Settings locais do Claude Code — podem conter comandos aprovados com segredos embutidos
+.claude/settings.local.json
