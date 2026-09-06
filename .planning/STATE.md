@@ -1,17 +1,15 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.3
-milestone_name: Pipeline de Aquisição
-status: active
-stopped_at: Phase 7 context gathered
-last_updated: "2026-09-05T16:30:00.000Z"
-last_activity: 2026-09-05 — Phase 7 context capturado; roadmap reordenado (milestone atual no topo)
-resume_file: .planning/phases/07-extra-o-qualidade-na-entrada/07-CONTEXT.md
+milestone_name: — Pipeline de Aquisição
+status: unknown
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-09-06T09:32:30.386Z"
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 7
+  completed_plans: 2
 ---
 
 # State — DIAX CRM
@@ -21,18 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** v1.3 — Phase 7 (Extração — Qualidade na Entrada), aguardando `/gsd:plan-phase 7`
+**Current focus:** Phase 07 — extra-o-qualidade-na-entrada
 
 ## Current Position
 
-Phase: 7 (Extração — Qualidade na Entrada) — not started
-Plan: — (roadmap created, plans not yet generated)
-Status: Roadmap created — 2 phases (7, 8), 6/6 requirements mapped. Next: `/gsd:plan-phase 7`
-Last activity: 2026-09-05 — ROADMAP.md and STATE.md updated with v1.3 phases (Phase 7-8)
-
-**v1.2 (Agentes de IA) segue PAUSADO em paralelo** — não é o milestone atual, mas não foi
-concluído nem abandonado. Ver "v1.2 — Pausado" em Accumulated Context abaixo antes de tocar em
-qualquer arquivo de `src/Diax.Domain/Agents/*` ou correlatos.
+Phase: 07 (extra-o-qualidade-na-entrada) — EXECUTING
+Plan: 3 of 7
 
 ## Performance Metrics
 
@@ -51,6 +43,8 @@ qualquer arquivo de `src/Diax.Domain/Agents/*` ou correlatos.
 *Updated after each plan completion*
 | Phase 02-funda-o-de-agentes P02-02 | 8m | 2 tasks | 3 files |
 | Phase 02-funda-o-de-agentes P01 | 35 | 2 tasks | 13 files |
+| Phase 07 P01 | 12min | 2 tasks | 5 files |
+| Phase 07 P02 | 15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -99,6 +93,9 @@ qualquer arquivo de `src/Diax.Domain/Agents/*` ou correlatos.
 
 - v1.3: dedup por email é a raiz do problema de rastreabilidade (mesmo negócio muda de email
   entre passadas do scraper) — `Customer.ExternalId` resolve na causa, não é cosmético
+
+- [Phase 07]: WebsiteClassifier/JunkDomainFilter são cópias verbatim de site_check.py/mx_check.py (D-08) — sem reinventar as listas
+- [Phase 07]: 07-02: MxResponseInterpreter isolates DNS decision logic (Valid/NoMx/Unverified) as pure function from DnsClient.NET types for offline deterministic testing
 
 ### Testing Protocol
 
@@ -154,9 +151,9 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-05T15:19:29.415Z
-Stopped at: Phase 7 context gathered
+Last session: 2026-09-06T09:32:18.228Z
+Stopped at: Completed 07-01-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
-Resume file: .planning/phases/07-extra-o-qualidade-na-entrada/07-CONTEXT.md
+Resume file: None

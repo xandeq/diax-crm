@@ -56,8 +56,8 @@ posterior no score
 **Plans:** 7 plans (6 waves)
 
 Plans:
-- [ ] 07-01-PLAN.md — Classificacao pura de site (WebsiteClassifier/WebsiteKind) + filtro de dominio-lixo (JunkDomainFilter) [wave 1]
-- [ ] 07-02-PLAN.md — Abstracao de DNS: IMxLookupService + DnsClient.NET 1.8.0 + interpretador puro [wave 1]
+- [x] 07-01-PLAN.md — Classificacao pura de site (WebsiteClassifier/WebsiteKind) + filtro de dominio-lixo (JunkDomainFilter) [wave 1]
+- [x] 07-02-PLAN.md — Abstracao de DNS: IMxLookupService + DnsClient.NET 1.8.0 + interpretador puro [wave 1]
 - [ ] 07-03-PLAN.md — Dominio e schema EF: Customer.WebsiteKind/ExternalId, contadores em CustomerImport, tabela mx_cache_entries [wave 2]
 - [ ] 07-04-PLAN.md — Checagem de MX com cache no loop do ExtractorIntegrationService + instrumentacao [wave 3]
 - [ ] 07-05-PLAN.md — Contadores de rejeicao persistidos + WebsiteKind gravado no import [wave 4]
