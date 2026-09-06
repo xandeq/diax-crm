@@ -896,6 +896,84 @@ public class ExtractorIntegrationServiceTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // REJECTION COUNTS + WEBSITE — EXTR-02 / EXTR-03 (07-05)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void BulkImportRequest_WithoutRejectionCounts_DefaultsToNull()
+    {
+        var request = new BulkImportRequest(new List<ImportCustomerRow>(), LeadSource.Import);
+
+        Assert.Null(request.RejectionCounts);
+    }
+
+    [Fact]
+    public async Task ImportLeads_PropagatesRejectionCountsToCustomerImport()
+    {
+        // 1 fora de ES (geo), 1 e-mail lixo, 1 sem MX, 1 válido.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Fora de ES", Email = "fora@acme.com.br", State = "SP" },
+            new() { Id = 2, ContactName = "Lixo", Email = "teste@sun.com", State = "ES" },
+            MakeLead(3, "Sem MX", "contato@semmx.com.br"),
+            MakeLead(4, "Valido", "ok@valido.com.br"),
+        }, total: 4);
+
+        _mxCheckMock
+            .Setup(m => m.CheckManyAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, MxCheckResult>(StringComparer.Ordinal)
+            {
+                ["semmx.com.br"] = MxCheckResult.NoMx,
+                ["valido.com.br"] = MxCheckResult.Valid,
+            });
+
+        CustomerImport? captured = null;
+        _importRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<CustomerImport>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CustomerImport ci, CancellationToken _) => { captured = ci; return ci; });
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(captured);
+        Assert.Equal(1, captured!.GeoRejectedCount);
+        Assert.Equal(1, captured.LowQualityEmailRejectedCount);
+        Assert.Equal(1, captured.NoMxRejectedCount);
+    }
+
+    [Fact]
+    public async Task ImportLeads_MapsWebsite_ToCustomerWebsite()
+    {
+        // MakeLead já preenche Website = https://{dominio}; deve chegar ao Customer.Website
+        // (antes deste plano, o valor era perdido dentro de Notes).
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            MakeLead(1, "Com Site", "contato@acme.com.br"),
+        }, total: 1);
+
+        await _sut.ImportLeadsAsync();
+
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Website == "https://acme.com.br"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_LeadWithoutWebsite_CustomerWebsiteIsNull()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Sem Site", Email = "semsite@acme.com.br", State = "ES", Website = null },
+        }, total: 1);
+
+        await _sut.ImportLeadsAsync();
+
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Website == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Helpers
     // ═══════════════════════════════════════════════════════════════════════════
 

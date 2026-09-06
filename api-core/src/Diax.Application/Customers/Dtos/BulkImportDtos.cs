@@ -22,12 +22,24 @@ public record ImportCustomerRow(
     string? ConsentStatus = null);
 
 /// <summary>
+/// Contadores agregados de leads descartados ANTES do import, computados pelo chamador
+/// (hoje: ExtractorIntegrationService). Persistidos em CustomerImport (EXTR-02 / decisão D-04).
+/// O contador de duplicados NÃO vem daqui — só o CustomerImportService sabe quantas linhas
+/// casaram com um Customer existente, então ele o computa por conta própria.
+/// </summary>
+public record ImportRejectionCounts(
+    int GeoRejected = 0,
+    int LowQualityEmailRejected = 0,
+    int NoMxRejected = 0);
+
+/// <summary>
 /// Request para importação em lote de customers/leads.
 /// </summary>
 public record BulkImportRequest(
     List<ImportCustomerRow> Customers,
     LeadSource Source = LeadSource.Import,
-    bool DryRun = false);
+    bool DryRun = false,
+    ImportRejectionCounts? RejectionCounts = null);   // opcional: só o Extrator preenche
 
 /// <summary>
 /// Response da importação em lote.

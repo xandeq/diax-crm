@@ -232,7 +232,11 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
 
         var importRequest = new BulkImportRequest(
             Customers: allLeads,
-            Source: LeadSource.Scraping
+            Source: LeadSource.Scraping,
+            RejectionCounts: new ImportRejectionCounts(
+                GeoRejected: skippedByGeo,
+                LowQualityEmailRejected: rejectedLowQuality,
+                NoMxRejected: rejectedNoMx)
         );
 
         var fileName = $"Extrator de Dados - {DateTime.UtcNow:yyyy-MM-dd HH:mm}";
@@ -369,7 +373,9 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             WhatsApp: lead.WhatsApp ?? lead.Phone,
             CompanyName: lead.CompanyName,
             Notes: noteParts.Count > 0 ? string.Join("\n", noteParts) : null,
-            Tags: string.Join(",", tags)
+            Tags: string.Join(",", tags),
+            Website: lead.Website        // ← EXTR-03: o website precisa chegar ao Customer,
+                                         //   não só ao texto de Notes
         );
     }
 }
