@@ -10,7 +10,7 @@ Requirements para o milestone v1.3. Cada um mapeia pra uma fase do roadmap.
 ### Extração
 
 - [x] **EXTR-01**: Sistema rejeita lead cujo domínio de email não tem MX/A válido antes de importar (worker .NET `ExtractorIntegrationService` — hoje só a ponte Python manual faz essa checagem)
-- [ ] **EXTR-02**: Sistema registra o motivo de rejeição (geo fora do alvo / email lixo / sem MX / duplicado) de cada lead descartado do Extrator, consultável por período
+- [x] **EXTR-02**: Sistema registra o motivo de rejeição (geo fora do alvo / email lixo / sem MX / duplicado) de cada lead descartado do Extrator, consultável por período
 - [x] **EXTR-03**: Sistema classifica o `website` do lead como "site próprio" vs "diretório de terceiro" (econodata, cliniguia, redes sociais) e usa isso como sinal no import/score
 
 ### Import CRM
@@ -61,7 +61,7 @@ Preenchido pelo roadmapper.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | EXTR-01 | Phase 7 | Complete |
-| EXTR-02 | Phase 7 | Pending |
+| EXTR-02 | Phase 7 | Complete |
 | EXTR-03 | Phase 7 | Complete |
 | IMPT-01 | Phase 8 | Pending |
 | IMPT-02 | Phase 8 | Pending |

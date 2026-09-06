@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-09-06T09:32:37.712Z"
+stopped_at: Completed 07-03-PLAN.md
+last_updated: "2026-09-06T09:40:21.495Z"
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 7
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 ## Current Position
 
 Phase: 07 (extra-o-qualidade-na-entrada) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Plan: 3 of 7
 | Phase 02-funda-o-de-agentes P01 | 35 | 2 tasks | 13 files |
 | Phase 07 P01 | 12min | 2 tasks | 5 files |
 | Phase 07 P02 | 15min | 2 tasks | 6 files |
+| Phase 07 P03 | 25min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,8 @@ Plan: 3 of 7
 - [Phase 07]: WebsiteClassifier/JunkDomainFilter são cópias verbatim de site_check.py/mx_check.py (D-08) — sem reinventar as listas
 - [Phase 07]: 07-02: MxResponseInterpreter isolates DNS decision logic (Valid/NoMx/Unverified) as pure function from DnsClient.NET types for offline deterministic testing
 - [Phase 07]: 07-02: D-02 confirmed in code — SERVFAIL(2)/NotImplemented(4)/Refused(5) resolve to Unverified same as ConnectionTimeout, only NXDOMAIN(3) and empty MX+A resolve to NoMx
+- [Phase 07]: [Phase 07] 07-03: MxCacheEntry.ResultCode fica int no Domain (nao MxCheckResult) - Domain nao referencia Application, conversao fica pro consumidor em 07-04
+- [Phase 07]: [Phase 07] 07-03: zero migration gerada (D-07) - migration unica coordenando WebsiteKind+ExternalId+contadores+mx_cache_entries sai no plano 07-07
 
 ### Testing Protocol
 
@@ -152,8 +155,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-06T09:32:37.708Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-09-06T09:40:21.491Z
+Stopped at: Completed 07-03-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
