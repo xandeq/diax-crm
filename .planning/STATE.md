@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
-stopped_at: Completed 07-04-PLAN.md
-last_updated: "2026-09-06T09:54:49.717Z"
+stopped_at: Completed 07-05-PLAN.md
+last_updated: "2026-09-06T10:06:38.991Z"
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 ## Current Position
 
 Phase: 07 (extra-o-qualidade-na-entrada) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Plan: 5 of 7
 | Phase 07 P02 | 15min | 2 tasks | 6 files |
 | Phase 07 P03 | 25min | 3 tasks | 12 files |
 | Phase 07 P04 | 55min | 2 tasks | 7 files |
+| Phase 07 P05 | 15min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Plan: 5 of 7
 - [Phase 07]: 07-04: D-02 confirmada em codigo — MxCheckResult.Unverified nunca aciona o continue de rejeicao no loop de import; so NoMx rejeita
 - [Phase 07]: 07-04: MX check roda em LOTE apos a paginacao completa (nao por lead), reaproveitando cache persistente + paralelismo configuravel (default 8)
 - [Phase 07]: 07-04: JunkDomainFilter.IsJunk adicionado como short-circuit em IsLowQualityEmail — expos colisao de fixtures de teste pre-existentes (empresa.com.br/email.com/test.com), corrigidas para dominios nao-lixo
+- [Phase 07]: 07-05: ImportRejectionCounts nao inclui duplicado - so CustomerImportService sabe quantas linhas casaram com Customer existente
+- [Phase 07]: 07-05: WebsiteKind no enrich recalculado a partir do website FINAL (preservado ou novo), nao do row.Website bruto - cobre leads legados sem WebsiteKind calculado
 
 ### Testing Protocol
 
@@ -159,8 +162,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-06T09:54:49.713Z
-Stopped at: Completed 07-04-PLAN.md
+Last session: 2026-09-06T10:06:38.985Z
+Stopped at: Completed 07-05-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
