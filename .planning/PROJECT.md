@@ -8,11 +8,27 @@ Sistema de controle pessoal e profissional de Alexandre Queiroz — CRM privado 
 
 Centralizar todas as operações de negócio (leads, finanças, comunicação, IA) em um único sistema pessoal, eliminando ferramentas externas pagas.
 
-## Current Milestone: v1.2 Agentes de IA
+## Current Milestone: v1.3 Pipeline de Aquisição
 
-**Goal:** Transformar o CRM de repositório de dados em parceiro de execução por IA — três agentes (Comercial, Suporte, Pessoal) que conversam usando os DADOS REAIS do CRM e podem executar ações sob confirmação, reaproveitando a infra de IA existente sem quebrar nada.
+**Goal:** Fechar os gaps que sobraram do pipeline extração→CRM→email→WhatsApp (já em produção,
+construído em 03-05/09): qualidade de dado na entrada e rastreabilidade end-to-end no import.
 
 **Target features:**
+- MX/domínio válido verificado no worker .NET antes de importar (hoje só na ponte Python manual)
+- Log do motivo de rejeição (geo/email-lixo/MX/duplicado) por lead, consultável por período
+- Sinal "site próprio vs diretório de terceiro" usado no import/score
+- `Customer.ExternalId` (dedup robusto por ID do Extrator, não só email)
+- Dedup real em `/customers/import` para `source=Scraping`
+- `lead_score` calculado no momento do import (hoje só no job diário 06h BRT)
+
+**Nota — v1.2 (Agentes de IA) segue PAUSADO em paralelo**, não abandonado: Phase 02 parou após
+Wave 1 (2026-05-29) por sessão concorrente no mesmo repo; commits locais em `main`, **não
+pushados**; migration `20260529134701_AddAgentFoundation` já aplicada em produção — cuidado com
+ordem de migrations se retomado. Detalhe completo preservado em `STATE.md`. Retomar com
+`/gsd:execute-phase 2` quando decidido — v1.3 não toca nos arquivos de `src/Diax.Domain/Agents/*`
+nem correlatos.
+
+**Target features (v1.2, referência — não descontinuadas):**
 - Agente Comercial — qualifica leads, prioriza pipeline, gera outreach, atualiza status/segmento (parcialmente construído)
 - Agente de Suporte — atende com base no histórico do cliente, sugere respostas, abre/tria tickets
 - Agente Pessoal — resume agenda e finanças, cria compromissos
@@ -43,7 +59,16 @@ Centralizar todas as operações de negócio (leads, finanças, comunicação, I
 
 ### Active
 
-<!-- Milestone v1.2 — Agentes de IA -->
+<!-- Milestone v1.3 — Pipeline de Aquisição -->
+
+- [ ] EXTR-01: MX/domínio válido verificado antes de importar (worker .NET)
+- [ ] EXTR-02: motivo de rejeição registrado por lead (geo/email-lixo/MX/duplicado)
+- [ ] EXTR-03: site próprio vs diretório de terceiro como sinal de qualidade no import/score
+- [ ] IMPT-01: `Customer.ExternalId` — dedup por ID do Extrator, não só email
+- [ ] IMPT-02: dedup real em `/customers/import` para `source=Scraping`
+- [ ] IMPT-03: `lead_score` calculado no momento do import
+
+<!-- Milestone v1.2 — Agentes de IA (PAUSADO em paralelo, ver nota em Current Milestone acima) -->
 
 - [ ] Agente Comercial: chat sobre o pipeline real de leads, prioriza, gera outreach e atualiza status/segmento sob confirmação
 - [ ] Agente de Suporte: atende com histórico do cliente, sugere respostas e abre/tria tickets
@@ -115,4 +140,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-05-28 — milestone v1.2 Agentes de IA iniciado (supera v1.1)*
+*Last updated: 2026-09-05 — milestone v1.3 Pipeline de Aquisição iniciado (v1.2 segue pausado em paralelo, não superado)*

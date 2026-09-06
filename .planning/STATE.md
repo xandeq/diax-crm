@@ -1,30 +1,30 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Agentes de IA
-status: paused
-stopped_at: "PAUSED após Wave 1 (02-01 + 02-02). Waves 2-3 (02-03 orquestrador, 02-04 controller) NÃO iniciadas. Pausa solicitada — outra sessão do Claude Code CLI mexe no mesmo repo (evitar cross-data)."
-last_updated: "2026-05-29T13:52:10.548Z"
+milestone: v1.3
+milestone_name: — Pipeline de Aquisição
+status: unknown
+stopped_at: Completed 07-06-PLAN.md
+last_updated: "2026-09-06T10:13:33.930Z"
 progress:
-  total_phases: 5
+  total_phases: 2
   completed_phases: 0
-  total_plans: 4
-  completed_plans: 2
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # State — DIAX CRM
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-28)
+See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 02 — funda-o-de-agentes
+**Current focus:** Phase 07 — extra-o-qualidade-na-entrada
 
 ## Current Position
 
-Phase: 02 (funda-o-de-agentes) — EXECUTING
-Plan: 3 of 4
+Phase: 07 (extra-o-qualidade-na-entrada) — EXECUTING
+Plan: 7 of 7
 
 ## Performance Metrics
 
@@ -43,6 +43,12 @@ Plan: 3 of 4
 *Updated after each plan completion*
 | Phase 02-funda-o-de-agentes P02-02 | 8m | 2 tasks | 3 files |
 | Phase 02-funda-o-de-agentes P01 | 35 | 2 tasks | 13 files |
+| Phase 07 P01 | 12min | 2 tasks | 5 files |
+| Phase 07 P02 | 15min | 2 tasks | 6 files |
+| Phase 07 P03 | 25min | 3 tasks | 12 files |
+| Phase 07 P04 | 55min | 2 tasks | 7 files |
+| Phase 07 P05 | 15min | 2 tasks | 5 files |
+| Phase 07 P06 | 20min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -54,6 +60,10 @@ Plan: 3 of 4
 - Deploy automático via GitHub Actions (push to main)
 - SEMPRE usar `update-db.ps1` para migrations (nunca dotnet ef direto em produção)
 - Frontend é static export — sem SSR, sem server actions Next.js
+- Branch `chore/email-automation-versioned` acumula o trabalho de email/WhatsApp/extração de
+  03-05/09 (PRs #95-#97 merged em `main` via squash — merges seguintes nessa branch vão mostrar
+  `mergeStateStatus=CONFLICTING` fantasma; resolver com `git merge origin/main` + `checkout --ours`
+  depois de confirmar com `git diff` que não há divergência real de conteúdo)
 
 ### Architecture
 
@@ -62,6 +72,12 @@ Plan: 3 of 4
 - Existing AI infra: IAnthropicChatClient, AiChatService, AiConversation, GroupAiAccess, AiUsageTracking
 - Existing services to reuse by agent: Commercial→ICustomerRepository/OutreachService/AiOutreachAbTest; Support→customer timeline/ITicketService; Personal→IAppointmentService/FinancialSummaryService/AppointmentService
 - Existing ai-chat page/component to reuse in /agentes UI
+- Pipeline extração→CRM: `ExtractorPullWorker` (.NET, diário 12:00 BRT) puxa de
+  `ExtractorIntegrationService` → filtra qualidade (`IsLowQualityEmail`) + geo
+  (`IsOutsideTargetGeo`, `ExtractorPullOptions.AllowedStates/AllowedDdds`) → `CustomerImportService`.
+  Ponte manual Python (`docs/email-marketing/import_extrator_bridge.py`) é fallback/paralelo, tem
+  filtros próprios (`mx_check.py`, `waves_lib.in_target_geo`) que ainda não foram trazidos pro C#
+  — é exatamente o gap do v1.3 (EXTR-01).
 
 ### Decisions
 
@@ -76,6 +92,25 @@ Plan: 3 of 4
 - [Phase 02-funda-o-de-agentes]: CompleteWithToolsAsync is opt-in third method on IAnthropicChatClient — tools array gated by if-block, no-tools body provably identical to existing paths
 - [Phase 02-funda-o-de-agentes]: AgentPendingAction stored in DB table (not in-memory/signed token) - survives restarts, auditable, consistent with EF Core patterns
 - [Phase 02-funda-o-de-agentes]: Payload column is nvarchar(max) via HasColumnType fluent config to support arbitrary JSON tool inputs
+- v1.3: escopo confirmado com o usuário = Extração (A) + Import CRM (B) do backlog original;
+  Email (C) e WhatsApp (D) foram pra v2 (adiados, não descartados) — ver REQUIREMENTS.md
+
+- v1.3: dedup por email é a raiz do problema de rastreabilidade (mesmo negócio muda de email
+  entre passadas do scraper) — `Customer.ExternalId` resolve na causa, não é cosmético
+
+- [Phase 07]: WebsiteClassifier/JunkDomainFilter são cópias verbatim de site_check.py/mx_check.py (D-08) — sem reinventar as listas
+- [Phase 07]: 07-02: MxResponseInterpreter isolates DNS decision logic (Valid/NoMx/Unverified) as pure function from DnsClient.NET types for offline deterministic testing
+- [Phase 07]: 07-02: D-02 confirmed in code — SERVFAIL(2)/NotImplemented(4)/Refused(5) resolve to Unverified same as ConnectionTimeout, only NXDOMAIN(3) and empty MX+A resolve to NoMx
+- [Phase 07]: [Phase 07] 07-03: MxCacheEntry.ResultCode fica int no Domain (nao MxCheckResult) - Domain nao referencia Application, conversao fica pro consumidor em 07-04
+- [Phase 07]: [Phase 07] 07-03: zero migration gerada (D-07) - migration unica coordenando WebsiteKind+ExternalId+contadores+mx_cache_entries sai no plano 07-07
+- [Phase 07]: 07-04: D-02 confirmada em codigo — MxCheckResult.Unverified nunca aciona o continue de rejeicao no loop de import; so NoMx rejeita
+- [Phase 07]: 07-04: MX check roda em LOTE apos a paginacao completa (nao por lead), reaproveitando cache persistente + paralelismo configuravel (default 8)
+- [Phase 07]: 07-04: JunkDomainFilter.IsJunk adicionado como short-circuit em IsLowQualityEmail — expos colisao de fixtures de teste pre-existentes (empresa.com.br/email.com/test.com), corrigidas para dominios nao-lixo
+- [Phase 07]: 07-05: ImportRejectionCounts nao inclui duplicado - so CustomerImportService sabe quantas linhas casaram com Customer existente
+- [Phase 07]: 07-05: WebsiteKind no enrich recalculado a partir do website FINAL (preservado ou novo), nao do row.Website bruto - cobre leads legados sem WebsiteKind calculado
+- [Phase 07]: 07-06: from/to tratados como UTC e inclusivos nas duas bordas — combina com a conversao automatica de DateTime para UTC do DiaxDbContext
+- [Phase 07]: 07-06: 4 contadores de rejeicao adicionados no FINAL de ImportHistoryResponse (default 0) para preservar a ordem posicional das 9 propriedades originais
+- [Phase 07]: 07-06: teste de filtro de periodo usa DiaxDbContext real + InMemory, setando CreatedAt via Entry(...).Property(...).CurrentValue (mecanismo padrao do EF change tracker para setter protegido)
 
 ### Testing Protocol
 
@@ -83,8 +118,40 @@ Plan: 3 of 4
 - Smoke tests + Playwright e2e + regression tests por wave
 - Migrations via update-db.ps1 antes de qualquer teste
 - git push apenas com autorização explícita do usuário (auto-deploy via GitHub Actions)
+- api-core: build/test SEMPRE com `-c Release` (Smart App Control bloqueia DLL de teste Debug)
+
+### v1.2 — Pausado (contexto preservado, não é o milestone atual)
+
+⚠️ **Este bloco descreve o estado do v1.2 (Agentes de IA) no momento em que v1.3 começou.
+Não resolvido, não abandonado — só não é o foco agora.**
+
+- Pausa: 2026-05-29, após Phase 2 Wave 1 (2 de 4 plans). Motivo: outra sessão do Claude Code CLI
+  mexendo no mesmo repo — pausado para evitar cross-data/conflito.
+
+- **Risco de migration**: `20260529134701_AddAgentFoundation` JÁ FOI APLICADA ao SQL Server de
+  PRODUÇÃO e altera o `ApplicationDbContextModelSnapshot`. Se outra sessão criar outra migration
+  antes desta ser integrada, há risco de conflito de snapshot/ordem.
+
+- **Arquivos tocados pela Phase 2** (evitar editar em outro trabalho até v1.2 ser retomado ou
+  formalmente encerrado): `src/Diax.Domain/Agents/*`, `src/Diax.Application/Agents/*`,
+  `src/Diax.Application/AiChat/IAnthropicChatClient.cs`,
+  `src/Diax.Infrastructure/.../AnthropicChatClient.cs`, `src/Diax.Domain/AiChat/AiConversation.cs`,
+  `IAiChatRepository`/repo, `src/Diax.Infrastructure/Data/Migrations/20260529134701_AddAgentFoundation*`,
+  `DependencyInjection.cs`, `tests/Diax.Tests/Application/Agents/*`.
+
+- **Nada foi pushado** — todos os commits da Phase 2 são locais em `main` (auto-deploy só dispara
+  no push). Confirmar isso continua verdadeiro antes de qualquer push de v1.3 pra `main`.
+
+- Retomar com: `/gsd:execute-phase 2` (pula 02-01/02-02 já com SUMMARY, segue da Wave 2:
+  02-03 orquestrador, 02-04 controller).
 
 ### Pending Todos
+
+**v1.3 (atual):**
+
+- Roadmap criado (Phase 7: Extração — Qualidade na Entrada; Phase 8: Import — Dedup e Score em Tempo Real) — próximo passo é `/gsd:plan-phase 7`
+
+**v1.2 (pausado, preservado):**
 
 - Phase 2 Wave 2 — executar 02-03 (IAgentTool/IAgentHandler/IAgentOrchestratorService + AgentOrchestratorService + CommercialAgentHandler + DI)
 - Phase 2 Wave 3 — executar 02-04 (AgentsController {type}/chat|confirm|conversations + RBAC + AiUsageTracking)
@@ -92,13 +159,16 @@ Plan: 3 of 4
 
 ### Blockers/Concerns
 
-⚠️ **SESSÃO PARALELA ATIVA (2026-05-29):** Outra sessão do Claude Code CLI implementa funcionalidades no MESMO repo. Phase 2 foi PAUSADA após Wave 1 para evitar cross-data/conflito.
-- **Risco de migration:** a migration `20260529134701_AddAgentFoundation` JÁ FOI APLICADA ao SQL Server de PRODUÇÃO e altera o `ApplicationDbContextModelSnapshot`. Se a outra sessão criar outra migration, haverá conflito de snapshot/ordem. Coordenar: a outra sessão deve dar `add-migration` SOMENTE após integrar estes commits.
-- **Arquivos já tocados pela Phase 2 (evitar editar na outra sessão):** `src/Diax.Domain/Agents/*`, `src/Diax.Application/Agents/*`, `src/Diax.Application/AiChat/IAnthropicChatClient.cs`, `src/Diax.Infrastructure/.../AnthropicChatClient.cs`, `src/Diax.Domain/AiChat/AiConversation.cs`, `IAiChatRepository`/repo, `src/Diax.Infrastructure/Data/Migrations/20260529134701_AddAgentFoundation*`, `DependencyInjection.cs`, `tests/Diax.Tests/Application/Agents/*`.
-- **Nada foi pushado** — todos os commits são locais em `main` (auto-deploy só dispara no push).
+Nenhum blocker ativo para v1.3 no momento do início.
+
+Ver "v1.2 — Pausado" acima para o blocker preservado daquele milestone (sessão concorrente,
+migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-05-29
-Stopped at: PAUSED após Wave 1 (Phase 2). Waves 2-3 pendentes. Pausa por sessão paralela no mesmo repo.
+Last session: 2026-09-06T10:13:33.921Z
+Stopped at: Completed 07-06-PLAN.md
+Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
+segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
+`/gsd:plan-phase 7`.
 Resume file: None

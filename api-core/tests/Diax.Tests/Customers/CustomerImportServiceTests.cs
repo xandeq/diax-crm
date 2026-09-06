@@ -497,4 +497,200 @@ public class CustomerImportServiceTests
         Assert.Equal(1, result.SkippedCount); // Second one detected as duplicate in batch
         Assert.Contains("Duplicata no lote", result.Errors[0].ErrorMessage);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // REJECTION COUNTS + WEBSITE CLASSIFICATION — EXTR-02 / EXTR-03 (07-05)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task Import_NullRejectionCounts_CountersDefaultZero()
+    {
+        // Arrange — sem RejectionCounts (default) e sem duplicatas.
+        var row = new ImportCustomerRow("Carlos", "carlos@agencia.com.br")
+        {
+            ValidationStatus = "valido",
+            ConsentStatus = "consentido"
+        };
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Import);
+
+        CustomerImport? captured = null;
+        _importRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<CustomerImport>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CustomerImport ci, CancellationToken _) => { captured = ci; return ci; });
+
+        // Act
+        await _sut.ImportAsync(request, "test.json");
+
+        // Assert
+        Assert.NotNull(captured);
+        Assert.Equal(0, captured!.GeoRejectedCount);
+        Assert.Equal(0, captured.LowQualityEmailRejectedCount);
+        Assert.Equal(0, captured.NoMxRejectedCount);
+        Assert.Equal(0, captured.DuplicateRejectedCount);
+    }
+
+    [Fact]
+    public async Task Import_RecordsRejectionCountsAndDuplicateCount_SurvivesComplete()
+    {
+        // Arrange — 1 lead novo + 2 leads que casam com Customer já existente (sem nada novo
+        // para enriquecer, para isolar a contagem de duplicados do efeito colateral do
+        // recálculo de WebsiteKind). RejectionCounts pré-computados pelo Extrator.
+        // Tags pré-preenchida com "pilot_candidate" para que o enrich não ache "informação nova"
+        // nesse campo — isola a contagem de duplicados de qualquer outro efeito colateral do enrich.
+        var existing1 = new Customer("Existing One", "dup1@agencia.com.br");
+        existing1.UpdateContactInfo(phone: "27999000001", whatsApp: "27999000001");
+        existing1.UpdateTags("pilot_candidate");
+        var existing2 = new Customer("Existing Two", "dup2@agencia.com.br");
+        existing2.UpdateContactInfo(phone: "27999000002", whatsApp: "27999000002");
+        existing2.UpdateTags("pilot_candidate");
+
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("dup1@agencia.com.br", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing1);
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("dup2@agencia.com.br", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing2);
+
+        var rows = new List<ImportCustomerRow>
+        {
+            new("Lead Novo", "novo@agencia.com.br", Phone: "27999000000"),
+            new("Dup One", "dup1@agencia.com.br", Phone: "27999000001"),
+            new("Dup Two", "dup2@agencia.com.br", Phone: "27999000002"),
+        };
+        var request = new BulkImportRequest(
+            rows,
+            LeadSource.Scraping,
+            RejectionCounts: new ImportRejectionCounts(GeoRejected: 3, LowQualityEmailRejected: 2, NoMxRejected: 1));
+
+        CustomerImport? captured = null;
+        _importRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<CustomerImport>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CustomerImport ci, CancellationToken _) => { captured = ci; return ci; });
+
+        // Act
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        // Assert — contadores de rejeição pré-computados chegaram intactos...
+        Assert.NotNull(captured);
+        Assert.Equal(3, captured!.GeoRejectedCount);
+        Assert.Equal(2, captured.LowQualityEmailRejectedCount);
+        Assert.Equal(1, captured.NoMxRejectedCount);
+        Assert.Equal(2, captured.DuplicateRejectedCount);
+        // ...e sobrevivem ao Complete() (que grava Success/Failed/Status por cima do mesmo import).
+        Assert.Equal(1, result.SuccessCount);   // só o lead novo criou
+        Assert.Equal(2, result.SkippedCount);   // os 2 duplicados, sem nada novo, foram ignorados
+    }
+
+    [Fact]
+    public async Task Import_CreateCustomer_WithDirectoryWebsite_SetsWebsiteKindDirectory()
+    {
+        var row = new ImportCustomerRow("Carlos", "carlos@diretorio.com.br")
+        {
+            ValidationStatus = "valido",
+            ConsentStatus = "consentido",
+            Website = "https://econodata.com.br/x"
+        };
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Import);
+
+        Customer? savedCustomer = null;
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => savedCustomer = c)
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.NotNull(savedCustomer);
+        Assert.Equal("https://econodata.com.br/x", savedCustomer!.Website);
+        Assert.Equal(WebsiteKind.Directory, savedCustomer.WebsiteKind);
+    }
+
+    [Fact]
+    public async Task Import_CreateCustomer_WithOwnSiteWebsite_SetsWebsiteKindOwnSite()
+    {
+        var row = new ImportCustomerRow("Carlos", "carlos@clinicaodonto.com.br")
+        {
+            ValidationStatus = "valido",
+            ConsentStatus = "consentido",
+            Website = "https://clinicaodonto.com.br"
+        };
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Import);
+
+        Customer? savedCustomer = null;
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => savedCustomer = c)
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.NotNull(savedCustomer);
+        Assert.Equal(WebsiteKind.OwnSite, savedCustomer!.WebsiteKind);
+    }
+
+    [Fact]
+    public async Task Import_CreateCustomer_WithoutWebsite_SetsWebsiteKindUnknown()
+    {
+        var row = new ImportCustomerRow("Carlos", "carlos@agencia.com.br")
+        {
+            ValidationStatus = "valido",
+            ConsentStatus = "consentido"
+        };
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Import);
+
+        Customer? savedCustomer = null;
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => savedCustomer = c)
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.NotNull(savedCustomer);
+        Assert.Equal(WebsiteKind.Unknown, savedCustomer!.WebsiteKind);
+    }
+
+    [Fact]
+    public async Task Import_EnrichExistingCustomerWithoutWebsite_ReceivesDirectoryWebsite_SetsWebsiteKindDirectory()
+    {
+        // Fonte precisa ser Scraping — LeadSource.Import rejeita duplicata antes de enriquecer.
+        var existing = new Customer("Existing", "enrich@agencia.com.br");
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("enrich@agencia.com.br", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow("Existing", "enrich@agencia.com.br") { Website = "linktr.ee/x" };
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        Assert.Equal(1, result.SuccessCount);
+        Assert.Equal("linktr.ee/x", existing.Website);
+        Assert.Equal(WebsiteKind.Directory, existing.WebsiteKind);
+    }
+
+    [Fact]
+    public async Task Import_EnrichExistingCustomerWithWebsite_PreservesWebsite_RecalculatesWebsiteKind()
+    {
+        // Customer legado importado antes desta fase: já tem website mas nunca teve WebsiteKind
+        // calculado (fica Unknown por default). Um novo pull deve recalcular a partir do
+        // website FINAL, que é o já existente (preservado, não sobrescrito pelo da linha).
+        var existing = new Customer("Existing", "legado@agencia.com.br");
+        existing.UpdateContactInfo(website: "https://clinicaodonto.com.br");
+        Assert.Equal(WebsiteKind.Unknown, existing.WebsiteKind); // baseline antes do enrich
+
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("legado@agencia.com.br", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow("Existing", "legado@agencia.com.br") { Website = "https://outrositequalquer.com.br" };
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        Assert.Equal(1, result.SuccessCount);
+        // Website existente preservado (a regra de enrich só usa o novo se o existente for vazio).
+        Assert.Equal("https://clinicaodonto.com.br", existing.Website);
+        Assert.Equal(WebsiteKind.OwnSite, existing.WebsiteKind);
+    }
 }

@@ -4,7 +4,119 @@
 
 - ✅ **v1.0 Base** — Plataforma completa em produção (shipped antes de 2026-04-03)
 - ⚠️ **v1.1 Produtividade Pessoal** — Superado (planejado 2026-04-03, nunca executado pelo GSD; código evoluiu via sprints)
-- 🚧 **v1.2 Agentes de IA** — Phases 2-6 (current)
+- ⏸️ **v1.2 Agentes de IA** — Pausado em paralelo desde 2026-05-29 (Phase 02, 2/4 plans); Phases 3-6 definidas, não iniciadas. Não abandonado — retomar com `/gsd:execute-phase 2`.
+- 🟢 **v1.3 Pipeline de Aquisição** — Phases 7-8 (current)
+
+---
+
+## v1.3 — Pipeline de Aquisição (current)
+
+**Status:** 🟢 Roadmap criado 2026-09-05. Roda em paralelo ao v1.2 pausado, sem depender dele
+(arquivos/dados diferentes: extração de leads, import CRM). Numeração de fases continua a partir
+de v1.2 (Phase 2-6) — v1.3 começa em **Phase 7**.
+
+**Milestone Goal:** Fechar os gaps que sobraram do pipeline extração→CRM→email→WhatsApp (já em
+produção, construído em 03-05/09): qualidade de dado na entrada (MX check no worker .NET, sinal
+site-próprio-vs-diretório) e rastreabilidade end-to-end no import (dedup por `ExternalId` em vez
+de email, fix do dedup em `/customers/import` para `source=Scraping`, score calculado no import).
+
+**Coverage:** 6/6 requirements mapped
+
+### Phases
+
+- [ ] **Phase 7: Extração — Qualidade na Entrada** — MX check no worker .NET, log do motivo de rejeição, classificação site-próprio-vs-diretório (EXTR-01, EXTR-02, EXTR-03)
+- [ ] **Phase 8: Import — Dedup e Score em Tempo Real** — `Customer.ExternalId` com dedup robusto, fix do dedup em `/customers/import` para `source=Scraping`, `lead_score` calculado no import (IMPT-01, IMPT-02, IMPT-03)
+
+### Phase Details
+
+### Phase 7: Extração — Qualidade na Entrada
+
+**Goal:** Leads de baixa qualidade são barrados antes de virarem `Customer`, com motivo de rejeição
+registrado e consultável, e o sinal "site próprio vs diretório de terceiro" calculado para uso
+posterior no score
+
+**Depends on:** Nothing (sobre infra existente: `ExtractorPullWorker`, `ExtractorIntegrationService`,
+`IsLowQualityEmail`, `IsOutsideTargetGeo`; porta pra C# a lógica que hoje só existe na ponte Python
+`mx_check.py`)
+
+**Requirements:** EXTR-01, EXTR-02, EXTR-03
+
+**Success Criteria** (what must be TRUE):
+  1. Um lead com domínio de e-mail sem registro MX/A válido é rejeitado pelo worker .NET antes do
+     import — não chega a virar `Customer`
+  2. Cada lead descartado do Extrator (por geo fora do alvo, e-mail lixo, sem MX ou duplicado) tem
+     o motivo da rejeição registrado e consultável por período (endpoint ou log estruturado
+     filtrável)
+  3. O `website` de um lead é classificado como "site próprio" ou "diretório de terceiro"
+     (econodata, cliniguia, redes sociais e afins reconhecidos) e essa classificação fica
+     persistida no lead
+  4. A ponte Python (`import_extrator_bridge.py`/`mx_check.py`) e o worker .NET aplicam o mesmo
+     critério de MX — não há mais divergência entre os dois caminhos de import
+
+**Plans:** 7 plans (6 waves)
+
+Plans:
+- [x] 07-01-PLAN.md — Classificacao pura de site (WebsiteClassifier/WebsiteKind) + filtro de dominio-lixo (JunkDomainFilter) [wave 1]
+- [x] 07-02-PLAN.md — Abstracao de DNS: IMxLookupService + DnsClient.NET 1.8.0 + interpretador puro [wave 1]
+- [x] 07-03-PLAN.md — Dominio e schema EF: Customer.WebsiteKind/ExternalId, contadores em CustomerImport, tabela mx_cache_entries [wave 2]
+- [x] 07-04-PLAN.md — Checagem de MX com cache no loop do ExtractorIntegrationService + instrumentacao [wave 3]
+- [x] 07-05-PLAN.md — Contadores de rejeicao persistidos + WebsiteKind gravado no import [wave 4]
+- [x] 07-06-PLAN.md — Historico de import consultavel por periodo (GET /customers/imports?from&to) [wave 5]
+- [ ] 07-07-PLAN.md — Migration unica (D-07) + aplicacao em producao [wave 6, checkpoint]
+
+---
+
+### Phase 8: Import — Dedup e Score em Tempo Real
+
+**Goal:** O import do CRM deduplica de forma robusta por ID externo do Extrator (não só e-mail) e
+calcula o `lead_score` no momento em que o lead entra no sistema, sem esperar o job diário
+
+**Depends on:** Phase 7 (usa a classificação site-próprio-vs-diretório de EXTR-03 como um dos
+inputs do score calculado no import)
+
+**Requirements:** IMPT-01, IMPT-02, IMPT-03
+
+**Success Criteria** (what must be TRUE):
+  1. `Customer` tem coluna `ExternalId` com índice único; reimportar o mesmo lead do Extrator (que
+     mudou de e-mail entre passadas do scraper, mas mantém o mesmo ID externo) atualiza o
+     `Customer` existente em vez de criar duplicata
+  2. `POST /api/v1/customers/import` com `source=Scraping` deduplica de verdade — importar o mesmo
+     lote duas vezes não cria registros duplicados (paridade com o comportamento já correto de
+     `source=Import`)
+  3. Um lead recém-importado já nasce com `lead_score` calculado — não fica zerado/vazio até o
+     `LeadScoringWorker` rodar às 06h BRT
+  4. Nenhum `Customer` existente perde histórico/timeline ao ser atualizado via dedup por
+     `ExternalId` (update in-place, não recriação)
+
+**Plans:** TBD
+
+---
+
+### Progress (v1.3)
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 7. Extração — Qualidade na Entrada | 0/7 | Planned | — |
+| 8. Import — Dedup e Score em Tempo Real | 0/? | Not started | — |
+
+### Coverage Map (v1.3)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| EXTR-01 | Phase 7 | Pending |
+| EXTR-02 | Phase 7 | Pending |
+| EXTR-03 | Phase 7 | Pending |
+| IMPT-01 | Phase 8 | Pending |
+| IMPT-02 | Phase 8 | Pending |
+| IMPT-03 | Phase 8 | Pending |
+
+**Total mapped: 6/6**
+
+---
+
+*Roadmap updated: 2026-09-05 — v1.3 Pipeline de Aquisição roadmap created (2 phases, 6 requirements, Phase 7-8). v1.2 Agentes de IA content preserved as-is (paused at Phase 2, phases 3-6 planned).*
+*Previous: v1.1 Produtividade Pessoal (superado — Phase 1 / 01-tarefas)*
+
 
 ---
 
@@ -34,7 +146,14 @@ Detalhes preservados abaixo para referência histórica.
 
 ---
 
-## v1.2 — Agentes de IA (current)
+## v1.2 — Agentes de IA (paused)
+
+**Status:** ⏸️ Pausado desde 2026-05-29, após Phase 2 Wave 1 (2 de 4 plans). Não abandonado — retomar
+com `/gsd:execute-phase 2` quando decidido. Motivo: sessão concorrente no mesmo repo. Commits locais
+em `main`, **não pushados**; migration `20260529134701_AddAgentFoundation` já aplicada em produção —
+coordenar ordem antes de gerar novas migrations. Detalhe completo em `STATE.md` seção "v1.2 —
+Pausado". v1.3 não toca nos arquivos de `src/Diax.Domain/Agents/*` nem correlatos enquanto v1.2
+estiver pausado.
 
 **Milestone Goal:** Transformar o CRM de repositório de dados em parceiro de execução por IA — três agentes (Comercial, Suporte, Pessoal) que conversam usando os dados reais do CRM e executam ações sob confirmação, reaproveitando a infra de IA existente sem quebrar nada.
 
@@ -48,9 +167,7 @@ Detalhes preservados abaixo para referência histórica.
 - [ ] **Phase 5: Agente Pessoal** — Agenda e finanças reais, criação de compromisso via ação confirmada (PERS-01..04)
 - [ ] **Phase 6: UI /agentes** — Página unificada com seletor de agente, streaming chat, contexto anexado, botões de confirmação, design /impeccable (AGUI-01..05)
 
----
-
-## Phase Details
+### Phase Details
 
 ### Phase 2: Fundação de Agentes
 
@@ -153,7 +270,7 @@ Detalhes preservados abaixo para referência histórica.
 
 ---
 
-## Progress
+### Progress (v1.2)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -163,9 +280,7 @@ Detalhes preservados abaixo para referência histórica.
 | 5. Agente Pessoal | 0/? | Not started | — |
 | 6. UI /agentes | 0/? | Not started | — |
 
----
-
-## Coverage Map
+### Coverage Map (v1.2)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -196,7 +311,6 @@ Detalhes preservados abaixo para referência histórica.
 
 **Total mapped: 24/24**
 
----
+*v1.2 roadmap last updated: 2026-05-28 — Agentes de IA (5 phases, 24 requirements). Phase 2 planned: 4 plans, 3 waves. Paused 2026-05-29 (see STATE.md "v1.2 — Pausado").*
 
-*Roadmap updated: 2026-05-28 — v1.2 Agentes de IA (5 phases, 24 requirements). Phase 2 planned: 4 plans, 3 waves.*
-*Previous: v1.1 Produtividade Pessoal (superado — Phase 1 / 01-tarefas)*
+---

@@ -1,5 +1,8 @@
 using Diax.Application.Ads;
+using Diax.Application.Customers.Services;
 using Diax.Application.GoogleAnalytics;
+using Diax.Infrastructure.Dns;
+using DnsClient;
 using Diax.Domain.Ads.Repositories;
 using Diax.Domain.Audit;
 using Diax.Domain.Auth;
@@ -199,6 +202,22 @@ public static class DependencyInjection
         services.AddScoped<Diax.Application.Customers.IApifyIntegrationService, Diax.Application.Customers.ApifyIntegrationService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerImportRepository, CustomerImportRepository>();
+        services.AddScoped<IMxCacheRepository, MxCacheRepository>();
+
+        // ===== DNS / MX CHECK (EXTR-01) =====
+        // LookupClient é thread-safe e caro de construir (mantém sockets) → singleton, mesmo
+        // raciocínio de HttpClient. Timeout/Retries mais agressivos que o default (5s x 2) porque o
+        // pull diário processa até 1000 domínios por rodada.
+        services.AddSingleton<ILookupClient>(_ => new LookupClient(new LookupClientOptions
+        {
+            Timeout = TimeSpan.FromSeconds(3),
+            Retries = 1,
+            UseCache = true,
+            ThrowDnsErrors = false   // NÃO mudar: NXDOMAIN precisa voltar como resposta, não exceção,
+                                     // para ser distinguível de timeout (decisão D-02).
+        }));
+        services.AddScoped<IMxLookupService, DnsClientMxLookupService>();
+
         services.AddScoped<IIncomeRepository, IncomeRepository>();
         services.AddScoped<IIncomeCategoryRepository, IncomeCategoryRepository>();
         services.AddScoped<IExpenseRepository, ExpenseRepository>();

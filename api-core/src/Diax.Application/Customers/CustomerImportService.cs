@@ -4,6 +4,7 @@ using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
 using Diax.Application.Customers.Services;
+using Diax.Application.Customers.WebsiteClassification;
 using System.Text.Json;
 using System.Linq;
 using Diax.Domain.EmailMarketing;
@@ -318,6 +319,7 @@ public class CustomerImportService : IApplicationService
         var errors = new List<ImportError>();
         var successCount = 0;
         var skippedCount = 0;
+        var duplicateCount = 0;   // linhas que casaram com um Customer já existente (EXTR-02)
 
         // HashSets para dedup dentro do próprio lote (evita duplicatas na mesma importação)
         var seenEmailsInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -475,6 +477,9 @@ public class CustomerImportService : IApplicationService
 
                     customer.UpdateContactInfo(sanitized.Phone, sanitized.WhatsApp, website: row.Website);
 
+                    // EXTR-03: site próprio vs diretório de terceiro, calculado no import.
+                    customer.SetWebsiteKind(WebsiteClassifier.Classify(row.Website));
+
                     if (!string.IsNullOrWhiteSpace(sanitized.CompanyName))
                     {
                         customer.UpdateBasicInfo(
@@ -543,6 +548,7 @@ public class CustomerImportService : IApplicationService
                 else
                 {
                     // Se EXISTE, ENRIQUECER OS DADOS
+                    duplicateCount++;
                     bool wasUpdated = false;
 
                     // Atualiza Nome e Empresa se estiverem vazios no banco e vieram preenchidos
@@ -576,6 +582,15 @@ public class CustomerImportService : IApplicationService
                     if (contactUpdated || newWebsite != existingCustomer.Website)
                     {
                         existingCustomer.UpdateContactInfo(newPhone, newWhatsApp, existingCustomer.SecondaryEmail, newWebsite);
+                        wasUpdated = true;
+                    }
+
+                    // EXTR-03: recalcula sempre a partir do website FINAL (o preservado ou o novo),
+                    // para que leads legados importados antes desta fase também sejam classificados.
+                    var recomputedKind = WebsiteClassifier.Classify(existingCustomer.Website);
+                    if (recomputedKind != existingCustomer.WebsiteKind)
+                    {
+                        existingCustomer.SetWebsiteKind(recomputedKind);
                         wasUpdated = true;
                     }
 
@@ -679,6 +694,16 @@ public class CustomerImportService : IApplicationService
             ? JsonSerializer.Serialize(errors)
             : null;
 
+        // EXTR-02 / D-04: contadores agregados por rodada. Geo/e-mail-lixo/sem-MX vêm
+        // pré-computados do chamador (ExtractorIntegrationService, que filtra ANTES de chegar
+        // aqui); duplicados só este service sabe contar.
+        var rejectionCounts = request.RejectionCounts ?? new ImportRejectionCounts();
+        import.RecordRejectionCounts(
+            geo: rejectionCounts.GeoRejected,
+            lowQualityEmail: rejectionCounts.LowQualityEmailRejected,
+            noMx: rejectionCounts.NoMxRejected,
+            duplicate: duplicateCount);
+
         import.Complete(successCount, errors.Count, errorJson);
 
         // Salva tudo no banco
@@ -699,20 +724,26 @@ public class CustomerImportService : IApplicationService
     }
 
     /// <summary>
-    /// Obtém o histórico de importações paginado.
+    /// Obtém o histórico de importações paginado, opcionalmente restrito a um período (EXTR-02).
     /// </summary>
     /// <param name="page">Número da página</param>
     /// <param name="pageSize">Tamanho da página</param>
+    /// <param name="from">Data inicial (UTC, inclusiva). Opcional.</param>
+    /// <param name="to">Data final (UTC, inclusiva). Opcional.</param>
     /// <param name="cancellationToken">Token de cancelamento</param>
     /// <returns>Response paginado com histórico de importações</returns>
     public async Task<PagedResponse<ImportHistoryResponse>> GetImportHistoryAsync(
         int page,
         int pageSize,
+        DateTime? from = null,
+        DateTime? to = null,
         CancellationToken cancellationToken = default)
     {
         var (items, totalCount) = await _importRepository.GetPagedAsync(
             page,
             pageSize,
+            from,
+            to,
             cancellationToken);
 
         var responses = items.Select(ImportHistoryResponse.FromEntity);

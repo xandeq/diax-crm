@@ -373,10 +373,12 @@ public class CustomersController : BaseApiController
     }
 
     /// <summary>
-    /// Obtém o histórico de importações.
+    /// Obtém o histórico de importações, com os motivos de rejeição por rodada (EXTR-02).
     /// </summary>
     /// <param name="page">Número da página (padrão: 1)</param>
     /// <param name="pageSize">Tamanho da página (padrão: 20)</param>
+    /// <param name="from">Data inicial (UTC, inclusiva). Opcional.</param>
+    /// <param name="to">Data final (UTC, inclusiva). Opcional.</param>
     /// <param name="cancellationToken">Token de cancelamento</param>
     /// <returns>Lista paginada de importações</returns>
     [HttpGet("imports")]
@@ -384,11 +386,15 @@ public class CustomersController : BaseApiController
     public async Task<IActionResult> GetImportHistory(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Buscando histórico de importações - Page: {Page}, PageSize: {PageSize}", page, pageSize);
+        _logger.LogInformation(
+            "Buscando histórico de importações - Page: {Page}, PageSize: {PageSize}, From: {From}, To: {To}",
+            page, pageSize, from, to);
 
-        var result = await _importService.GetImportHistoryAsync(page, pageSize, cancellationToken);
+        var result = await _importService.GetImportHistoryAsync(page, pageSize, from, to, cancellationToken);
 
         return Ok(result);
     }

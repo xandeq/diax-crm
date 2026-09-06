@@ -38,6 +38,12 @@ public class CustomerImportConfiguration : IEntityTypeConfiguration<CustomerImpo
         builder.Property(x => x.FailedCount)
             .IsRequired();
 
+        // Contadores de rejeição por rodada (EXTR-02 / D-04). Default 0 para as linhas legadas.
+        builder.Property(x => x.GeoRejectedCount).IsRequired().HasDefaultValue(0);
+        builder.Property(x => x.LowQualityEmailRejectedCount).IsRequired().HasDefaultValue(0);
+        builder.Property(x => x.NoMxRejectedCount).IsRequired().HasDefaultValue(0);
+        builder.Property(x => x.DuplicateRejectedCount).IsRequired().HasDefaultValue(0);
+
         builder.Property(x => x.ErrorDetails)
             .HasColumnType("nvarchar(max)");
 

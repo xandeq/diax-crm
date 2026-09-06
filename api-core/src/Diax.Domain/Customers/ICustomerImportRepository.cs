@@ -8,14 +8,13 @@ namespace Diax.Domain.Customers;
 public interface ICustomerImportRepository : IRepository<CustomerImport>
 {
     /// <summary>
-    /// Obtém lista paginada de importações.
+    /// Obtém lista paginada de importações, opcionalmente restrita a um período (EXTR-02:
+    /// "motivo de rejeição consultável por período"). Datas são UTC e inclusivas nas bordas.
     /// </summary>
-    /// <param name="page">Número da página (1-based)</param>
-    /// <param name="pageSize">Tamanho da página</param>
-    /// <param name="cancellationToken">Token de cancelamento</param>
-    /// <returns>Lista de importações e total de registros</returns>
     Task<(IEnumerable<CustomerImport> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,
+        DateTime? from = null,
+        DateTime? to = null,
         CancellationToken cancellationToken = default);
 }

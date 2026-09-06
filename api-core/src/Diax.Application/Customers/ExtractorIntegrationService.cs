@@ -22,6 +22,7 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
 {
     private readonly IExtractorService _extractorService;
     private readonly CustomerImportService _customerImportService;
+    private readonly ICachedMxCheckService _mxCheck;
     private readonly ILogger<ExtractorIntegrationService> _logger;
     private readonly IReadOnlyList<string> _blockedDomains;
     private readonly IReadOnlyList<string> _blockedTlds;
@@ -34,10 +35,12 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         IExtractorService extractorService,
         CustomerImportService customerImportService,
         IOptions<ExtractorPullOptions> pullOptions,
+        ICachedMxCheckService mxCheck,
         ILogger<ExtractorIntegrationService> logger)
     {
         _extractorService = extractorService;
         _customerImportService = customerImportService;
+        _mxCheck = mxCheck;
         _logger = logger;
 
         var options = pullOptions.Value;
@@ -78,9 +81,12 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         CancellationToken cancellationToken = default)
     {
         var allLeads = new List<ImportCustomerRow>();
+        var candidates = new List<(ImportCustomerRow Row, ExtractorLead Lead)>();
         var skippedContactless = 0;
         var rejectedLowQuality = 0;
         var skippedByGeo = 0;
+        var rejectedNoMx = 0;
+        var mxUnverified = 0;
         var page = 1;
 
         _logger.LogInformation(
@@ -129,17 +135,48 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
                     continue;
                 }
 
-                allLeads.Add(row);
+                candidates.Add((row, lead));
             }
 
             _logger.LogInformation("Página {Page}: {Count} leads obtidos (total acumulado: {Total})",
-                page, leads.Count, allLeads.Count);
+                page, leads.Count, candidates.Count);
 
             // Se vieram menos registros que o tamanho da página, é a última
             if (leads.Count < PageSize)
                 break;
 
             page++;
+        }
+
+        // ── EXTR-01: checagem de MX em lote, DEPOIS da paginação ────────────────
+        // Em lote (não por lead) para aproveitar cache + paralelismo. Domínios distintos:
+        // ~1000 leads/rodada costumam ter uma fração disso em domínios únicos.
+        var domains = candidates
+            .Select(c => ExtractDomain(c.Row.Email))
+            .Where(d => !string.IsNullOrEmpty(d))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var mxResults = await _mxCheck.CheckManyAsync(domains, cancellationToken);
+
+        foreach (var candidate in candidates)
+        {
+            var domain = ExtractDomain(candidate.Row.Email);
+
+            // Lead sem e-mail não é julgado por MX — a validação de contato é a jusante.
+            if (!string.IsNullOrEmpty(domain) && mxResults.TryGetValue(domain, out var mx))
+            {
+                if (mx == MxCheckResult.NoMx)
+                {
+                    rejectedNoMx++;
+                    continue;
+                }
+
+                if (mx == MxCheckResult.Unverified)
+                    mxUnverified++;   // D-02: PASSA — falha de infra não é prova de lead ruim
+            }
+
+            allLeads.Add(candidate.Row);
         }
 
         if (skippedContactless > 0)
@@ -163,6 +200,27 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
                 skippedByGeo, string.Join(",", _allowedStates), string.Join(",", _allowedDdds));
         }
 
+        if (rejectedNoMx > 0)
+        {
+            _logger.LogInformation(
+                "Filtro de MX: {Rejected} lead(s) rejeitado(s) — domínio sem MX e sem registro A (EXTR-01).",
+                rejectedNoMx);
+        }
+
+        // Instrumentação (questão em aberto #2 da pesquisa): DNS de saída no SmarterASP é
+        // indocumentado. Se UDP/53 estiver bloqueado, TODA checagem cai em Unverified e a
+        // feature silenciosamente não filtra nada. Este warning torna isso visível na primeira
+        // rodada, sem depender de confirmação do provedor.
+        var mxEvaluated = rejectedNoMx + mxUnverified + allLeads.Count;
+        if (mxEvaluated > 0 && mxUnverified * 100 / mxEvaluated > 80)
+        {
+            _logger.LogWarning(
+                "ALERTA DE INFRAESTRUTURA: {Unverified}/{Total} ({Pct}%) das checagens de MX voltaram " +
+                "'não verificado'. Isso indica DNS de saída bloqueado ou instável no host — o filtro " +
+                "de MX está efetivamente desligado nesta rodada (nenhum lead foi perdido, per D-02).",
+                mxUnverified, mxEvaluated, mxUnverified * 100 / mxEvaluated);
+        }
+
         if (allLeads.Count == 0)
         {
             return Result.Failure<BulkImportResponse>(new Error(
@@ -174,7 +232,11 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
 
         var importRequest = new BulkImportRequest(
             Customers: allLeads,
-            Source: LeadSource.Scraping
+            Source: LeadSource.Scraping,
+            RejectionCounts: new ImportRejectionCounts(
+                GeoRejected: skippedByGeo,
+                LowQualityEmailRejected: rejectedLowQuality,
+                NoMxRejected: rejectedNoMx)
         );
 
         var fileName = $"Extrator de Dados - {DateTime.UtcNow:yyyy-MM-dd HH:mm}";
@@ -216,7 +278,22 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
                 return true;
         }
 
+        // Domínio placeholder / infraestrutura de terceiro (instagram.local, wixpress.com,
+        // sentry.io...). Porta de is_junk_domain do mx_check.py — conta no bucket "e-mail lixo",
+        // não no bucket "sem MX" (preserva os 4 buckets de D-04).
+        if (JunkDomainFilter.IsJunk(domain))
+            return true;
+
         return false;
+    }
+
+    /// <summary>Domínio normalizado de um e-mail (lowercase, sem '@'). Vazio se não houver.</summary>
+    private static string ExtractDomain(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return string.Empty;
+        var at = email.LastIndexOf('@');
+        if (at < 0 || at == email.Length - 1) return string.Empty;
+        return email[(at + 1)..].Trim().ToLowerInvariant();
     }
 
     /// <summary>
@@ -296,7 +373,9 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             WhatsApp: lead.WhatsApp ?? lead.Phone,
             CompanyName: lead.CompanyName,
             Notes: noteParts.Count > 0 ? string.Join("\n", noteParts) : null,
-            Tags: string.Join(",", tags)
+            Tags: string.Join(",", tags),
+            Website: lead.Website        // ← EXTR-03: o website precisa chegar ao Customer,
+                                         //   não só ao texto de Notes
         );
     }
 }

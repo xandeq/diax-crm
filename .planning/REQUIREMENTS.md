@@ -1,106 +1,77 @@
-# Requirements: DIAX CRM — v1.2 Agentes de IA
+# Requirements: DIAX CRM — v1.3 Pipeline de Aquisição
 
-**Defined:** 2026-05-28
-**Core Value:** Centralizar todas as operações de negócio em um único sistema pessoal
+**Defined:** 2026-09-05
+**Core Value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
 
-> Princípios do milestone: reaproveitar a infra de IA existente (IAnthropicChatClient, AiChatService,
-> ICustomerRepository, OutreachService, ITicketService, IAppointmentService, FinancialSummaryService,
-> GroupAiAccess, AiUsageTracking) **sem quebrar nada**; **não inventar dados** (toda resposta baseada
-> no que está no CRM); **ações de escrita exigem confirmação** do usuário; UI sempre bonita (/impeccable).
+## v1 Requirements
 
-## v1.2 Requirements
+Requirements para o milestone v1.3. Cada um mapeia pra uma fase do roadmap.
 
-### Orquestração & Fundação (ORCH)
+### Extração
 
-- [ ] **ORCH-01**: AgentOrchestrator roteia a conversa para o handler do tipo de agente correto (Comercial/Suporte/Pessoal)
-- [x] **ORCH-02**: Cada agente compartilha o mesmo motor de chat, variando apenas system prompt, ferramentas e escopo de dados
-- [ ] **ORCH-03**: Acesso aos agentes respeita RBAC/grupos (reuso GroupAiAccess) e o uso é registrado (reuso AiUsageTracking)
-- [x] **ORCH-04**: Framework de tools (function-calling) reutilizável entre agentes; toda tool que grava dados retorna uma ação pendente que exige confirmação do usuário antes de executar
-- [x] **ORCH-05**: Conversas dos agentes são persistidas e retomáveis (reuso de AiConversation, com o tipo de agente associado)
+- [x] **EXTR-01**: Sistema rejeita lead cujo domínio de email não tem MX/A válido antes de importar (worker .NET `ExtractorIntegrationService` — hoje só a ponte Python manual faz essa checagem)
+- [x] **EXTR-02**: Sistema registra o motivo de rejeição (geo fora do alvo / email lixo / sem MX / duplicado) de cada lead descartado do Extrator, consultável por período
+- [x] **EXTR-03**: Sistema classifica o `website` do lead como "site próprio" vs "diretório de terceiro" (econodata, cliniguia, redes sociais) e usa isso como sinal no import/score
 
-### Agente Comercial (CMRC)
+### Import CRM
 
-- [ ] **CMRC-01**: Usuário conversa com o Agente Comercial e recebe respostas baseadas no pipeline real de leads *(construído — stateless)*
-- [ ] **CMRC-02**: Usuário anexa leads ao contexto por IDs ou por segmento (Hot/Warm/Cold) *(construído)*
-- [ ] **CMRC-03**: Agente prioriza leads por probabilidade de conversão (score/segmento/estágio) *(construído)*
-- [ ] **CMRC-04**: Agente gera rascunho de abordagem (e-mail/WhatsApp) personalizado por lead, reaproveitando padrões de OutreachService/AiOutreachAbTest
-- [ ] **CMRC-05**: Agente pode atualizar status e/ou segmento de um lead via ação confirmada
-- [ ] **CMRC-06**: Conversa do Agente Comercial é persistida e retomável (depende de ORCH-05)
+- [ ] **IMPT-01**: Sistema deduplica leads do Extrator por ID externo (`Customer.ExternalId`, com índice único), não só por email
+- [ ] **IMPT-02**: `POST /api/v1/customers/import` deduplica de verdade para `source=Scraping` (hoje só funciona para `source=Import`)
+- [ ] **IMPT-03**: Sistema calcula `lead_score` no momento do import, sem esperar o job diário do `LeadScoringWorker` (06h BRT)
 
-### Agente de Suporte (SUP)
+## v2 Requirements
 
-- [ ] **SUP-01**: Usuário conversa com o Agente de Suporte com contexto do histórico do cliente (timeline/contatos)
-- [ ] **SUP-02**: Agente sugere resposta de atendimento baseada no histórico e na dúvida apresentada
-- [ ] **SUP-03**: Agente resume sob demanda o histórico de relacionamento de um cliente
-- [ ] **SUP-04**: Agente pode abrir/triar um ticket (reuso de ITicketService) via ação confirmada
+Deferidos para milestone futuro. Escopo confirmado com o usuário em 2026-09-05.
 
-### Agente Pessoal (PERS)
+### Email
 
-- [ ] **PERS-01**: Usuário conversa com o Agente Pessoal sobre sua agenda e finanças
-- [ ] **PERS-02**: Agente resume a agenda do dia/semana (reuso de IAppointmentService)
-- [ ] **PERS-03**: Agente entrega snapshot financeiro sob demanda (reuso de FinancialSummaryService)
-- [ ] **PERS-04**: Agente cria um compromisso na agenda via ação confirmada (reuso de AppointmentService)
+- **EMAL-01**: DMARC sobe de `pct=25` para `pct=100`
+- **EMAL-02**: Volume de envio escala de 87 para 300/dia com warmup gradual
+- **EMAL-03**: A/B de subject (variant A/B) tem o resultado medido e reportado (hoje só alterna, ninguém lê)
+- **EMAL-04**: Leads "webmail" (gmail/hotmail comercial, 560 hoje ignorados) testados com cap pequeno + tag própria
 
-### UI dos Agentes (AGUI)
+### WhatsApp
 
-- [ ] **AGUI-01**: Página `/agentes` no crm-web com seletor de agente (Comercial/Suporte/Pessoal)
-- [ ] **AGUI-02**: Componente de chat reaproveitado de `ai-chat`, com streaming da resposta
-- [ ] **AGUI-03**: UI exibe o contexto anexado (leads/cliente) e o custo/uso de tokens da conversa
-- [ ] **AGUI-04**: Ações sugeridas pelo agente aparecem como botões de confirmação (ex.: "Atualizar status", "Abrir ticket", "Criar compromisso")
-- [ ] **AGUI-05**: UI consistente com o design system (shadcn/Tailwind), responsiva e com microinterações (Framer Motion) — padrão /impeccable
+- **WHAT-01**: Confirmar execução do handoff (`n8n-wa-outreach-1a1.json`) pela sessão que opera o WAHA local
+- **WHAT-02**: Bot inbound de IA (`8nKTlX4Y7Hy1EUEn`) desvia lead de prospecção pra humano em vez de responder
+- **WHAT-03**: Relatório semanal de métricas do canal WhatsApp (enviados/respondidos/opt-out)
+- **WHAT-04**: Escalar de `wa_es` (480 leads) para `wa_br` (1138) após validar taxa de resposta em ES
 
-## Deferido (v1.1 — Produtividade Pessoal, superado)
+### Extração (investigativo)
 
-Planejado em 2026-04-03, nunca executado pelo GSD. Mantido como backlog; reavaliar em milestone futuro.
+- **EXTR-04**: Avaliar viabilidade do Google Places API como fonte alternativa/complementar de leads (endereço/telefone verificados vs. scraping de página)
 
-### Morning Briefing / Tarefas / Pipeline / Propostas
-- **BRIEF-01..04**, **TASK-01..05**, **PIPE-01..05**, **PROP-01..07** — ver histórico abaixo
+### Observabilidade
+
+- **OBSV-01**: Reduzir o ponto único de falha do pipeline (waves, vigia de respostas, n8n, WAHA rodam só no notebook via Task Scheduler)
 
 ## Out of Scope
 
+Explicitamente excluído deste milestone. Documentado para não voltar sem contexto.
+
 | Feature | Reason |
 |---------|--------|
-| Agente executar ação de escrita sem confirmação | Risco de gravar dados indevidos; toda escrita exige aprovação |
-| Agente que inventa/estima dados ausentes | Princípio "sem inventar" — agente só usa o que está no CRM |
-| Novo provider LLM próprio para agentes | Reaproveita IAnthropicChatClient existente |
-| Portal do cliente / acesso externo aos agentes | Sistema single-user |
-| Voz/áudio nos agentes | Fora do escopo deste milestone |
+| Prova social real no `/portfolio` | Decisão de conteúdo do usuário, não bloqueia entrega técnica de v1.3 |
+| Agentes de IA (v1.2) | Milestone separado, pausado por sessão concorrente — não mexer nos arquivos de `src/Diax.Domain/Agents/*` durante v1.3 |
 
 ## Traceability
 
+Preenchido pelo roadmapper.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ORCH-01 | Phase 2 | Pending |
-| ORCH-02 | Phase 2 | Complete |
-| ORCH-03 | Phase 2 | Pending |
-| ORCH-04 | Phase 2 | Complete |
-| ORCH-05 | Phase 2 | Complete |
-| CMRC-01 | Phase 3 | Pending |
-| CMRC-02 | Phase 3 | Pending |
-| CMRC-03 | Phase 3 | Pending |
-| CMRC-04 | Phase 3 | Pending |
-| CMRC-05 | Phase 3 | Pending |
-| CMRC-06 | Phase 3 | Pending |
-| SUP-01 | Phase 4 | Pending |
-| SUP-02 | Phase 4 | Pending |
-| SUP-03 | Phase 4 | Pending |
-| SUP-04 | Phase 4 | Pending |
-| PERS-01 | Phase 5 | Pending |
-| PERS-02 | Phase 5 | Pending |
-| PERS-03 | Phase 5 | Pending |
-| PERS-04 | Phase 5 | Pending |
-| AGUI-01 | Phase 6 | Pending |
-| AGUI-02 | Phase 6 | Pending |
-| AGUI-03 | Phase 6 | Pending |
-| AGUI-04 | Phase 6 | Pending |
-| AGUI-05 | Phase 6 | Pending |
+| EXTR-01 | Phase 7 | Complete |
+| EXTR-02 | Phase 7 | Complete |
+| EXTR-03 | Phase 7 | Complete |
+| IMPT-01 | Phase 8 | Pending |
+| IMPT-02 | Phase 8 | Pending |
+| IMPT-03 | Phase 8 | Pending |
 
 **Coverage:**
-- v1.2 requirements: 24 total (CMRC-01..03 já construídos, a validar na Phase 3)
-- Mapped to phases: 24/24
-- Unmapped: 0
+- v1 requirements: 6 total
+- Mapped to phases: 6
+- Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-05-28 — milestone v1.2 Agentes de IA*
-*Traceability filled: 2026-05-28 — roadmap created*
-*v1.1 (Produtividade Pessoal) deferido — ver MILESTONES.md*
+*Requirements defined: 2026-09-05*
+*Last updated: 2026-09-05 — roadmap created (Phase 7: Extração, Phase 8: Import CRM), 6/6 requirements mapped*

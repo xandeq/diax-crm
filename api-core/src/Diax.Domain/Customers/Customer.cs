@@ -59,6 +59,12 @@ public class Customer : AuditableEntity
     /// </summary>
     public string? Website { get; private set; }
 
+    /// <summary>
+    /// Classificação do Website: site próprio vs página de diretório de terceiro (EXTR-03).
+    /// Calculada no import por WebsiteClassifier. Default Unknown para todo lead legado.
+    /// </summary>
+    public WebsiteKind WebsiteKind { get; private set; } = WebsiteKind.Unknown;
+
     // ===== ORIGEM E CONTEXTO =====
 
     /// <summary>
@@ -70,6 +76,14 @@ public class Customer : AuditableEntity
     /// Detalhes adicionais sobre a origem (ex: nome do evento, campanha específica).
     /// </summary>
     public string? SourceDetails { get; private set; }
+
+    /// <summary>
+    /// ID durável do lead na fonte externa (hoje: `lead.Id` do Extrator de Dados).
+    /// Chave de dedup cross-pull para leads que mudam de e-mail entre passadas do scraper.
+    /// Criada nesta fase por decisão D-07 (migration única com WebsiteKind); a lógica de dedup
+    /// que a consome é a Phase 8 (IMPT-01). Null para leads sem origem externa.
+    /// </summary>
+    public string? ExternalId { get; private set; }
 
     /// <summary>
     /// Observações livres sobre o cliente/lead.
@@ -266,6 +280,24 @@ public class Customer : AuditableEntity
         WhatsApp = whatsApp;
         SecondaryEmail = secondaryEmail;
         Website = website;
+    }
+
+    /// <summary>
+    /// Define a classificação do website (EXTR-03). Método separado de UpdateContactInfo para
+    /// não quebrar as ~15 chamadas existentes daquele método.
+    /// </summary>
+    public void SetWebsiteKind(WebsiteKind kind)
+    {
+        WebsiteKind = kind;
+    }
+
+    /// <summary>
+    /// Define o ID externo (Extrator). Whitespace vira null para não colidir no índice
+    /// único filtrado de external_id.
+    /// </summary>
+    public void SetExternalId(string? externalId)
+    {
+        ExternalId = string.IsNullOrWhiteSpace(externalId) ? null : externalId.Trim();
     }
 
     /// <summary>

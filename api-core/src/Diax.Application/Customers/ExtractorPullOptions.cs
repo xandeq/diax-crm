@@ -64,4 +64,30 @@ public class ExtractorPullOptions
     /// inferir a região a partir do telefone/whatsapp.
     /// </summary>
     public List<string> AllowedDdds { get; set; } = new() { "27", "28" };
+
+    /// <summary>
+    /// Liga/desliga a checagem de MX no import do Extrator (EXTR-01). Default: true.
+    /// Desligar faz todo lead ser tratado como "MX não verificado" — nada é rejeitado por MX.
+    /// </summary>
+    public bool MxCheckEnabled { get; set; } = true;
+
+    /// <summary>
+    /// TTL do cache de MX para resultados conclusivos (Valid / NoMx), em dias.
+    /// Default 30 — paridade com CACHE_DAYS do docs/email-marketing/mx_check.py.
+    /// </summary>
+    public int MxCacheDays { get; set; } = 30;
+
+    /// <summary>
+    /// TTL do cache de MX para o resultado "não verificado" (timeout/falha de infraestrutura),
+    /// em horas. Default 24 — muito menor que MxCacheDays porque Unverified é um fato sobre a
+    /// REDE naquele momento, não sobre o domínio; congelar por 30 dias perpetuaria uma
+    /// indisponibilidade momentânea.
+    /// </summary>
+    public int MxUnverifiedCacheHours { get; set; } = 24;
+
+    /// <summary>
+    /// Quantas queries DNS rodam em paralelo por rodada de import. Default 8 — mesmo grau de
+    /// check_many(workers=8) do docs/email-marketing/site_check.py.
+    /// </summary>
+    public int MxLookupParallelism { get; set; } = 8;
 }

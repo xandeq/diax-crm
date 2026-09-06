@@ -22,12 +22,24 @@ public record ImportCustomerRow(
     string? ConsentStatus = null);
 
 /// <summary>
+/// Contadores agregados de leads descartados ANTES do import, computados pelo chamador
+/// (hoje: ExtractorIntegrationService). Persistidos em CustomerImport (EXTR-02 / decisão D-04).
+/// O contador de duplicados NÃO vem daqui — só o CustomerImportService sabe quantas linhas
+/// casaram com um Customer existente, então ele o computa por conta própria.
+/// </summary>
+public record ImportRejectionCounts(
+    int GeoRejected = 0,
+    int LowQualityEmailRejected = 0,
+    int NoMxRejected = 0);
+
+/// <summary>
 /// Request para importação em lote de customers/leads.
 /// </summary>
 public record BulkImportRequest(
     List<ImportCustomerRow> Customers,
     LeadSource Source = LeadSource.Import,
-    bool DryRun = false);
+    bool DryRun = false,
+    ImportRejectionCounts? RejectionCounts = null);   // opcional: só o Extrator preenche
 
 /// <summary>
 /// Response da importação em lote.
@@ -60,7 +72,12 @@ public record ImportHistoryResponse(
     int SuccessCount,
     int FailedCount,
     string? ErrorDetails,
-    DateTime CreatedAt)
+    DateTime CreatedAt,
+    // ===== EXTR-02: motivos de rejeição desta rodada =====
+    int GeoRejectedCount = 0,
+    int LowQualityEmailRejectedCount = 0,
+    int NoMxRejectedCount = 0,
+    int DuplicateRejectedCount = 0)
 {
     /// <summary>
     /// Converte a entidade CustomerImport para DTO de resposta.
@@ -76,6 +93,10 @@ public record ImportHistoryResponse(
             import.SuccessCount,
             import.FailedCount,
             import.ErrorDetails,
-            import.CreatedAt);
+            import.CreatedAt,
+            import.GeoRejectedCount,
+            import.LowQualityEmailRejectedCount,
+            import.NoMxRejectedCount,
+            import.DuplicateRejectedCount);
     }
 }
