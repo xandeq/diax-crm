@@ -50,6 +50,11 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Website)
             .HasMaxLength(500);
 
+        builder.Property(c => c.WebsiteKind)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(WebsiteKind.Unknown);   // leads legados nascem Unknown
+
         // ===== ORIGEM E CONTEXTO =====
         builder.Property(c => c.Source)
             .IsRequired()
@@ -57,6 +62,9 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         builder.Property(c => c.SourceDetails)
             .HasMaxLength(500);
+
+        builder.Property(c => c.ExternalId)
+            .HasMaxLength(64);
 
         builder.Property(c => c.Notes)
             .HasMaxLength(4000); // Texto longo para observações
@@ -128,6 +136,14 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.HasIndex(c => c.Document)
             .HasDatabaseName("IX_Customers_Document")
             .HasFilter("[document] IS NOT NULL"); // Índice parcial
+
+        // Dedup cross-pull por ID do Extrator (D-07; consumido pela Phase 8 / IMPT-01).
+        // Índice FILTRADO: no SQL Server um índice único trata múltiplos NULL como duplicados,
+        // e a esmagadora maioria dos customers legados tem external_id NULL.
+        builder.HasIndex(c => c.ExternalId)
+            .IsUnique()
+            .HasFilter("[external_id] IS NOT NULL")
+            .HasDatabaseName("IX_Customers_ExternalId");
 
         // Índice no status (filtros frequentes)
         builder.HasIndex(c => c.Status)
