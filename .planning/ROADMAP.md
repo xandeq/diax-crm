@@ -61,7 +61,7 @@ Plans:
 - [x] 07-03-PLAN.md — Dominio e schema EF: Customer.WebsiteKind/ExternalId, contadores em CustomerImport, tabela mx_cache_entries [wave 2]
 - [x] 07-04-PLAN.md — Checagem de MX com cache no loop do ExtractorIntegrationService + instrumentacao [wave 3]
 - [x] 07-05-PLAN.md — Contadores de rejeicao persistidos + WebsiteKind gravado no import [wave 4]
-- [ ] 07-06-PLAN.md — Historico de import consultavel por periodo (GET /customers/imports?from&to) [wave 5]
+- [x] 07-06-PLAN.md — Historico de import consultavel por periodo (GET /customers/imports?from&to) [wave 5]
 - [ ] 07-07-PLAN.md — Migration unica (D-07) + aplicacao em producao [wave 6, checkpoint]
 
 ---

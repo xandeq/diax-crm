@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
-stopped_at: Completed 07-05-PLAN.md
-last_updated: "2026-09-06T10:06:38.991Z"
+stopped_at: Completed 07-06-PLAN.md
+last_updated: "2026-09-06T10:13:33.930Z"
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 ## Current Position
 
 Phase: 07 (extra-o-qualidade-na-entrada) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Plan: 6 of 7
 | Phase 07 P03 | 25min | 3 tasks | 12 files |
 | Phase 07 P04 | 55min | 2 tasks | 7 files |
 | Phase 07 P05 | 15min | 2 tasks | 5 files |
+| Phase 07 P06 | 20min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Plan: 6 of 7
 - [Phase 07]: 07-04: JunkDomainFilter.IsJunk adicionado como short-circuit em IsLowQualityEmail — expos colisao de fixtures de teste pre-existentes (empresa.com.br/email.com/test.com), corrigidas para dominios nao-lixo
 - [Phase 07]: 07-05: ImportRejectionCounts nao inclui duplicado - so CustomerImportService sabe quantas linhas casaram com Customer existente
 - [Phase 07]: 07-05: WebsiteKind no enrich recalculado a partir do website FINAL (preservado ou novo), nao do row.Website bruto - cobre leads legados sem WebsiteKind calculado
+- [Phase 07]: 07-06: from/to tratados como UTC e inclusivos nas duas bordas — combina com a conversao automatica de DateTime para UTC do DiaxDbContext
+- [Phase 07]: 07-06: 4 contadores de rejeicao adicionados no FINAL de ImportHistoryResponse (default 0) para preservar a ordem posicional das 9 propriedades originais
+- [Phase 07]: 07-06: teste de filtro de periodo usa DiaxDbContext real + InMemory, setando CreatedAt via Entry(...).Property(...).CurrentValue (mecanismo padrao do EF change tracker para setter protegido)
 
 ### Testing Protocol
 
@@ -162,8 +166,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-06T10:06:38.985Z
-Stopped at: Completed 07-05-PLAN.md
+Last session: 2026-09-06T10:13:33.921Z
+Stopped at: Completed 07-06-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
