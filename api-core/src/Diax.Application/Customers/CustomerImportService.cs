@@ -724,20 +724,26 @@ public class CustomerImportService : IApplicationService
     }
 
     /// <summary>
-    /// Obtém o histórico de importações paginado.
+    /// Obtém o histórico de importações paginado, opcionalmente restrito a um período (EXTR-02).
     /// </summary>
     /// <param name="page">Número da página</param>
     /// <param name="pageSize">Tamanho da página</param>
+    /// <param name="from">Data inicial (UTC, inclusiva). Opcional.</param>
+    /// <param name="to">Data final (UTC, inclusiva). Opcional.</param>
     /// <param name="cancellationToken">Token de cancelamento</param>
     /// <returns>Response paginado com histórico de importações</returns>
     public async Task<PagedResponse<ImportHistoryResponse>> GetImportHistoryAsync(
         int page,
         int pageSize,
+        DateTime? from = null,
+        DateTime? to = null,
         CancellationToken cancellationToken = default)
     {
         var (items, totalCount) = await _importRepository.GetPagedAsync(
             page,
             pageSize,
+            from,
+            to,
             cancellationToken);
 
         var responses = items.Select(ImportHistoryResponse.FromEntity);
