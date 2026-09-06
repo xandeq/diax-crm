@@ -34,7 +34,18 @@ if (Test-Path $envFile) {
     $dbPort = $env:DB_PORT ?? "1433"
     $dbName = $env:DB_NAME ?? "db_aaf0a8_diaxcrm"
     $dbUser = $env:DB_USER ?? "db_aaf0a8_diaxcrm"
-    $dbPass = $env:DB_PASS ?? "10Alexandre10#"
+    $dbPass = $env:DB_PASS
+
+    if ([string]::IsNullOrWhiteSpace($dbPass)) {
+        Write-Host ""
+        Write-Host "ERRO: senha do banco nao definida." -ForegroundColor Red
+        Write-Host "Defina DB_PASS no ambiente antes de rodar este script:" -ForegroundColor Yellow
+        Write-Host '  $env:DB_PASS = "<senha>"   # valor em ~/.claude/.secrets.env' -ForegroundColor Yellow
+        Write-Host "Ou crie api-core/.env.production com DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASS." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Nunca voltar a embutir a senha aqui: este repositorio e PUBLICO." -ForegroundColor Red
+        exit 1
+    }
 }
 
 Write-Host "Database Configuration:" -ForegroundColor Cyan
