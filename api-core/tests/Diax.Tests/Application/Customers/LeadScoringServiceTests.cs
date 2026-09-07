@@ -36,6 +36,23 @@ public class LeadScoringServiceTests
     private static CustomerEngagementSummary Eng(Guid id, int opens = 0, int clicks = 0,
         int bounces = 0, DateTime? last = null) => new(id, opens, clicks, bounces, last);
 
+    private static Customer MakePhase7Lead(
+        string name,
+        string? phone,
+        string? website,
+        WebsiteKind kind,
+        LeadQuality? quality,
+        EmailType? emailType,
+        bool suspicious,
+        bool eligible)
+    {
+        var c = new Customer(name, $"{name.ToLower().Replace(" ", ".")}@t.com");
+        c.UpdateContactInfo(phone: phone, website: website);
+        c.SetWebsiteKind(kind);
+        c.UpdateClassification(quality, emailType, suspicious, eligible);
+        return c;
+    }
+
     // ── CalculateScore (função pura) ─────────────────────────────────────────
 
     [Fact]
@@ -167,6 +184,74 @@ public class LeadScoringServiceTests
 
         Assert.Equal(spScore + 10, esScore); // só o bônus de DDD local diferencia os dois
     }
+
+    [Fact]
+    public void CalculateScore_StrongPhase7Signals_ReachesWarmWithoutEngagement()
+    {
+        // site 5 + telefone 5 + elegível 5 + DDD 27 → 10 + OwnSite 10 + High 5 + PersonalDirect 5 = 45
+        var lead = MakePhase7Lead("Clinica Forte", "27999990000", "https://clinicaodontovix.com.br",
+            WebsiteKind.OwnSite, LeadQuality.High, EmailType.PersonalDirect,
+            suspicious: false, eligible: true);
+
+        var score = LeadScoringService.CalculateScore(lead, null, Now);
+
+        Assert.Equal(45, score);
+        Assert.Equal(LeadSegment.Warm, LeadScoringService.SegmentForScore(score));
+    }
+
+    [Fact]
+    public void CalculateScore_WeakPhase7Signals_StaysColdWithoutEngagement()
+    {
+        // site 5 + telefone 5 + elegível 5 + DDD 27 → 10 + Directory 0 + Medium 0 + Generic 0 = 25
+        var lead = MakePhase7Lead("Lead Diretorio", "27999990000",
+            "https://www.econodata.com.br/empresa/123",
+            WebsiteKind.Directory, LeadQuality.Medium, EmailType.GenericCorporate,
+            suspicious: false, eligible: true);
+
+        var score = LeadScoringService.CalculateScore(lead, null, Now);
+
+        Assert.Equal(25, score);
+        Assert.Equal(LeadSegment.Cold, LeadScoringService.SegmentForScore(score));
+    }
+
+    [Fact]
+    public void CalculateScore_FitCeiling_NeverReachesHotWithoutEngagement()
+    {
+        var lead = MakePhase7Lead("Teto Do Fit", "27999990000", "https://clinicaodontovix.com.br",
+            WebsiteKind.OwnSite, LeadQuality.High, EmailType.PersonalDirect,
+            suspicious: false, eligible: true);
+
+        var score = LeadScoringService.CalculateScore(lead, null, Now);
+
+        Assert.Equal(45, score); // teto do bloco de fit
+        Assert.True(score < LeadScoringService.HotThreshold);
+        Assert.NotEqual(LeadSegment.Hot, LeadScoringService.SegmentForScore(score));
+    }
+
+    [Fact]
+    public void CalculateScore_SuspiciousDomain_DropsStrongLeadBackToCold()
+    {
+        // suspeito ⇒ não elegível (invariante do LeadSanitizationService):
+        // 5 + 5 + 0 + 10 + 10 + 5 + 5 − 15 = 25
+        var lead = MakePhase7Lead("Dominio Suspeito", "27999990000", "https://clinicaodontovix.com.br",
+            WebsiteKind.OwnSite, LeadQuality.High, EmailType.PersonalDirect,
+            suspicious: true, eligible: false);
+
+        var score = LeadScoringService.CalculateScore(lead, null, Now);
+
+        Assert.Equal(25, score);
+        Assert.Equal(LeadSegment.Cold, LeadScoringService.SegmentForScore(score));
+    }
+
+    [Theory]
+    [InlineData(0, LeadSegment.Cold)]
+    [InlineData(29, LeadSegment.Cold)]
+    [InlineData(30, LeadSegment.Warm)]
+    [InlineData(59, LeadSegment.Warm)]
+    [InlineData(60, LeadSegment.Hot)]
+    [InlineData(100, LeadSegment.Hot)]
+    public void SegmentForScore_MapsThresholdsExactly(int score, LeadSegment expected)
+        => Assert.Equal(expected, LeadScoringService.SegmentForScore(score));
 
     // ── RecomputeAllAsync ────────────────────────────────────────────────────
 
