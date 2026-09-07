@@ -89,7 +89,8 @@ public class ExtractorIntegrationServiceTests
             suppressionMock.Object,
             auditLogMock.Object,
             userRepoMock.Object,
-            circuitBreakerMock.Object);
+            circuitBreakerMock.Object,
+            Mock.Of<ILogger<CustomerImportService>>());
 
         _sut = CreateSut();
     }

@@ -11,6 +11,7 @@ using Diax.Domain.EmailMarketing;
 using Diax.Domain.Audit;
 using Diax.Domain.Auth;
 using Diax.Application.EmailMarketing;
+using Microsoft.Extensions.Logging;
 
 namespace Diax.Application.Customers;
 
@@ -28,6 +29,7 @@ public class CustomerImportService : IApplicationService
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUserRepository _userRepository;
     private readonly IPilotCircuitBreaker _circuitBreaker;
+    private readonly ILogger<CustomerImportService> _logger;
 
     public CustomerImportService(
         ICustomerRepository customerRepository,
@@ -38,7 +40,8 @@ public class CustomerImportService : IApplicationService
         IEmailSuppressionRepository suppressionRepository,
         IAuditLogRepository auditLogRepository,
         IUserRepository userRepository,
-        IPilotCircuitBreaker circuitBreaker)
+        IPilotCircuitBreaker circuitBreaker,
+        ILogger<CustomerImportService> logger)
     {
         _customerRepository = customerRepository;
         _importRepository = importRepository;
@@ -49,6 +52,7 @@ public class CustomerImportService : IApplicationService
         _auditLogRepository = auditLogRepository;
         _userRepository = userRepository;
         _circuitBreaker = circuitBreaker;
+        _logger = logger;
     }
 
     /// <summary>
@@ -324,6 +328,7 @@ public class CustomerImportService : IApplicationService
         // HashSets para dedup dentro do próprio lote (evita duplicatas na mesma importação)
         var seenEmailsInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seenPhonesInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenExternalIdsInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Processa cada linha
         for (int i = 0; i < request.Customers.Count; i++)
@@ -404,8 +409,29 @@ public class CustomerImportService : IApplicationService
                 var hasEmail = sanitized.IsEmailValid && !string.IsNullOrWhiteSpace(sanitized.Email);
                 var primaryPhone = sanitized.WhatsApp ?? sanitized.Phone;
 
-                Customer? existingCustomer = null;
+                // ── IMPT-01/IMPT-02: resolução de match ExternalId → e-mail → telefone ──
+                // O ExternalId (lead.Id do Extrator) é a chave DURÁVEL: cobre o caso que o match
+                // por e-mail estruturalmente não cobre — o mesmo negócio trocando de e-mail entre
+                // passadas do scraper.
+                var rowExternalId = string.IsNullOrWhiteSpace(row.ExternalId) ? null : row.ExternalId.Trim();
 
+                Customer? externalIdMatch = null;
+                if (rowExternalId != null)
+                {
+                    if (!seenExternalIdsInBatch.Add(rowExternalId))
+                    {
+                        skippedCount++;
+                        errors.Add(new ImportError(
+                            i + 1,
+                            sanitized.Email ?? row.Email,
+                            $"Duplicata no lote: ExternalId '{rowExternalId}' aparece mais de uma vez"));
+                        continue;
+                    }
+
+                    externalIdMatch = await _customerRepository.GetByExternalIdAsync(rowExternalId, cancellationToken);
+                }
+
+                Customer? emailOrPhoneMatch = null;
                 if (hasEmail)
                 {
                     // Dedup na memória
@@ -419,8 +445,7 @@ public class CustomerImportService : IApplicationService
                         continue;
                     }
 
-                    // Busca customer existente no DB para enriquecimento
-                    existingCustomer = await _customerRepository.GetByEmailAsync(sanitized.Email!, cancellationToken);
+                    emailOrPhoneMatch = await _customerRepository.GetByEmailAsync(sanitized.Email!, cancellationToken);
                 }
                 else if (primaryPhone != null)
                 {
@@ -435,8 +460,26 @@ public class CustomerImportService : IApplicationService
                         continue;
                     }
 
-                    // Busca customer existente pelo telefone
-                    existingCustomer = await _customerRepository.GetByPhoneAsync(primaryPhone, cancellationToken);
+                    emailOrPhoneMatch = await _customerRepository.GetByPhoneAsync(primaryPhone, cancellationToken);
+                }
+
+                Customer? existingCustomer;
+                var externalIdConflict = false;
+
+                if (externalIdMatch != null && emailOrPhoneMatch != null && externalIdMatch.Id != emailOrPhoneMatch.Id)
+                {
+                    // D-03: linhas DIFERENTES no CRM. O e-mail vence — é o canal real de envio e a
+                    // chave usada por supressões/opt-out. O ExternalId do lead A NÃO é reescrito.
+                    existingCustomer = emailOrPhoneMatch;
+                    externalIdConflict = true;
+
+                    _logger.LogWarning(
+                        "ExternalIdConflict: linha {Row} - ExternalId {ExternalId} casa com o Customer {ExternalIdCustomerId}, mas o e-mail {Email} casa com o Customer {EmailCustomerId}. E-mail vence (D-03); ExternalId nao foi reescrito.",
+                        i + 1, rowExternalId, externalIdMatch.Id, sanitized.Email ?? row.Email, emailOrPhoneMatch.Id);
+                }
+                else
+                {
+                    existingCustomer = externalIdMatch ?? emailOrPhoneMatch;
                 }
 
                 // D. Rejeitar opt-out ou bounced do banco/supressão
@@ -466,6 +509,45 @@ public class CustomerImportService : IApplicationService
                     }
                 }
 
+                // ── D-01: o Extrator é fonte da verdade do contato. Se o ExternalId casou e o
+                //    e-mail mudou, o e-mail do CRM é atualizado. Só vale no match por ExternalId —
+                //    no conflito D-03 quem venceu foi o e-mail, então não há troca a fazer.
+                var isEmailSwap = existingCustomer != null
+                    && externalIdMatch != null
+                    && !externalIdConflict
+                    && ReferenceEquals(existingCustomer, externalIdMatch)
+                    && hasEmail
+                    && !string.IsNullOrWhiteSpace(existingCustomer.Email)
+                    && !string.Equals(existingCustomer.Email, sanitized.Email, StringComparison.OrdinalIgnoreCase);
+
+                // ── D-02: trocar o e-mail NÃO pode ressuscitar um contato bloqueado. ──
+                // O caso `existingCustomer.EmailOptOut == true` já foi barrado logo acima (bloco D):
+                // a linha é rejeitada, o e-mail NÃO é trocado e a flag permanece true.
+                // Falta o caso órfão: existe supressão registrada para o e-mail ANTIGO sem que
+                // EmailOptOut tenha chegado a ser marcado na linha (supressão inserida manualmente
+                // ou anterior ao registro do Customer). A checagem acima só cobre o e-mail NOVO.
+                if (isEmailSwap && _currentUserService.UserId.HasValue)
+                {
+                    var oldEmailSuppressed = await _suppressionRepository.IsSuppressedAsync(
+                        _currentUserService.UserId.Value,
+                        existingCustomer!.Email!.Trim().ToLowerInvariant(),
+                        cancellationToken);
+
+                    if (oldEmailSuppressed)
+                    {
+                        // Propaga o bloqueio para a própria linha, para que a próxima passada
+                        // pare já no bloco D, e rejeita a linha sem trocar o e-mail.
+                        existingCustomer.OptOutEmail();
+                        await _customerRepository.UpdateAsync(existingCustomer, cancellationToken);
+
+                        errors.Add(new ImportError(
+                            i + 1,
+                            row.Email,
+                            "Lead rejeitado: e-mail anterior esta na lista de supressao - opt-out propagado, e-mail nao foi trocado."));
+                        continue;
+                    }
+                }
+
                 // Se NÃO existe, CRIAR um NOVO
                 if (existingCustomer == null)
                 {
@@ -479,6 +561,9 @@ public class CustomerImportService : IApplicationService
 
                     // EXTR-03: site próprio vs diretório de terceiro, calculado no import.
                     customer.SetWebsiteKind(WebsiteClassifier.Classify(row.Website));
+
+                    // IMPT-01: chave de dedup durável do Extrator, gravada já na criação.
+                    customer.SetExternalId(rowExternalId);
 
                     if (!string.IsNullOrWhiteSpace(sanitized.CompanyName))
                     {
@@ -564,9 +649,20 @@ public class CustomerImportService : IApplicationService
                         wasUpdated = true;
                     }
 
+                    // D-01: o e-mail do CRM passa a ser o do Extrator quando o match veio pelo
+                    // ExternalId. UpdateBasicInfo não toca em EmailOptOut, então a flag de opt-out
+                    // (e todo o resto do histórico: Notes, Tags, timeline, CreatedAt) sobrevive à
+                    // troca — é exatamente por isso que aqui é update in-place e nunca recriação.
+                    var newEmail = existingCustomer.Email;
+                    if (isEmailSwap)
+                    {
+                        newEmail = sanitized.Email;
+                        wasUpdated = true;
+                    }
+
                     if (wasUpdated)
                     {
-                        existingCustomer.UpdateBasicInfo(newName, existingCustomer.Email, newType, newCompany, existingCustomer.Document);
+                        existingCustomer.UpdateBasicInfo(newName, newEmail, newType, newCompany, existingCustomer.Document);
                     }
 
                     // Atualiza Telefones e Website se vazio
@@ -591,6 +687,17 @@ public class CustomerImportService : IApplicationService
                     if (recomputedKind != existingCustomer.WebsiteKind)
                     {
                         existingCustomer.SetWebsiteKind(recomputedKind);
+                        wasUpdated = true;
+                    }
+
+                    // D-04: backfill orgânico — o lead casou por e-mail/telefone e trouxe um
+                    // ExternalId; gravamos nele. Nunca sobrescreve um ExternalId já existente, e
+                    // nunca grava no caso de conflito D-03 (lá o ExternalId pertence a outra linha).
+                    if (rowExternalId != null
+                        && !externalIdConflict
+                        && string.IsNullOrWhiteSpace(existingCustomer.ExternalId))
+                    {
+                        existingCustomer.SetExternalId(rowExternalId);
                         wasUpdated = true;
                     }
 
