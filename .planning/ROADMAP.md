@@ -62,7 +62,7 @@ Plans:
 - [x] 07-04-PLAN.md — Checagem de MX com cache no loop do ExtractorIntegrationService + instrumentacao [wave 3]
 - [x] 07-05-PLAN.md — Contadores de rejeicao persistidos + WebsiteKind gravado no import [wave 4]
 - [x] 07-06-PLAN.md — Historico de import consultavel por periodo (GET /customers/imports?from&to) [wave 5]
-- [ ] 07-07-PLAN.md — Migration unica (D-07) + aplicacao em producao [wave 6, checkpoint]
+- [x] 07-07-PLAN.md — Migration unica (D-07) + aplicacao em producao [wave 6, checkpoint]
 
 ---
 

@@ -56,15 +56,15 @@ nem correlatos.
 - ✓ Audit logs e system logs — v1.0
 - ✓ Snippets e checklists domésticos — v1.0
 - ✓ Dashboard geral e analytics — v1.0
+- ✓ EXTR-01: MX/domínio válido verificado antes de importar, com degradação segura (falha de DNS não rejeita lead) — v1.3 Phase 7
+- ✓ EXTR-02: motivo de rejeição contado por rodada e consultável por período (`GET /customers/imports?from&to`) — v1.3 Phase 7
+- ✓ EXTR-03: site próprio vs diretório de terceiro classificado e persistido (`Customer.WebsiteKind`) — v1.3 Phase 7
 
 ### Active
 
-<!-- Milestone v1.3 — Pipeline de Aquisição -->
+<!-- Milestone v1.3 — Pipeline de Aquisição · Phase 7 completa, Phase 8 pendente -->
 
-- [ ] EXTR-01: MX/domínio válido verificado antes de importar (worker .NET)
-- [ ] EXTR-02: motivo de rejeição registrado por lead (geo/email-lixo/MX/duplicado)
-- [ ] EXTR-03: site próprio vs diretório de terceiro como sinal de qualidade no import/score
-- [ ] IMPT-01: `Customer.ExternalId` — dedup por ID do Extrator, não só email
+- [ ] IMPT-01: `Customer.ExternalId` — dedup por ID do Extrator, não só email (coluna já criada na Phase 7; falta a lógica de dedup)
 - [ ] IMPT-02: dedup real em `/customers/import` para `source=Scraping`
 - [ ] IMPT-03: `lead_score` calculado no momento do import
 
@@ -140,4 +140,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-09-05 — milestone v1.3 Pipeline de Aquisição iniciado (v1.2 segue pausado em paralelo, não superado)*
+*Last updated: 2026-09-07 — Phase 7 (Extração — Qualidade na Entrada) completa e verificada em produção; EXTR-01..03 validados. Phase 8 (Import — Dedup e Score) pendente. v1.2 segue pausado em paralelo.*
