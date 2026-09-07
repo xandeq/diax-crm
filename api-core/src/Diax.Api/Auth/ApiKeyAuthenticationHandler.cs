@@ -9,6 +9,36 @@ using Microsoft.Extensions.Options;
 namespace Diax.Api.Auth;
 
 /// <summary>
+/// Decide se uma requisição carrega a ServiceApiKey estática, para o PolicyScheme de autenticação
+/// rotear entre o handler de API key e o de JWT.
+/// </summary>
+public static class StaticApiKeyDetection
+{
+    /// <summary>
+    /// Verdadeiro quando a requisição traz a chave estática — seja no header nativo
+    /// <c>X-Api-Key</c>, seja em <c>Authorization: Bearer {chave}</c>.
+    ///
+    /// O segundo formato existe para clientes compatíveis com a API da OpenAI (SDK oficial,
+    /// Cursor, Continue, LangChain), que só mandam credencial em Bearer e não permitem header
+    /// customizado. Distinguir de um JWT é inequívoco: um JWT é sempre
+    /// <c>header.payload.signature</c>, ou seja, exatamente dois pontos. Um Bearer com essa forma
+    /// nunca é desviado para o handler de API key — continua indo para o JwtBearer.
+    /// </summary>
+    public static bool CarriesStaticApiKey(HttpRequest request)
+    {
+        if (request.Headers.ContainsKey("X-Api-Key"))
+            return true;
+
+        var authHeader = request.Headers.Authorization.ToString();
+        if (!authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var token = authHeader["Bearer ".Length..].Trim();
+        return token.Length > 0 && token.Count(c => c == '.') != 2;
+    }
+}
+
+/// <summary>
 /// Opções para autenticação por API Key estática.
 /// Lida com chamadas machine-to-machine (ex: n8n workflows) que não podem
 /// usar tokens JWT de curta duração.
@@ -46,19 +76,21 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        // 1. Verifica se o header está presente
-        if (!Request.Headers.TryGetValue(Options.HeaderName, out var headerValues))
-            return Task.FromResult(AuthenticateResult.NoResult()); // Deixa o próximo scheme tentar
-
-        var providedKey = headerValues.FirstOrDefault();
+        // 1. Lê a chave. Dois formatos são aceitos:
+        //    a) X-Api-Key: {chave}          — formato nativo, usado pelos workflows n8n
+        //    b) Authorization: Bearer {chave} — para clientes compatíveis com a API da OpenAI
+        //       (SDK oficial, Cursor, Continue, LangChain) que só mandam credencial em Bearer e
+        //       não permitem header customizado. O PolicyScheme em Program.cs só desvia para cá
+        //       um Bearer que NÃO tem formato de JWT, então não há colisão com sessões de usuário.
+        var providedKey = ReadProvidedKey();
         if (string.IsNullOrWhiteSpace(providedKey))
-            return Task.FromResult(AuthenticateResult.NoResult());
+            return Task.FromResult(AuthenticateResult.NoResult()); // Deixa o próximo scheme tentar
 
         // 2. Lê a chave configurada no servidor
         var configuredKey = _configuration["ServiceApiKey"];
         if (string.IsNullOrWhiteSpace(configuredKey))
         {
-            Logger.LogWarning("ApiKey auth: X-Api-Key header recebido, mas 'ServiceApiKey' não está configurado no servidor.");
+            Logger.LogWarning("ApiKey auth: credencial estatica recebida, mas 'ServiceApiKey' nao esta configurado no servidor.");
             return Task.FromResult(AuthenticateResult.Fail("Service API key not configured on server."));
         }
 
@@ -92,5 +124,29 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         Logger.LogDebug("ApiKey auth: acesso de serviço autenticado para {Email}", serviceEmail);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
+    }
+
+    /// <summary>
+    /// Extrai a chave estática de <c>X-Api-Key</c> ou, na falta dele, de
+    /// <c>Authorization: Bearer {chave}</c>. Retorna null quando nenhum dos dois traz valor.
+    /// </summary>
+    private string? ReadProvidedKey()
+    {
+        if (Request.Headers.TryGetValue(Options.HeaderName, out var headerValues))
+        {
+            var fromHeader = headerValues.FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(fromHeader))
+                return fromHeader;
+        }
+
+        var authHeader = Request.Headers.Authorization.ToString();
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            var token = authHeader["Bearer ".Length..].Trim();
+            if (token.Length > 0)
+                return token;
+        }
+
+        return null;
     }
 }

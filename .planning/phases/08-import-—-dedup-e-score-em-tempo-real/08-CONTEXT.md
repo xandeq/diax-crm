@@ -58,6 +58,28 @@ guiadas pelo que já foi decidido acima:
   (a) calculando mesmo assim, para o lead nunca ficar com score nulo/zero, ou (b) reinterpretando
   o requisito. Se (b), parar e levantar a questão — não redefinir requisito sozinho.
 
+### D-05: IMPT-03 resolvido — recalibrar o fit com os sinais da Phase 7 (decidido pelo usuário em 2026-09-07)
+
+A questão levantada acima foi levada ao usuário e **respondida**. Escolha: **incluir os sinais da
+Phase 7 no subscore de fit e recalibrar o teto**, para que um lead de boa qualidade possa nascer
+`Warm` já no import. Não vale só chamar a função atual (entregaria `Cold` constante), e não vale
+adiar IMPT-03 para outra fase.
+
+O que isso trava para o planner:
+
+- O scoring no import passa a consumir os sinais que a Phase 7 já grava no `Customer`
+  (classificação site-próprio-vs-diretório de EXTR-03, resultado do MX check, completude do
+  cadastro). Esses sinais são inputs de **fit**, não de engajamento.
+- O teto do bloco de fit sobe acima de `WarmThreshold` (30), de modo que um lead com sinais fortes
+  alcance `Warm` sem nenhum engajamento. Um lead com sinais fracos deve continuar `Cold`. `Hot`
+  (60) permanece inalcançável sem engajamento — isso é intencional e não deve ser "consertado".
+- `LeadScoringService.CalculateScore` é a fonte única. A recalibração acontece **dentro dela**, não
+  em uma cópia paralela no caminho de import. O `LeadScoringWorker` das 06h e o import têm que
+  produzir o mesmo score para o mesmo `Customer`.
+- A recalibração muda o score de leads já existentes na próxima passada do worker. Isso é esperado;
+  o plano deve declarar o efeito, não tentar evitá-lo.
+
+
 </decisions>
 
 <canonical_refs>
