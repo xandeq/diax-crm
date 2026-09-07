@@ -32,6 +32,13 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .FirstOrDefaultAsync(c => c.Phone == normalized || c.WhatsApp == normalized, cancellationToken);
     }
 
+    public async Task<Customer?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default)
+    {
+        var normalized = externalId.Trim();
+        return await DbSet
+            .FirstOrDefaultAsync(c => c.ExternalId == normalized, cancellationToken);
+    }
+
     public async Task<IEnumerable<Customer>> GetByStatusAsync(
         CustomerStatus status,
         CancellationToken cancellationToken = default)

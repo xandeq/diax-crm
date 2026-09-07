@@ -339,10 +339,11 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         // e-mail válido é obrigatório para qualquer fonte (linha ~344 faz `continue` sem e-mail),
         // então o ramo GetByPhoneAsync é inalcançável neste fluxo (leads só-telefone acabam como
         // falha rastreável, nunca criam). Pulls repetidos do mesmo e-mail casam o registro existente
-        // (update, não create) → idempotente. O lead.Id do Extrator só vai para Notes (rastreabilidade),
-        // não é chave de dedup. Aqui pulamos apenas os leads SEM e-mail E SEM telefone/whatsapp: sem
-        // qualquer contato eles jamais dedupam e sujariam a base — melhor um pré-skip que um "create órfão".
-        // Nota: dedup durável por lead.Id (coluna ExternalId) fica como recomendação (migração em prod).
+        // (update, não create) → idempotente. Aqui pulamos apenas os leads SEM e-mail E SEM
+        // telefone/whatsapp: sem qualquer contato eles jamais dedupam e sujariam a base — melhor
+        // um pré-skip que um "create órfão".
+        // IMPT-01: o lead.Id agora viaja em ImportCustomerRow.ExternalId e é a PRIMEIRA chave de
+        // dedup tentada pelo CustomerImportService (antes de e-mail e telefone).
         var usablePhone = !string.IsNullOrWhiteSpace(lead.WhatsApp) ? lead.WhatsApp : lead.Phone;
         var hasEmail = !string.IsNullOrWhiteSpace(lead.Email);
         var hasPhone = !string.IsNullOrWhiteSpace(usablePhone);
@@ -374,8 +375,9 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             CompanyName: lead.CompanyName,
             Notes: noteParts.Count > 0 ? string.Join("\n", noteParts) : null,
             Tags: string.Join(",", tags),
-            Website: lead.Website        // ← EXTR-03: o website precisa chegar ao Customer,
+            Website: lead.Website,       // ← EXTR-03: o website precisa chegar ao Customer,
                                          //   não só ao texto de Notes
+            ExternalId: lead.Id > 0 ? lead.Id.ToString() : null   // IMPT-01: chave de dedup durável
         );
     }
 }

@@ -24,6 +24,12 @@ public interface ICustomerRepository : IRepository<Customer>
     Task<Customer?> GetByPhoneAsync(string phone, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Busca cliente pelo ID durável da fonte externa (hoje: `lead.Id` do Extrator de Dados).
+    /// Chave de dedup cross-pull para leads que trocam de e-mail entre passadas do scraper (IMPT-01).
+    /// </summary>
+    Task<Customer?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lista clientes por status.
     /// </summary>
     Task<IEnumerable<Customer>> GetByStatusAsync(CustomerStatus status, CancellationToken cancellationToken = default);
