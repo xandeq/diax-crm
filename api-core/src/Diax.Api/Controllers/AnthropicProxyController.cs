@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using Diax.Api.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ namespace Diax.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("proxy")]
-[Authorize]
+[Authorize(Policy = ApiKeyAuthenticationOptions.ProxyPolicy)]
 public class AnthropicProxyController : ControllerBase
 {
     private const string AnthropicBaseUrl = "https://api.anthropic.com";

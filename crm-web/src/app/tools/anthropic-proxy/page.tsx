@@ -269,7 +269,7 @@ export default function AnthropicProxyPage() {
           <ServiceKeyField
             serviceKey={serviceKey}
             setServiceKey={setServiceKey}
-            hint="Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. É a chave de serviço do CRM (config ServiceApiKey no servidor) — NÃO é a sua chave sk-ant-... da Anthropic, que nunca deve sair do servidor."
+            hint="Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. Use a chave de PROXY (config ProxyApiKey no servidor), que só abre os dois proxies de IA. NÃO use a Service API Key do CRM: ela autentica como Admin e dá acesso a clientes, leads, usuários e logs. E não é a sua chave sk-ant-... da Anthropic, que nunca sai do servidor."
           />
         </div>
 

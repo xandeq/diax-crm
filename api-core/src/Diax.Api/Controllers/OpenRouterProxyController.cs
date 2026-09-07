@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using Diax.Api.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +30,7 @@ namespace Diax.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("openrouter")]
-[Authorize]
+[Authorize(Policy = ApiKeyAuthenticationOptions.ProxyPolicy)]
 public class OpenRouterProxyController : ControllerBase
 {
     private const string OpenRouterBaseUrl = "https://openrouter.ai/api";
