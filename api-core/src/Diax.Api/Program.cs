@@ -203,8 +203,15 @@ if (string.IsNullOrWhiteSpace(jwtKey) || invalidJwtKeys.Contains(jwtKey, StringC
 
 // ===== AUTENTICAÇÃO: JWT + API Key estática (para n8n e outros clientes M2M) =====
 // PolicyScheme roteia para o scheme correto com base nos headers presentes:
-//   - Header "X-Api-Key" presente  → ApiKeyAuthenticationHandler (chave estática, nunca expira)
-//   - Caso contrário              → JwtBearer (token de sessão do usuário)
+//   - Header "X-Api-Key" presente          → ApiKeyAuthenticationHandler (chave estática, nunca expira)
+//   - "Authorization: Bearer <sem pontos>" → ApiKeyAuthenticationHandler
+//   - Caso contrário                       → JwtBearer (token de sessão do usuário)
+//
+// O segundo caso existe por causa dos proxies de IA (/proxy e /openrouter): clientes compatíveis
+// com a API da OpenAI (SDK oficial, Cursor, Continue, LangChain) só sabem mandar a credencial em
+// "Authorization: Bearer" e não têm como injetar um header customizado. Distinguir os dois é
+// inequívoco porque um JWT é sempre "header.payload.signature" — exatamente dois pontos — enquanto
+// a ServiceApiKey é base64url sem pontos. Um Bearer com formato de JWT nunca é desviado para cá.
 const string multiAuthScheme = "JwtOrApiKey";
 
 builder.Services
@@ -216,7 +223,7 @@ builder.Services
     .AddPolicyScheme(multiAuthScheme, "JWT or API Key", policyOptions =>
     {
         policyOptions.ForwardDefaultSelector = ctx =>
-            ctx.Request.Headers.ContainsKey("X-Api-Key")
+            StaticApiKeyDetection.CarriesStaticApiKey(ctx.Request)
                 ? ApiKeyAuthenticationOptions.DefaultScheme
                 : JwtBearerDefaults.AuthenticationScheme;
     })

@@ -250,9 +250,8 @@ export default function OpenRouterProxyPage() {
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="ignorado",  # a chave real fica no servidor
+    api_key="${K}",          # service key do CRM, nao a chave da OpenRouter
     base_url="${PROXY_BASE_V1}",
-    default_headers={"X-Api-Key": "${K}"},
 )
 
 resp = client.chat.completions.create(
@@ -277,7 +276,7 @@ for chunk in stream:
 
   const curlCode = `
 curl ${PROXY_CHAT_URL} \\
-  -H "X-Api-Key: ${K}" \\
+  -H "Authorization: Bearer ${K}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "z-ai/glm-5.3",
@@ -289,9 +288,8 @@ curl ${PROXY_CHAT_URL} \\
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  apiKey: "ignorado",
+  apiKey: "${K}",          // service key do CRM
   baseURL: "${PROXY_BASE_V1}",
-  defaultHeaders: { "X-Api-Key": "${K}" },
 });
 
 const resp = await client.chat.completions.create({
@@ -303,13 +301,21 @@ console.log(resp.choices[0].message.content);
 
   const modelsCode = `
 # Catalogo completo (430+ modelos) e precos ao vivo
-curl ${PROXY_BASE_V1}/models -H "X-Api-Key: ${K}"
+curl ${PROXY_BASE_V1}/models -H "Authorization: Bearer ${K}"
 
 # Saldo restante da conta OpenRouter
-curl ${PROXY_BASE_V1}/credits -H "X-Api-Key: ${K}"
+curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
 `;
 
   const faq = [
+    {
+      q: 'Estou recebendo 401 invalid_token. O que fiz de errado?',
+      a: 'Quase sempre é a chave errada: foi enviada a chave da OpenRouter (sk-or-v1-...) em vez da Service API Key do CRM. O proxy não aceita a chave da OpenRouter vinda do cliente — ela fica guardada no servidor justamente para não circular. Cole a Service API Key no campo do topo desta página e recopie os exemplos.',
+    },
+    {
+      q: 'Funciona no Cursor, Continue, LangChain e afins?',
+      a: 'Sim. Qualquer ferramenta que aceite uma base_url customizada da OpenAI funciona sem configuração extra: aponte a base URL para o endereço do proxy e coloque a Service API Key no campo de API key. Não é preciso header customizado — o servidor aceita a chave em Authorization: Bearer, que é o único formato que essas ferramentas sabem mandar.',
+    },
     {
       q: 'Preciso de uma chave da OpenRouter?',
       a: 'Não. A chave da OpenRouter fica no servidor. Você usa apenas a Service API Key do CRM no header X-Api-Key, e o proxy injeta a chave real antes de encaminhar.',
@@ -397,7 +403,7 @@ curl ${PROXY_BASE_V1}/credits -H "X-Api-Key: ${K}"
         }}>
           {serviceKey
             ? 'Chave salva no navegador. Os exemplos abaixo já estão prontos para copiar e usar.'
-            : 'Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. A chave está no servidor, em Integrations:ServiceApiKey (variável DIAX_SERVICE_API_KEY).'}
+            : 'Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. É a chave de serviço do CRM (config ServiceApiKey no servidor) — NÃO é a sua chave sk-or-v1-... da OpenRouter, que nunca deve sair do servidor.'}
         </div>
       </Section>
 
@@ -412,8 +418,9 @@ curl ${PROXY_BASE_V1}/credits -H "X-Api-Key: ${K}"
           background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)',
           fontSize: 12, color: '#93C5FD', lineHeight: 1.6,
         }}>
-          A autenticação aceita dois formatos: header <code>X-Api-Key</code> com a Service API Key,
-          ou <code>Authorization: Bearer</code> com um JWT de login do CRM.
+          A autenticação aceita a Service API Key em <code>Authorization: Bearer</code> (o formato que
+          todo cliente compatível com a OpenAI usa) ou no header <code>X-Api-Key</code>. Um JWT de
+          login do CRM também funciona no Bearer — o servidor distingue os dois pelo formato.
         </div>
       </Section>
 
@@ -468,8 +475,9 @@ curl ${PROXY_BASE_V1}/credits -H "X-Api-Key: ${K}"
       <Section icon={Code2} title="4. Python (SDK da OpenAI)">
         <CodeBlock code={pythonCode} lang="python" />
         <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#6B7280', lineHeight: 1.7 }}>
-          O <code>api_key</code> pode ser qualquer string: o SDK exige o campo, mas quem autentica é
-          o header <code>X-Api-Key</code>. A chave real da OpenRouter nunca sai do servidor.
+          Repare que o <code>api_key</code> é a <strong>Service API Key do CRM</strong>, não a sua
+          chave <code>sk-or-v1-...</code> da OpenRouter. A chave da OpenRouter fica só no servidor e
+          é injetada pelo proxy. Mandar a <code>sk-or-v1-...</code> aqui devolve 401.
         </p>
       </Section>
 
@@ -496,8 +504,8 @@ curl ${PROXY_BASE_V1}/credits -H "X-Api-Key: ${K}"
       <Section icon={Settings} title="8. Como funciona por dentro" color="#6B7280">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
-            { step: '1', label: 'Cliente envia a requisição', desc: `POST ${PROXY_CHAT_URL} com o header X-Api-Key`, cor: '#3B82F6' },
-            { step: '2', label: 'CRM valida a Service API Key', desc: 'O header X-Api-Key seleciona o handler de chave estática; sem ele, cai no JWT', cor: '#8B5CF6' },
+            { step: '1', label: 'Cliente envia a requisição', desc: `POST ${PROXY_CHAT_URL} com a Service API Key em Authorization: Bearer`, cor: '#3B82F6' },
+            { step: '2', label: 'CRM valida a Service API Key', desc: 'Um Bearer sem formato de JWT vai para o handler de chave estática; um JWT (dois pontos) vai para o handler de sessão', cor: '#8B5CF6' },
             { step: '3', label: 'Proxy injeta a chave real', desc: 'Adiciona Authorization: Bearer sk-or-... (sua chave OpenRouter, guardada no servidor)', cor: '#F59E0B' },
             { step: '4', label: 'Encaminha para a OpenRouter', desc: 'POST openrouter.ai/api/v1/chat/completions, corpo repassado sem alteração', cor: '#10B981' },
             { step: '5', label: 'Resposta volta ao cliente', desc: 'JSON completo, ou eventos SSE em tempo real quando stream: true', cor: '#10B981' },
