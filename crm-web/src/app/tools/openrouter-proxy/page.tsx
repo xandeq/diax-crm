@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ServiceKeyField, useServiceKey } from '@/components/ServiceKeyField';
-import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, ShieldAlert, DollarSign, Layers } from 'lucide-react';
+import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, ShieldAlert, DollarSign, Layers, Laptop } from 'lucide-react';
 
 const PROXY_URL = 'https://api.alexandrequeiroz.com.br/openrouter';
 const PROXY_BASE_V1 = `${PROXY_URL}/v1`;
@@ -278,6 +278,51 @@ const resp = await client.chat.completions.create({
 console.log(resp.choices[0].message.content);
 `;
 
+  const claudeCodeSessionCode = `
+$env:ANTHROPIC_BASE_URL           = "${PROXY_URL}"
+$env:ANTHROPIC_API_KEY            = "${K}"
+$env:ANTHROPIC_MODEL              = "z-ai/glm-5.3"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "z-ai/glm-5.3-flash"
+$env:ANTHROPIC_SMALL_FAST_MODEL   = "z-ai/glm-5.3-flash"
+$env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "1310720"
+
+claude
+`;
+
+  const claudeCodePersistCode = `
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "${PROXY_URL}", "User")
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "${K}", "User")
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_MODEL", "z-ai/glm-5.3", "User")
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_DEFAULT_HAIKU_MODEL", "z-ai/glm-5.3-flash", "User")
+[System.Environment]::SetEnvironmentVariable("ANTHROPIC_SMALL_FAST_MODEL", "z-ai/glm-5.3-flash", "User")
+[System.Environment]::SetEnvironmentVariable("CLAUDE_CODE_MAX_CONTEXT_TOKENS", "1310720", "User")
+`;
+
+  const claudeCodeSettingsCode = `
+{
+  "model": "z-ai/glm-5.3",
+  "env": {
+    "ANTHROPIC_BASE_URL": "${PROXY_URL}",
+    "ANTHROPIC_API_KEY": "${K}",
+    "ANTHROPIC_MODEL": "z-ai/glm-5.3",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "z-ai/glm-5.3-flash",
+    "ANTHROPIC_SMALL_FAST_MODEL": "z-ai/glm-5.3-flash",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "1310720"
+  }
+}
+`;
+
+  const claudeCodeRevertCode = `
+$vars = "ANTHROPIC_BASE_URL","ANTHROPIC_API_KEY","ANTHROPIC_MODEL",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL","ANTHROPIC_SMALL_FAST_MODEL",
+        "CLAUDE_CODE_MAX_CONTEXT_TOKENS"
+foreach ($v in $vars) {
+  Remove-Item "Env:$v" -ErrorAction SilentlyContinue
+  [System.Environment]::SetEnvironmentVariable($v, $null, "User")
+}
+# feche o terminal e abra de novo
+`;
+
   const modelsCode = `
 # Catalogo completo (430+ modelos) e precos ao vivo
 curl ${PROXY_BASE_V1}/models -H "Authorization: Bearer ${K}"
@@ -302,6 +347,10 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
     {
       q: 'Por que os modelos com sufixo :free dão erro 404?',
       a: 'Porque esta conta tem crédito comprado e por isso não é free tier (is_free_tier: false). A OpenRouter reserva as variantes :free para contas sem crédito. A mensagem de erro dela sugere o slug pago equivalente. Na prática isso importa pouco: o GLM 5.3 Flash custa $0,12 por 1M de entrada mais 200k de saída, ou seja, centavos.',
+    },
+    {
+      q: 'Dá para usar no Claude Code CLI?',
+      a: 'Dá, e foi testado de ponta a ponta — o CLI respondeu, chamou ferramenta e escreveu arquivo em disco através deste proxy. A seção 7 tem a configuração pronta. Funciona porque a OpenRouter também expõe um endpoint no formato da Anthropic (/v1/messages), que é o único que o Claude Code fala. Atenção a dois pontos: a ANTHROPIC_BASE_URL termina em /openrouter, sem o /v1, e é obrigatório definir ANTHROPIC_MODEL com um slug da OpenRouter, senão o CLI cai no modelo padrão da conta e pede login.',
     },
     {
       q: 'Qual a diferença para o proxy da Anthropic?',
@@ -360,6 +409,7 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
       <Section icon={Globe} title="2. Endereços do proxy">
         <InfoRow label="Base URL" value={PROXY_BASE_V1} copyValue={PROXY_BASE_V1} />
         <InfoRow label="Chat" value={PROXY_CHAT_URL} copyValue={PROXY_CHAT_URL} />
+        <InfoRow label="Messages" value={`${PROXY_BASE_V1}/messages`} copyValue={`${PROXY_BASE_V1}/messages`} />
         <InfoRow label="Catálogo" value={`${PROXY_BASE_V1}/models`} copyValue={`${PROXY_BASE_V1}/models`} />
         <InfoRow label="Saldo" value={`${PROXY_BASE_V1}/credits`} copyValue={`${PROXY_BASE_V1}/credits`} />
         <div style={{
@@ -441,7 +491,110 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
         </div>
       </Section>
 
-      <Section icon={Layers} title="7. Descobrir modelos e conferir saldo" color="#3B82F6">
+      <Section icon={Laptop} title="7. Claude Code CLI" color="#F59E0B">
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: '#9CA3AF', lineHeight: 1.7 }}>
+          Funciona, e foi testado de ponta a ponta: o CLI respondeu, usou ferramenta e escreveu
+          arquivo em disco através deste proxy. O que torna isso possível é a OpenRouter expor
+          também um endpoint no formato da Anthropic (<code>/v1/messages</code>), que é o único
+          que o Claude Code fala — ele não entende <code>/v1/chat/completions</code>.
+        </p>
+
+        <div style={{
+          padding: '10px 14px', borderRadius: 8, marginBottom: 14,
+          background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)',
+          fontSize: 12, color: '#93C5FD', lineHeight: 1.6,
+        }}>
+          Note que a <code>ANTHROPIC_BASE_URL</code> aqui termina em <code>/openrouter</code>, sem
+          o <code>/v1</code> — o CLI acrescenta o <code>/v1/messages</code> sozinho. Nos exemplos
+          de SDK da OpenAI mais acima a URL inclui o <code>/v1</code>. Confundir os dois dá 404.
+        </div>
+
+        <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600, color: '#E5E7EB' }}>
+          Só nesta sessão do PowerShell (bom para testar)
+        </p>
+        <CodeBlock code={claudeCodeSessionCode} lang="powershell" />
+
+        <p style={{ margin: '16px 0 8px', fontSize: 13, fontWeight: 600, color: '#E5E7EB' }}>
+          Permanente, para o usuário do Windows
+        </p>
+        <CodeBlock code={claudeCodePersistCode} lang="powershell" />
+        <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#6B7280', lineHeight: 1.7 }}>
+          Feche o terminal e abra de novo depois de rodar — variáveis de usuário só valem em
+          processos novos.
+        </p>
+
+        <p style={{ margin: '16px 0 8px', fontSize: 13, fontWeight: 600, color: '#E5E7EB' }}>
+          Ou direto no settings.json global
+        </p>
+        <CodeBlock code={`notepad $env:USERPROFILE\.claude\settings.json`} lang="powershell" />
+        <div style={{ marginTop: 8 }}>
+          <CodeBlock code={claudeCodeSettingsCode} lang="json" />
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#6B7280', lineHeight: 1.7 }}>
+          O campo <code>model</code> fica FORA do bloco <code>env</code>, e é obrigatório. Sem ele o
+          CLI volta para o modelo padrão da conta, que exige login OAuth e falha com
+          &quot;Not logged in&quot; mesmo com o resto certo.
+        </p>
+
+        <p style={{ margin: '18px 0 8px', fontSize: 13, fontWeight: 600, color: '#E5E7EB' }}>
+          O que cada variável resolve
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {[
+            { k: 'ANTHROPIC_BASE_URL', v: 'Aponta o CLI para o proxy em vez da API da Anthropic.' },
+            { k: 'ANTHROPIC_API_KEY', v: 'A Service API Key do CRM. O CLI a envia no header x-api-key, que é exatamente o que o proxy valida.' },
+            { k: 'ANTHROPIC_MODEL', v: 'Slug da OpenRouter do modelo principal. Obrigatório — sem ele o CLI tenta um modelo Claude que a OpenRouter não conhece.' },
+            { k: 'ANTHROPIC_DEFAULT_HAIKU_MODEL', v: 'Modelo das tarefas de fundo (títulos, resumos, buscas rápidas). Sem isto o CLI pede um Haiku, a OpenRouter não reconhece e essas tarefas falham em silêncio.' },
+            { k: 'ANTHROPIC_SMALL_FAST_MODEL', v: 'Mesmo papel, nome antigo. Defina os dois para cobrir qualquer versão do CLI.' },
+            { k: 'CLAUDE_CODE_MAX_CONTEXT_TOKENS', v: 'Sem isto o CLI assume 200k e faz auto-compact cedo demais. GLM 5.3 tem 1.310.720; Kimi K3 tem 1.048.576.' },
+          ].map((row) => (
+            <div key={row.k} style={{
+              padding: '9px 13px', borderRadius: 8,
+              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <code style={{ fontSize: 12, color: '#10B981', fontFamily: 'monospace', fontWeight: 700 }}>{row.k}</code>
+              <div style={{ fontSize: 12.5, color: '#9CA3AF', lineHeight: 1.6, marginTop: 3 }}>{row.v}</div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ margin: '18px 0 8px', fontSize: 13, fontWeight: 600, color: '#E5E7EB' }}>
+          Dois avisos que aparecem e são normais
+        </p>
+        <div style={{
+          padding: '11px 14px', borderRadius: 8,
+          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+          fontSize: 12.5, color: '#FCD34D', lineHeight: 1.7,
+        }}>
+          <strong>&quot;claude.ai connectors are disabled&quot;</strong> — esperado. Ao usar chave de API
+          o CLI deixa de usar o login do claude.ai, então os connectors daquela conta ficam fora
+          nessa sessão. Não é erro.
+          <br /><br />
+          <strong>&quot;[claude-code:unrecognized_model]&quot;</strong> — esperado também. O catálogo local do
+          CLI só conhece modelos Claude, e o slug da OpenRouter não está nele. Não impede nada; a
+          única consequência prática era a janela de contexto errada, que a variável
+          <code> CLAUDE_CODE_MAX_CONTEXT_TOKENS</code> acima já resolve.
+        </div>
+
+        <p style={{ margin: '18px 0 8px', fontSize: 13, fontWeight: 600, color: '#E5E7EB' }}>
+          Voltar para o login normal
+        </p>
+        <CodeBlock code={claudeCodeRevertCode} lang="powershell" />
+
+        <div style={{
+          marginTop: 14, padding: '11px 14px', borderRadius: 8,
+          background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
+          fontSize: 12.5, color: '#6EE7B7', lineHeight: 1.7,
+        }}>
+          <strong>Qual modelo usar aqui:</strong> <code>z-ai/glm-5.3</code> para o trabalho principal e{' '}
+          <code>z-ai/glm-5.3-flash</code> para as tarefas de fundo é a combinação de melhor
+          custo-benefício. <code>moonshotai/kimi-k3</code> também funciona e tem fama forte em código,
+          por 2,6× o preço. Os três foram verificados com chamada de ferramenta neste proxy — que é o
+          requisito real, porque sem tool use o Claude Code não faz nada.
+        </div>
+      </Section>
+
+      <Section icon={Layers} title="8. Descobrir modelos e conferir saldo" color="#3B82F6">
         <CodeBlock code={modelsCode} lang="bash" />
         <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#6B7280', lineHeight: 1.7 }}>
           O catálogo muda com frequência — modelos entram, saem e mudam de preço. Antes de fixar um
@@ -450,7 +603,7 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
       </Section>
 
       {/* Como funciona */}
-      <Section icon={Settings} title="8. Como funciona por dentro" color="#6B7280">
+      <Section icon={Settings} title="9. Como funciona por dentro" color="#6B7280">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
             { step: '1', label: 'Cliente envia a requisição', desc: `POST ${PROXY_CHAT_URL} com a Service API Key em Authorization: Bearer`, cor: '#3B82F6' },
@@ -480,7 +633,7 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
       </Section>
 
       {/* Segurança */}
-      <Section icon={ShieldAlert} title="9. Sobre a chave" color="#EF4444">
+      <Section icon={ShieldAlert} title="10. Sobre a chave" color="#EF4444">
         <div style={{
           padding: '12px 14px', borderRadius: 8,
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)',
@@ -494,7 +647,7 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
       </Section>
 
       {/* FAQ */}
-      <Section icon={BookOpen} title="10. Perguntas frequentes" color="#8B5CF6">
+      <Section icon={BookOpen} title="11. Perguntas frequentes" color="#8B5CF6">
         <Accordion items={faq} expanded={expanded} onToggle={setExpanded} />
       </Section>
 
