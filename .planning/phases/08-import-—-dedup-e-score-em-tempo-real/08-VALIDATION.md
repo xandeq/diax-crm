@@ -2,7 +2,7 @@
 phase: 8
 slug: import-dedup-e-score-em-tempo-real
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: true
 created: 2026-09-07
 ---
@@ -41,12 +41,19 @@ created: 2026-09-07
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| TBD | 01 | 1 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~Import_ExternalIdMatch_UpdatesEmail" -c Release` | ❌ new `[Fact]` in existing file | ⬜ pending |
-| TBD | 01 | 1 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~Import_ExternalIdMatch_PreservesEmailOptOut" -c Release` | ❌ new `[Fact]` | ⬜ pending |
-| TBD | 01 | 1 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~ExternalIdAndEmailMatchDifferentCustomers" -c Release` | ❌ new `[Fact]` | ⬜ pending |
-| TBD | 01 | 1 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~BackfillsExternalIdOnExistingCustomer" -c Release` | ❌ new `[Fact]` | ⬜ pending |
-| TBD | 01 | 1 | IMPT-02 | unit | `dotnet test --filter "FullyQualifiedName~Scraping_DoublePull_SameExternalId" -c Release` | ❌ new `[Fact]`, extends `CustomerImportServiceTests.cs:434` | ⬜ pending |
-| TBD | 02 | 2 | IMPT-03 | unit | **TBD — blocked on scope decision (see below)** | ❌ not designed | ⛔ blocked |
+| 08-01 T1 | 01 | 1 | IMPT-01, IMPT-02 | build | `dotnet build -c Release` | n/a | ⬜ pending |
+| 08-01 T2 | 01 | 1 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~CustomerRepositoryExternalIdTests" -c Release` | ❌ novo arquivo | ⬜ pending |
+| 08-02 T1 | 02 | 1 | IMPT-03 | unit | `dotnet test --filter "FullyQualifiedName~LeadScoringServiceTests" -c Release` | ✅ arquivo existe (12 testes que NAO podem quebrar) | ⬜ pending |
+| 08-02 T2 | 02 | 1 | IMPT-03 | unit | `dotnet test --filter "FullyQualifiedName~SegmentForScore_MapsThresholdsExactly" -c Release` | ❌ novos [Fact]/[Theory] | ⬜ pending |
+| 08-03 T1 | 03 | 2 | IMPT-01, IMPT-02 | unit | `dotnet test --filter "FullyQualifiedName~ExtractorIntegrationServiceTests" -c Release` | ✅ regressao (ctor do SUT muda) | ⬜ pending |
+| 08-03 T2 | 03 | 2 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~Import_ExternalIdMatch_PreservesEmailOptOut" -c Release` | ❌ 2 novos [Fact] | ⬜ pending |
+| 08-03 T3 | 03 | 2 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~Import_ExternalIdMatch_UpdatesEmail" -c Release` | ❌ novo [Fact] | ⬜ pending |
+| 08-03 T3 | 03 | 2 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~ExternalIdAndEmailMatchDifferentCustomers" -c Release` | ❌ novo [Fact] | ⬜ pending |
+| 08-03 T3 | 03 | 2 | IMPT-01 | unit | `dotnet test --filter "FullyQualifiedName~BackfillsExternalIdOnExistingCustomer" -c Release` | ❌ novo [Fact] | ⬜ pending |
+| 08-03 T3 | 03 | 2 | IMPT-02 | unit | `dotnet test --filter "FullyQualifiedName~Scraping_DoublePull_SameExternalId" -c Release` | ❌ novo [Fact], estende `CustomerImportServiceTests.cs:434` | ⬜ pending |
+| 08-04 T1 | 04 | 3 | IMPT-03 | unit | `dotnet test --filter "FullyQualifiedName~CustomerImportServiceTests" -c Release` | ✅ regressao | ⬜ pending |
+| 08-04 T2 | 04 | 3 | IMPT-03 | unit | `dotnet test --filter "FullyQualifiedName~Import_NewCustomer_GetsLeadScoreAndSegmentAtImport" -c Release` | ❌ novo [Fact] | ⬜ pending |
+| 08-04 T2 | 04 | 3 | IMPT-03 | unit | `dotnet test --filter "FullyQualifiedName~Import_ExistingCustomer_LeadScoreNotRecomputedOnEnrich" -c Release` | ❌ novo [Fact] | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky · ⛔ blocked*
 
@@ -70,11 +77,30 @@ None. Existing infrastructure covers the phase:
 
 ---
 
-## Blocking Scope Decision (IMPT-03)
+## Scope Decision (IMPT-03) — RESOLVIDA em 2026-09-07
 
-`LeadScoringService.CalculateScore` (`LeadScoringService.cs:111`) caps the fit-only subscore at **25**, and `WarmThreshold` is **30**. At import time engagement is null and Status is a fresh `Lead`, so a synchronously-scored lead is **mathematically always Cold**. Calling the existing function at import satisfies the letter of IMPT-03 (score is no longer zero) but delivers no segmentation value.
+`LeadScoringService.CalculateScore` (`LeadScoringService.cs:111`) limitava o subscore de fit a **25**
+contra um `WarmThreshold` de **30**, o que tornava qualquer score calculado no import
+**matematicamente sempre Cold**. A questão foi levada ao usuário e respondida (D-05 em
+`08-CONTEXT.md`): **recalibrar o fit com os sinais da Phase 7 e subir o teto**, para que um lead de
+boa qualidade nasça `Warm` já no import. Alternativas rejeitadas: "só chamar a função atual"
+(entregaria `Cold` constante) e "adiar IMPT-03".
 
-`08-CONTEXT.md` instructs the planner to stop and ask the user rather than pick a reading. Planning for IMPT-03 is blocked until that answer arrives; IMPT-01 and IMPT-02 are unblocked and can be planned and executed independently.
+Implementação planejada: o teto do bloco de fit sobe de 25 para **45**, com três sinais novos
+(`WebsiteKind.OwnSite` +10, `Quality.High` +5, `EmailType.PersonalDirect` +5) e uma penalidade
+(`HasSuspiciousDomain` −15). Como `45 < HotThreshold (60)`, `Hot` permanece inalcançável sem
+engajamento — intencional, não é para "consertar". A recalibração acontece DENTRO de
+`CalculateScore` (fonte única, nenhuma cópia paralela no caminho de import); o import chama
+`CalculateScore` e o novo helper `SegmentForScore` como invocações estáticas, de modo que o
+`LeadScoringWorker` das 06:00 BRT e o import produzem o mesmo score para o mesmo `Customer`.
+
+Aritmética do split (engajamento null, Status `Lead`):
+- forte (site próprio + DDD 27 + elegível + Quality High + e-mail direto) = 5+5+5+10+10+5+5 = **45** ⇒ Warm
+- fraco (diretório + DDD 27 + elegível + Quality Medium + e-mail genérico) = 5+5+5+10 = **25** ⇒ Cold
+- domínio suspeito (⇒ não elegível) = 5+5+0+10+10+5+5−15 = **25** ⇒ Cold
+
+Planos: **08-02** (recalibração + `SegmentForScore`) e **08-04** (chamada no ramo de criação do
+import). IMPT-03 não está mais bloqueado.
 
 ---
 
@@ -83,8 +109,8 @@ None. Existing infrastructure covers the phase:
 - [x] Wave 0 covers all MISSING references (none needed)
 - [x] No watch-mode flags
 - [x] Feedback latency < 30s
-- [ ] All tasks have `<automated>` verify — blocked for IMPT-03 pending scope decision
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify — IMPT-03 desbloqueado pela D-05
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** aprovado em 2026-09-07 (planejamento da fase concluído: 4 planos, 3 waves)
