@@ -864,4 +864,82 @@ public class CustomerImportServiceTests
         Assert.Equal("a2@test.com", created[0].Email);
         Assert.Equal("4242", created[0].ExternalId);
     }
+
+    // ── IMPT-03: lead_score calculado no momento do import (D-05) ──
+
+    [Fact]
+    public async Task Import_NewCustomer_GetsLeadScoreAndSegmentAtImport()
+    {
+        // Lead FORTE: website 5 + telefone 5 + elegível 5 + DDD 27 → 10 + OwnSite 10 +
+        // Quality.Medium 0 + EmailType.PersonalDirect 5 = 40 → Warm.
+        var row = new ImportCustomerRow(
+            "Clinica Vix",
+            "contato@clinicaodontovix.com.br",
+            Phone: "27999000001",
+            Website: "https://clinicaodontovix.com.br");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var created = new List<Customer>();
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => created.Add(c))
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.Single(created);
+        Assert.Equal(40, created[0].LeadScore);
+        Assert.Equal(LeadSegment.Warm, created[0].Segment);
+    }
+
+    [Fact]
+    public async Task Import_NewCustomer_WeakSignals_IsBornCold()
+    {
+        // Lead FRACO: website 5 + telefone 5 + elegível 5 + DDD 11 → 0 + Directory 0 +
+        // Quality.Medium 0 + PersonalDirect 5 = 20 → Cold.
+        var row = new ImportCustomerRow(
+            "Lead Diretorio",
+            "contato@lead.com.br",
+            Phone: "11999000001",
+            Website: "https://www.econodata.com.br/empresa/123");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var created = new List<Customer>();
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => created.Add(c))
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.Single(created);
+        Assert.Equal(20, created[0].LeadScore);
+        Assert.Equal(LeadSegment.Cold, created[0].Segment);
+    }
+
+    [Fact]
+    public async Task Import_ExistingCustomer_LeadScoreNotRecomputedOnEnrich()
+    {
+        // Um Customer já existente com engajamento acumulado (score 75, Hot) não pode ser
+        // rebaixado no enriquecimento — se o import recalculasse com engagement:null, o
+        // score cairia para 40 (Warm). Esta é a trava contra isso.
+        var existing = new Customer("Lead Quente", "quente@test.com");
+        existing.UpdateSegmentation(75, LeadSegment.Hot);
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("quente@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow(
+            "Lead Quente",
+            "quente@test.com",
+            Phone: "27999000001",
+            Website: "https://clinicaodontovix.com.br");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.Equal(75, existing.LeadScore);
+        Assert.Equal(LeadSegment.Hot, existing.Segment);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
