@@ -7,7 +7,7 @@ import {
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, Menu, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
-  Wallet, Zap, Cpu, Newspaper, Home
+  Wallet, Zap, Cpu, Newspaper, Home, Layers
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -95,6 +95,7 @@ const navGroups: NavGroup[] = [
     items: [
       { icon: MessageSquare, label: 'Claude Chat', href: '/ai-chat/', badge: 'NEW' },
       { icon: Cpu, label: 'Anthropic Proxy', href: '/tools/anthropic-proxy', badge: 'API' },
+      { icon: Layers, label: 'OpenRouter Proxy', href: '/tools/openrouter-proxy', badge: 'API' },
       { icon: Zap, label: 'Ferramentas IA', children: [
         { label: 'Geração de Imagens', href: '/utilities/image-generation' },
         { label: 'Gerador de Prompts', href: '/utilities/prompt-generator' },
@@ -395,6 +396,7 @@ const ROUTE_LABELS: Record<string, string> = {
   'ai-chat': 'Claude Chat',
   tools: 'Ferramentas',
   'anthropic-proxy': 'Anthropic Proxy',
+  'openrouter-proxy': 'OpenRouter Proxy',
   utilities: 'Utilitários',
   'image-generation': 'Geração de Imagens',
   'prompt-generator': 'Gerador de Prompts',
