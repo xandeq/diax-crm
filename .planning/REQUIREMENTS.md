@@ -17,7 +17,7 @@ Requirements para o milestone v1.3. Cada um mapeia pra uma fase do roadmap.
 
 - [x] **IMPT-01**: Sistema deduplica leads do Extrator por ID externo (`Customer.ExternalId`, com índice único), não só por email
 - [x] **IMPT-02**: `POST /api/v1/customers/import` deduplica de verdade para `source=Scraping` (hoje só funciona para `source=Import`)
-- [ ] **IMPT-03**: Sistema calcula `lead_score` no momento do import, sem esperar o job diário do `LeadScoringWorker` (06h BRT) — recalibração do scoring (plano 08-02) feita; falta a chamada no import (plano 08-04)
+- [x] **IMPT-03**: Sistema calcula `lead_score` no momento do import, sem esperar o job diário do `LeadScoringWorker` (06h BRT) — recalibração do scoring (plano 08-02) feita; falta a chamada no import (plano 08-04)
 
 ## v2 Requirements
 
