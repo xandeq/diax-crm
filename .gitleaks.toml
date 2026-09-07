@@ -1,8 +1,61 @@
-[allowlist]
-description = "Allowlist de padrões intencionais"
+title = "DIAX CRM — gitleaks config"
 
-# A SERVICE_KEY na página de tutorial do Anthropic Proxy é intencional:
-# é a chave de acesso ao proxy do CRM projetada para ser compartilhada com usuários.
+# Mantém todas as regras padrão do gitleaks (provider tokens, chaves privadas, etc.).
+# IMPORTANTE: sem este [extend], um config custom SUBSTITUI o ruleset default e o
+# gate fica cego — foi o que aconteceu antes desta correção.
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# Regra custom: senha inline em connection string.
+# As regras default do gitleaks não cobrem `Password=`/`PWD=` em connection
+# strings ADO.NET/ODBC — essa lacuna deixou a senha do banco de produção chegar
+# ao HEAD de um repositório público (.cursorrules, APLICAR_MIGRATION_PRODUCAO.md,
+# docs/email-marketing/patch_and_send_20.py).
+# RE2 (motor do gitleaks) não suporta lookahead: placeholders e referências a
+# variáveis de ambiente são tratados pelo [allowlist] abaixo.
+# ---------------------------------------------------------------------------
+[[rules]]
+id = "connstring-password"
+description = "Senha inline em connection string (Password=/PWD=)"
+regex = '''(?i)(?:password|pwd)\s*=\s*[^;"'\s,)<${%]{6,}\s*;'''
+tags = ["database", "connection-string", "password"]
+
+[rules.allowlist]
+regexTarget = "line"
+regexes = [
+  # Referências a variáveis de ambiente / secrets (não são segredos)
+  '''process\.env\.''',
+  '''os\.environ''',
+  '''getenv\(''',
+  '''\$\{?env:''',
+  '''secrets\.''',
+  '''Configuration\[''',
+  '''builder\.Configuration''',
+  # Atribuições de variáveis em código (ex.: `password = data.password`)
+  '''(?i)password\s*=\s*(?:data|body|req|request|form|input|user|dto|model)\.''',
+  # Placeholders explícitos (inclui YOUR_DB_PASSWORD, SUA_SENHA, SERVICE_API_KEY…)
+  '''(?i)(?:your_?[a-z_]*|senha_?aqui|sua_senha|changeme|placeholder|redacted|xxx+|\*{3,}|<[^>]+>)''',
+  '''\b[A-Z][A-Z0-9_]{4,}\b''',
+]
+
+[allowlist]
+description = "Allowlist global de padrões intencionais"
+
 paths = [
+  # A SERVICE_KEY na página de tutorial do Anthropic Proxy é intencional:
+  # é a chave de acesso ao proxy do CRM projetada para ser compartilhada.
   '''anthropic-proxy/page\.tsx''',
+  # A própria config contém os padrões que ela detecta.
+  '''\.gitleaks\.toml$''',
+  # Documentação de boas práticas / templates de plugin usam exemplos fictícios.
+  '''\.claude/(commands|plugins)/.*security-best-practices\.md$''',
+  # Fixtures de teste E2E usam tokens mock (payload `mock@...`), não credenciais.
+  '''crm-web/e2e/capture.*\.js$''',
+  # Modelo sem segredo do MCP (o arquivo real está gitignored).
+  '''\.vscode/mcp\.json\.example$''',
+  # Arquivos .env.example contêm placeholders por definição.
+  '''\.env\.example$''',
+  # Comentários de documentação em controllers de proxy usam placeholders.
+  '''api-core/src/Diax\.Api/Controllers/(OpenRouter|Anthropic)ProxyController\.cs$''',
 ]

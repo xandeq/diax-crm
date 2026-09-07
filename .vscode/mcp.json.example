@@ -1,0 +1,17 @@
+{
+  "servers": {
+    "n8n-mcp": {
+      "command": "npx",
+      "args": [
+        "n8n-mcp"
+      ],
+      "env": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "true",
+        "N8N_API_URL": "https://n8n-n8n.h8tqhp.easypanel.host/mcp-server/http",
+        "N8N_API_KEY": "${env:N8N_API_KEY}"
+      }
+    }
+  }
+}
