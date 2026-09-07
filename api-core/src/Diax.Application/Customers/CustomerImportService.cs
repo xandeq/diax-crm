@@ -627,6 +627,16 @@ public class CustomerImportService : IApplicationService
                         sanitized.HasSuspiciousDomain,
                         sanitized.IsEligibleForCampaigns);
 
+                    // ── IMPT-03: score e segmento calculados no momento do import ──
+                    // `engagement: null` não é uma simplificação: um Customer que acabou de ser
+                    // criado não tem NENHUM email_event associado, então o resultado aqui é
+                    // idêntico ao que o LeadScoringWorker das 06:00 BRT calcularia para esta
+                    // mesma linha. LeadScoringService.CalculateScore é estático e puro — chamada
+                    // direta, sem injetar o serviço (o construtor dele arrasta 5 dependências que
+                    // nada têm a ver com import).
+                    var importScore = LeadScoringService.CalculateScore(customer, null, DateTime.UtcNow);
+                    customer.UpdateSegmentation(importScore, LeadScoringService.SegmentForScore(importScore));
+
                     await _customerRepository.AddAsync(customer, cancellationToken);
                     successCount++;
                 }
@@ -634,6 +644,12 @@ public class CustomerImportService : IApplicationService
                 {
                     // Se EXISTE, ENRIQUECER OS DADOS
                     duplicateCount++;
+
+                    // IMPT-03 — intencionalmente NÃO recalculamos score/segmento aqui. Um Customer
+                    // já existente pode ter engajamento acumulado (aberturas, cliques, bounces) que
+                    // só o IEmailEventRepository conhece; recalcular com engagement:null rebaixaria
+                    // um lead Hot para Warm/Cold e destruiria informação. Quem repontua leads
+                    // existentes é o LeadScoringWorker das 06:00 BRT, com o engajamento real.
                     bool wasUpdated = false;
 
                     // Atualiza Nome e Empresa se estiverem vazios no banco e vieram preenchidos
