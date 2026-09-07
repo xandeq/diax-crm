@@ -123,6 +123,7 @@ jobs:
             --arg extractorUrl "${{ secrets.EXTRATOR_URL }}" \
             --arg extractorToken "${{ secrets.EXTRATOR_API_TOKEN }}" \
             --arg serviceApiKey "${{ secrets.DIAX_SERVICE_API_KEY }}" \
+            --arg proxyApiKey "${{ secrets.DIAX_PROXY_API_KEY }}" \
             --arg dailyBriefingsKey "${{ secrets.DIAX_DAILY_BRIEFINGS_KEY }}" \
             --arg investiqKey "${{ secrets.INVESTIQ_INTEGRATION_KEY }}" \
             --arg sendEmailKey "${{ secrets.DIAX_SEND_EMAIL_KEY }}" \
@@ -281,6 +282,7 @@ jobs:
                 "ChatId": $telegramChatId
               },
               "ServiceApiKey": $serviceApiKey,
+              "ProxyApiKey": $proxyApiKey,
               "ExtractorPull": {
                 "Enabled": true,
                 "DailyHourUtc": 15

@@ -27,9 +27,12 @@ public class ApiKeyAuthenticationHandlerTests
 {
     private const string ConfiguredKey = "chave-de-servico-para-teste";
 
+    private const string ConfiguredProxyKey = "chave-somente-proxy-para-teste";
+
     private static async Task<AuthenticateResult> AuthenticateAsync(
         Action<HttpContext> configureRequest,
-        string? configuredKey = ConfiguredKey)
+        string? configuredKey = ConfiguredKey,
+        string? configuredProxyKey = ConfiguredProxyKey)
     {
         var settings = new Dictionary<string, string?>
         {
@@ -37,6 +40,8 @@ public class ApiKeyAuthenticationHandlerTests
         };
         if (configuredKey is not null)
             settings["ServiceApiKey"] = configuredKey;
+        if (configuredProxyKey is not null)
+            settings["ProxyApiKey"] = configuredProxyKey;
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(settings)
@@ -146,10 +151,69 @@ public class ApiKeyAuthenticationHandlerTests
     {
         var result = await AuthenticateAsync(
             ctx => ctx.Request.Headers["X-Api-Key"] = "qualquer-coisa",
-            configuredKey: null);
+            configuredKey: null,
+            configuredProxyKey: null);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Service API key not configured on server.", result.Failure!.Message);
+    }
+
+    // ---- Separação entre a chave de serviço (Admin) e a chave só-de-proxy ----
+    //
+    // A ServiceApiKey autentica como Admin: quem a tiver lê e escreve clientes, leads, usuários e
+    // logs de auditoria. Distribuí-la só para consumir os proxies de IA entregaria o CRM inteiro.
+    // A ProxyApiKey existe para ser descartável, e os testes abaixo travam essa fronteira.
+
+    [Fact]
+    public async Task ProxyKey_Authenticates_ButOnlyWithTheProxyRole()
+    {
+        var result = await AuthenticateAsync(ctx => ctx.Request.Headers["X-Api-Key"] = ConfiguredProxyKey);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("proxy_key", result.Principal!.FindFirst("auth_method")!.Value);
+        Assert.True(result.Principal!.IsInRole(ApiKeyAuthenticationOptions.ProxyOnlyRole));
+        Assert.False(result.Principal!.IsInRole("Admin"));
+    }
+
+    [Fact]
+    public async Task ProxyKey_WorksOverBearerToo()
+    {
+        var result = await AuthenticateAsync(ctx => ctx.Request.Headers.Authorization = $"Bearer {ConfiguredProxyKey}");
+
+        Assert.True(result.Succeeded);
+        Assert.True(result.Principal!.IsInRole(ApiKeyAuthenticationOptions.ProxyOnlyRole));
+    }
+
+    [Fact]
+    public async Task ServiceKey_KeepsAdminRole_AndIsNotDowngradedToProxy()
+    {
+        var result = await AuthenticateAsync(ctx => ctx.Request.Headers["X-Api-Key"] = ConfiguredKey);
+
+        Assert.True(result.Succeeded);
+        Assert.True(result.Principal!.IsInRole("Admin"));
+        Assert.False(result.Principal!.IsInRole(ApiKeyAuthenticationOptions.ProxyOnlyRole));
+    }
+
+    [Fact]
+    public async Task ProxyKeyAlone_StillAuthenticates_WhenServiceKeyIsAbsent()
+    {
+        var result = await AuthenticateAsync(
+            ctx => ctx.Request.Headers["X-Api-Key"] = ConfiguredProxyKey,
+            configuredKey: null);
+
+        Assert.True(result.Succeeded);
+        Assert.True(result.Principal!.IsInRole(ApiKeyAuthenticationOptions.ProxyOnlyRole));
+    }
+
+    [Fact]
+    public async Task ServiceKeyAlone_StillAuthenticates_WhenProxyKeyIsAbsent()
+    {
+        var result = await AuthenticateAsync(
+            ctx => ctx.Request.Headers["X-Api-Key"] = ConfiguredKey,
+            configuredProxyKey: null);
+
+        Assert.True(result.Succeeded);
+        Assert.True(result.Principal!.IsInRole("Admin"));
     }
 }
 

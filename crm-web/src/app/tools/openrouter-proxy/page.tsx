@@ -342,7 +342,11 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
     },
     {
       q: 'Preciso de uma chave da OpenRouter?',
-      a: 'Não. A chave da OpenRouter fica no servidor. Você usa apenas a Service API Key do CRM no header X-Api-Key, e o proxy injeta a chave real antes de encaminhar.',
+      a: 'Não. A chave da OpenRouter fica no servidor. Você usa a chave de proxy do CRM (ProxyApiKey), e o proxy injeta a chave real antes de encaminhar.',
+    },
+    {
+      q: 'Qual a diferença entre a ProxyApiKey e a Service API Key?',
+      a: 'A Service API Key autentica como Admin e abre o CRM inteiro — clientes, leads, usuários, logs de auditoria, com escrita. Ela existe para os workflows n8n. A ProxyApiKey abre apenas /proxy e /openrouter e mais nada; a policy padrão de autorização recusa a identidade dela em todos os outros controllers. Para configurar o proxy em qualquer máquina ou ferramenta, use sempre a ProxyApiKey. Se ela vazar o prejuízo é consumo de crédito, e trocá-la custa um secret novo.',
     },
     {
       q: 'Por que os modelos com sufixo :free dão erro 404?',
@@ -401,7 +405,7 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
         <ServiceKeyField
           serviceKey={serviceKey}
           setServiceKey={setServiceKey}
-          hint="Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. É a chave de serviço do CRM (config ServiceApiKey no servidor) — NÃO é a sua chave sk-or-v1-... da OpenRouter, que nunca deve sair do servidor."
+          hint="Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. Use a chave de PROXY (config ProxyApiKey no servidor), que só abre os dois proxies de IA. NÃO use a Service API Key do CRM: ela autentica como Admin e dá acesso a clientes, leads, usuários e logs. E não é a sua chave sk-or-v1-... da OpenRouter, que nunca sai do servidor."
         />
       </Section>
 
@@ -633,16 +637,31 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
       </Section>
 
       {/* Segurança */}
-      <Section icon={ShieldAlert} title="10. Sobre a chave" color="#EF4444">
+      <Section icon={ShieldAlert} title="10. Qual chave usar (e qual nunca usar)" color="#EF4444">
         <div style={{
-          padding: '12px 14px', borderRadius: 8,
+          padding: '12px 14px', borderRadius: 8, marginBottom: 10,
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)',
           fontSize: 12.5, color: '#FCA5A5', lineHeight: 1.7,
         }}>
-          A Service API Key dá acesso a este proxy e ao da Anthropic, e ambos gastam crédito real.
-          Por isso ela <strong>não fica escrita nesta página</strong> — você cola uma vez e ela
-          permanece apenas no seu navegador. Não publique a chave em repositório, captura de tela
-          ou página pública: quem a tiver consegue consumir seu saldo.
+          <strong>Existem duas chaves no servidor, e a diferença é grande.</strong>
+          <br /><br />
+          A <code>ServiceApiKey</code> autentica <strong>como Admin</strong>. Quem a tiver lê e
+          escreve clientes, leads, usuários e logs de auditoria — o CRM inteiro. Ela existe para os
+          workflows n8n e <strong>nunca deve ser distribuída</strong> para uma máquina de trabalho,
+          colada no chat de outra ferramenta, ou usada só para consumir os proxies.
+          <br /><br />
+          A <code>ProxyApiKey</code> abre <strong>apenas</strong> <code>/proxy</code> e{' '}
+          <code>/openrouter</code>. É a que vai nos exemplos desta página. Se vazar, o prejuízo é
+          consumo de crédito — não o CRM. Trocar ela é barato: gera outra e atualiza um secret.
+        </div>
+        <div style={{
+          padding: '12px 14px', borderRadius: 8,
+          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+          fontSize: 12.5, color: '#9CA3AF', lineHeight: 1.7,
+        }}>
+          Nenhuma das duas fica escrita nesta página: você cola uma vez e ela permanece só no seu
+          navegador. Mesmo assim, não publique a chave em repositório, captura de tela ou página
+          pública — quem a tiver consome seu saldo.
         </div>
       </Section>
 

@@ -2,6 +2,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.DataProtection;
 using Diax.Api.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Diax.Api.Configuration;
 using Diax.Api.Middleware;
 using Diax.Application;
@@ -244,7 +245,7 @@ builder.Services
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
         ApiKeyAuthenticationOptions.DefaultScheme, _ => { });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(AuthorizationPolicies.Configure);
 
 // Rate Limiting — proteção contra brute force no login + throttling do /ai-chat
 builder.Services.AddRateLimiter(options =>

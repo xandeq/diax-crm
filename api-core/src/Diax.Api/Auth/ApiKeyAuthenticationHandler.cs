@@ -47,6 +47,15 @@ public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
 {
     public const string DefaultScheme = "ApiKey";
 
+    /// <summary>
+    /// Role atribuída a quem entra com a <c>ProxyApiKey</c>. É deliberadamente estéril: serve só
+    /// para a policy dos proxies de IA reconhecê-la, e a policy padrão recusá-la em todo o resto.
+    /// </summary>
+    public const string ProxyOnlyRole = "ProxyClient";
+
+    /// <summary>Nome da policy que os controllers de proxy usam.</summary>
+    public const string ProxyPolicy = "ProxyAccess";
+
     /// <summary>Nome do header HTTP onde a chave será lida.</summary>
     public string HeaderName { get; set; } = "X-Api-Key";
 }
@@ -86,36 +95,57 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         if (string.IsNullOrWhiteSpace(providedKey))
             return Task.FromResult(AuthenticateResult.NoResult()); // Deixa o próximo scheme tentar
 
-        // 2. Lê a chave configurada no servidor
-        var configuredKey = _configuration["ServiceApiKey"];
-        if (string.IsNullOrWhiteSpace(configuredKey))
+        // 2. Lê as duas chaves configuradas no servidor.
+        //    ServiceApiKey  → acesso de serviço COMPLETO (Admin). É a que os workflows n8n usam.
+        //    ProxyApiKey    → acesso EXCLUSIVO aos proxies de IA (/proxy e /openrouter).
+        //
+        //    A separação existe porque a ServiceApiKey autentica como Admin: quem a tiver lê e
+        //    escreve clientes, leads, usuários e logs de auditoria. Distribuí-la para uma máquina
+        //    de trabalho ou uma ferramenta de terceiros só para consumir os proxies entregaria o
+        //    CRM inteiro junto. A ProxyApiKey é descartável e não abre mais nada.
+        var serviceKey = _configuration["ServiceApiKey"];
+        var proxyKey = _configuration["ProxyApiKey"];
+
+        if (string.IsNullOrWhiteSpace(serviceKey) && string.IsNullOrWhiteSpace(proxyKey))
         {
-            Logger.LogWarning("ApiKey auth: credencial estatica recebida, mas 'ServiceApiKey' nao esta configurado no servidor.");
+            Logger.LogWarning("ApiKey auth: credencial estatica recebida, mas nem 'ServiceApiKey' nem 'ProxyApiKey' estao configurados no servidor.");
             return Task.FromResult(AuthenticateResult.Fail("Service API key not configured on server."));
         }
 
-        // 3. Compara em tempo constante (previne timing attacks)
-        //    Faz hash de ambos para normalizar o comprimento antes de comparar.
-        var expectedHash = SHA256.HashData(Encoding.UTF8.GetBytes(configuredKey));
+        // 3. Compara em tempo constante (previne timing attacks). Faz hash de ambos para
+        //    normalizar o comprimento antes de comparar. As duas comparações são sempre
+        //    executadas para não vazar por tempo qual das chaves casou.
         var providedHash = SHA256.HashData(Encoding.UTF8.GetBytes(providedKey));
+        var matchedService = MatchesConfiguredKey(providedHash, serviceKey);
+        var matchedProxy = MatchesConfiguredKey(providedHash, proxyKey);
 
-        if (!CryptographicOperations.FixedTimeEquals(providedHash, expectedHash))
+        if (!matchedService && !matchedProxy)
         {
             Logger.LogWarning("ApiKey auth: chave inválida recebida de {IP}", Request.HttpContext.Connection.RemoteIpAddress);
             return Task.FromResult(AuthenticateResult.Fail("Invalid API key."));
         }
 
-        // 4. Autentica como Admin (acesso de serviço)
+        // 4. Monta a identidade. A ServiceApiKey vence quando as duas casam — situação que só
+        //    aconteceria se alguém configurasse o mesmo valor nas duas, o que é erro de operação.
         var serviceEmail = _configuration["Auth:AdminEmail"] ?? "service@diaxcrm.internal";
 
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, serviceEmail),
-            new Claim(JwtRegisteredClaimNames.Email, serviceEmail),
-            new Claim(ClaimTypes.Email, serviceEmail),
-            new Claim(ClaimTypes.Role, "Admin"),
-            new Claim("auth_method", "api_key"),
-        };
+        var claims = matchedService
+            ? new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, serviceEmail),
+                new Claim(JwtRegisteredClaimNames.Email, serviceEmail),
+                new Claim(ClaimTypes.Email, serviceEmail),
+                new Claim(ClaimTypes.Role, "Admin"),
+                new Claim("auth_method", "api_key"),
+            }
+            : new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, "proxy@diaxcrm.internal"),
+                new Claim(JwtRegisteredClaimNames.Email, "proxy@diaxcrm.internal"),
+                new Claim(ClaimTypes.Email, "proxy@diaxcrm.internal"),
+                new Claim(ClaimTypes.Role, ApiKeyAuthenticationOptions.ProxyOnlyRole),
+                new Claim("auth_method", "proxy_key"),
+            };
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);
@@ -124,6 +154,19 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
         Logger.LogDebug("ApiKey auth: acesso de serviço autenticado para {Email}", serviceEmail);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
+    }
+
+    /// <summary>
+    /// Compara em tempo constante o hash recebido contra o hash de uma chave configurada.
+    /// Retorna false quando a chave não está configurada, sem curto-circuitar antes do hash.
+    /// </summary>
+    private static bool MatchesConfiguredKey(byte[] providedHash, string? configuredKey)
+    {
+        if (string.IsNullOrWhiteSpace(configuredKey))
+            return false;
+
+        var expectedHash = SHA256.HashData(Encoding.UTF8.GetBytes(configuredKey));
+        return CryptographicOperations.FixedTimeEquals(providedHash, expectedHash);
     }
 
     /// <summary>
