@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
-stopped_at: Completed 07-06-PLAN.md
-last_updated: "2026-09-07T16:00:31.347Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-09-07T22:02:00.635Z"
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 9
 ---
 
 # State — DIAX CRM
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 07 — extra-o-qualidade-na-entrada
+**Current focus:** Phase 08 — import-—-dedup-e-score-em-tempo-real
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
+Phase: 08 (import-—-dedup-e-score-em-tempo-real) — EXECUTING
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -49,6 +49,8 @@ Plan: Not started
 | Phase 07 P04 | 55min | 2 tasks | 7 files |
 | Phase 07 P05 | 15min | 2 tasks | 5 files |
 | Phase 07 P06 | 20min | 2 tasks | 6 files |
+| Phase 08 P01 | 18min | 2 tasks | 5 files |
+| Phase 08 P02 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -111,6 +113,10 @@ Plan: Not started
 - [Phase 07]: 07-06: from/to tratados como UTC e inclusivos nas duas bordas — combina com a conversao automatica de DateTime para UTC do DiaxDbContext
 - [Phase 07]: 07-06: 4 contadores de rejeicao adicionados no FINAL de ImportHistoryResponse (default 0) para preservar a ordem posicional das 9 propriedades originais
 - [Phase 07]: 07-06: teste de filtro de periodo usa DiaxDbContext real + InMemory, setando CreatedAt via Entry(...).Property(...).CurrentValue (mecanismo padrao do EF change tracker para setter protegido)
+- [Phase 08]: [Phase 08] 08-01: ExternalId adicionado como ULTIMO parametro posicional de ImportCustomerRow para nao quebrar ~30 chamadores posicionais existentes
+- [Phase 08]: [Phase 08] 08-01: GetByExternalIdAsync normaliza com Trim(), espelhando Customer.SetExternalId; zero migration criada (coluna/indice ja em producao desde Phase 7)
+- [Phase 08]: D-05: bloco de fit do LeadScoringService incorpora sinais da Phase 7 (WebsiteKind.OwnSite +10, Quality.High +5, EmailType.PersonalDirect +5, HasSuspiciousDomain -15), teto sobe de 25 para 45 — lead de sinais fortes nasce Warm sem engajamento, Hot permanece inalcancavel so com fit
+- [Phase 08]: SegmentForScore(int) extraido como fonte unica dos limiares Hot/Warm/Cold, consumido por RecomputeAllAsync e pronto para o import do plano 08-04
 
 ### Testing Protocol
 
@@ -166,8 +172,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-06T10:13:33.921Z
-Stopped at: Completed 07-06-PLAN.md
+Last session: 2026-09-07T22:02:00.631Z
+Stopped at: Completed 08-02-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
