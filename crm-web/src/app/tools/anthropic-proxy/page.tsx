@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, AlertTriangle, ShieldAlert, Laptop } from 'lucide-react';
+import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, AlertTriangle, ShieldAlert, Laptop, RefreshCw } from 'lucide-react';
 
 const PROXY_URL = 'https://api.alexandrequeiroz.com.br/proxy';
 const PROXY_MESSAGES_URL = `${PROXY_URL}/v1/messages`;
@@ -169,6 +169,53 @@ export default function AnthropicProxyPage() {
       q: 'Setei em um PowerShell (5.1) e não aparece no PowerShell 7 (pwsh), ou vice-versa',
       a: 'Variáveis setadas só com $env: valem apenas pra sessão/processo aberto. Já as salvas como "User" (SetEnvironmentVariable) valem pra qualquer shell novo (5.1, 7, cmd, VS Code) — mas só a partir do PRÓXIMO processo aberto depois de salvar, nunca no que já está rodando.',
     },
+    {
+      q: '"Not logged in · Please run /login" mesmo com ANTHROPIC_BASE_URL e ANTHROPIC_API_KEY certos, e o banner mostrando "API Usage Billing"',
+      a: (
+        <>
+          Causa real: seu modelo padrão é <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>opus[1m]</code> (Opus com contexto de 1M tokens) —
+          esse alias só funciona pela sessão OAuth do claude.ai (planos Max/Team), não é servido via API key genérica + proxy.
+          O CLI detecta a env var e troca o banner pra &quot;API Usage Billing&quot;, mas ao tentar rodar esse modelo específico
+          esbarra na exigência de OAuth e mostra o erro genérico de login em vez de um erro claro de modelo incompatível.
+          <br /><br />
+          <strong style={{ color: '#D1FAE5' }}>Não rode /logout</strong> — isso derruba sua sessão claude.ai de verdade e quebra
+          qualquer MCP/integração conectada por OAuth nessa mesma conta. O fix é só trocar o modelo:
+          dentro do CLI rode <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>/model</code> e
+          escolha um sem &quot;(1M context)&quot;, ou sete antes de abrir o claude:
+          <br />
+          <code style={{ display: 'inline-block', marginTop: 6, background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>
+            $env:ANTHROPIC_MODEL = &quot;claude-sonnet-4-5-20250929&quot;
+          </code>
+        </>
+      ),
+    },
+    {
+      q: '"401 status code (no body) · Retrying in ..." mesmo com ANTHROPIC_BASE_URL e ANTHROPIC_API_KEY preenchidos no settings.json',
+      a: (
+        <>
+          Causa real (visto em produção): a chave foi colocada no campo{' '}
+          <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>ANTHROPIC_AUTH_TOKEN</code> em
+          vez de <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>ANTHROPIC_API_KEY</code>,
+          com o <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>ANTHROPIC_API_KEY</code> deixado
+          vazio (<code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>&quot;&quot;</code>).
+          Essas duas variáveis geram headers HTTP diferentes: <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>ANTHROPIC_API_KEY</code> vira{' '}
+          <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>x-api-key</code>,
+          já <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>ANTHROPIC_AUTH_TOKEN</code> vira{' '}
+          <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>Authorization: Bearer</code>.
+          O proxy do CRM só valida o header <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>X-Api-Key</code> —
+          se ele não chegar (porque foi mandado como Bearer), o proxy rejeita com 401 sem corpo, e o CLI fica retentando sem sucesso.
+          <br /><br />
+          <strong style={{ color: '#D1FAE5' }}>Fix:</strong> no <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>settings.json</code>,
+          apague a linha <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>ANTHROPIC_AUTH_TOKEN</code> e
+          coloque a chave de serviço direto em <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>ANTHROPIC_API_KEY</code> (ver
+          Método 4 acima, com o JSON completo e correto).
+        </>
+      ),
+    },
+    {
+      q: 'Corrigi a API key mas o banner voltou a mostrar "Opus 5 (1M context)" e o erro de login',
+      a: 'Ao corrigir o campo ANTHROPIC_API_KEY, a linha "model" foi apagada por engano do settings.json. Sem ela, o CLI volta pro modelo padrão da conta (opus[1m]), que exige OAuth — mesmo bug do item acima. Adicione de volta "model": "claude-sonnet-4-5-20250929" no topo do settings.json (fora do bloco "env"), salve, feche o VS Code inteiro e abra de novo. Use o JSON completo do Método 4 como referência — ele já tem os dois campos certos juntos.',
+    },
   ];
 
   const faqs = [
@@ -291,6 +338,49 @@ $env:ANTHROPIC_API_KEY = "${SERVICE_KEY}"
             <li>Clique OK em todas as janelas abertas.</li>
             <li><strong style={{ color: '#D1FAE5' }}>Feche todos os terminais/PowerShell/VS Code abertos</strong> e abra de novo.</li>
           </ol>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+            Método 4 — Direto no settings.json global do Claude Code (mais simples, recomendado):
+          </p>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', lineHeight: 1.7 }}>
+            Edita um único arquivo, sem mexer nas variáveis de ambiente do Windows nem reiniciar nada além do próprio Claude Code.
+            Abre no Notepad (ou VS Code) o arquivo:
+          </p>
+          <CodeBlock lang="powershell" code={`notepad $env:USERPROFILE\\.claude\\settings.json`} />
+          <p style={{ margin: '8px 0 8px', fontSize: 12, color: '#6B7280' }}>
+            E garante que tenha exatamente isto (crie o arquivo se não existir):
+          </p>
+          <CodeBlock lang="json" code={`
+{
+  "model": "claude-sonnet-4-5-20250929",
+  "env": {
+    "ANTHROPIC_BASE_URL": "${PROXY_URL}",
+    "ANTHROPIC_API_KEY": "${SERVICE_KEY}"
+  }
+}
+          `} />
+          <div style={{
+            marginTop: 10, padding: '10px 14px', borderRadius: 8,
+            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+            display: 'flex', gap: 10,
+          }}>
+            <AlertCircle size={14} color="#F59E0B" style={{ flexShrink: 0, marginTop: 1 }} />
+            <p style={{ margin: 0, fontSize: 12, color: '#D97706', lineHeight: 1.6 }}>
+              Três erros comuns nesse arquivo, todos vistos em produção: (1) usar a chave no campo{' '}
+              <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 11, color: '#9CA3AF' }}>ANTHROPIC_AUTH_TOKEN</code> em
+              vez de <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 11, color: '#9CA3AF' }}>ANTHROPIC_API_KEY</code> —
+              são headers HTTP diferentes e o proxy só aceita um deles; (2) deixar{' '}
+              <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 11, color: '#9CA3AF' }}>ANTHROPIC_API_KEY</code> vazio
+              (<code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 11, color: '#9CA3AF' }}>&quot;&quot;</code>);
+              (3) apagar a linha <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 11, color: '#9CA3AF' }}>&quot;model&quot;</code> —
+              sem ela o CLI volta pro modelo padrão da conta (que pode exigir login OAuth). Veja os detalhes de cada um em &quot;Erros Comuns&quot; abaixo.
+            </p>
+          </div>
+          <p style={{ margin: '10px 0 0', fontSize: 12, color: '#6B7280' }}>Salva, fecha o VS Code/terminal inteiro e abre de novo:</p>
+          <div style={{ height: 6 }} />
+          <CodeBlock lang="powershell" code={`claude`} />
         </div>
       </Section>
 
@@ -417,6 +507,66 @@ $env:ANTHROPIC_API_KEY = "${SERVICE_KEY}"
         <div>
           <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>4. Limpar uma variável setada errada (nível User):</p>
           <CodeBlock lang="powershell" code={`[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", $null, "User")`} />
+        </div>
+      </Section>
+
+      {/* Reset Completo */}
+      <Section icon={RefreshCw} title="Reset Completo — Começar do Zero" color="#DC2626">
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: '#9CA3AF', lineHeight: 1.7 }}>
+          Se já tentou os métodos acima em várias combinações e continua com erro de login/401, o mais rápido é zerar
+          <strong style={{ color: '#D1FAE5' }}> TODAS</strong> as variáveis relacionadas (não só as 2-3 óbvias),
+          limpar o cache de login local do Claude Code, e recomeçar do zero. Siga a ordem — cada bloco é um comando único, cole exatamente como está.
+        </p>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>1. Feche TUDO primeiro: todas as janelas do VS Code, todos os terminais, o Claude Code.</p>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+            2. Abre um PowerShell novo (fora do VS Code) e zera TODAS as variáveis de auth do Claude Code, nos dois escopos (User e Machine) de uma vez:
+          </p>
+          <CodeBlock lang="powershell" code={`$vars = "ANTHROPIC_API_KEY","ANTHROPIC_AUTH_TOKEN","ANTHROPIC_BASE_URL","ANTHROPIC_MODEL","ANTHROPIC_PROFILE","ANTHROPIC_FEDERATION_RULE_ID","ANTHROPIC_ORGANIZATION_ID","ANTHROPIC_SERVICE_ACCOUNT_ID","ANTHROPIC_IDENTITY_TOKEN_FILE","ANTHROPIC_IDENTITY_TOKEN","ANTHROPIC_WORKSPACE_ID","CLAUDE_CODE_USE_BEDROCK","CLAUDE_CODE_USE_VERTEX","CLAUDE_CODE_OAUTH_TOKEN"; foreach ($v in $vars) { [System.Environment]::SetEnvironmentVariable($v, $null, "User"); [System.Environment]::SetEnvironmentVariable($v, $null, "Machine") }`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>3. Confirma que ficou tudo vazio (não deve aparecer nenhuma linha):</p>
+          <CodeBlock lang="powershell" code={`Get-ChildItem Env: | Where-Object { $_.Name -like "*ANTHROPIC*" -or $_.Name -like "*CLAUDE_CODE*" }`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+            4. Apaga o cache de login local do Claude Code nessa máquina (não afeta outras máquinas nem outras contas — é só o token salvo localmente):
+          </p>
+          <CodeBlock lang="powershell" code={`Remove-Item "$env:USERPROFILE\\.claude\\.credentials.json" -ErrorAction SilentlyContinue`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>5. Recria o settings.json do zero, já com o conteúdo correto:</p>
+          <CodeBlock lang="powershell" code={`Set-Content -Path "$env:USERPROFILE\\.claude\\settings.json" -Value '{"model":"claude-sonnet-4-5-20250929","env":{"ANTHROPIC_BASE_URL":"${PROXY_URL}","ANTHROPIC_API_KEY":"${SERVICE_KEY}"}}' -Encoding utf8`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>6. Reinicia o notebook (garante que nada ficou em cache de sessão/processo aberto):</p>
+          <CodeBlock lang="powershell" code={`Restart-Computer`} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+            7. Depois de reiniciar, abre um PowerShell PURO primeiro (não o VS Code ainda) e confirma que continua tudo vazio:
+          </p>
+          <CodeBlock lang="powershell" code={`Get-ChildItem Env: | Where-Object { $_.Name -like "*ANTHROPIC*" -or $_.Name -like "*CLAUDE_CODE*" }`} />
+        </div>
+
+        <div>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6B7280', fontWeight: 600 }}>8. Abre o Claude Code:</p>
+          <CodeBlock lang="powershell" code={`claude`} />
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>
+            Como o cache de login foi apagado, deve aparecer um menu <strong style={{ color: '#D1FAE5' }}>&quot;Login Method&quot;</strong> com
+            3 opções — escolha explicitamente a opção <strong style={{ color: '#D1FAE5' }}>&quot;2. Anthropic Console account · API usage billing&quot;</strong> (não
+            a opção 1, que é login via claude.ai/OAuth). Confirme que o banner mostra <strong style={{ color: '#D1FAE5' }}>Sonnet 4.5 · API Usage Billing</strong> e
+            testa digitando <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4, fontSize: 12, color: '#9CA3AF' }}>oi</code>.
+          </p>
         </div>
       </Section>
 
