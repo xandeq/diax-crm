@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { ServiceKeyField, useServiceKey } from '@/components/ServiceKeyField';
 import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, AlertTriangle, ShieldAlert, Laptop, RefreshCw } from 'lucide-react';
 
 const PROXY_URL = 'https://api.alexandrequeiroz.com.br/proxy';
 const PROXY_MESSAGES_URL = `${PROXY_URL}/v1/messages`;
-const SERVICE_KEY = 'HdPjcrZyjD5fKcPm8qyxJnLYnG0Vi6tBNBUP6E12qvc';
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -129,6 +129,9 @@ function Accordion({ items, expanded, onToggle }: {
 }
 
 export default function AnthropicProxyPage() {
+  // A chave NAO fica escrita nesta pagina: este repositorio e publico e a pagina tambem e servida
+  // publicamente. O usuario cola uma vez e ela vive so no localStorage do navegador dele.
+  const { serviceKey, setServiceKey, keyOrPlaceholder: SERVICE_KEY } = useServiceKey();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [expandedError, setExpandedError] = useState<number | null>(null);
 
@@ -262,7 +265,13 @@ export default function AnthropicProxyPage() {
       <Section icon={Globe} title="Endpoint do Proxy">
         <InfoRow label="Base URL" value={PROXY_URL} copyValue={PROXY_URL} />
         <InfoRow label="Messages" value={PROXY_MESSAGES_URL} copyValue={PROXY_MESSAGES_URL} />
-        <InfoRow label="X-Api-Key" value={SERVICE_KEY} copyValue={SERVICE_KEY} />
+        <div style={{ marginTop: 14, marginBottom: 6 }}>
+          <ServiceKeyField
+            serviceKey={serviceKey}
+            setServiceKey={setServiceKey}
+            hint="Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. É a chave de serviço do CRM (config ServiceApiKey no servidor) — NÃO é a sua chave sk-ant-... da Anthropic, que nunca deve sair do servidor."
+          />
+        </div>
 
         <div style={{
           marginTop: 12, padding: '10px 14px', borderRadius: 8,

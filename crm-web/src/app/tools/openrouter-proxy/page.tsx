@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { ServiceKeyField, useServiceKey } from '@/components/ServiceKeyField';
 import { Copy, Check, Terminal, Code2, Cpu, Globe, Key, Zap, BookOpen, AlertCircle, ChevronDown, ChevronRight, Settings, ShieldAlert, DollarSign, Layers } from 'lucide-react';
 
 const PROXY_URL = 'https://api.alexandrequeiroz.com.br/openrouter';
 const PROXY_BASE_V1 = `${PROXY_URL}/v1`;
 const PROXY_CHAT_URL = `${PROXY_BASE_V1}/chat/completions`;
-const KEY_STORAGE = 'openrouter-proxy-service-key';
-const KEY_PLACEHOLDER = 'SUA_SERVICE_API_KEY';
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -224,27 +223,7 @@ const MODELOS = [
 
 export default function OpenRouterProxyPage() {
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [serviceKey, setServiceKey] = useState('');
-  const [keyLoaded, setKeyLoaded] = useState(false);
-
-  // A chave fica só no navegador de quem usa a página — nunca no repositório.
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(KEY_STORAGE);
-      if (saved) setServiceKey(saved);
-    } catch { /* modo privado / storage bloqueado */ }
-    setKeyLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!keyLoaded) return;
-    try {
-      if (serviceKey) localStorage.setItem(KEY_STORAGE, serviceKey);
-      else localStorage.removeItem(KEY_STORAGE);
-    } catch { /* ignore */ }
-  }, [serviceKey, keyLoaded]);
-
-  const K = serviceKey || KEY_PLACEHOLDER;
+  const { serviceKey, setServiceKey, keyOrPlaceholder: K } = useServiceKey();
 
   const pythonCode = `
 from openai import OpenAI
@@ -370,41 +349,11 @@ curl ${PROXY_BASE_V1}/credits -H "Authorization: Bearer ${K}"
 
       {/* Chave de serviço */}
       <Section icon={Key} title="1. Configure sua Service API Key" color="#F59E0B">
-        <p style={{ margin: '0 0 12px', fontSize: 13, color: '#9CA3AF', lineHeight: 1.7 }}>
-          Cole a chave uma vez. Ela fica salva <strong style={{ color: '#E5E7EB' }}>apenas no seu navegador</strong> e
-          todos os exemplos desta página passam a mostrar a chave real, prontos para copiar.
-        </p>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-          <input
-            type="password"
-            value={serviceKey}
-            onChange={(e) => setServiceKey(e.target.value.trim())}
-            placeholder="Cole aqui a Service API Key do CRM"
-            style={{
-              flex: 1, padding: '10px 14px', borderRadius: 8,
-              background: 'rgba(255,255,255,0.03)',
-              border: `1px solid ${serviceKey ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'}`,
-              color: '#E5E7EB', fontSize: 13, fontFamily: 'monospace', outline: 'none',
-            }}
-          />
-          {serviceKey && (
-            <button onClick={() => setServiceKey('')} style={{
-              padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              color: '#9CA3AF', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
-            }}>Limpar</button>
-          )}
-        </div>
-        <div style={{
-          padding: '10px 14px', borderRadius: 8,
-          background: serviceKey ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
-          border: `1px solid ${serviceKey ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`,
-          fontSize: 12, color: serviceKey ? '#6EE7B7' : '#FCD34D', lineHeight: 1.6,
-        }}>
-          {serviceKey
-            ? 'Chave salva no navegador. Os exemplos abaixo já estão prontos para copiar e usar.'
-            : 'Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. É a chave de serviço do CRM (config ServiceApiKey no servidor) — NÃO é a sua chave sk-or-v1-... da OpenRouter, que nunca deve sair do servidor.'}
-        </div>
+        <ServiceKeyField
+          serviceKey={serviceKey}
+          setServiceKey={setServiceKey}
+          hint="Sem a chave, os exemplos mostram SUA_SERVICE_API_KEY como marcador. É a chave de serviço do CRM (config ServiceApiKey no servidor) — NÃO é a sua chave sk-or-v1-... da OpenRouter, que nunca deve sair do servidor."
+        />
       </Section>
 
       {/* Endpoint */}
