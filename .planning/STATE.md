@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
 stopped_at: Completed 08-04-PLAN.md
-last_updated: "2026-09-07T22:17:53.981Z"
+last_updated: "2026-09-07T22:22:45.174Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 
 ## Current Position
 
-Phase: 08 (import-—-dedup-e-score-em-tempo-real) — EXECUTING
-Plan: 4 of 4
+Phase: 08
+Plan: Not started
 
 ## Performance Metrics
 
