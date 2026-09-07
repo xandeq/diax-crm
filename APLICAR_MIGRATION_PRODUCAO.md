@@ -129,7 +129,7 @@ Este script é **idempotente** - pode ser executado múltiplas vezes sem causar 
 Uma vez que as credenciais do banco de produção estão na sua máquina configuradas via `dotnet user-secrets`, você pode aplicar as migrações no banco de produção rodando apenas um comando na raiz do projeto (`api-core`):
 
 ```bash
-dotnet ef database update --project src\Diax.Infrastructure --startup-project src\Diax.Api --connection "Server=sql1002.site4now.net;Database=db_aaf0a8_diaxcrm;User ID=db_aaf0a8_diaxcrm_admin;Password=Alexandre10#;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
+dotnet ef database update --project src\Diax.Infrastructure --startup-project src\Diax.Api
 ```
 
 Ou, como a `DefaultConnection` já está nos seus Secrets apontando para produção:

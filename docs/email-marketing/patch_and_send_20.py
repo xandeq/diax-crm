@@ -6,12 +6,40 @@ import os, sys, json, datetime, time, pyodbc, requests
 from pathlib import Path
 
 DIR = str(Path(__file__).resolve().parent) + '/'
-CONN_STR = (
-    'DRIVER={ODBC Driver 17 for SQL Server};'
-    'SERVER=sql1002.site4now.net;DATABASE=db_aaf0a8_diaxcrm;'
-    'UID=db_aaf0a8_diaxcrm_admin;PWD=Alexandre10#;'
-    'Encrypt=yes;TrustServerCertificate=yes;'
-)
+def _load_env_file(path: Path) -> dict:
+    """Parse a simple KEY=VALUE .env file, ignore comments and blank lines."""
+    result = {}
+    if not path.exists():
+        return result
+    for line in path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, _, val = line.partition('=')
+        result[key.strip()] = val.strip()
+    return result
+
+
+def _get_conn_str() -> str:
+    # Priority: env var → local .env → ~/.claude/.secrets.env
+    val = os.environ.get('DIAX_DB_CONNSTRING')
+    if val:
+        return val
+    local_env = _load_env_file(Path(__file__).parent / '.env')
+    val = local_env.get('DIAX_DB_CONNSTRING')
+    if val:
+        return val
+    central = _load_env_file(Path.home() / '.claude' / '.secrets.env')
+    val = central.get('DIAX_DB_CONNSTRING')
+    if val:
+        return val
+    raise RuntimeError(
+        'DIAX_DB_CONNSTRING not found. '
+        'Add it to ~/.claude/.secrets.env or set the environment variable.'
+    )
+
+
+CONN_STR = _get_conn_str()
 base = 'https://api.alexandrequeiroz.com.br'
 HEALTHY = ['Brevo', 'Mailjet', 'Resend', 'SendGrid']
 

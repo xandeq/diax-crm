@@ -60,3 +60,6 @@ docs/email-marketing/quarantine-*.json
 
 # Settings locais do Claude Code — podem conter comandos aprovados com segredos embutidos
 .claude/settings.local.json
+
+# VS Code MCP config: contem N8N_API_KEY real (usar .vscode/mcp.json.example como modelo)
+.vscode/mcp.json

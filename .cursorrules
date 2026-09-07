@@ -9,5 +9,5 @@ Whenever you are asked to run EF Core database migrations in production, DO NOT 
 To apply migrations directly to production, execute the following command from the `api-core` directory:
 
 ```bash
-dotnet ef database update --project src\Diax.Infrastructure --startup-project src\Diax.Api --connection "Server=sql1002.site4now.net;Database=db_aaf0a8_diaxcrm;User ID=db_aaf0a8_diaxcrm_admin;Password=Alexandre10#;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
+dotnet ef database update --project src\Diax.Infrastructure --startup-project src\Diax.Api
 ```
