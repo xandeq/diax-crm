@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-09-07T22:02:00.635Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-09-07T22:11:49.590Z"
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 ## Current Position
 
 Phase: 08 (import-—-dedup-e-score-em-tempo-real) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Plan: 3 of 4
 | Phase 07 P06 | 20min | 2 tasks | 6 files |
 | Phase 08 P01 | 18min | 2 tasks | 5 files |
 | Phase 08 P02 | 12min | 2 tasks | 2 files |
+| Phase 08 P03 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,7 @@ Plan: 3 of 4
 - [Phase 08]: [Phase 08] 08-01: GetByExternalIdAsync normaliza com Trim(), espelhando Customer.SetExternalId; zero migration criada (coluna/indice ja em producao desde Phase 7)
 - [Phase 08]: D-05: bloco de fit do LeadScoringService incorpora sinais da Phase 7 (WebsiteKind.OwnSite +10, Quality.High +5, EmailType.PersonalDirect +5, HasSuspiciousDomain -15), teto sobe de 25 para 45 — lead de sinais fortes nasce Warm sem engajamento, Hot permanece inalcancavel so com fit
 - [Phase 08]: SegmentForScore(int) extraido como fonte unica dos limiares Hot/Warm/Cold, consumido por RecomputeAllAsync e pronto para o import do plano 08-04
+- [Phase 08]: [Phase 08] 08-03: resolucao ExternalId->email->telefone implementada no loop de persistencia; D-02 fecha gap orfao checando o email ANTIGO na supressao (nao so o novo); D-03 email vence conflito com log ExternalIdConflict; D-04 backfill organico sem migration/script em massa
 
 ### Testing Protocol
 
@@ -172,8 +174,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-07T22:02:00.631Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-09-07T22:11:49.586Z
+Stopped at: Completed 08-03-PLAN.md
 Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
 `/gsd:plan-phase 7`.
