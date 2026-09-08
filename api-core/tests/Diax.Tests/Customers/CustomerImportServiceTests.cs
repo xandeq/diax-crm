@@ -12,6 +12,7 @@ using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.EmailMarketing.Enums;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -32,6 +33,7 @@ public class CustomerImportServiceTests
     private readonly Mock<IAuditLogRepository> _auditLogRepoMock = new();
     private readonly Mock<IUserRepository> _userRepoMock = new();
     private readonly Mock<IPilotCircuitBreaker> _circuitBreakerMock = new();
+    private readonly Mock<ILogger<CustomerImportService>> _loggerMock = new();
     private readonly CustomerImportService _sut;
     private readonly Guid _userId = Guid.NewGuid();
 
@@ -85,7 +87,8 @@ public class CustomerImportServiceTests
             _suppressionRepoMock.Object,
             _auditLogRepoMock.Object,
             _userRepoMock.Object,
-            _circuitBreakerMock.Object);
+            _circuitBreakerMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -692,5 +695,251 @@ public class CustomerImportServiceTests
         // Website existente preservado (a regra de enrich só usa o novo se o existente for vazio).
         Assert.Equal("https://clinicaodonto.com.br", existing.Website);
         Assert.Equal(WebsiteKind.OwnSite, existing.WebsiteKind);
+    }
+
+    // ── IMPT-01/IMPT-02: dedup por ExternalId (D-01..D-04) ──
+
+    private static Customer ExistingCustomer(string name, string email, string? externalId = null)
+    {
+        var c = new Customer(name, email, PersonType.Individual, LeadSource.Scraping);
+        c.SetExternalId(externalId);
+        return c;
+    }
+
+    [Fact]
+    public async Task Import_ExternalIdMatch_UpdatesEmail_WhenEmailChanged()
+    {
+        // D-01: o mesmo ExternalId volta com um e-mail novo — o Extrator é fonte da verdade
+        // do contato, então o e-mail do CRM deve ser trocado in-place.
+        var existing = ExistingCustomer("Lead A", "old@test.com", "4242");
+        _customerRepoMock
+            .Setup(r => r.GetByExternalIdAsync("4242", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow("Lead A", "new@test.com", Phone: "27999000001", ExternalId: "4242");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        Assert.Equal("new@test.com", existing.Email);
+        Assert.False(existing.EmailOptOut);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Import_ExternalIdMatch_PreservesEmailOptOut_WhenEmailChanged()
+    {
+        // D-02, caminho principal: o Customer existente já tem EmailOptOut ativo sob o e-mail
+        // antigo — a troca de e-mail do D-01 NÃO pode ressuscitar esse contato.
+        var existing = ExistingCustomer("Lead A", "old@test.com", "4242");
+        existing.OptOutEmail();
+        _customerRepoMock
+            .Setup(r => r.GetByExternalIdAsync("4242", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow("Lead A", "new@test.com", Phone: "27999000001", ExternalId: "4242");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        Assert.True(existing.EmailOptOut);
+        Assert.Equal("old@test.com", existing.Email);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Contains(result.Errors, e => e.ErrorMessage.Contains("opt-out"));
+    }
+
+    [Fact]
+    public async Task Import_ExternalIdMatch_PreservesEmailOptOut_WhenOldEmailIsSuppressed()
+    {
+        // D-02, caso órfão: EmailOptOut ainda é false no Customer, mas o e-mail ANTIGO está na
+        // lista de supressão (registro manual ou anterior ao cadastro). A troca tem que ser
+        // bloqueada mesmo assim, e o opt-out propagado para a linha.
+        var existing = ExistingCustomer("Lead A", "old@test.com", "4242");
+        _customerRepoMock
+            .Setup(r => r.GetByExternalIdAsync("4242", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        _suppressionRepoMock
+            .Setup(s => s.IsSuppressedAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _suppressionRepoMock
+            .Setup(s => s.IsSuppressedAsync(It.IsAny<Guid>(), It.Is<string>(e => e == "old@test.com"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var row = new ImportCustomerRow("Lead A", "new@test.com", Phone: "27999000001", ExternalId: "4242");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        Assert.True(existing.EmailOptOut);
+        Assert.Equal("old@test.com", existing.Email);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Import_ExternalIdAndEmailMatchDifferentCustomers_EmailWins_LogsConflict()
+    {
+        // D-03: o ExternalId da linha casa com o Customer A, mas o e-mail da linha casa com o
+        // Customer B (leads DIFERENTES no CRM). O e-mail vence: B é enriquecido, A permanece
+        // intocado (nenhum backfill de ExternalId nele), e o conflito fica logado.
+        var customerA = ExistingCustomer("Lead A", "a@test.com", "4242");
+        var customerB = ExistingCustomer("Lead B", "b@test.com", null);
+
+        _customerRepoMock
+            .Setup(r => r.GetByExternalIdAsync("4242", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customerA);
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("b@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(customerB);
+
+        var row = new ImportCustomerRow("Lead B", "b@test.com", Phone: "27999000002", ExternalId: "4242");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        Assert.Null(customerB.ExternalId);
+        Assert.Equal("4242", customerA.ExternalId);
+        Assert.Equal("a@test.com", customerA.Email);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        _loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("ExternalIdConflict")),
+                It.IsAny<Exception?>(),
+                (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Import_EmailMatchWithExternalId_BackfillsExternalIdOnExistingCustomer()
+    {
+        // D-04: backfill orgânico — o lead casou por e-mail (nunca teve ExternalId), e a linha
+        // trouxe um. Grava no Customer existente sem recriar nada.
+        var existing = ExistingCustomer("Lead A", "a@test.com", null);
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("a@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow("Lead A", "a@test.com", Phone: "27999000001", ExternalId: "777");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var result = await _sut.ImportAsync(request, "test.json");
+
+        Assert.Equal("777", existing.ExternalId);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Import_Scraping_DoublePull_SameExternalId_DifferentEmail_NoDuplicateCreated()
+    {
+        // Extensão de Import_DoublePull_IsIdempotent_NoDuplicateCreatedOnSecondImport: mesmo
+        // ExternalId nos dois pulls, mas o e-mail muda entre eles (o negócio trocou de e-mail).
+        // Ainda assim não pode duplicar — o segundo pull tem que casar por ExternalId.
+        var created = new List<Customer>();
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => created.Add(c))
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        var firstRow = new ImportCustomerRow("Lead A", "a@test.com", Phone: "27999000001", ExternalId: "4242");
+        var firstRequest = new BulkImportRequest(new List<ImportCustomerRow> { firstRow }, LeadSource.Scraping);
+
+        var first = await _sut.ImportAsync(firstRequest, "pull-1.json");
+
+        Assert.Equal(1, first.SuccessCount);
+        Assert.Single(created);
+
+        _customerRepoMock
+            .Setup(r => r.GetByExternalIdAsync("4242", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(created[0]);
+
+        var secondRow = new ImportCustomerRow("Lead A", "a2@test.com", Phone: "27999000001", ExternalId: "4242");
+        var secondRequest = new BulkImportRequest(new List<ImportCustomerRow> { secondRow }, LeadSource.Scraping);
+
+        var second = await _sut.ImportAsync(secondRequest, "pull-2.json");
+
+        Assert.Single(created); // nenhum Customer NOVO criado no 2º pull
+        Assert.Equal("a2@test.com", created[0].Email);
+        Assert.Equal("4242", created[0].ExternalId);
+    }
+
+    // ── IMPT-03: lead_score calculado no momento do import (D-05) ──
+
+    [Fact]
+    public async Task Import_NewCustomer_GetsLeadScoreAndSegmentAtImport()
+    {
+        // Lead FORTE: website 5 + telefone 5 + elegível 5 + DDD 27 → 10 + OwnSite 10 +
+        // Quality.Medium 0 + EmailType.PersonalDirect 5 = 40 → Warm.
+        var row = new ImportCustomerRow(
+            "Clinica Vix",
+            "contato@clinicaodontovix.com.br",
+            Phone: "27999000001",
+            Website: "https://clinicaodontovix.com.br");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var created = new List<Customer>();
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => created.Add(c))
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.Single(created);
+        Assert.Equal(40, created[0].LeadScore);
+        Assert.Equal(LeadSegment.Warm, created[0].Segment);
+    }
+
+    [Fact]
+    public async Task Import_NewCustomer_WeakSignals_IsBornCold()
+    {
+        // Lead FRACO: website 5 + telefone 5 + elegível 5 + DDD 11 → 0 + Directory 0 +
+        // Quality.Medium 0 + PersonalDirect 5 = 20 → Cold.
+        var row = new ImportCustomerRow(
+            "Lead Diretorio",
+            "contato@lead.com.br",
+            Phone: "11999000001",
+            Website: "https://www.econodata.com.br/empresa/123");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        var created = new List<Customer>();
+        _customerRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()))
+            .Callback<Customer, CancellationToken>((c, _) => created.Add(c))
+            .ReturnsAsync((Customer c, CancellationToken _) => c);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.Single(created);
+        Assert.Equal(20, created[0].LeadScore);
+        Assert.Equal(LeadSegment.Cold, created[0].Segment);
+    }
+
+    [Fact]
+    public async Task Import_ExistingCustomer_LeadScoreNotRecomputedOnEnrich()
+    {
+        // Um Customer já existente com engajamento acumulado (score 75, Hot) não pode ser
+        // rebaixado no enriquecimento — se o import recalculasse com engagement:null, o
+        // score cairia para 40 (Warm). Esta é a trava contra isso.
+        var existing = new Customer("Lead Quente", "quente@test.com");
+        existing.UpdateSegmentation(75, LeadSegment.Hot);
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("quente@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow(
+            "Lead Quente",
+            "quente@test.com",
+            Phone: "27999000001",
+            Website: "https://clinicaodontovix.com.br");
+        var request = new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping);
+
+        await _sut.ImportAsync(request, "test.json");
+
+        Assert.Equal(75, existing.LeadScore);
+        Assert.Equal(LeadSegment.Hot, existing.Segment);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

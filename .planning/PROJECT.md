@@ -59,14 +59,15 @@ nem correlatos.
 - ✓ EXTR-01: MX/domínio válido verificado antes de importar, com degradação segura (falha de DNS não rejeita lead) — v1.3 Phase 7
 - ✓ EXTR-02: motivo de rejeição contado por rodada e consultável por período (`GET /customers/imports?from&to`) — v1.3 Phase 7
 - ✓ EXTR-03: site próprio vs diretório de terceiro classificado e persistido (`Customer.WebsiteKind`) — v1.3 Phase 7
+- ✓ IMPT-01: dedup do import por `Customer.ExternalId` (ID do Extrator), com fallback para email e telefone — v1.3 Phase 8
+- ✓ IMPT-02: dedup real em `/customers/import` para `source=Scraping`, com paridade ao comportamento de `source=Import` — v1.3 Phase 8
+- ✓ IMPT-03: `lead_score` e segmento calculados no momento do import (ramo CREATE), com o bloco de fit recalibrado para que um lead forte nasça Warm — v1.3 Phase 8
 
 ### Active
 
-<!-- Milestone v1.3 — Pipeline de Aquisição · Phase 7 completa, Phase 8 pendente -->
+<!-- Milestone v1.3 — Pipeline de Aquisição · COMPLETO (Phases 7 e 8) -->
 
-- [ ] IMPT-01: `Customer.ExternalId` — dedup por ID do Extrator, não só email (coluna já criada na Phase 7; falta a lógica de dedup)
-- [ ] IMPT-02: dedup real em `/customers/import` para `source=Scraping`
-- [ ] IMPT-03: `lead_score` calculado no momento do import
+<!-- Nenhum requisito de v1.3 em aberto. -->
 
 <!-- Milestone v1.2 — Agentes de IA (PAUSADO em paralelo, ver nota em Current Milestone acima) -->
 
@@ -140,4 +141,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-09-07 — Phase 7 (Extração — Qualidade na Entrada) completa e verificada em produção; EXTR-01..03 validados. Phase 8 (Import — Dedup e Score) pendente. v1.2 segue pausado em paralelo.*
+*Last updated: 2026-09-07 — Milestone v1.3 (Pipeline de Aquisição) COMPLETO: Phase 7 (Extração — Qualidade na Entrada) e Phase 8 (Import — Dedup e Score em Tempo Real) executadas e verificadas, EXTR-01..03 e IMPT-01..03 validados. Phase 8 entregou dedup por `ExternalId` com fallback email/telefone, guarda de supressão do e-mail antigo na troca, e scoring no import com o teto de fit em 45 (lead forte nasce Warm; Hot segue inalcançável sem engajamento). Suíte: 891 testes. Código na branch `chore/email-automation-versioned`, ainda NÃO deployado. v1.2 segue pausado em paralelo.*

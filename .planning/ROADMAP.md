@@ -91,10 +91,10 @@ inputs do score calculado no import)
 **Plans:** 4 plans (3 waves)
 
 Plans:
-- [ ] 08-01-PLAN.md — Contratos de dedup: GetByExternalIdAsync + ImportCustomerRow.ExternalId + fiacao do MapToImportRow [wave 1]
-- [ ] 08-02-PLAN.md — Recalibracao do fit do lead scoring com os sinais da Phase 7 + SegmentForScore (D-05) [wave 1]
-- [ ] 08-03-PLAN.md — Resolucao de dedup ExternalId -> e-mail -> telefone com as guardas D-01..D-04 [wave 2]
-- [ ] 08-04-PLAN.md — lead_score e segmento calculados no momento do import [wave 3]
+- [x] 08-01-PLAN.md — Contratos de dedup: GetByExternalIdAsync + ImportCustomerRow.ExternalId + fiacao do MapToImportRow [wave 1]
+- [x] 08-02-PLAN.md — Recalibracao do fit do lead scoring com os sinais da Phase 7 + SegmentForScore (D-05) [wave 1]
+- [x] 08-03-PLAN.md — Resolucao de dedup ExternalId -> e-mail -> telefone com as guardas D-01..D-04 [wave 2]
+- [x] 08-04-PLAN.md — lead_score e segmento calculados no momento do import [wave 3]
 
 **Nota:** zero migrations nesta fase — a coluna `external_id` e o indice unico filtrado
 `IX_Customers_ExternalId` ja foram entregues pela migration `20260906101839_AddLeadQualitySignals`
@@ -108,7 +108,7 @@ escopo (D-04 resolve organicamente).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 7. Extração — Qualidade na Entrada | 0/7 | Planned | — |
-| 8. Import — Dedup e Score em Tempo Real | 0/4 | Planned | — |
+| 8. Import — Dedup e Score em Tempo Real | 2/4 | In Progress|  |
 
 ### Coverage Map (v1.3)
 

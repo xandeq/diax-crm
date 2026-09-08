@@ -19,7 +19,8 @@ public record ImportCustomerRow(
     string? CurrentTool = null,
     string? MainPain = null,
     string? ValidationStatus = null,
-    string? ConsentStatus = null);
+    string? ConsentStatus = null,
+    string? ExternalId = null);   // IMPT-01: lead.Id do Extrator. SEMPRE o último parâmetro.
 
 /// <summary>
 /// Contadores agregados de leads descartados ANTES do import, computados pelo chamador

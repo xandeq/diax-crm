@@ -72,9 +72,7 @@ public class LeadScoringService : IApplicationService
         {
             engagement.TryGetValue(lead.Id, out var eng);
             var score = CalculateScore(lead, eng, now);
-            var segment = score >= HotThreshold ? LeadSegment.Hot
-                : score >= WarmThreshold ? LeadSegment.Warm
-                : LeadSegment.Cold;
+            var segment = SegmentForScore(score);
 
             if (lead.LeadScore != score || lead.Segment != segment)
                 lead.UpdateSegmentation(score, segment);
@@ -101,22 +99,33 @@ public class LeadScoringService : IApplicationService
     }
 
     /// <summary>
-    /// Score 0–100. Fit de cadastro (site, telefone/WhatsApp, elegibilidade e DDD local
-    /// 27/28 — mercado é Vitória-ES) vale no máximo 25, sempre abaixo do limiar Warm por
-    /// si só. Quem empurra para Warm/Hot é engajamento real: aberturas e cliques de email
-    /// e o avanço de Status para Qualified/Negotiating (só ocorre via clique, resposta ou
-    /// WhatsApp — tratado como sinal forte de intenção). Bounce e opt-out (email ou
-    /// WhatsApp) penalizam.
+    /// Score 0–100. O bloco de fit (site, telefone/WhatsApp, elegibilidade, DDD local 27/28 —
+    /// mercado é Vitória-ES — mais os sinais de qualidade da Phase 7: site próprio vs diretório,
+    /// Quality e EmailType) vale no máximo 45. Recalibrado na Phase 8 (IMPT-03 / D-05) para que um
+    /// lead de boa qualidade nasça Warm (30) já no import, sem nenhum engajamento; um lead de
+    /// sinais fracos permanece Cold. O teto de 45 mantém Hot (60) inalcançável sem engajamento
+    /// real — aberturas, cliques ou o avanço de Status para Qualified/Negotiating. Bounce, opt-out
+    /// (email ou WhatsApp) e domínio suspeito penalizam.
     /// </summary>
     public static int CalculateScore(Customer lead, CustomerEngagementSummary? engagement, DateTime nowUtc)
     {
         var score = 0;
 
-        // ── Fit de cadastro (máx 25) ──
+        // ── Fit de cadastro (máx 45 — recalibrado na Phase 8 / IMPT-03 / decisão D-05) ──
+        // O teto subiu de 25 para 45 justamente para que um lead com sinais fortes de qualidade
+        // (coletados pela Phase 7) alcance Warm (30) já no import, sem nenhum engajamento.
+        // O teto continua ABAIXO de Hot (60): nascer Hot sem engajamento é impossível por
+        // construção, e isso é intencional.
         if (!string.IsNullOrWhiteSpace(lead.Website)) score += 5;
         if (!string.IsNullOrWhiteSpace(lead.Phone) || !string.IsNullOrWhiteSpace(lead.WhatsApp)) score += 5;
         if (lead.IsEligibleForCampaigns) score += 5;
         if (HasLocalDdd(lead.WhatsApp) || HasLocalDdd(lead.Phone)) score += 10; // mercado local: Vitória-ES
+
+        // Sinais de qualidade da Phase 7 — são FIT (propriedades do lead), não engajamento.
+        if (lead.WebsiteKind == WebsiteKind.OwnSite) score += 10;                 // EXTR-03: domínio próprio > página de diretório
+        if (lead.Quality == LeadQuality.High) score += 5;                         // sanitização: cadastro completo e limpo
+        if (lead.EmailType == EmailType.PersonalDirect) score += 5;               // contato direto > contato@/rh@
+        if (lead.HasSuspiciousDomain) score -= 15;                                // domínio suspeito derruba o fit inteiro
 
         // ── Engajamento de email (máx 35) ──
         if (engagement != null)
@@ -145,6 +154,16 @@ public class LeadScoringService : IApplicationService
 
         return Math.Clamp(score, 0, 100);
     }
+
+    /// <summary>
+    /// Mapeia score → segmento. Fonte ÚNICA dos limiares: usada pelo RecomputeAllAsync (worker das
+    /// 06h BRT) e pelo CustomerImportService (IMPT-03), garantindo que os dois caminhos nunca
+    /// produzam segmentos diferentes para o mesmo score.
+    /// </summary>
+    public static LeadSegment SegmentForScore(int score) =>
+        score >= HotThreshold ? LeadSegment.Hot
+        : score >= WarmThreshold ? LeadSegment.Warm
+        : LeadSegment.Cold;
 
     /// <summary>
     /// DDD 27/28 (Grande Vitória-ES) no telefone informado, após normalizar (só dígitos,

@@ -32,7 +32,7 @@ created: 2026-09-07
 
 - **After every task commit:** Run the quick command
 - **After every plan wave:** Run the full suite
-- **Before `/gsd:verify-work`:** Full suite green (baseline 839 tests as of PR #104)
+- **Before `/gsd:verify-work`:** Full suite green (baseline **868 tests**, measured 2026-09-07 after PRs #106/#107/#109)
 - **Max feedback latency:** 30 seconds
 
 ---
