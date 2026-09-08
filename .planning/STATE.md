@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: — Pipeline de Aquisição
 status: unknown
 stopped_at: Completed 08-04-PLAN.md
-last_updated: "2026-09-07T22:22:45.174Z"
+last_updated: "2026-09-08T10:06:45.729Z"
 progress:
   total_phases: 2
   completed_phases: 2
