@@ -8,7 +8,19 @@ Sistema de controle pessoal e profissional de Alexandre Queiroz — CRM privado 
 
 Centralizar todas as operações de negócio (leads, finanças, comunicação, IA) em um único sistema pessoal, eliminando ferramentas externas pagas.
 
-## Current Milestone: v1.3 Pipeline de Aquisição
+## Current State
+
+**v1.3 Pipeline de Aquisição — SHIPPED 2026-09-08.** Phases 7 e 8 executadas, verificadas e
+deployadas (PRs #99 e #111). O pipeline extração→CRM→email→WhatsApp agora filtra lead ruim na
+entrada (MX, domínio-lixo, geografia), registra o motivo de cada rejeição por rodada, deduplica por
+`Customer.ExternalId` com fallback e-mail/telefone, e entrega o lead já pontuado e segmentado.
+Suíte de testes: 891.
+
+**Nenhum milestone ativo.** O próximo trabalho planejado é o v1.2 (Agentes de IA), pausado desde
+2026-05-29 na Phase 2 (2/4 planos) — ver nota abaixo. Alternativamente, `/gsd:new-milestone` para
+abrir um escopo novo; os requisitos v2 deferidos estão em `milestones/v1.3-REQUIREMENTS.md`.
+
+### Milestone entregue: v1.3 Pipeline de Aquisição
 
 **Goal:** Fechar os gaps que sobraram do pipeline extração→CRM→email→WhatsApp (já em produção,
 construído em 03-05/09): qualidade de dado na entrada e rastreabilidade end-to-end no import.
@@ -123,6 +135,13 @@ nem correlatos.
 | Agentes = motor de chat único + prompt/tools/escopo por tipo | Reaproveita IAnthropicChatClient/AiChat; evita 3 stacks separadas | — Pending |
 | Ações de escrita dos agentes exigem confirmação do usuário | Segurança: IA não grava dados sem aprovação explícita | — Pending |
 | v1.2 supera v1.1 no GSD | v1.1 nunca executado pelo GSD; código evoluiu via sprints | — Pending |
+| Falha de DNS nunca rejeita lead (só NXDOMAIN e MX+A vazios) | Timeout/SERVFAIL é problema de infraestrutura, não sinal sobre o lead | ✓ Good — v1.3 Phase 7 |
+| Migration única e coordenada entre Phases 7 e 8 | Evita duas idas ao banco de produção; a coluna da Phase 8 viaja junto com a da 7 | ✓ Good — v1.3 |
+| Dedup por `ExternalId` com fallback e-mail→telefone | E-mail sozinho perde o lead que troca de endereço entre passadas do scraper | ✓ Good — v1.3 Phase 8 |
+| Em conflito de identidade, o e-mail vence e o conflito vira log | Regravar `ExternalId` arriscaria fundir dois clientes distintos em silêncio | ✓ Good — v1.3 Phase 8 |
+| Score no import só no ramo CREATE | Repontuar cliente enriquecido passaria `engagement: null` e rebaixaria um Hot 75 para Warm 40 | ✓ Good — v1.3 Phase 8 |
+| Teto do fit em 45, abaixo do `HotThreshold` 60 | Lead bom nasce Warm sem engajamento; Hot continua exigindo engajamento real | ✓ Good — v1.3 Phase 8 |
+| Backfill de `ExternalId` fora de escopo | ~2300 registros antigos não têm como ser casados retroativamente com segurança | — Pending — reavaliar se a dedup por e-mail começar a falhar |
 
 ## Evolution
 
@@ -141,4 +160,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-09-07 — Milestone v1.3 (Pipeline de Aquisição) COMPLETO: Phase 7 (Extração — Qualidade na Entrada) e Phase 8 (Import — Dedup e Score em Tempo Real) executadas e verificadas, EXTR-01..03 e IMPT-01..03 validados. Phase 8 entregou dedup por `ExternalId` com fallback email/telefone, guarda de supressão do e-mail antigo na troca, e scoring no import com o teto de fit em 45 (lead forte nasce Warm; Hot segue inalcançável sem engajamento). Suíte: 891 testes. Código na branch `chore/email-automation-versioned`, ainda NÃO deployado. v1.2 segue pausado em paralelo.*
+*Last updated: 2026-09-08 — v1.3 Pipeline de Aquisição arquivado e deployado. Nenhum milestone ativo; v1.2 (Agentes de IA) segue pausado na Phase 2 (2/4 planos). Débito técnico conhecido: o dry-run de `/customers/import` não replica a guarda in-batch de `ExternalId`, então a prévia diverge do import real nesse caso.*
