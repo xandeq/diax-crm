@@ -247,7 +247,7 @@ dependência de um único notebook.
 
 ### Phases
 
-- [ ] **Phase 9: Backfill de Score do Backlog** — Recalcular LeadScore/Segment do backlog pré-v1.3 com o motor oficial C# (BFIL-01)
+- [x] **Phase 9: Backfill de Score do Backlog** — Recalcular LeadScore/Segment do backlog pré-v1.3 com o motor oficial C# (BFIL-01) (completed 2026-09-19)
 - [ ] **Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook** — Consolidar os 79+ scripts `fire_*.py` num motor único e tirar o pipeline da dependência do notebook (SCRP-01, OBSV-01)
 - [ ] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02)
 - [ ] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04)
@@ -279,10 +279,10 @@ lógica de scoring, só a roda sobre dados antigos)
   4. Uma amostra antes/depois mostra `Segment` coerente com o teto de fit 45 do
      `LeadScoringService` oficial (Phase 8 do v1.3), não o teto 25 do script ad-hoc
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 - [x] 09-01-PLAN.md — Teste travando a exclusão Inactive/Churned no nível da query EF real + script
   `backfill_lead_scores.py` que dispara o motor oficial e captura evidência (Wave 1, BFIL-01)
-- [ ] 09-02-PLAN.md — Disparar o backfill em produção, provar idempotência com duplo disparo e
+- [x] 09-02-PLAN.md — Disparar o backfill em produção, provar idempotência com duplo disparo e
   escrever `BACKFILL-EVIDENCE.md` com números antes/depois (Wave 2, BFIL-01, tem checkpoint)
 
 ---
@@ -416,7 +416,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 9. Backfill de Score do Backlog | 1/2 | In Progress|  |
+| 9. Backfill de Score do Backlog | 2/2 | Complete   | 2026-09-19 |
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 0/? | Not started | — |
 | 11. Qualified Objetivo e Automático | 0/? | Not started | — |
 | 12. Escala de Email | 0/? | Not started | — |
@@ -427,7 +427,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BFIL-01 | Phase 9 | Pending |
+| BFIL-01 | Phase 9 | Complete |
 | SCRP-01 | Phase 10 | Pending |
 | OBSV-01 | Phase 10 | Pending |
 | QUAL-01 | Phase 11 | Pending |

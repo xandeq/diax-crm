@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Produtividade Pessoal
 status: unknown
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-09-19T12:26:51.035Z"
+stopped_at: Completed 09-02-PLAN.md (Phase 9 done)
+last_updated: "2026-09-19T12:53:28.791Z"
 progress:
   total_phases: 1
   completed_phases: 0
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 
 ## Current Position
 
-Phase: 9 (Backfill de Score do Backlog) — EXECUTING
-Plan: 2 of 2
+Phase: 9 (Backfill de Score do Backlog) — COMPLETE (2/2 plans)
+Next: Phase 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — not yet planned
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Plan: 2 of 2
 | Phase 08 P03 | 25min | 3 tasks | 3 files |
 | Phase 08 P04 | 15min | 2 tasks | 2 files |
 | Phase 09 P01 | 12min | 2 tasks | 2 files |
+| Phase 09 P02 | 22min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,8 @@ Plan: 2 of 2
 - v1.4 (roadmap): QUAL-01/02 (Phase 11) depende da Phase 10 — automatizar reply_watch.py com segurança pressupõe pipeline confiável fora do notebook; DASH-01 (Phase 14) depende da Phase 11 — dashboard só é honesto se o sinal Qualified for automático
 - v1.4 (roadmap): EMAL (Phase 12) e WHAT (Phase 13) são trilhas paralelas independentes entre si — podem ser planejadas/executadas em qualquer ordem relativa uma à outra
 - [Phase 09]: D-09-01: efeito colateral de ate 10 follow-up tasks do RecomputeAllAsync eh aceito sem bypass - comportamento de producao ja vigente do LeadScoringWorker; nao reabrir no 09-02
+- [Phase 09]: BFIL-01 satisfied: production backlog LeadScore/Segment recalculated by LeadScoringService.RecomputeAllAsync, proven idempotent across two runs, human-verified 2026-09-19
+- [Phase 09]: 3 of 13 follow-up tasks from the backfill (RecomputeAllAsync side effect) were upstream scraping contamination (international product review, government office, generic email) — marked Done via CRM cleanup, not a code fix; same contamination pattern as 2026-09-17/19 audit, flagged for Phase 10/12 upstream filtering
 
 ### Testing Protocol
 
@@ -175,9 +178,8 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
 
 **v1.4 (atual):**
 
-- Roadmap criado (Phases 9-14: Backfill, Motor de Cadência Único + Pipeline Fora do Notebook,
-  Qualified Objetivo, Escala de Email, Escala de WhatsApp, Dashboard) — próximo passo é
-  `/gsd:plan-phase 9`
+- Phase 9 (Backfill de Score do Backlog) concluída 2026-09-19 — BFIL-01 completo, evidência em
+  `docs/lead-quality/BACKFILL-EVIDENCE.md`. Próximo passo: `/gsd:plan-phase 10`.
 
 **v1.3 (shipped, referência):**
 
@@ -208,8 +210,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T12:26:51.031Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-09-19T12:53:28.778Z
+Stopped at: Completed 09-02-PLAN.md (Phase 9 done)
 mapeados, 0 órfãos). v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
 Próximo passo: `/gsd:plan-phase 9`.
 Resume file: None
