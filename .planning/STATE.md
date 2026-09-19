@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: — Produtividade Pessoal
-status: unknown
+milestone: v1.4
+milestone_name: Funil de Outreach — Cadência e Qualidade
+status: in_progress
 stopped_at: Completed 09-02-PLAN.md (Phase 9 done)
 last_updated: "2026-09-19T13:00:42.709Z"
 progress:
-  total_phases: 1
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 6
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
 ---
 
 # State — DIAX CRM
