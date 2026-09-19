@@ -379,9 +379,11 @@ an outage).
 
 ## Validation Architecture
 
-`docs/email-marketing/` has **zero existing test files** (confirmed: no `test_*.py`/`*_test.py`, no
-`pytest.ini`/`conftest.py` anywhere in the tree). All scripts here are plain Python, run via Windows
-Task Scheduler, outside the `.NET`/xUnit test suite entirely. This mirrors Phase 9's approach
+`docs/email-marketing/` has **zero automated test files**. `test_p1.py` exists but despite its name
+is NOT a unit test — it's a manual live-fire WhatsApp outreach script for P1 leads (hits the real WAHA
+API and the real CRM integration endpoint; `--dry` only skips the actual send). No `pytest.ini`/
+`conftest.py` anywhere in the tree. All scripts here are plain Python, run via Windows Task Scheduler,
+outside the `.NET`/xUnit test suite entirely. This mirrors Phase 9's approach
 (`docs/lead-quality/BACKFILL-EVIDENCE.md` — human-verified operational evidence, not automated tests).
 
 ### Test Framework
@@ -407,6 +409,29 @@ Task Scheduler, outside the `.NET`/xUnit test suite entirely. This mirrors Phase
 - If the plan wants a stronger regression guard for the extraction: a minimal `py_compile`/`ast`-based
   "these N names still exist and are still importable from module X" smoke check would be cheap to add
   and catches the Pitfall 1/2 class of failure mechanically — worth considering but not mandatory.
+
+## Git Tracking State — a correction relevant to the archival mechanics
+
+`git status` on `docs/email-marketing/` reveals most of the tree is **untracked**, not just the ~76
+fire_* scripts. The core production files (`daily_waves.py`, `waves_lib.py`, `fire_today_20.py`,
+`fire_w1_2707.py`, `fire_w2w3_2707.py`, `site_check.py`, `niche_perf.py`, `reply_watch.py`, etc.) are
+tracked (only `reply_watch.py` shows as modified — consistent with STATE.md's known blocker). But
+**all ~40 dead-end `fire_wN_XX.py` scripts are untracked**, along with dozens of `previews/*.json`,
+`result-wave-*.json`, and `LEDGER-*.json` output artifacts, and several other untracked utility scripts
+not mentioned in CONTEXT.md at all (`build_fire_wave.py`, `backfill_brevo_engagement.py`,
+`crm_leads_sync.py`, `fix_email_images.py`, `patch_import.py`, `patch_w1_imobiliaria.py`,
+`sync_leads_to_n8n.py`, `test_p1.py`, plus four more numbered campaign scripts not caught by the
+import-based grep because they have zero `fire_` imports at all: `fire_w2_19.py`, `fire_w2_20.py`,
+`fire_w3_19.py`, `fire_w3_20.py`).
+
+**Implication for the plan:** "archive the fire_*.py scripts" is a plain filesystem `mv` + `git add` in
+the new location for the untracked majority (no history to preserve via `git mv`), not a `git mv`
+operation. The archival criterion should be **filename pattern** (`fire_*.py`, `fire_w*.py`), not git
+tracking status — don't assume untracked==dead or tracked==live; `reply_watch.py` is tracked and very
+much live. The extra untracked utility scripts listed above were not part of CONTEXT.md's discovery and
+should be swept by the same grep-based dependency check (D-03) before the plan finalizes the archive
+list — none of them appeared as import targets in the full-tree grep, but they were not individually
+read in this research pass, so treat their "safe to archive" status as unconfirmed until re-grepped.
 
 ## Sources
 
