@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Funil de Outreach — Cadência e Qualidade
-status: ready_to_plan
-stopped_at: null
-last_updated: "2026-09-19T00:00:00.000Z"
+milestone: v1.1
+milestone_name: — Produtividade Pessoal
+status: unknown
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-09-19T12:26:51.035Z"
 progress:
-  total_phases: 6
+  total_phases: 1
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Milestone v1.4 — Phase 9 (Backfill de Score do Backlog), ready to plan
+**Current focus:** Phase 9 — Backfill de Score do Backlog
 
 ## Current Position
 
-Phase: 9 of 14 (Backfill de Score do Backlog) — first phase of v1.4, numbering continues from v1.3's Phase 8
-Plan: — (roadmap created, no plans yet)
-Status: Ready to plan
-Last activity: 2026-09-19 — ROADMAP.md/REQUIREMENTS.md criados para v1.4 (Phases 9-14, 14/14 requirements mapeados)
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 9 (Backfill de Score do Backlog) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -57,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 08 P02 | 12min | 2 tasks | 2 files |
 | Phase 08 P03 | 25min | 3 tasks | 3 files |
 | Phase 08 P04 | 15min | 2 tasks | 2 files |
+| Phase 09 P01 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,9 +83,11 @@ Progress: [░░░░░░░░░░] 0%
   Ponte manual Python (`docs/email-marketing/import_extrator_bridge.py`) é fallback/paralelo, tem
   filtros próprios (`mx_check.py`, `waves_lib.in_target_geo`) que ainda não foram trazidos pro C#
   — é exatamente o gap do v1.3 (EXTR-01, já resolvido).
+
 - v1.4: `LeadScoringService.CalculateScore`/`SegmentForScore` (C#, teto de fit 45 desde Phase 8) é o
   motor oficial de score — Phase 9 (backfill) roda ele sobre o backlog pré-v1.3, não reescreve a
   lógica.
+
 - v1.4: `docs/email-marketing/` concentra os 79+ scripts `fire_*.py` (alvo de consolidação da Phase
   10) e `reply_watch.py` (alvo de automação da Phase 11) — ambos scripts Python soltos, fora do
   backend .NET.
@@ -108,8 +107,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 02-funda-o-de-agentes]: Payload column is nvarchar(max) via HasColumnType fluent config to support arbitrary JSON tool inputs
 - v1.3: escopo confirmado com o usuário = Extração (A) + Import CRM (B) do backlog original;
   Email (C) e WhatsApp (D) foram pra v2 (adiados, não descartados) — ver REQUIREMENTS.md
+
 - v1.3: dedup por email é a raiz do problema de rastreabilidade (mesmo negócio muda de email
   entre passadas do scraper) — `Customer.ExternalId` resolve na causa, não é cosmético
+
 - [Phase 07]: WebsiteClassifier/JunkDomainFilter são cópias verbatim de site_check.py/mx_check.py (D-08) — sem reinventar as listas
 - [Phase 07]: 07-02: MxResponseInterpreter isolates DNS decision logic (Valid/NoMx/Unverified) as pure function from DnsClient.NET types for offline deterministic testing
 - [Phase 07]: 07-02: D-02 confirmed in code — SERVFAIL(2)/NotImplemented(4)/Refused(5) resolve to Unverified same as ConnectionTimeout, only NXDOMAIN(3) and empty MX+A resolve to NoMx
@@ -135,6 +136,7 @@ Progress: [░░░░░░░░░░] 0%
 - v1.4 (roadmap): SCRP-01 e OBSV-01 agrupados na Phase 10 — consolidar os scripts fire_*.py num motor único e tirar o pipeline da dependência do notebook são as duas metades da mesma fundação de confiabilidade; EMAL-02 (warmup/volume) depende dela
 - v1.4 (roadmap): QUAL-01/02 (Phase 11) depende da Phase 10 — automatizar reply_watch.py com segurança pressupõe pipeline confiável fora do notebook; DASH-01 (Phase 14) depende da Phase 11 — dashboard só é honesto se o sinal Qualified for automático
 - v1.4 (roadmap): EMAL (Phase 12) e WHAT (Phase 13) são trilhas paralelas independentes entre si — podem ser planejadas/executadas em qualquer ordem relativa uma à outra
+- [Phase 09]: D-09-01: efeito colateral de ate 10 follow-up tasks do RecomputeAllAsync eh aceito sem bypass - comportamento de producao ja vigente do LeadScoringWorker; nao reabrir no 09-02
 
 ### Testing Protocol
 
@@ -196,6 +198,7 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   planejar/executar a Phase 11 (Qualified Objetivo e Automático) não deve assumir git status limpo
   nesse arquivo — precisa incorporar a lógica de QUAL-02 preservando esse trabalho em andamento, não
   descartá-lo com um checkout/reset.
+
 - EMAL-02 (Phase 12) depende de a Phase 10 (motor único) estar pronta antes — escalar volume de
   envio sobre os scripts `fire_*.py` antigos, sem motor com warmup real, é o cenário que este
   milestone existe pra evitar.
@@ -205,8 +208,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T00:00:00.000Z
-Stopped at: ROADMAP.md e REQUIREMENTS.md do v1.4 criados (Phases 9-14, 14/14 requirements
+Last session: 2026-09-19T12:26:51.031Z
+Stopped at: Completed 09-01-PLAN.md
 mapeados, 0 órfãos). v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
 Próximo passo: `/gsd:plan-phase 9`.
 Resume file: None

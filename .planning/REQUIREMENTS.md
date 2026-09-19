@@ -59,7 +59,7 @@ Deferido — não bloqueia v1.4.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BFIL-01 | Phase 9 — Backfill de Score do Backlog | Pending |
+| BFIL-01 | Phase 9 — Backfill de Score do Backlog | In Progress (09-01 done: test + trigger script; 09-02 pending: production execution) |
 | SCRP-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
 | OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
 | QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Pending |
