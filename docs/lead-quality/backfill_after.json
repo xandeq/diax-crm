@@ -1,0 +1,354 @@
+{
+  "label": "after",
+  "capturedAt": "2026-09-19T12:30:32.747473+00:00",
+  "funnel": [
+    {
+      "stage": "Lead",
+      "label": "Leads",
+      "count": 4236,
+      "conversionToNext": 0.4152
+    },
+    {
+      "stage": "Contacted",
+      "label": "Contactados",
+      "count": 2972,
+      "conversionToNext": 0.012
+    },
+    {
+      "stage": "Qualified",
+      "label": "Qualificados",
+      "count": 34,
+      "conversionToNext": 0.0556
+    },
+    {
+      "stage": "Negotiating",
+      "label": "Negociando",
+      "count": 0,
+      "conversionToNext": 1
+    },
+    {
+      "stage": "Customer",
+      "label": "Clientes",
+      "count": 2,
+      "conversionToNext": null
+    }
+  ],
+  "hotLeads": 18,
+  "warmLeads": 1118,
+  "coldLeads": 6106,
+  "openLeadsTotal": 7242,
+  "unsegmentedOpenLeads": 0,
+  "segmentTotals": {
+    "Hot": 18,
+    "Warm": 1118,
+    "Cold": 6106
+  },
+  "samples": {
+    "Hot": [
+      {
+        "id": "fefbc0f0-baac-4c91-bd8e-b010c97f381c",
+        "name": "Lojas Renner S",
+        "email": "fernanda.laitano@lojasrenner.com.br",
+        "leadScore": 73,
+        "segment": 2,
+        "status": 2,
+        "source": 4,
+        "createdAt": "2026-09-02T08:24:09.4732895Z"
+      },
+      {
+        "id": "502f063f-29a8-4ef9-be5b-55d1a51d4edf",
+        "name": "Lojadomecanico",
+        "email": "caiocestari@lojadomecanico.com.br",
+        "leadScore": 73,
+        "segment": 2,
+        "status": 2,
+        "source": 4,
+        "createdAt": "2026-09-02T08:24:09.4140417Z"
+      },
+      {
+        "id": "d29e37f4-c81a-4a14-85c2-d616bc19ba1a",
+        "name": "Endereços E Contatos",
+        "email": "p.civ.serra@mpes.mp.br",
+        "leadScore": 90,
+        "segment": 2,
+        "status": 2,
+        "source": 4,
+        "createdAt": "2026-09-01T18:18:44.3162457Z"
+      },
+      {
+        "id": "53eda55d-c701-4205-ac70-b035dd5f6c3a",
+        "name": "【官方评测】YOGA Pro 16 Aura 2026 AI元启版官方评测",
+        "email": "lenovoclub@lenovo.com",
+        "leadScore": 63,
+        "segment": 2,
+        "status": 2,
+        "source": 4,
+        "createdAt": "2026-09-01T18:18:40.2904706Z"
+      },
+      {
+        "id": "1b3c7b92-6ac9-4e42-bcf4-4f5b612efe17",
+        "name": "Consultoria De TI Especializada Em SAP",
+        "email": "hello@evtit.com",
+        "leadScore": 68,
+        "segment": 2,
+        "status": 2,
+        "source": 4,
+        "createdAt": "2026-09-01T18:18:38.3924699Z"
+      },
+      {
+        "id": "8f2cbe28-b6e4-4428-bb7c-e1c9922f723e",
+        "name": "Cury Construtora",
+        "email": "cury@maquinacohnwolfe.com",
+        "leadScore": 73,
+        "segment": 2,
+        "status": 2,
+        "source": 4,
+        "createdAt": "2026-09-01T18:18:35.6902246Z"
+      },
+      {
+        "id": "4c2e2f10-27d2-46a2-9c37-478740061261",
+        "name": "Fatta Arquitetura",
+        "email": "contato@fatta.arq.br",
+        "leadScore": 78,
+        "segment": 2,
+        "status": 2,
+        "source": 1,
+        "createdAt": "2026-08-29T13:36:50.9702692Z"
+      },
+      {
+        "id": "e7acf7a8-a663-46dc-9a53-beb59a964778",
+        "name": "Habras Construtora",
+        "email": "contato@habrasconstrutora.com.br",
+        "leadScore": 68,
+        "segment": 2,
+        "status": 2,
+        "source": 1,
+        "createdAt": "2026-08-29T13:36:43.4777799Z"
+      },
+      {
+        "id": "4aa22094-4a0b-46ae-a72f-69608bc49f9c",
+        "name": "Lojas Dress To",
+        "email": "vilavelha@dressto.com.br",
+        "leadScore": 68,
+        "segment": 2,
+        "status": 2,
+        "source": 4,
+        "createdAt": "2026-08-28T11:45:06.634082Z"
+      },
+      {
+        "id": "27e56003-90d3-48f1-81f4-3d50402381c0",
+        "name": "Loja Do Pedrão",
+        "email": "atendimento@pedraopvc.com.br",
+        "leadScore": 60,
+        "segment": 2,
+        "status": 2,
+        "source": 1,
+        "createdAt": "2026-07-20T14:37:40.0465664Z"
+      }
+    ],
+    "Warm": [
+      {
+        "id": "1dd8f994-139a-4e1a-9e9c-f17f40956c10",
+        "name": "Specs Predator GM7",
+        "email": "storage.supportus@acer.com",
+        "leadScore": 35,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.7311181Z"
+      },
+      {
+        "id": "4c69205c-1f5a-45c1-a240-8ce08737013a",
+        "name": "Waicita",
+        "email": "hola@waicita.com",
+        "leadScore": 35,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.7199072Z"
+      },
+      {
+        "id": "a24726d2-4703-42cf-8c57-513ac8a72b97",
+        "name": "Smartlashes",
+        "email": "smartlashes.br@gmail.com",
+        "leadScore": 35,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.7126474Z"
+      },
+      {
+        "id": "22069673-5eb2-4409-bdc6-21d8d5b57a26",
+        "name": "Instituto Adimax",
+        "email": "contato@institutoadimax.org.br",
+        "leadScore": 30,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.7090563Z"
+      },
+      {
+        "id": "bd0de61c-99dd-44bf-8510-8ff53c91abc5",
+        "name": "Diáã³rio Cidade",
+        "email": "hettore.sias@hotmail.com",
+        "leadScore": 45,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.672876Z"
+      },
+      {
+        "id": "f0e867a1-3040-404d-bf7a-9922a59fb6c6",
+        "name": "APOYO Consultoría",
+        "email": "contacta@apoyoconsultoria.com",
+        "leadScore": 35,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.665867Z"
+      },
+      {
+        "id": "90f2ab17-7f42-4baf-819c-c3674dfbe0c0",
+        "name": "Begroup",
+        "email": "atendimento@behappiergroup.com",
+        "leadScore": 40,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.6625816Z"
+      },
+      {
+        "id": "3766f346-3f2f-4cb6-af02-436f7dec002f",
+        "name": "29 Comunicação",
+        "email": "contato@29comunicacao.com.br",
+        "leadScore": 30,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.6416074Z"
+      },
+      {
+        "id": "9a9087c4-fe24-47fd-a635-f12f220faa81",
+        "name": "WE Tora",
+        "email": "mkt@wepromotora.com.br",
+        "leadScore": 35,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.6381209Z"
+      },
+      {
+        "id": "5390565f-9b0b-461d-9453-ee28d39c416e",
+        "name": "Enel Brasil",
+        "email": "dpoenel.br@enel.com",
+        "leadScore": 35,
+        "segment": 1,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-17T15:44:01.6292575Z"
+      }
+    ],
+    "Cold": [
+      {
+        "id": "0849fa5c-3386-44c2-b08c-14f81703abb1",
+        "name": "Vixtur Agencia De Viagens Ltda Em Vitória, ES",
+        "email": "vixtur@vixtur.com.br",
+        "leadScore": 25,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:49:45.7431985Z"
+      },
+      {
+        "id": "2089df69-aa69-4d92-8526-b627e6b8b978",
+        "name": "Università Campus Bio",
+        "email": "orientamento1@unicampus365.onmicrosoft.com",
+        "leadScore": 25,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:49:29.7730115Z"
+      },
+      {
+        "id": "19e10753-00ea-43e5-a6f7-52893af37338",
+        "name": "Victory Academia",
+        "email": "victory@victoryacademia.com.br",
+        "leadScore": 25,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:49:24.2127558Z"
+      },
+      {
+        "id": "dc204a16-da19-4040-8bfb-f16b29f954ba",
+        "name": "Santo Rosáã³rio",
+        "email": "doi@virgendeguadalupe.com",
+        "leadScore": 15,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:49:17.1729721Z"
+      },
+      {
+        "id": "1c80e06d-3791-4936-aea2-e70f6f3a6ec3",
+        "name": "Santo Rosáã³rio",
+        "email": "doei@virgendeguadalupe.com",
+        "leadScore": 15,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:49:17.1705851Z"
+      },
+      {
+        "id": "5d2829e9-79e0-4bd4-89f7-b2078d3fc2cc",
+        "name": "Hotel Senac Ilha Do Boi",
+        "email": "reservas@hotelilhadoboi.com.br",
+        "leadScore": 25,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:49:17.1657241Z"
+      },
+      {
+        "id": "d31ccf16-c972-42ea-b433-dd71c9c9d060",
+        "name": "Alice Vitória Hotel",
+        "email": "reservas@alicevitoriahotel.com.br",
+        "leadScore": 25,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:49:17.1631864Z"
+      },
+      {
+        "id": "07aaf8c5-16ce-4d04-b39b-1386e76d7b16",
+        "name": "Expresso Predileto Transportes",
+        "email": "comercial@expressopredileto.com.br",
+        "leadScore": 20,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:48:48.6900457Z"
+      },
+      {
+        "id": "109a648f-f271-434d-b72a-8247d0708e59",
+        "name": "Expresso Predileto Transportes",
+        "email": "operacional@expressopredileto.com.br",
+        "leadScore": 25,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:48:48.6816338Z"
+      },
+      {
+        "id": "faa5ac13-1746-4fe5-8085-e299a665c16f",
+        "name": "Academia Evolve",
+        "email": "sac@academiaevolve.com.br",
+        "leadScore": 20,
+        "segment": 0,
+        "status": 0,
+        "source": 4,
+        "createdAt": "2026-09-18T11:48:41.9293329Z"
+      }
+    ]
+  }
+}
