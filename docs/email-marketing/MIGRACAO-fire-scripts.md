@@ -4,6 +4,19 @@ Gerado em: 2026-09-19 (Phase 10, Plano 10-01 — inventário gerado por comando,
 
 ---
 
+## Status: CONCLUÍDO em 2026-09-19
+
+Resumo em 3 linhas:
+1. Os 48 `fire_*.py` foram arquivados em `archive/` (plano 10-04) — 0 na raiz, 48 em `archive/`.
+2. Os 7 dependentes vivos (`debug_campaign.py`, `import_extrator_bridge.py`, `replenish_leads.py`,
+   `rescrape_21.py`, `rescrape_27.py`, `rescrape_tavily_27.py`, `scrape_and_import.py`) foram
+   religados em `waves_core.py` (plano 10-03) — grep de dependência de `fire_*` retorna vazio.
+3. O motor (`daily_waves.py`) foi reverificado DEPOIS do arquivamento: `waves_smoke.py` 5/5,
+   `--dry --force` roda até `FIM` sem traceback, `import_extrator_bridge --dry` sem
+   `ImportError`/`ModuleNotFoundError`.
+
+---
+
 ## 1. Por quê
 
 `SCRP-01` (critério 2 de sucesso da fase 10: "os 79+ scripts têm caminho de migração
@@ -78,6 +91,20 @@ verificados** — a atualização dos imports desses 7 arquivos para o módulo n
 é o plano **10-03**, e só depois vem o arquivamento físico (plano **10-04**). Decisão do usuário
 em CONTEXT.md (D-03): atualizar os imports diretamente, sem shim de compatibilidade.
 
+### Religados — confirmado em 10-04 por `grep -n "waves_core" <arquivo>`
+
+| Arquivo | Linha de import atual |
+|---|---|
+| `debug_campaign.py:31` | `import waves_core as ft` |
+| `import_extrator_bridge.py:23` | `from waves_core import load_env, login, base` |
+| `replenish_leads.py:13` | `from waves_core import load_env, login, base, ts` |
+| `rescrape_21.py:18` | `from waves_core import load_env, login, base, ts` |
+| `rescrape_27.py:17` | `from waves_core import load_env, login, base, ts` |
+| `rescrape_tavily_27.py:11` | `from waves_core import load_env, login, base, ts` |
+| `scrape_and_import.py:16` | `from waves_core import load_env, login, base, ts` |
+
+Os 7/7 apontam para `waves_core` — nenhum resquício de `import fire_today_20`/`fire_w1_2707`.
+
 ---
 
 ## 4. Critério de arquivamento
@@ -86,7 +113,12 @@ O critério é **padrão de nome de arquivo** (`fire_*.py`), **não status no gi
 `fire_*.py` está untracked, mas untracked não significa morto — `reply_watch.py`, por exemplo, é
 tracked e está bem vivo (trabalho em andamento, ver STATE.md/Blockers).
 
-`ls fire_*.py` em `docs/email-marketing/` retorna **48 arquivos** (confirmado agora, 2026-09-19):
+**Arquivados em `archive/` em 2026-09-19** (plano 10-04) — contagem confirmada por
+`ls archive/fire_*.py | wc -l` = **48**. `ls fire_*.py` na raiz de `docs/email-marketing/` hoje
+retorna vazio (nenhum arquivo).
+
+`ls fire_*.py` em `docs/email-marketing/` retornava **48 arquivos** antes do arquivamento
+(confirmado em 2026-09-19, mesma lista movida integralmente para `archive/`):
 
 ```
 fire_lote34.py       fire_w1_2707.py      fire_w3_20.py        fire_w5_25.py        fire_w7_27.py
@@ -149,6 +181,53 @@ contra `waves-baseline.json`, gerado ANTES desta extração começar. `--dry --f
 confirmação funcional completa, incluindo os 12 nichos que só existem hoje via `SEGMENTS`/`WAVES`
 (pitfall 2 do research: extração incompleta não dá `ImportError`, produz `COPY_BANK` menor e
 falha só quando o cursor da rotação chegar no nicho quebrado — dias depois).
+
+---
+
+## 7. Se algo quebrar (rollback)
+
+Se, depois do arquivamento, algum script novo (criado após 2026-09-19, portanto não coberto pelo
+grep de dependência rodado neste plano) falhar com `ImportError`/`ModuleNotFoundError` apontando
+para `fire_today_20`, `fire_w1_2707` ou `fire_w2w3_2707`:
+
+```bash
+mv docs/email-marketing/archive/fire_today_20.py docs/email-marketing/
+mv docs/email-marketing/archive/fire_w1_2707.py docs/email-marketing/
+mv docs/email-marketing/archive/fire_w2w3_2707.py docs/email-marketing/
+```
+
+restaura o(s) módulo(s) antigo(s) no lugar de origem, imediatamente destravando o script que
+quebrou.
+
+**Causa provável:** um script escrito depois de 2026-09-19 que importou diretamente de
+`fire_today_20`/`fire_w1_2707`/`fire_w2w3_2707` em vez de `waves_core`/`waves_copy` — o grep de
+dependência deste plano só cobre o estado da árvore em 2026-09-19, não arquivos futuros.
+
+**Correção certa:** depois do `mv` de emergência acima, editar o import do script quebrado para
+apontar para `waves_core`/`waves_copy` (o mesmo padrão usado nos 7 dependentes religados no
+10-03) e mover o arquivo-fonte de volta para `archive/`. Nunca deixar o arquivo-fonte
+permanentemente na raiz — isso reintroduz o script sprawl que esta fase eliminou.
+
+---
+
+## 8. Evidência final — motor roda pós-refactor completo
+
+Última execução (2026-09-19, depois do arquivamento dos 48 e do rewire dos 7 dependentes):
+
+```
+python waves_smoke.py
+== 5/5 OK ==
+
+python daily_waves.py --dry --force
+...
+[2026-09-19 19:58:36] DRY: plano = [('marketing', 4), ('consultoria', 4)]
+...
+[2026-09-19 19:58:44] ===== FIM =====
+```
+
+Sem traceback, sem `ImportError`/`ModuleNotFoundError`. `import_extrator_bridge.py --dry` também
+reverificado pós-arquivamento: `bridge ok https://api.alexandrequeiroz.com.br` (sem erro de
+import; a ponte extrator→CRM em si depende de SSH até a VPS, fora do escopo deste teste offline).
 
 ---
 
