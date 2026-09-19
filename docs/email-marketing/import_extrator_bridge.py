@@ -20,7 +20,7 @@ sys.path.insert(0, r'D:\claude-code\diax-crm\docs\email-marketing')
 sys.path.insert(0, r'C:\Users\acq20\.claude\skills\financas\scripts')
 import re
 import requests
-from fire_today_20 import load_env, login, base
+from waves_core import load_env, login, base
 import db as crmdb   # dedup real contra o CRM (o endpoint /customers/import NAO dedupa p/ source=4)
 from waves_lib import in_target_geo
 
