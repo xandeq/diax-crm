@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-09-19T22:17:05.425Z"
+stopped_at: Completed 10-03-PLAN.md
+last_updated: "2026-09-19T22:26:53.418Z"
 progress:
   total_phases: 11
   completed_phases: 1
   total_plans: 11
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — EXECUTING
-Plan: 10-01/10-02/10-05 completed (10-05 executado fora de ordem — OBSV-01 fechado); 10-03/10-04 (SCRP-01) ainda pendentes — próximo passo é 10-03
+Plan: 10-01/10-02/10-03/10-05 completed (10-05 executado fora de ordem — OBSV-01 fechado); 10-04 (SCRP-01, arquivamento) ainda pendente — próximo passo é 10-04
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Plan: 10-01/10-02/10-05 completed (10-05 executado fora de ordem — OBSV-01 fec
 | Phase 10 P01 | 20min | 2 tasks | 3 files |
 | Phase 10 P05 | 45min | 3 tasks | 4 files |
 | Phase 10 P02 | 35min | 3 tasks | 3 files |
+| Phase 10 P03 | 20min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,7 @@ Plan: 10-01/10-02/10-05 completed (10-05 executado fora de ordem — OBSV-01 fec
 - [Phase 10]: [Phase 10] 10-01: waves_smoke.py excludes fire_-prefixed import targets by prefix (not by name), so it never dynamically imports debug_campaign.py's side-effecting dependency and needs no update when the 45 dead-end fire_*.py scripts are archived in 10-04
 - [Phase 10]: [Phase 10] 10-05: waha-watchdog/watchdog-n8n.ps1 estendidos additions-only com alerta Telegram por transicao de estado (alerta_telegram.py, stdlib-only); task waha-watchdog registrada (5min, lacuna encontrada ao vivo); n8n local caido/task n8n-local Disabled fica pendencia explicita fora de escopo (D-04/D-05)
 - [Phase 10]: [Phase 10] 10-02: waves_core.py e waves_copy.py criados por copia verbatim (nao movimentacao) de fire_today_20/fire_w1_2707/fire_w2w3_2707; daily_waves.py religado nos modulos novos com prova de equivalencia total (md5 dos 3 fontes inalterado, 7/7 inspect.getsource identico, hash do template igual ao baseline, smoke 5/5 apos cada task, dry-run --force com rede real sem erro)
+- [Phase 10]: 10-03: 7 dependentes vivos de fire_today_20.py (import_extrator_bridge.py, replenish_leads.py, rescrape_21/27/tavily_27.py, scrape_and_import.py, debug_campaign.py) religados em waves_core.py; grep from fire_|import fire_ zerado, D-03 do 10-04 satisfeito; debug_campaign.py alterado sem jamais ser importado/executado (py_compile + AST estatico)
 
 ### Testing Protocol
 
@@ -187,11 +189,14 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
 - Phase 9 (Backfill de Score do Backlog) concluída 2026-09-19 — BFIL-01 completo, evidência em
   `docs/lead-quality/BACKFILL-EVIDENCE.md`.
 
-- Phase 10: 10-01, 10-02 e 10-05 concluídos (10-05 executado fora de ordem por decisão do usuário —
-  fecha OBSV-01 completo; 10-02 extraiu fire_today_20/fire_w1_2707/fire_w2w3_2707 para
-  waves_core.py/waves_copy.py e religou daily_waves.py neles, com equivalência total provada).
-  Faltam 10-03/10-04 (SCRP-01, religar os 7 dependentes vivos e arquivar os fire_*.py). Próximo
-  passo: `/gsd:execute-phase 10` (retoma em 10-03).
+- Phase 10: 10-01, 10-02, 10-03 e 10-05 concluídos (10-05 executado fora de ordem por decisão do
+  usuário — fecha OBSV-01 completo; 10-02 extraiu fire_today_20/fire_w1_2707/fire_w2w3_2707 para
+  waves_core.py/waves_copy.py e religou daily_waves.py neles; 10-03 religou os 7 dependentes vivos
+  restantes — import_extrator_bridge.py, replenish_leads.py, rescrape_21/27/tavily_27.py,
+  scrape_and_import.py, debug_campaign.py — em waves_core.py, com grep de dependência viva zerado).
+  Falta só 10-04 (SCRP-01, arquivar fire_today_20.py/fire_w1_2707.py/fire_w2w3_2707.py + os ~40
+  scripts fire_wN_XX.py mortos em archive/). Próximo passo: `/gsd:execute-phase 10` (retoma em
+  10-04).
 
 **v1.3 (shipped, referência):**
 
@@ -222,13 +227,20 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T22:17:05.420Z
-Stopped at: Completed 10-02-PLAN.md
-Phase 10 plan 02 (SCRP-01) concluído — fire_today_20/fire_w1_2707/fire_w2w3_2707 extraídos
-verbatim para waves_core.py/waves_copy.py, daily_waves.py religado nos módulos novos, equivalência
-total provada (md5 dos 3 fontes inalterado, 7/7 inspect.getsource idênticos, hash do template
-igual ao baseline, waves_smoke.py 5/5 OK, dry-run --force com rede real sem erro). Os 3 arquivos
-fonte seguem intocados no disco (arquivamento é 10-04, após 10-03 religar os 7 dependentes vivos).
-v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
-`/gsd:execute-phase 10` (retoma em 10-03).
+Last session: 2026-09-19T22:26:53.413Z
+Stopped at: Completed 10-03-PLAN.md
+Phase 10 plan 03 (SCRP-01) concluído — os 7 dependentes vivos de fire_today_20.py
+(import_extrator_bridge.py, replenish_leads.py, rescrape_21.py, rescrape_27.py,
+rescrape_tavily_27.py, scrape_and_import.py, debug_campaign.py) religados em waves_core.py, cada
+um verificado individualmente (bindings de módulo, py_compile, ou AST estático para
+debug_campaign.py, que nunca foi importado/executado). Grep de fechamento
+(`from fire_|import fire_`, excluindo os próprios fire_*.py) retorna vazio — pré-requisito D-03 do
+10-04 satisfeito. import_extrator_bridge.py (ponte extrator→CRM, maior risco) teve dry-run
+antes/depois capturado, com equivalência confirmada apesar do SSH para a VPS ter falhado por
+timeout de rede nas duas execuções (ambiente sem rota até 185.173.110.180 neste momento — recomenda-se
+reverificar quando houver conectividade). waves_smoke.py 5/5 OK e daily_waves.py --dry --force até
+FIM sem traceback após os 7 rewires. Os 3 arquivos fonte (fire_today_20/fire_w1_2707/fire_w2w3_2707)
+seguem intocados no disco — arquivamento é 10-04, agora liberado. v1.2 segue pausado em paralelo
+(ver "v1.2 — Pausado" acima), sem alteração. Próximo passo: `/gsd:execute-phase 10` (retoma em
+10-04).
 Resume file: None

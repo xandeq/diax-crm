@@ -60,7 +60,7 @@ Deferido — não bloqueia v1.4.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | BFIL-01 | Phase 9 — Backfill de Score do Backlog | Complete (09-01: test + trigger script; 09-02: production execution proven idempotent, human-verified 2026-09-19, evidence in docs/lead-quality/BACKFILL-EVIDENCE.md) |
-| SCRP-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
+| SCRP-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending (10-01/02/03 done — só falta 10-04 arquivar fire_*.py) |
 | OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Complete (10-05: alerta Telegram por transição de estado em `waha-watchdog.py`/`watchdog-n8n.ps1`, task `waha-watchdog` registrada, prova real via n8n local caído, human-verified 2026-09-19, runbook em docs/email-marketing/OBSERVABILIDADE-watchdogs.md) |
 | QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Pending |
 | QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Pending |
