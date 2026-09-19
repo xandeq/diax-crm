@@ -279,7 +279,11 @@ lógica de scoring, só a roda sobre dados antigos)
   4. Uma amostra antes/depois mostra `Segment` coerente com o teto de fit 45 do
      `LeadScoringService` oficial (Phase 8 do v1.3), não o teto 25 do script ad-hoc
 
-**Plans:** TBD
+**Plans:** 2 plans (2 waves)
+- [ ] 09-01-PLAN.md — Teste travando a exclusão Inactive/Churned no nível da query EF real + script
+  `backfill_lead_scores.py` que dispara o motor oficial e captura evidência (Wave 1, BFIL-01)
+- [ ] 09-02-PLAN.md — Disparar o backfill em produção, provar idempotência com duplo disparo e
+  escrever `BACKFILL-EVIDENCE.md` com números antes/depois (Wave 2, BFIL-01, tem checkpoint)
 
 ---
 
@@ -412,7 +416,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 9. Backfill de Score do Backlog | 0/? | Not started | — |
+| 9. Backfill de Score do Backlog | 0/2 | Planned | — |
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 0/? | Not started | — |
 | 11. Qualified Objetivo e Automático | 0/? | Not started | — |
 | 12. Escala de Email | 0/? | Not started | — |
