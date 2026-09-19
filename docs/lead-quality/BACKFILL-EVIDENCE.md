@@ -45,3 +45,29 @@ A maioria do backlog aberto está em Cold (6106 de 7242 = 84,3%), com apenas 111
 ## Efeito colateral aceito (D-09-01)
 
 O 1º disparo criou 10 tasks de follow-up (`followUpTasksCreated=10`, batendo exatamente no teto `MaxFollowUpsPerRun`); o 2º disparo (prova de idempotência) criou mais 3 (`followUpTasksCreated=3`) — total de 13 tasks de follow-up geradas pela execução completa deste plano, para leads Hot do backlog que ainda não tinham uma task de follow-up pendente (não é um "score mudou" — os scores já estavam estáveis nos dois disparos; a criação de follow-up é uma varredura independente do guard de persistência de score). Isso é aceito por D-09-01 (registrada no plano 09-01): é o comportamento de produção já vigente do `LeadScoringWorker` diário, e nenhum bypass (`followUpOwnerUserId: null`) foi construído para suprimi-lo. O usuário deve revisar a amostra dessas tasks no checkpoint deste plano antes de decidir se o comportamento permanece como está ou se D-09-01 é revisitada.
+
+## Revisão do usuário no checkpoint (09-19)
+
+Usuário revisou os números desta evidência (confirmados corretos, idempotentes, `unsegmentedOpenLeads`
+permaneceu 0) e a amostra das 13 tasks de follow-up. Aprovado, com uma correção pontual: 3 das 13 tasks
+eram contaminação de scraping, não leads de negócio reais, e foram marcadas concluídas via
+`mcp__diax-crm__complete_task` (ação de limpeza de task list no CRM, fora do escopo de arquivo/código
+deste plano — nada para commitar por essa ação em si):
+
+- `【官方评测】YOGA Pro 16 Aura 2026 AI元启版官方评测` (lenovoclub@lenovo.com) — página de review de
+  produto chinês raspada como se fosse nome de empresa
+- `Endereços E Contatos` (p.civ.serra@mpes.mp.br) — Ministério Público do Espírito Santo, órgão público,
+  não é lead comercial
+- `Informatica` (pr@informatica.com) — nome/email genérico, provável ruído
+
+As outras 10 tasks de follow-up foram confirmadas como leads de negócio reais e legítimos (Lojas Renner,
+Fatta Arquitetura, Cury Construtora, Habras Construtora, Lojas Dress To, entre outras) e permaneceram
+como estão.
+
+**Leitura para fases futuras:** esta contaminação (scraping internacional/institucional infiltrado no
+backlog) é o mesmo padrão observado na auditoria de 2026-09-17/19 (`fetch_and_classify_leads.py` +
+`lead_quality_filter.py`) — não é algo que a BFIL-01 poderia corrigir, porque é upstream do
+`LeadScoringService`: o motor de score roda corretamente sobre o dado que recebe, mas o dado de entrada
+já veio contaminado da extração/import. Um filtro melhor na origem (geo/idioma/tipo de organização) é
+candidato de melhoria para a Phase 10 (consolidação de scripts) ou Phase 12 (escala de email), não para
+esta fase.

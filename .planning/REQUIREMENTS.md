@@ -9,7 +9,7 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 
 ### Backfill
 
-- [ ] **BFIL-01**: Backlog pré-v1.3 (~5.266 leads que nunca passaram pelo `LeadScoringService`) tem `LeadScore`/`Segment` recalculados usando o motor oficial (C#), não o script Python ad-hoc criado em sessão de auditoria manual (2026-09-17/19)
+- [x] **BFIL-01**: Backlog pré-v1.3 (~5.266 leads que nunca passaram pelo `LeadScoringService`) tem `LeadScore`/`Segment` recalculados usando o motor oficial (C#), não o script Python ad-hoc criado em sessão de auditoria manual (2026-09-17/19)
 
 ### Email
 
@@ -59,7 +59,7 @@ Deferido — não bloqueia v1.4.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BFIL-01 | Phase 9 — Backfill de Score do Backlog | In Progress (09-01 done: test + trigger script; 09-02 pending: production execution) |
+| BFIL-01 | Phase 9 — Backfill de Score do Backlog | Complete (09-01: test + trigger script; 09-02: production execution proven idempotent, human-verified 2026-09-19, evidence in docs/lead-quality/BACKFILL-EVIDENCE.md) |
 | SCRP-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
 | OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
 | QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Pending |
