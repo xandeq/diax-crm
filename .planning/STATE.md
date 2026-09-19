@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-09-19T22:26:53.418Z"
+stopped_at: Completed 10-04-PLAN.md
+last_updated: "2026-09-19T23:04:40.268Z"
 progress:
   total_phases: 11
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # State — DIAX CRM
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 
 ## Current Position
 
-Phase: 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — EXECUTING
-Plan: 10-01/10-02/10-03/10-05 completed (10-05 executado fora de ordem — OBSV-01 fechado); 10-04 (SCRP-01, arquivamento) ainda pendente — próximo passo é 10-04
+Phase: 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — COMPLETE (5/5 planos)
+Plan: 10-01/10-02/10-03/10-04/10-05 todos concluídos (10-05 executado fora de ordem — OBSV-01 fechado; 10-04 fechou SCRP-01, último requirement pendente da fase). Próximo passo: Phase 11 (Qualified Objetivo e Automático) — `/gsd:plan-phase 11`
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Plan: 10-01/10-02/10-03/10-05 completed (10-05 executado fora de ordem — OBSV-
 | Phase 10 P05 | 45min | 3 tasks | 4 files |
 | Phase 10 P02 | 35min | 3 tasks | 3 files |
 | Phase 10 P03 | 20min | 3 tasks | 8 files |
+| Phase 10 P04 | 25min | 2 tasks | 52 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,7 @@ Plan: 10-01/10-02/10-03/10-05 completed (10-05 executado fora de ordem — OBSV-
 - [Phase 10]: [Phase 10] 10-05: waha-watchdog/watchdog-n8n.ps1 estendidos additions-only com alerta Telegram por transicao de estado (alerta_telegram.py, stdlib-only); task waha-watchdog registrada (5min, lacuna encontrada ao vivo); n8n local caido/task n8n-local Disabled fica pendencia explicita fora de escopo (D-04/D-05)
 - [Phase 10]: [Phase 10] 10-02: waves_core.py e waves_copy.py criados por copia verbatim (nao movimentacao) de fire_today_20/fire_w1_2707/fire_w2w3_2707; daily_waves.py religado nos modulos novos com prova de equivalencia total (md5 dos 3 fontes inalterado, 7/7 inspect.getsource identico, hash do template igual ao baseline, smoke 5/5 apos cada task, dry-run --force com rede real sem erro)
 - [Phase 10]: 10-03: 7 dependentes vivos de fire_today_20.py (import_extrator_bridge.py, replenish_leads.py, rescrape_21/27/tavily_27.py, scrape_and_import.py, debug_campaign.py) religados em waves_core.py; grep from fire_|import fire_ zerado, D-03 do 10-04 satisfeito; debug_campaign.py alterado sem jamais ser importado/executado (py_compile + AST estatico)
+- [Phase 10]: 10-04: 6 de 48 fire_*.py sao tracked no git (nao 3 como estimado) - mv de sistema de arquivos + git add escopado detecta rename automatico para tracked, evitando git mv forcado
 
 ### Testing Protocol
 
@@ -189,14 +191,15 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
 - Phase 9 (Backfill de Score do Backlog) concluída 2026-09-19 — BFIL-01 completo, evidência em
   `docs/lead-quality/BACKFILL-EVIDENCE.md`.
 
-- Phase 10: 10-01, 10-02, 10-03 e 10-05 concluídos (10-05 executado fora de ordem por decisão do
-  usuário — fecha OBSV-01 completo; 10-02 extraiu fire_today_20/fire_w1_2707/fire_w2w3_2707 para
+- Phase 10 CONCLUÍDA (5/5 planos, 2026-09-19) — 10-05 executado fora de ordem por decisão do
+  usuário, fecha OBSV-01 completo; 10-02 extraiu fire_today_20/fire_w1_2707/fire_w2w3_2707 para
   waves_core.py/waves_copy.py e religou daily_waves.py neles; 10-03 religou os 7 dependentes vivos
   restantes — import_extrator_bridge.py, replenish_leads.py, rescrape_21/27/tavily_27.py,
-  scrape_and_import.py, debug_campaign.py — em waves_core.py, com grep de dependência viva zerado).
-  Falta só 10-04 (SCRP-01, arquivar fire_today_20.py/fire_w1_2707.py/fire_w2w3_2707.py + os ~40
-  scripts fire_wN_XX.py mortos em archive/). Próximo passo: `/gsd:execute-phase 10` (retoma em
-  10-04).
+  scrape_and_import.py, debug_campaign.py — em waves_core.py, com grep de dependência viva zerado;
+  10-04 arquivou os 48 fire_*.py em docs/email-marketing/archive/ (com README de aviso), fechou
+  MIGRACAO-fire-scripts.md e marcou SCRP-01 completo — último requirement pendente da fase.
+  Motor reverificado pós-arquivamento: waves_smoke.py 5/5, daily_waves.py --dry --force até FIM
+  sem traceback. Próximo passo: `/gsd:plan-phase 11` (Qualified Objetivo e Automático).
 
 **v1.3 (shipped, referência):**
 
@@ -227,20 +230,21 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T22:26:53.413Z
-Stopped at: Completed 10-03-PLAN.md
-Phase 10 plan 03 (SCRP-01) concluído — os 7 dependentes vivos de fire_today_20.py
-(import_extrator_bridge.py, replenish_leads.py, rescrape_21.py, rescrape_27.py,
-rescrape_tavily_27.py, scrape_and_import.py, debug_campaign.py) religados em waves_core.py, cada
-um verificado individualmente (bindings de módulo, py_compile, ou AST estático para
-debug_campaign.py, que nunca foi importado/executado). Grep de fechamento
-(`from fire_|import fire_`, excluindo os próprios fire_*.py) retorna vazio — pré-requisito D-03 do
-10-04 satisfeito. import_extrator_bridge.py (ponte extrator→CRM, maior risco) teve dry-run
-antes/depois capturado, com equivalência confirmada apesar do SSH para a VPS ter falhado por
-timeout de rede nas duas execuções (ambiente sem rota até 185.173.110.180 neste momento — recomenda-se
-reverificar quando houver conectividade). waves_smoke.py 5/5 OK e daily_waves.py --dry --force até
-FIM sem traceback após os 7 rewires. Os 3 arquivos fonte (fire_today_20/fire_w1_2707/fire_w2w3_2707)
-seguem intocados no disco — arquivamento é 10-04, agora liberado. v1.2 segue pausado em paralelo
-(ver "v1.2 — Pausado" acima), sem alteração. Próximo passo: `/gsd:execute-phase 10` (retoma em
-10-04).
+Last session: 2026-09-19T23:04:40.263Z
+Stopped at: Completed 10-04-PLAN.md
+Phase 10 plan 04 (SCRP-01) concluído — o checkpoint humano do 10-04 foi aprovado ("Aprovado, move
+os 48 (Recomendado)") em sessão anterior, com as 4 pré-condições reconferidas ao vivo (grep de
+dependência de fire_* vazio, waves_smoke.py 5/5, import_extrator_bridge.py --dry com erro de SSH
+esperado — não ImportError —, contagem de 48 fire_*.py confirmada). Nesta sessão: os 48 fire_*.py
+foram movidos para docs/email-marketing/archive/ (6 tracked via rename detectado pelo git — mais
+do que os 3 estimados no checkpoint —, 42 untracked como novos), archive/README.md criado com
+aviso de conteúdo histórico não-executável, motor reverificado DEPOIS do arquivamento
+(waves_smoke.py 5/5, import_extrator_bridge/replenish_leads importam OK, py_compile
+debug_campaign.py OK, daily_waves.py --dry --force até FIM sem traceback), md5 dos 3 arquivos
+fonte (fire_today_20/fire_w1_2707/fire_w2w3_2707) idêntico antes/depois do move,
+MIGRACAO-fire-scripts.md fechado como registro do que foi feito (status CONCLUÍDO, 7 imports
+atuais colados, rollback documentado), e SCRP-01 marcado Complete em REQUIREMENTS.md — último
+requirement pendente da Phase 10. **Phase 10 está 100% concluída (5/5 planos, SCRP-01 e OBSV-01
+ambos fechados).** v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
+Próximo passo: `/gsd:plan-phase 11` (Qualified Objetivo e Automático).
 Resume file: None
