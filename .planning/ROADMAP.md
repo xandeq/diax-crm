@@ -6,6 +6,7 @@
 - ⚠️ **v1.1 Produtividade Pessoal** — Superado (planejado 2026-04-03, nunca executado pelo GSD; código evoluiu via sprints)
 - ⏸️ **v1.2 Agentes de IA** — Pausado em paralelo desde 2026-05-29 (Phase 02, 2/4 plans); Phases 3-6 definidas, não iniciadas. Não abandonado — retomar com `/gsd:execute-phase 2`.
 - ✅ **v1.3 Pipeline de Aquisição** — Phases 7-8 (shipped 2026-09-08) — [arquivo](milestones/v1.3-ROADMAP.md)
+- 🟢 **v1.4 Funil de Outreach — Cadência e Qualidade** — Phases 9-14 (roadmap ativo, ver seção abaixo)
 
 ---
 
@@ -66,7 +67,7 @@ Detalhes preservados abaixo para referência histórica.
 com `/gsd:execute-phase 2` quando decidido. Motivo: sessão concorrente no mesmo repo. Commits locais
 em `main`, **não pushados**; migration `20260529134701_AddAgentFoundation` já aplicada em produção —
 coordenar ordem antes de gerar novas migrations. Detalhe completo em `STATE.md` seção "v1.2 —
-Pausado". v1.3 não toca nos arquivos de `src/Diax.Domain/Agents/*` nem correlatos enquanto v1.2
+Pausado". v1.3/v1.4 não tocam nos arquivos de `src/Diax.Domain/Agents/*` nem correlatos enquanto v1.2
 estiver pausado.
 
 **Milestone Goal:** Transformar o CRM de repositório de dados em parceiro de execução por IA — três agentes (Comercial, Suporte, Pessoal) que conversam usando os dados reais do CRM e executam ações sob confirmação, reaproveitando a infra de IA existente sem quebrar nada.
@@ -226,5 +227,221 @@ estiver pausado.
 **Total mapped: 24/24**
 
 *v1.2 roadmap last updated: 2026-05-28 — Agentes de IA (5 phases, 24 requirements). Phase 2 planned: 4 plans, 3 waves. Paused 2026-05-29 (see STATE.md "v1.2 — Pausado").*
+
+---
+
+## v1.4 — Funil de Outreach — Cadência e Qualidade
+
+**Status:** 🟢 Roadmap ativo (criado 2026-09-19). Numeração de fases continua de onde v1.3 parou
+(Phase 8) — v1.4 começa em **Phase 9**. Roda em paralelo ao v1.2 pausado, sem tocar nos arquivos de
+`src/Diax.Domain/Agents/*` nem correlatos.
+
+**Milestone Goal:** Profissionalizar o funil de outreach de ponta a ponta — limpar/pontuar o
+backlog que antecede o v1.3, dar cadência real ao follow-up (email+WhatsApp), tornar "Qualified" um
+critério objetivo e automático, consolidar o script sprawl de disparo, e tirar o pipeline da
+dependência de um único notebook.
+
+**Fora do v1.4:** EXTR-04 (Google Places API) — fica no backlog de v2.
+
+**Coverage:** 14/14 requirements mapped
+
+### Phases
+
+- [ ] **Phase 9: Backfill de Score do Backlog** — Recalcular LeadScore/Segment do backlog pré-v1.3 com o motor oficial C# (BFIL-01)
+- [ ] **Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook** — Consolidar os 79+ scripts `fire_*.py` num motor único e tirar o pipeline da dependência do notebook (SCRP-01, OBSV-01)
+- [ ] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02)
+- [ ] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04)
+- [ ] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04)
+- [ ] **Phase 14: Dashboard de Conversão do Funil** — Conversão percentual por etapa do funil (DASH-01)
+
+### Phase Details
+
+### Phase 9: Backfill de Score do Backlog
+
+**Goal:** O backlog de ~5.266 leads pré-v1.3 (que nunca passaram pelo `LeadScoringService`) tem
+`LeadScore`/`Segment` recalculados pelo motor oficial em C#, substituindo o fit score improvisado em
+Python (`outreach_priority_valid_leads.csv`) usado na auditoria manual.
+
+**Depends on:** Nothing (fase independente, usa `LeadScoringService` já existente — não muda a
+lógica de scoring, só a roda sobre dados antigos)
+
+**Requirements:** BFIL-01
+
+**Success Criteria** (what must be TRUE):
+  1. Rodando o backfill sobre o backlog pré-v1.3, todo `Customer` relevante tem `LeadScore`/`Segment`
+     gravado por `LeadScoringService.CalculateScore`/`SegmentForScore` — não pelo script Python de
+     auditoria manual
+  2. A classificação junk/suspect/valid já feita na sessão de auditoria (2026-09-17/19) é
+     reaproveitada como sinal de entrada — leads já marcados `Inactive` (`mark_junk_inactive.py`,
+     1.065 registros) não são repontuados como Hot/Warm
+  3. O backfill é seguro de re-rodar — executar duas vezes não duplica nem corrompe o score de um
+     lead já processado
+  4. Uma amostra antes/depois mostra `Segment` coerente com o teto de fit 45 do
+     `LeadScoringService` oficial (Phase 8 do v1.3), não o teto 25 do script ad-hoc
+
+**Plans:** TBD
+
+---
+
+### Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook
+
+**Goal:** O disparo de outreach roda por um motor único parametrizado — não mais 79+ scripts
+`fire_*.py` soltos — e o pipeline completo (waves, vigia de respostas, n8n, WAHA) deixa de depender
+só do notebook do usuário via Task Scheduler, o ponto único de falha atual.
+
+**Depends on:** Nothing (pode rodar em paralelo à Phase 9; é pré-requisito de fato para a Phase 12,
+já que escalar volume de email com segurança exige um motor real, não scripts copiados)
+
+**Requirements:** SCRP-01, OBSV-01
+
+**Success Criteria** (what must be TRUE):
+  1. Um único script/motor parametrizado (nicho, wave, data como argumentos) dispara uma campanha de
+     outreach — nenhuma campanha nova exige copiar um `fire_*.py` novo
+  2. Os 79+ scripts `fire_*.py` em `docs/email-marketing/` têm caminho de migração documentado
+     (arquivados ou redirecionados ao motor único)
+  3. Pelo menos uma etapa crítica do pipeline (waves, vigia de respostas, n8n ou WAHA) roda sem
+     exigir que o notebook do usuário esteja ligado
+  4. Uma falha ou desligamento do notebook não interrompe o pipeline em silêncio — existe log/alerta
+     visível de que uma etapa parou
+
+**Plans:** TBD
+
+---
+
+### Phase 11: Qualified Objetivo e Automático
+
+**Goal:** A transição Contacted→Qualified deixa de ser implícita/manual — vira um critério explícito
+e documentado, aplicado automaticamente pelo `reply_watch.py`.
+
+**Depends on:** Phase 10 (pipeline confiável e motor único tornam a automação de QUAL-02 segura de
+rodar fora do notebook)
+
+**Nota de planejamento:** `docs/email-marketing/reply_watch.py` está com mudanças não commitadas
+(trabalho em andamento não relacionado a este milestone) no momento em que este roadmap foi criado.
+O plano desta fase deve partir do estado atual do arquivo e incorporar a lógica de QUAL-02 sem
+descartar esse trabalho em andamento — nunca assumir que o arquivo está limpo.
+
+**Requirements:** QUAL-01, QUAL-02
+
+**Success Criteria** (what must be TRUE):
+  1. Existe critério explícito e documentado (ex.: resposta de email/WhatsApp que não seja bounce
+     nem opt-out automático) definindo quando um Contacted vira Qualified
+  2. `reply_watch.py`, preservando o trabalho em andamento não relacionado já presente no arquivo,
+     passa a aplicar esse critério
+  3. Um lead Contacted que responde conforme o critério tem o status avançado para Qualified no CRM
+     automaticamente, sem edição manual
+  4. Um lead que não atinge o critério (resposta automática, bounce, opt-out) permanece em Contacted
+     — o critério não gera falso positivo
+
+**Plans:** TBD
+
+---
+
+### Phase 12: Escala de Email
+
+**Goal:** O canal de email escala volume com segurança de reputação (DMARC 100%, 300/dia com
+warmup) e passa a medir o que já testa hoje sem leitura (A/B de subject, leads webmail).
+
+**Depends on:** Phase 10 (motor único necessário para escalar volume com segurança — script ad-hoc
+não tem warmup/controle de taxa confiável)
+
+**Requirements:** EMAL-01, EMAL-02, EMAL-03, EMAL-04
+
+**Success Criteria** (what must be TRUE):
+  1. Política DMARC do domínio está em `pct=100` (verificável via consulta DNS TXT `_dmarc`)
+  2. Volume diário de envio sobe de 87 para 300/dia seguindo uma curva de warmup gradual documentada
+     — não um salto direto
+  3. O resultado do teste A/B de subject (variant A vs B) é medido (taxa de abertura/resposta por
+     variante) e aparece em relatório consultável — hoje só alterna, ninguém lê
+  4. Os 560 leads "webmail" (gmail/hotmail comercial) são disparados com cap de volume próprio e tag
+     distinta dos demais, permitindo medir a taxa de resposta separadamente
+
+**Plans:** TBD
+
+---
+
+### Phase 13: Escala de WhatsApp
+
+**Goal:** O canal de WhatsApp tem o handoff n8n→WAHA confirmado em execução, desvia lead de
+prospecção do bot pra humano, reporta métricas semanais, e escala da base validada (`wa_es`) para a
+maior (`wa_br`).
+
+**Depends on:** Nothing além da infra já existente (trilha independente da Phase 12, pode rodar em
+paralelo)
+
+**Requirements:** WHAT-01, WHAT-02, WHAT-03, WHAT-04
+
+**Success Criteria** (what must be TRUE):
+  1. O workflow `n8n-wa-outreach-1a1.json` está confirmado em execução real na sessão que opera o
+     WAHA local — não só criado, rodando de fato
+  2. Quando um lead de prospecção manda mensagem, o bot inbound de IA (`8nKTlX4Y7Hy1EUEn`) desvia a
+     conversa pra atendimento humano em vez de responder automaticamente
+  3. Um relatório semanal do canal WhatsApp mostra enviados/respondidos/opt-out, consultável sem
+     rodar script manual
+  4. Após validar a taxa de resposta em `wa_es` (480 leads) contra um critério objetivo documentado,
+     o disparo escala para `wa_br` (1138 leads)
+
+**Plans:** TBD
+
+---
+
+### Phase 14: Dashboard de Conversão do Funil
+
+**Goal:** O usuário enxerga, num dashboard, a conversão percentual por etapa do funil
+(Lead→Contacted→Qualified→Customer) — não só volume bruto.
+
+**Depends on:** Phase 11 (o sinal de Qualified precisa ser automático e confiável antes de virar
+métrica de dashboard — reportar um critério manual/inconsistente produziria número enganoso)
+
+**Requirements:** DASH-01
+
+**Success Criteria** (what must be TRUE):
+  1. Dashboard exibe contagem e percentual de conversão em cada etapa: Lead→Contacted,
+     Contacted→Qualified, Qualified→Customer
+  2. Os números refletem o `Status` real do `Customer`, usando o critério automático QUAL-01/QUAL-02
+     — não uma contagem manual paralela
+  3. Usuário pode filtrar o funil por período (ex.: última semana, último mês)
+  4. Um gargalo numa etapa específica (ex.: Contacted→Qualified baixo) é identificável visualmente,
+     sem precisar exportar dados pra planilha
+
+**Plans:** TBD
+
+---
+
+### Progress (v1.4)
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 9. Backfill de Score do Backlog | 0/? | Not started | — |
+| 10. Motor de Cadência Único + Pipeline Fora do Notebook | 0/? | Not started | — |
+| 11. Qualified Objetivo e Automático | 0/? | Not started | — |
+| 12. Escala de Email | 0/? | Not started | — |
+| 13. Escala de WhatsApp | 0/? | Not started | — |
+| 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
+
+### Coverage Map (v1.4)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| BFIL-01 | Phase 9 | Pending |
+| SCRP-01 | Phase 10 | Pending |
+| OBSV-01 | Phase 10 | Pending |
+| QUAL-01 | Phase 11 | Pending |
+| QUAL-02 | Phase 11 | Pending |
+| EMAL-01 | Phase 12 | Pending |
+| EMAL-02 | Phase 12 | Pending |
+| EMAL-03 | Phase 12 | Pending |
+| EMAL-04 | Phase 12 | Pending |
+| WHAT-01 | Phase 13 | Pending |
+| WHAT-02 | Phase 13 | Pending |
+| WHAT-03 | Phase 13 | Pending |
+| WHAT-04 | Phase 13 | Pending |
+| DASH-01 | Phase 14 | Pending |
+
+**Total mapped: 14/14**
+
+*v1.4 roadmap created: 2026-09-19 — Funil de Outreach — Cadência e Qualidade (6 phases, 14
+requirements). Numeração de fases continua de v1.3 (Phase 8) → v1.4 começa em Phase 9. Nenhum plano
+criado ainda — próximo passo: `/gsd:plan-phase 9`.*
 
 ---

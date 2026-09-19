@@ -57,8 +57,25 @@ Deferido — não bloqueia v1.4.
 
 ## Traceability
 
-Preenchido pelo roadmapper.
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| BFIL-01 | Phase 9 — Backfill de Score do Backlog | Pending |
+| SCRP-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
+| OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
+| QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Pending |
+| QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Pending |
+| EMAL-01 | Phase 12 — Escala de Email | Pending |
+| EMAL-02 | Phase 12 — Escala de Email | Pending |
+| EMAL-03 | Phase 12 — Escala de Email | Pending |
+| EMAL-04 | Phase 12 — Escala de Email | Pending |
+| WHAT-01 | Phase 13 — Escala de WhatsApp | Pending |
+| WHAT-02 | Phase 13 — Escala de WhatsApp | Pending |
+| WHAT-03 | Phase 13 — Escala de WhatsApp | Pending |
+| WHAT-04 | Phase 13 — Escala de WhatsApp | Pending |
+| DASH-01 | Phase 14 — Dashboard de Conversão do Funil | Pending |
+
+**Total mapped: 14/14 — 100% coverage, no orphans.**
 
 ---
 *Requirements defined: 2026-09-19*
-*Last updated: 2026-09-19 after initial definition*
+*Last updated: 2026-09-19 — roadmap criado (Phases 9-14), traceability preenchida pelo roadmapper.*

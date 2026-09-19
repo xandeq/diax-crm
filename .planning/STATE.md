@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
-status: defining_requirements
+status: ready_to_plan
 stopped_at: null
 last_updated: "2026-09-19T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Milestone v1.4 — definindo requisitos/roadmap
+**Current focus:** Milestone v1.4 — Phase 9 (Backfill de Score do Backlog), ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-19 — Milestone v1.4 started
+Phase: 9 of 14 (Backfill de Score do Backlog) — first phase of v1.4, numbering continues from v1.3's Phase 8
+Plan: — (roadmap created, no plans yet)
+Status: Ready to plan
+Last activity: 2026-09-19 — ROADMAP.md/REQUIREMENTS.md criados para v1.4 (Phases 9-14, 14/14 requirements mapeados)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -83,7 +85,13 @@ Last activity: 2026-09-19 — Milestone v1.4 started
   (`IsOutsideTargetGeo`, `ExtractorPullOptions.AllowedStates/AllowedDdds`) → `CustomerImportService`.
   Ponte manual Python (`docs/email-marketing/import_extrator_bridge.py`) é fallback/paralelo, tem
   filtros próprios (`mx_check.py`, `waves_lib.in_target_geo`) que ainda não foram trazidos pro C#
-  — é exatamente o gap do v1.3 (EXTR-01).
+  — é exatamente o gap do v1.3 (EXTR-01, já resolvido).
+- v1.4: `LeadScoringService.CalculateScore`/`SegmentForScore` (C#, teto de fit 45 desde Phase 8) é o
+  motor oficial de score — Phase 9 (backfill) roda ele sobre o backlog pré-v1.3, não reescreve a
+  lógica.
+- v1.4: `docs/email-marketing/` concentra os 79+ scripts `fire_*.py` (alvo de consolidação da Phase
+  10) e `reply_watch.py` (alvo de automação da Phase 11) — ambos scripts Python soltos, fora do
+  backend .NET.
 
 ### Decisions
 
@@ -100,10 +108,8 @@ Last activity: 2026-09-19 — Milestone v1.4 started
 - [Phase 02-funda-o-de-agentes]: Payload column is nvarchar(max) via HasColumnType fluent config to support arbitrary JSON tool inputs
 - v1.3: escopo confirmado com o usuário = Extração (A) + Import CRM (B) do backlog original;
   Email (C) e WhatsApp (D) foram pra v2 (adiados, não descartados) — ver REQUIREMENTS.md
-
 - v1.3: dedup por email é a raiz do problema de rastreabilidade (mesmo negócio muda de email
   entre passadas do scraper) — `Customer.ExternalId` resolve na causa, não é cosmético
-
 - [Phase 07]: WebsiteClassifier/JunkDomainFilter são cópias verbatim de site_check.py/mx_check.py (D-08) — sem reinventar as listas
 - [Phase 07]: 07-02: MxResponseInterpreter isolates DNS decision logic (Valid/NoMx/Unverified) as pure function from DnsClient.NET types for offline deterministic testing
 - [Phase 07]: 07-02: D-02 confirmed in code — SERVFAIL(2)/NotImplemented(4)/Refused(5) resolve to Unverified same as ConnectionTimeout, only NXDOMAIN(3) and empty MX+A resolve to NoMx
@@ -124,6 +130,11 @@ Last activity: 2026-09-19 — Milestone v1.4 started
 - [Phase 08]: [Phase 08] 08-03: resolucao ExternalId->email->telefone implementada no loop de persistencia; D-02 fecha gap orfao checando o email ANTIGO na supressao (nao so o novo); D-03 email vence conflito com log ExternalIdConflict; D-04 backfill organico sem migration/script em massa
 - [Phase 08]: 08-04: score/segmento calculados no ramo CREATE do import chamando LeadScoringService.CalculateScore/SegmentForScore estaticamente, sem injetar o servico no construtor de CustomerImportService
 - [Phase 08]: 08-04: ramo ENRICH permanece intencionalmente sem recalculo de score, protegido por comentario de guarda no codigo, para nao apagar engajamento acumulado de leads existentes
+- v1.4 (roadmap): numeração de fases continua de v1.3 (Phase 8) — v1.4 começa em Phase 9, não reseta
+- v1.4 (roadmap): Phase 9 (backfill) é independente e vem primeiro — baixo risco, não depende de nada, usa motor já existente
+- v1.4 (roadmap): SCRP-01 e OBSV-01 agrupados na Phase 10 — consolidar os scripts fire_*.py num motor único e tirar o pipeline da dependência do notebook são as duas metades da mesma fundação de confiabilidade; EMAL-02 (warmup/volume) depende dela
+- v1.4 (roadmap): QUAL-01/02 (Phase 11) depende da Phase 10 — automatizar reply_watch.py com segurança pressupõe pipeline confiável fora do notebook; DASH-01 (Phase 14) depende da Phase 11 — dashboard só é honesto se o sinal Qualified for automático
+- v1.4 (roadmap): EMAL (Phase 12) e WHAT (Phase 13) são trilhas paralelas independentes entre si — podem ser planejadas/executadas em qualquer ordem relativa uma à outra
 
 ### Testing Protocol
 
@@ -136,7 +147,7 @@ Last activity: 2026-09-19 — Milestone v1.4 started
 ### v1.2 — Pausado (contexto preservado, não é o milestone atual)
 
 ⚠️ **Este bloco descreve o estado do v1.2 (Agentes de IA) no momento em que v1.3 começou.
-Não resolvido, não abandonado — só não é o foco agora.**
+Não resolvido, não abandonado — só não é o foco agora. v1.4 também não mexe nesses arquivos.**
 
 - Pausa: 2026-05-29, após Phase 2 Wave 1 (2 de 4 plans). Motivo: outra sessão do Claude Code CLI
   mexendo no mesmo repo — pausado para evitar cross-data/conflito.
@@ -153,16 +164,22 @@ Não resolvido, não abandonado — só não é o foco agora.**
   `DependencyInjection.cs`, `tests/Diax.Tests/Application/Agents/*`.
 
 - **Nada foi pushado** — todos os commits da Phase 2 são locais em `main` (auto-deploy só dispara
-  no push). Confirmar isso continua verdadeiro antes de qualquer push de v1.3 pra `main`.
+  no push). Confirmar isso continua verdadeiro antes de qualquer push de v1.4 pra `main`.
 
 - Retomar com: `/gsd:execute-phase 2` (pula 02-01/02-02 já com SUMMARY, segue da Wave 2:
   02-03 orquestrador, 02-04 controller).
 
 ### Pending Todos
 
-**v1.3 (atual):**
+**v1.4 (atual):**
 
-- Roadmap criado (Phase 7: Extração — Qualidade na Entrada; Phase 8: Import — Dedup e Score em Tempo Real) — próximo passo é `/gsd:plan-phase 7`
+- Roadmap criado (Phases 9-14: Backfill, Motor de Cadência Único + Pipeline Fora do Notebook,
+  Qualified Objetivo, Escala de Email, Escala de WhatsApp, Dashboard) — próximo passo é
+  `/gsd:plan-phase 9`
+
+**v1.3 (shipped, referência):**
+
+- Nenhum pendente — Phases 7 e 8 concluídas, deployadas e verificadas em produção (PRs #99, #111)
 
 **v1.2 (pausado, preservado):**
 
@@ -172,16 +189,24 @@ Não resolvido, não abandonado — só não é o foco agora.**
 
 ### Blockers/Concerns
 
-Nenhum blocker ativo para v1.3 no momento do início.
+**v1.4:**
+
+- `docs/email-marketing/reply_watch.py` está com mudanças não commitadas (trabalho em andamento
+  não relacionado a este milestone) no momento em que o roadmap da Phase 11 foi criado. Quem
+  planejar/executar a Phase 11 (Qualified Objetivo e Automático) não deve assumir git status limpo
+  nesse arquivo — precisa incorporar a lógica de QUAL-02 preservando esse trabalho em andamento, não
+  descartá-lo com um checkout/reset.
+- EMAL-02 (Phase 12) depende de a Phase 10 (motor único) estar pronta antes — escalar volume de
+  envio sobre os scripts `fire_*.py` antigos, sem motor com warmup real, é o cenário que este
+  milestone existe pra evitar.
 
 Ver "v1.2 — Pausado" acima para o blocker preservado daquele milestone (sessão concorrente,
 migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-07T22:17:53.974Z
-Stopped at: Completed 08-04-PLAN.md
-Phase 8 (Import — Dedup e Score em Tempo Real, IMPT-01..03), 6/6 requirements mapeados. v1.2
-segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
-`/gsd:plan-phase 7`.
+Last session: 2026-09-19T00:00:00.000Z
+Stopped at: ROADMAP.md e REQUIREMENTS.md do v1.4 criados (Phases 9-14, 14/14 requirements
+mapeados, 0 órfãos). v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
+Próximo passo: `/gsd:plan-phase 9`.
 Resume file: None
