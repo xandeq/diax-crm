@@ -10,7 +10,7 @@ Chamado automaticamente pelo daily_waves quando o estoque de sexta < 120.
 import os, sys, re, json, time, datetime, requests
 
 sys.path.insert(0, 'D:/claude-code/diax-crm/docs/email-marketing/')
-from fire_today_20 import load_env, login, base, ts
+from waves_core import load_env, login, base, ts
 
 EMAIL_RE = re.compile(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}')
 WEBMAIL = {'gmail.com','hotmail.com','yahoo.com','yahoo.com.br','outlook.com','live.com',
