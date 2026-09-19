@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-09-19T21:46:19.917Z"
+stopped_at: Completed 10-05-PLAN.md
+last_updated: "2026-09-19T22:06:52.322Z"
 progress:
   total_phases: 11
   completed_phases: 1
   total_plans: 11
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — EXECUTING
-Plan: 2 of 5
+Plan: 10-05 completed out of order (checkpoint-resolved, OBSV-01 done); 10-02/10-03/10-04 (SCRP-01) still pending — next up is 10-02
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Plan: 2 of 5
 | Phase 09 P01 | 12min | 2 tasks | 2 files |
 | Phase 09 P02 | 22min | 3 tasks | 5 files |
 | Phase 10 P01 | 20min | 2 tasks | 3 files |
+| Phase 10 P05 | 45min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,7 @@ Plan: 2 of 5
 - [Phase 09]: BFIL-01 satisfied: production backlog LeadScore/Segment recalculated by LeadScoringService.RecomputeAllAsync, proven idempotent across two runs, human-verified 2026-09-19
 - [Phase 09]: 3 of 13 follow-up tasks from the backfill (RecomputeAllAsync side effect) were upstream scraping contamination (international product review, government office, generic email) — marked Done via CRM cleanup, not a code fix; same contamination pattern as 2026-09-17/19 audit, flagged for Phase 10/12 upstream filtering
 - [Phase 10]: [Phase 10] 10-01: waves_smoke.py excludes fire_-prefixed import targets by prefix (not by name), so it never dynamically imports debug_campaign.py's side-effecting dependency and needs no update when the 45 dead-end fire_*.py scripts are archived in 10-04
+- [Phase 10]: [Phase 10] 10-05: waha-watchdog/watchdog-n8n.ps1 estendidos additions-only com alerta Telegram por transicao de estado (alerta_telegram.py, stdlib-only); task waha-watchdog registrada (5min, lacuna encontrada ao vivo); n8n local caido/task n8n-local Disabled fica pendencia explicita fora de escopo (D-04/D-05)
 
 ### Testing Protocol
 
@@ -181,7 +183,10 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
 **v1.4 (atual):**
 
 - Phase 9 (Backfill de Score do Backlog) concluída 2026-09-19 — BFIL-01 completo, evidência em
-  `docs/lead-quality/BACKFILL-EVIDENCE.md`. Próximo passo: `/gsd:plan-phase 10`.
+  `docs/lead-quality/BACKFILL-EVIDENCE.md`.
+- Phase 10: 10-01 e 10-05 concluídos (10-05 executado fora de ordem por decisão do usuário — fecha
+  OBSV-01 completo). Faltam 10-02/10-03/10-04 (SCRP-01, motor único `fire_*.py`). Próximo passo:
+  `/gsd:execute-phase 10` (retoma em 10-02).
 
 **v1.3 (shipped, referência):**
 
@@ -212,8 +217,9 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T21:44:17.814Z
-Stopped at: Completed 10-01-PLAN.md
-mapeados, 0 órfãos). v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
-Próximo passo: `/gsd:plan-phase 9`.
+Last session: 2026-09-19T22:06:52.317Z
+Stopped at: Completed 10-05-PLAN.md
+Phase 10 plan 05 (OBSV-01) concluído — alerta Telegram nos watchdogs WAHA/n8n, task waha-watchdog
+registrada, runbook escrito, checkpoint aprovado pelo usuário. v1.2 segue pausado em paralelo (ver
+"v1.2 — Pausado" acima), sem alteração. Próximo passo: `/gsd:execute-phase 10` (retoma em 10-02).
 Resume file: None

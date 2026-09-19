@@ -36,7 +36,7 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 
 ### Observabilidade
 
-- [ ] **OBSV-01**: Pipeline de outreach (waves, vigia de respostas, n8n, WAHA) deixa de depender só do notebook do usuário via Task Scheduler — ponto único de falha
+- [x] **OBSV-01**: Pipeline de outreach (waves, vigia de respostas, n8n, WAHA) deixa de depender só do notebook do usuário via Task Scheduler — ponto único de falha
 - [ ] **DASH-01**: Dashboard de conversão por etapa do funil (Lead→Contacted→Qualified→Customer, com percentuais, não só volume bruto)
 
 ## v2 Requirements
@@ -61,7 +61,7 @@ Deferido — não bloqueia v1.4.
 |-------------|-------|--------|
 | BFIL-01 | Phase 9 — Backfill de Score do Backlog | Complete (09-01: test + trigger script; 09-02: production execution proven idempotent, human-verified 2026-09-19, evidence in docs/lead-quality/BACKFILL-EVIDENCE.md) |
 | SCRP-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
-| OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Pending |
+| OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Complete (10-05: alerta Telegram por transição de estado em `waha-watchdog.py`/`watchdog-n8n.ps1`, task `waha-watchdog` registrada, prova real via n8n local caído, human-verified 2026-09-19, runbook em docs/email-marketing/OBSERVABILIDADE-watchdogs.md) |
 | QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Pending |
 | QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Pending |
 | EMAL-01 | Phase 12 — Escala de Email | Pending |
