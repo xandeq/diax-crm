@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 10-05-PLAN.md
-last_updated: "2026-09-19T22:06:52.322Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-09-19T22:17:05.425Z"
 progress:
   total_phases: 11
   completed_phases: 1
   total_plans: 11
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — EXECUTING
-Plan: 10-05 completed out of order (checkpoint-resolved, OBSV-01 done); 10-02/10-03/10-04 (SCRP-01) still pending — next up is 10-02
+Plan: 10-01/10-02/10-05 completed (10-05 executado fora de ordem — OBSV-01 fechado); 10-03/10-04 (SCRP-01) ainda pendentes — próximo passo é 10-03
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Plan: 10-05 completed out of order (checkpoint-resolved, OBSV-01 done); 10-02/10
 | Phase 09 P02 | 22min | 3 tasks | 5 files |
 | Phase 10 P01 | 20min | 2 tasks | 3 files |
 | Phase 10 P05 | 45min | 3 tasks | 4 files |
+| Phase 10 P02 | 35min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,7 @@ Plan: 10-05 completed out of order (checkpoint-resolved, OBSV-01 done); 10-02/10
 - [Phase 09]: 3 of 13 follow-up tasks from the backfill (RecomputeAllAsync side effect) were upstream scraping contamination (international product review, government office, generic email) — marked Done via CRM cleanup, not a code fix; same contamination pattern as 2026-09-17/19 audit, flagged for Phase 10/12 upstream filtering
 - [Phase 10]: [Phase 10] 10-01: waves_smoke.py excludes fire_-prefixed import targets by prefix (not by name), so it never dynamically imports debug_campaign.py's side-effecting dependency and needs no update when the 45 dead-end fire_*.py scripts are archived in 10-04
 - [Phase 10]: [Phase 10] 10-05: waha-watchdog/watchdog-n8n.ps1 estendidos additions-only com alerta Telegram por transicao de estado (alerta_telegram.py, stdlib-only); task waha-watchdog registrada (5min, lacuna encontrada ao vivo); n8n local caido/task n8n-local Disabled fica pendencia explicita fora de escopo (D-04/D-05)
+- [Phase 10]: [Phase 10] 10-02: waves_core.py e waves_copy.py criados por copia verbatim (nao movimentacao) de fire_today_20/fire_w1_2707/fire_w2w3_2707; daily_waves.py religado nos modulos novos com prova de equivalencia total (md5 dos 3 fontes inalterado, 7/7 inspect.getsource identico, hash do template igual ao baseline, smoke 5/5 apos cada task, dry-run --force com rede real sem erro)
 
 ### Testing Protocol
 
@@ -184,9 +186,12 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
 
 - Phase 9 (Backfill de Score do Backlog) concluída 2026-09-19 — BFIL-01 completo, evidência em
   `docs/lead-quality/BACKFILL-EVIDENCE.md`.
-- Phase 10: 10-01 e 10-05 concluídos (10-05 executado fora de ordem por decisão do usuário — fecha
-  OBSV-01 completo). Faltam 10-02/10-03/10-04 (SCRP-01, motor único `fire_*.py`). Próximo passo:
-  `/gsd:execute-phase 10` (retoma em 10-02).
+
+- Phase 10: 10-01, 10-02 e 10-05 concluídos (10-05 executado fora de ordem por decisão do usuário —
+  fecha OBSV-01 completo; 10-02 extraiu fire_today_20/fire_w1_2707/fire_w2w3_2707 para
+  waves_core.py/waves_copy.py e religou daily_waves.py neles, com equivalência total provada).
+  Faltam 10-03/10-04 (SCRP-01, religar os 7 dependentes vivos e arquivar os fire_*.py). Próximo
+  passo: `/gsd:execute-phase 10` (retoma em 10-03).
 
 **v1.3 (shipped, referência):**
 
@@ -217,9 +222,13 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T22:06:52.317Z
-Stopped at: Completed 10-05-PLAN.md
-Phase 10 plan 05 (OBSV-01) concluído — alerta Telegram nos watchdogs WAHA/n8n, task waha-watchdog
-registrada, runbook escrito, checkpoint aprovado pelo usuário. v1.2 segue pausado em paralelo (ver
-"v1.2 — Pausado" acima), sem alteração. Próximo passo: `/gsd:execute-phase 10` (retoma em 10-02).
+Last session: 2026-09-19T22:17:05.420Z
+Stopped at: Completed 10-02-PLAN.md
+Phase 10 plan 02 (SCRP-01) concluído — fire_today_20/fire_w1_2707/fire_w2w3_2707 extraídos
+verbatim para waves_core.py/waves_copy.py, daily_waves.py religado nos módulos novos, equivalência
+total provada (md5 dos 3 fontes inalterado, 7/7 inspect.getsource idênticos, hash do template
+igual ao baseline, waves_smoke.py 5/5 OK, dry-run --force com rede real sem erro). Os 3 arquivos
+fonte seguem intocados no disco (arquivamento é 10-04, após 10-03 religar os 7 dependentes vivos).
+v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração. Próximo passo:
+`/gsd:execute-phase 10` (retoma em 10-03).
 Resume file: None
