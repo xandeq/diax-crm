@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: — Pipeline de Aquisição
-status: unknown
-stopped_at: Completed 08-04-PLAN.md
-last_updated: "2026-09-08T10:06:45.729Z"
+milestone: v1.4
+milestone_name: Funil de Outreach — Cadência e Qualidade
+status: defining_requirements
+stopped_at: null
+last_updated: "2026-09-19T00:00:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 11
-  completed_plans: 11
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # State — DIAX CRM
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-05)
+See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 08 — import-—-dedup-e-score-em-tempo-real
+**Current focus:** Milestone v1.4 — definindo requisitos/roadmap
 
 ## Current Position
 
-Phase: 08
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-09-19 — Milestone v1.4 started
 
 ## Performance Metrics
 

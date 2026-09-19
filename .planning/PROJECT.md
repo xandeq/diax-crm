@@ -16,9 +16,38 @@ entrada (MX, domínio-lixo, geografia), registra o motivo de cada rejeição por
 `Customer.ExternalId` com fallback e-mail/telefone, e entrega o lead já pontuado e segmentado.
 Suíte de testes: 891.
 
-**Nenhum milestone ativo.** O próximo trabalho planejado é o v1.2 (Agentes de IA), pausado desde
-2026-05-29 na Phase 2 (2/4 planos) — ver nota abaixo. Alternativamente, `/gsd:new-milestone` para
-abrir um escopo novo; os requisitos v2 deferidos estão em `milestones/v1.3-REQUIREMENTS.md`.
+## Current Milestone: v1.4 Funil de Outreach — Cadência e Qualidade
+
+**Goal:** Profissionalizar o funil de outreach de ponta a ponta — limpar/pontuar o backlog que
+antecede o v1.3, dar cadência real ao follow-up (email+WhatsApp), tornar "Qualified" um critério
+objetivo e automático, consolidar o script sprawl de disparo, e tirar o pipeline da dependência de
+um único notebook.
+
+**Contexto de origem:** sessão de 2026-09-17/19 auditou o backlog de 5.266 leads pré-v1.3 (nunca
+tinham passado pelo `LeadScoringService`/filtro MX novos) e achou ~20% de lixo confirmado (contaminação
+internacional de busca BR, telefone-fantasma capturando range de ano do rodapé, multiplicação
+1-lead-por-email-na-página). 1.065 já marcados `Inactive` via script ad-hoc
+(`diax-crm/scripts/mark_junk_inactive.py`) e 1.728 válidos priorizados por fit score
+(`outreach_priority_valid_leads.csv`) — **esse fit score é um script Python improvisado, não o
+`LeadScoringService` oficial** — o backfill formal deste milestone substitui isso.
+
+**Target features:**
+- Backfill: recalcular `LeadScore`/`Segment` do backlog pré-v1.3 usando `LeadScoringService` real (não o script python), reaproveitando a classificação junk/suspect/valid já feita como sinal de entrada
+- EMAL-01..04: DMARC pct=25→100, volume 87→300/dia com warmup, medição real do A/B de subject, leads "webmail" (560) testados com cap+tag própria
+- WHAT-01..04: handoff n8n→WAHA confirmado, bot IA desvia pra humano em vez de responder, relatório semanal do canal, escalar wa_es→wa_br
+- Qualified objetivo: critério explícito de avanço Contacted→Qualified + automação via `reply_watch.py`
+- Consolidar os 79+ scripts `fire_*.py` (`docs/email-marketing/`) num motor único parametrizado
+- OBSV-01: pipeline (waves, vigia de respostas, n8n, WAHA) para de depender só do notebook via Task Scheduler
+- Dashboard de conversão por etapa do funil (Lead→Contacted→Qualified→Customer, com %)
+
+**Fora do v1.4:** EXTR-04 (Google Places API) — exploratório, fica no backlog de v2.
+
+**Nota — v1.2 (Agentes de IA) segue PAUSADO em paralelo**, não abandonado: Phase 02 parou após
+Wave 1 (2026-05-29) por sessão concorrente no mesmo repo; commits locais em `main`, **não
+pushados**; migration `20260529134701_AddAgentFoundation` já aplicada em produção — cuidado com
+ordem de migrations se retomado. Detalhe completo preservado em `STATE.md`. Retomar com
+`/gsd:execute-phase 2` quando decidido — v1.4 não toca nos arquivos de `src/Diax.Domain/Agents/*`
+nem correlatos.
 
 ### Milestone entregue: v1.3 Pipeline de Aquisição
 
@@ -77,9 +106,22 @@ nem correlatos.
 
 ### Active
 
-<!-- Milestone v1.3 — Pipeline de Aquisição · COMPLETO (Phases 7 e 8) -->
+<!-- Milestone v1.4 — Funil de Outreach — Cadência e Qualidade -->
 
-<!-- Nenhum requisito de v1.3 em aberto. -->
+- [ ] BFIL-01: Backlog pré-v1.3 recalculado via `LeadScoringService` real (LeadScore/Segment), não script ad-hoc
+- [ ] EMAL-01: DMARC sobe de pct=25 para pct=100
+- [ ] EMAL-02: Volume de envio escala de 87 para 300/dia com warmup gradual
+- [ ] EMAL-03: A/B de subject tem resultado medido e reportado
+- [ ] EMAL-04: Leads "webmail" (560) testados com cap pequeno + tag própria
+- [ ] WHAT-01: Handoff n8n→WAHA (`n8n-wa-outreach-1a1.json`) confirmado em execução
+- [ ] WHAT-02: Bot inbound de IA desvia lead de prospecção pra humano em vez de responder
+- [ ] WHAT-03: Relatório semanal de métricas do canal WhatsApp
+- [ ] WHAT-04: Escalar de `wa_es` (480) para `wa_br` (1138) após validar taxa de resposta
+- [ ] QUAL-01: Critério objetivo de avanço Contacted→Qualified definido e documentado
+- [ ] QUAL-02: `reply_watch.py` avança status automaticamente quando critério é atingido
+- [ ] SCRP-01: Motor único parametrizado substitui os 79+ scripts `fire_*.py`
+- [ ] OBSV-01: Pipeline (waves, vigia, n8n, WAHA) não depende só do notebook do usuário
+- [ ] DASH-01: Dashboard de conversão por etapa do funil (%, não só volume bruto)
 
 <!-- Milestone v1.2 — Agentes de IA (PAUSADO em paralelo, ver nota em Current Milestone acima) -->
 
