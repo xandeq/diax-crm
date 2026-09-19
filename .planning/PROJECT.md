@@ -28,8 +28,16 @@ tinham passado pelo `LeadScoringService`/filtro MX novos) e achou ~20% de lixo c
 internacional de busca BR, telefone-fantasma capturando range de ano do rodapé, multiplicação
 1-lead-por-email-na-página). 1.065 já marcados `Inactive` via script ad-hoc
 (`diax-crm/scripts/mark_junk_inactive.py`) e 1.728 válidos priorizados por fit score
-(`outreach_priority_valid_leads.csv`) — **esse fit score é um script Python improvisado, não o
-`LeadScoringService` oficial** — o backfill formal deste milestone substitui isso.
+(`outreach_priority_valid_leads.csv`) — esse fit score era um script Python improvisado, substituído
+pelo backfill oficial da Phase 9.
+
+**Phase 9 concluída (2026-09-19):** backlog de 7.242 leads abertos recalculado via
+`LeadScoringService.RecomputeAllAsync` oficial — 18 Hot, 1.118 Warm, 6.106 Cold, `unsegmentedOpenLeads=0`,
+idempotência provada (2 disparos idênticos). Achado durante o checkpoint: 3 das 13 tarefas de
+follow-up geradas eram contaminação (página de review chinesa, contato do Ministério Público-ES,
+email genérico) — mesmo padrão de ruído da auditoria de 17/09, mas em leads *novos* (pós-limpeza).
+Confirma que o `LeadScoringService` oficial não filtra esse tipo de ruído — é upstream, fica
+sinalizado para as Phases 10/12. Evidência completa: `docs/lead-quality/BACKFILL-EVIDENCE.md`.
 
 **Target features:**
 - Backfill: recalcular `LeadScore`/`Segment` do backlog pré-v1.3 usando `LeadScoringService` real (não o script python), reaproveitando a classificação junk/suspect/valid já feita como sinal de entrada
@@ -108,7 +116,7 @@ nem correlatos.
 
 <!-- Milestone v1.4 — Funil de Outreach — Cadência e Qualidade -->
 
-- [ ] BFIL-01: Backlog pré-v1.3 recalculado via `LeadScoringService` real (LeadScore/Segment), não script ad-hoc
+- [x] BFIL-01: Backlog pré-v1.3 recalculado via `LeadScoringService` real (LeadScore/Segment), não script ad-hoc — Phase 9, 2026-09-19
 - [ ] EMAL-01: DMARC sobe de pct=25 para pct=100
 - [ ] EMAL-02: Volume de envio escala de 87 para 300/dia com warmup gradual
 - [ ] EMAL-03: A/B de subject tem resultado medido e reportado
