@@ -438,7 +438,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 9. Backfill de Score do Backlog | 2/2 | Complete    | 2026-09-19 |
-| 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete   | 2026-09-19 |
+| 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 0/? | Not started | — |
 | 12. Escala de Email | 0/? | Not started | — |
 | 13. Escala de WhatsApp | 0/? | Not started | — |
