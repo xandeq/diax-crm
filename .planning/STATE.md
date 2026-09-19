@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 09-02-PLAN.md (Phase 9 done)
-last_updated: "2026-09-19T13:00:42.709Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-09-19T21:46:19.917Z"
 progress:
-  total_phases: 6
+  total_phases: 11
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 11
+  completed_plans: 5
 ---
 
 # State — DIAX CRM
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 9 — Backfill de Score do Backlog
+**Current focus:** Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook
 
 ## Current Position
 
-Phase: 9
-Next: Phase 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — not yet planned
+Phase: 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — EXECUTING
+Plan: 2 of 5
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Next: Phase 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — not y
 | Phase 08 P04 | 15min | 2 tasks | 2 files |
 | Phase 09 P01 | 12min | 2 tasks | 2 files |
 | Phase 09 P02 | 22min | 3 tasks | 5 files |
+| Phase 10 P01 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,7 @@ Next: Phase 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — not y
 - [Phase 09]: D-09-01: efeito colateral de ate 10 follow-up tasks do RecomputeAllAsync eh aceito sem bypass - comportamento de producao ja vigente do LeadScoringWorker; nao reabrir no 09-02
 - [Phase 09]: BFIL-01 satisfied: production backlog LeadScore/Segment recalculated by LeadScoringService.RecomputeAllAsync, proven idempotent across two runs, human-verified 2026-09-19
 - [Phase 09]: 3 of 13 follow-up tasks from the backfill (RecomputeAllAsync side effect) were upstream scraping contamination (international product review, government office, generic email) — marked Done via CRM cleanup, not a code fix; same contamination pattern as 2026-09-17/19 audit, flagged for Phase 10/12 upstream filtering
+- [Phase 10]: [Phase 10] 10-01: waves_smoke.py excludes fire_-prefixed import targets by prefix (not by name), so it never dynamically imports debug_campaign.py's side-effecting dependency and needs no update when the 45 dead-end fire_*.py scripts are archived in 10-04
 
 ### Testing Protocol
 
@@ -210,8 +212,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T12:53:28.778Z
-Stopped at: Completed 09-02-PLAN.md (Phase 9 done)
+Last session: 2026-09-19T21:44:17.814Z
+Stopped at: Completed 10-01-PLAN.md
 mapeados, 0 órfãos). v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
 Próximo passo: `/gsd:plan-phase 9`.
 Resume file: None

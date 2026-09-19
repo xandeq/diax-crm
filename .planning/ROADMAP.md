@@ -319,8 +319,8 @@ Descoberta da pesquisa que redefiniu o SCRP-01: `daily_waves.py` **já é** o mo
 parametrizado (roda seg-sex 08:40 BRT com FUP1/2/3, circuit breaker e rotação de 20 nichos). O
 trabalho é extrair dele a dependência dos scripts `fire_*` (D-01/D-02) — não reescrever motor.
 
-**Plans:** 5 plans
-- [ ] 10-01-PLAN.md — Rede de segurança: `waves_smoke.py` (5 checks offline) + baseline congelado +
+**Plans:** 1/5 plans executed
+- [x] 10-01-PLAN.md — Rede de segurança: `waves_smoke.py` (5 checks offline) + baseline congelado +
   doc de migração com inventário real (Wave 1, SCRP-01)
 - [ ] 10-02-PLAN.md — Extrair `waves_core.py` (infra) + `waves_copy.py` (template/copy) e religar
   `daily_waves.py` (Wave 2, SCRP-01)
@@ -438,7 +438,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 9. Backfill de Score do Backlog | 2/2 | Complete    | 2026-09-19 |
-| 10. Motor de Cadência Único + Pipeline Fora do Notebook | 0/5 | Planned     | — |
+| 10. Motor de Cadência Único + Pipeline Fora do Notebook | 1/5 | In Progress|  |
 | 11. Qualified Objetivo e Automático | 0/? | Not started | — |
 | 12. Escala de Email | 0/? | Not started | — |
 | 13. Escala de WhatsApp | 0/? | Not started | — |
