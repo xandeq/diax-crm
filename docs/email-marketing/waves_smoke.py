@@ -35,8 +35,10 @@ ARGS_TEMPLATE = dict(
 CHAVES_CFG = ('seg', 'search_terms', 'service', 'subject', 'hook', 'subhead', 'intro', 'bullets', 'wa', 'img')
 
 # Arquivos que NUNCA devem ser importados por este smoke (efeito colateral no import).
-# Ex.: debug_campaign.py faz `import fire_today_20 as ft` — o alvo fire_today_20 cai no
-# prefixo abaixo e NUNCA e passado para importlib.import_module por este script.
+# Fonte historica do padrao: ate o Phase 10 Plan 03, debug_campaign.py fazia um alias de
+# `fire_today_20` (prefixo `fire_`, cai no filtro abaixo, nunca passado para
+# importlib.import_module por este script). Religado no 10-03 para um alias de `waves_core`;
+# esse modulo nao tem efeito colateral no import, entao segue seguro.
 EXCLUDE_PREFIXES = ('fire_',)
 EXCLUDE_NAMES = {'waves_smoke.py'}
 EXCLUDE_DIRS = {'archive', '__pycache__'}
