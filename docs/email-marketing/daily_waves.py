@@ -18,10 +18,9 @@ import os, sys, json, re, datetime, urllib.parse, requests, html as _html
 
 sys.path.insert(0, 'D:/claude-code/diax-crm/docs/email-marketing/')
 sys.path.insert(0, r'C:\Users\acq20\.claude\skills\financas\scripts')
-from fire_today_20 import (DIR, base, HEALTHY, PER_PROVIDER, ts, load_env, login,
-                           gen_image, fetch_leads, assign_providers, ensure_breaker_closed)
-from fire_w1_2707 import build_html_v2, SEGMENTS as SEG_W1
-from fire_w2w3_2707 import WAVES as W23
+from waves_core import (DIR, base, HEALTHY, PER_PROVIDER, ts, load_env, login,
+                        gen_image, fetch_leads, assign_providers, ensure_breaker_closed)
+from waves_copy import build_html_v2, SEGMENTS as SEG_W1, WAVES as W23
 import db as crmdb
 from waves_lib import (compute_wave_slots, brt_label, fup_candidates, is_role_mailbox, is_foreign_lead,
                        personalize_html, ACHADO_MARK)
@@ -232,7 +231,7 @@ def refresh_healthy(H):
     """Auto-heal: monta a lista de providers do dia lendo breaker-status.
     Provider com breaker aberto (ex: SendGrid sem créditos) sai da rotação
     automaticamente e volta sozinho quando o breaker fechar."""
-    import fire_today_20 as ft
+    import waves_core as ft
     # SendGrid FORA: free tier morto desde ago/2026 (total=0 créditos, hard limit) —
     # na fila (worker) provider é fixo sem fallback, item atribuído a ele morre.
     PREFER = ['Brevo', 'Mailjet', 'Resend', 'ElasticEmail', 'MailerSend']
