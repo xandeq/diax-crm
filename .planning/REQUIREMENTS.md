@@ -13,7 +13,7 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 
 ### Email
 
-- [x] **EMAL-01**: DMARC sobe de `pct=25` para `pct=100`
+- [ ] **EMAL-01** (parcial — ver Traceability): DMARC sobe de `pct=25` para `pct=100`
 - [x] **EMAL-02**: Volume de envio escala de 87 para 300/dia com warmup gradual
 - [x] **EMAL-03**: A/B de subject (variant A/B) tem o resultado medido e reportado (hoje só alterna, ninguém lê)
 - [x] **EMAL-04**: Leads "webmail" (gmail/hotmail comercial, 560 hoje ignorados) testados com cap pequeno + tag própria
@@ -64,7 +64,7 @@ Deferido — não bloqueia v1.4.
 | OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Complete (10-05: alerta Telegram por transição de estado em `waha-watchdog.py`/`watchdog-n8n.ps1`, task `waha-watchdog` registrada, prova real via n8n local caído, human-verified 2026-09-19, runbook em docs/email-marketing/OBSERVABILIDADE-watchdogs.md) |
 | QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: critério `classify_intent(text) != 'negative'` documentado verbatim com citação de linha em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
 | QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: prova ao vivo reconferida — customer_id 2dcb6a14-006a-426c-bc60-b6599a8f0e64 avançou Status 1→2 via audit log 14s após classificação `positive`, caminho negativo sem falso positivo confirmado, runbook em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
-| EMAL-01 | Phase 12 — Escala de Email | Complete |
+| EMAL-01 | Phase 12 — Escala de Email | Partial (12-05: mecanismo de escrita/reversão real provado em produção contra registro descartável `_gsddrill`, checkpoint humano executado; degrau real NÃO avançado — usuário escolheu `prova-e-segura` porque bounce rate (5,08% em 7d, 10,58% em 30d) está acima do próprio limiar de reversão D-04 (>5%), então subir violaria a regra que o usuário mesmo travou; `_dmarc` permanece em `pct=25` por decisão deliberada, não falha; runbook em `docs/email-marketing/DMARC-escalonamento.md`) |
 | EMAL-02 | Phase 12 — Escala de Email | Complete |
 | EMAL-03 | Phase 12 — Escala de Email | Complete |
 | EMAL-04 | Phase 12 — Escala de Email | Complete |

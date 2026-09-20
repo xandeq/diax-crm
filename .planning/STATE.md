@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 12-04-PLAN.md
-last_updated: "2026-09-20T16:21:56.295Z"
+stopped_at: Completed 12-05-PLAN.md
+last_updated: "2026-09-20T16:44:05.927Z"
 progress:
   total_phases: 11
   completed_phases: 3
   total_plans: 18
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 12 (Escala de Email) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Plan: 5 of 6
 | Phase 12 P02 | 15min | 2 tasks | 3 files |
 | Phase 12 P01 | 25min | 2 tasks | 1 files |
 | Phase 12 P04 | 15min | 2 tasks | 3 files |
+| Phase 12-escala-de-email P05 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -162,6 +163,7 @@ Plan: 5 of 6
 - [Phase 12]: [Phase 12] 12-01: decide() e funcao pura com reversao por saude (D-04) avaliada ANTES do gate de 7 dias/amostra minima, que so bloqueia avanco nunca reversao; set_pct() sempre re-localiza a Line da zona WHM via dumpzone antes de qualquer escrita (Pitfall 1); apply=False e default em toda a CLI, zero escrita real executada neste plano
 - [Phase 12]: [Phase 12] 12-04: contagem ao vivo dos 24/24 dominios FREE_WEBMAIL = 719 leads nunca-contactados (nao 560 do REQUIREMENTS.md, nem ~712 aproximado da pesquisa) — valor que vale e o medido agora
 - [Phase 12]: [Phase 12] 12-04: cap diario webmail = 15 (meio da faixa 10-20 do CONTEXT.md), marca 'AQ - webmail - ... auto wm' fica fora do A/B por construcao (ab_report.parse_variant so reconhece sufixo auto s[AB])
+- [Phase 12-escala-de-email]: 12-05: checkpoint humano resolvido com prova-e-segura - drill de reversao provado em producao contra _gsddrill (write->verify->revert->cleanup), degrau real segurado em pct=25 porque bounce rate (5,08% em 7d) ja excede o limiar de reversao D-04 (>5%); EMAL-01 marcado Partial ate a saude da base melhorar
 
 ### Testing Protocol
 
@@ -221,14 +223,26 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   preservado). QUAL-01/QUAL-02 fechados em REQUIREMENTS.md/ROADMAP.md. Próximo passo:
   `/gsd:plan-phase 12` (Escala de Email).
 
-- Phase 12 (Escala de Email) EM ANDAMENTO (4/6 planos) — 12-04 concluído 2026-09-20: caminho
+- Phase 12 (Escala de Email) EM ANDAMENTO (5/6 planos) — 12-04 concluído 2026-09-20: caminho
   paralelo de webmail (`build_webmail_wave()`, cap 15/dia, marca `auto wm`, fora do A/B por
   construção) + `mode='corp'|'webmail'` explícito em `email_ok()`/`fetch_leads()` (default corp
   inalterado, confirmado por `git diff` do bloco `FREE_WEBMAIL`) + A/B do 12-03 ligado no resumo
   de sexta. Contagem ao vivo: 719 leads webmail nunca-contactados (24/24 domínios, não 560 do
   REQUIREMENTS.md nem ~712 aproximado da pesquisa). EMAL-04 fechado; EMAL-03 fechado (medição do
-  12-03 + relatório agora ligado). Restam 12-05 (checkpoint de decisão + drill + escrita real do
-  DMARC, gated) e 12-06 (checkpoint de verificação humana final da fase).
+  12-03 + relatório agora ligado).
+
+  12-05 concluído 2026-09-20 (retomada pós-checkpoint): checkpoint da Task 1 resolvido com
+  `prova-e-segura` — drill de reversão (`--drill` novo em `dmarc_escalation.py`) provado em
+  produção contra registro descartável `_gsddrill.alexandrequeiroz.com.br` (write→verify→revert→
+  cleanup, addzonerecord/removezonerecord provados pela primeira vez neste projeto), sem nunca
+  tocar o `_dmarc` real. Degrau real segurado em `pct=25` por decisão deliberada do usuário — o
+  bounce rate medido (5,08% em 7d, 10,58% em 30d) já excede o próprio limiar de reversão D-04
+  (>5%), então subir contrariaria a regra que o usuário mesmo travou. `previews/daily-state.json`
+  semeado com `dmarc_pct=25`/`dmarc_changed_at=2026-09-20`/`dmarc_history` (hold), sem escrita de
+  DNS. `docs/email-marketing/DMARC-escalonamento.md` (211 linhas) publicado. EMAL-01 corrigido de
+  "Complete" (impreciso) para "Partial" em REQUIREMENTS.md e ROADMAP.md — mecanismo entregue e
+  provado, degrau real não avançado por escolha, não falha. Resta 12-06 (checkpoint de verificação
+  humana final da fase, fechamento consolidado de EMAL-01..04).
 
 **v1.3 (shipped, referência):**
 
@@ -259,8 +273,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T16:21:56.292Z
-Stopped at: Completed 12-04-PLAN.md
+Last session: 2026-09-20T16:44:05.922Z
+Stopped at: Completed 12-05-PLAN.md
 Phase 11 plan 01 (único plano da fase) executado — QUAL-01/QUAL-02 fechados via verificação ao vivo,
 zero código de aplicação alterado (D-01). Task 1 reconferiu ao vivo (não copiou da pesquisa de
 2026-09-20): Scheduled Task `DIAX-Reply-Watch` `State=Ready`/`LastTaskResult=0`/cadência PT30M-PT11H
