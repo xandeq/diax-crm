@@ -194,7 +194,15 @@ def gen_image(prompt, H, keyword=None):
 
     return None
 
-def email_ok(email, seen_emails, seen_domains):
+# mode='corp' (default, INALTERADO): os 20 nichos não passam `mode`, então nada muda pra eles.
+# mode='webmail' (EMAL-04, Phase 12 plano 04): inverte o portão FREE_WEBMAIL (exclusivo, não
+# aditivo — webmail é população EM TESTE, com cap e relatório próprios; misturar com corp
+# destruiria a capacidade de medir a taxa de resposta dela separadamente, que é o que EMAL-04
+# pede) e pula a checagem de dup-dominio (senão o 2º gmail do dia morreria como duplicado, já
+# que muitos leads webmail compartilham o mesmo provedor de email).
+def email_ok(email, seen_emails, seen_domains, mode='corp'):
+    if mode not in ('corp', 'webmail'):
+        raise ValueError(f"mode invalido: {mode!r} (esperado 'corp' ou 'webmail')")
     if not email or '@' not in email:
         return False, 'sem-email'
     email = email.strip().lower()
@@ -203,10 +211,14 @@ def email_ok(email, seen_emails, seen_domains):
     dom = email.split('@', 1)[1]
     if email in seen_emails:
         return False, 'dup-email'
-    if dom in seen_domains:
-        return False, 'dup-dominio'
-    if dom in FREE_WEBMAIL:
-        return False, 'webmail-nao-corp'
+    if mode == 'corp':
+        if dom in seen_domains:
+            return False, 'dup-dominio'
+        if dom in FREE_WEBMAIL:
+            return False, 'webmail-nao-corp'
+    else:  # mode == 'webmail'
+        if dom not in FREE_WEBMAIL:
+            return False, 'nao-webmail'
     if any(dom.endswith(t) for t in FOREIGN_TLD):
         return False, 'tld-estrangeiro'
     return True, 'ok'
@@ -227,8 +239,10 @@ def _mx_deliverable(domain):
         return True   # falha da checagem nunca bloqueia o envio
 
 
-def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want):
-    """Busca leads do CRM por nicho, filtra corporativo+nunca+BR+dedup."""
+def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want, mode='corp'):
+    """Busca leads do CRM por nicho, filtra corporativo+nunca+BR+dedup.
+    mode='webmail' (EMAL-04): caminho paralelo pro cap/tag de webmail (build_webmail_wave em
+    daily_waves.py) — não adiciona o domínio a seen_domains (senão o 2º gmail do dia morreria)."""
     picked = []
     page = 1
     examined = 0
@@ -246,7 +260,7 @@ def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want):
             if (it.get('emailSentCount') or 0) > 0 or it.get('lastEmailSentAt'):
                 continue  # nunca-contatado
             email = (it.get('email') or '').strip().lower()
-            ok, _ = email_ok(email, seen_emails, seen_domains)
+            ok, _ = email_ok(email, seen_emails, seen_domains, mode=mode)
             if not ok:
                 continue
             # MX/placeholder antes de enfileirar: bounce 7,5% na semana 04/09 (instagram.local, wixpress)
@@ -257,7 +271,8 @@ def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want):
             if comp_key and comp_key in seen_company:
                 continue
             seen_emails.add(email)
-            seen_domains.add(email.split('@', 1)[1])
+            if mode == 'corp':
+                seen_domains.add(email.split('@', 1)[1])
             if comp_key:
                 seen_company.add(comp_key)
             picked.append({'id': it['id'], 'email': email,

@@ -6,7 +6,7 @@ nao mudou NADA do comportamento observavel de daily_waves.py. Falha em silencio 
 fase (COPY_BANK menor, import quebrado num dependente vivo) — este script a torna barulhenta.
 
 Uso:
-  python waves_smoke.py                    # roda os 6 checks, exit 0/1
+  python waves_smoke.py                    # roda os 7 checks, exit 0/1
   python waves_smoke.py --update-baseline  # regrava waves-baseline.json (so ANTES do refactor)
 """
 import os
@@ -236,6 +236,37 @@ def check_warmup_curva(baseline):
     return True, ''
 
 
+def check_modo_webmail(baseline):
+    """Offline puro — importa waves_core, cobre todas as assertivas do bloco <behavior>
+    do plano 12-04 (modo corp inalterado + modo webmail exclusivo, não aditivo)."""
+    import waves_core as w
+
+    if w.email_ok('joao@gmail.com', set(), set()) != (False, 'webmail-nao-corp'):
+        return False, f"default mode='corp' mudou: {w.email_ok('joao@gmail.com', set(), set())!r}"
+    if w.email_ok('joao@gmail.com', set(), set(), mode='webmail') != (True, 'ok'):
+        return False, f"mode='webmail' deveria aceitar gmail: {w.email_ok('joao@gmail.com', set(), set(), mode='webmail')!r}"
+    if w.email_ok('contato@empresa.com.br', set(), set(), mode='webmail') != (False, 'nao-webmail'):
+        return False, f"mode='webmail' deveria rejeitar corp (exclusivo): {w.email_ok('contato@empresa.com.br', set(), set(), mode='webmail')!r}"
+    if w.email_ok('joao@gmail.com', {'joao@gmail.com'}, set(), mode='webmail') != (False, 'dup-email'):
+        return False, 'dedup de email deveria continuar valendo no modo webmail'
+    if w.email_ok('maria@gmail.com', set(), {'gmail.com'}, mode='webmail') != (True, 'ok'):
+        return False, 'dedup de dominio deveria estar DESLIGADO no modo webmail'
+    if w.email_ok('maria@gmail.com', set(), {'gmail.com'}) != (False, 'dup-dominio'):
+        return False, 'dedup de dominio deveria continuar valendo no modo corp'
+    if w.email_ok('joao@yahoo.com.mx', set(), set(), mode='webmail') != (False, 'tld-estrangeiro'):
+        return False, 'filtro de TLD estrangeiro deveria valer nos dois modos'
+    if w.email_ok('', set(), set(), mode='webmail') != (False, 'sem-email'):
+        return False, 'sem-email deveria valer nos dois modos'
+    try:
+        w.email_ok('a@b.com', set(), set(), mode='xpto')
+        return False, "mode='xpto' deveria levantar ValueError"
+    except ValueError:
+        pass
+    if len(w.FREE_WEBMAIL) != 24:
+        return False, f'FREE_WEBMAIL deveria ter 24 dominios, tem {len(w.FREE_WEBMAIL)}'
+    return True, ''
+
+
 CHECKS = [
     ('rotation_coberta', check_rotation_coberta),
     ('copy_bank_integro', check_copy_bank_integro),
@@ -243,6 +274,7 @@ CHECKS = [
     ('healthy_mutavel_in_place', check_healthy_mutavel_in_place),
     ('imports_locais_resolvem', check_imports_locais_resolvem),
     ('warmup_curva', check_warmup_curva),
+    ('modo_webmail', check_modo_webmail),
 ]
 
 
