@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Beginning Phase 13
-last_updated: "2026-09-20T20:50:11.573Z"
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-09-20T21:11:28.418Z"
 progress:
   total_phases: 11
   completed_phases: 4
   total_plans: 22
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 13 (Escala de WhatsApp) — EXECUTING
-Plan: 1 of 4
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Plan: 1 of 4
 | Phase 12 P04 | 15min | 2 tasks | 3 files |
 | Phase 12-escala-de-email P05 | 25min | 3 tasks | 3 files |
 | Phase 12-escala-de-email P06 | 20min | 3 tasks | 3 files |
+| Phase 13-escala-de-whatsapp P01 | 25min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,7 @@ Plan: 1 of 4
 - [Phase 12]: [Phase 12] 12-04: cap diario webmail = 15 (meio da faixa 10-20 do CONTEXT.md), marca 'AQ - webmail - ... auto wm' fica fora do A/B por construcao (ab_report.parse_variant so reconhece sufixo auto s[AB])
 - [Phase 12-escala-de-email]: 12-05: checkpoint humano resolvido com prova-e-segura - drill de reversao provado em producao contra _gsddrill (write->verify->revert->cleanup), degrau real segurado em pct=25 porque bounce rate (5,08% em 7d) ja excede o limiar de reversao D-04 (>5%); EMAL-01 marcado Partial ate a saude da base melhorar
 - [Phase 12-escala-de-email]: 12-06: checkpoint humano da Task 2 resolvido com `aguardar` - usuario optou por nao forcar execucao real (--force) fora de calendario num domingo (2026-09-20); task agendada DIAX-Email-Waves-Daily confirma sozinha na segunda-feira 2026-09-21 08:40 BRT sem --force; EMAL-02/04 fecham Partial ate essa confirmacao, EMAL-03 fecha Complete (medicao ja roda sobre dados reais sem depender de envio futuro); runbook consolidado ESCALA-EMAIL-runbook.md publicado (Task 1); Phase 12 fechada 6/6 planos
+- [Phase 13-escala-de-whatsapp]: 13-01: checkpoint da Task 2 respondido python-oficial — outreach-send.py/task outreach-wa declarado handoff oficial de WHAT-01, waOutreach1a1AQ permanece active=0 por escolha deliberada (incidente de dedupe de 12/09); WHAT-01 fecha Complete por equivalencia funcional
 
 ### Testing Protocol
 
@@ -261,6 +263,15 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   12 está 100% concluída (6/6 planos)** no nível de entrega de mecanismo; próximo passo:
   `/gsd:plan-phase 13` (Escala de WhatsApp).
 
+- Phase 13 (Escala de WhatsApp) EM ANDAMENTO (1/4 planos, 2026-09-20) — 13-01 concluído:
+  `wa_estado.py` criado (leitor único read-only do estado real: audit log + sqlite `mode=ro` do
+  n8n + CRM), checkpoint humano da Task 2 respondido `python-oficial` — `outreach-send.py`/task
+  `outreach-wa` declarado handoff oficial de WHAT-01, `waOutreach1a1AQ` permanece `active=0` por
+  escolha deliberada (incidente de dedupe de 12/09). WHAT-01 fecha `Complete` por equivalência
+  funcional, prova em `docs/email-marketing/previews/whatsapp-estado.json` (186 chat_ids all-time,
+  16/18 hoje, delta logs-vs-CRM 169). Zero mudança operacional feita. Próximo passo:
+  13-02-PLAN.md (`crm_leads_sync.py`, WHAT-02).
+
 **v1.3 (shipped, referência):**
 
 - Nenhum pendente — Phases 7 e 8 concluídas, deployadas e verificadas em produção (PRs #99, #111)
@@ -290,24 +301,24 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T20:00:00.000Z
-Stopped at: Completed 12-06-PLAN.md
-Plano 12-06 (fechamento da Phase 12) executado até o fim, retomado pós-checkpoint da Task 2 com a
-decisão do usuário `aguardar`. Task 1 publicou `docs/email-marketing/ESCALA-EMAIL-runbook.md`
-consolidando os 4 mecanismos (DMARC, warmup, A/B, webmail) com a bateria de verificação rodada ao
-vivo e a seção de realidade de estoque (só 34 de 4.232 leads corporativos nunca-contactados são
-roteáveis pela rotação de nichos nesta execução). Task 2 apresentou o checkpoint (estado da
-Scheduled Task `DIAX-Email-Waves-Daily`, 4 linhas de prova do `--dry --force`) — usuário respondeu
-`aguardar`: não forçar execução real (`--force`) num domingo fora de calendário; a task agendada
-confirma sozinha na segunda-feira 2026-09-21 08:40 BRT. Task 3 fechou a rastreabilidade: EMAL-02 e
-EMAL-04 corrigidos de "Complete" (sem evidência citável) para "Partial" (mecanismo provado,
-confirmação real pendente de 2026-09-21); EMAL-03 fecha "Complete"; a contradição EMAL-02 entre
-ROADMAP.md ("Pending") e REQUIREMENTS.md ("Complete"), achada pelo verificador em
-`12-VERIFICATION.md`, foi corrigida — os dois documentos agora concordam. Runbook atualizado com
-nota de "o que conferir na segunda-feira" para fechar EMAL-02/04 sem precisar de sessão nova.
-**Phase 12 está 100% concluída (6/6 planos)** no nível de entrega de mecanismo — EMAL-01/02/04
-honestamente `Partial` por calendário/segurança, EMAL-03 `Complete`. Nenhum `.py` foi alterado
-(`reply_watch.py`/`CLAUDE.md`/`tsconfig.tsbuildinfo` preservados intactos, trabalho não relacionado
-em andamento). Nenhum envio real foi disparado. v1.2 segue pausado em paralelo (ver "v1.2 —
-Pausado" acima), sem alteração. Próximo passo: `/gsd:plan-phase 13` (Escala de WhatsApp).
+Last session: 2026-09-20T21:11:28.412Z
+Stopped at: Completed 13-01-PLAN.md
+Plano 13-01 (Phase 13 — Escala de WhatsApp) executado até o fim, retomado pós-checkpoint da Task 2
+com a decisão do usuário `python-oficial`. Task 1 criou `docs/email-marketing/wa_estado.py` (leitor
+único, read-only, do estado real do canal: audit log + sqlite `mode=ro` do n8n + CRM), `--selftest`
+7/7 OK, e gravou o snapshot baseline `previews/whatsapp-estado.json`. Task 2 apresentou o checkpoint
+bloqueante de WHAT-01 com números re-medidos na hora (enviados hoje, `waOutreach1a1AQ` ao vivo,
+porta 5678, incidente de 12/09, divergência logs-vs-CRM) — usuário respondeu `python-oficial`:
+declarar `outreach-send.py`/task Windows `outreach-wa` (Ready, `CAP_DIA=18`) o handoff oficial de
+WHAT-01, sem tocar em `waOutreach1a1AQ` (permanece `active=0`, desligado de propósito desde o
+incidente de dedupe de 12/09) nem em nenhuma task/CAP. Task 3 executou o ramo `python-oficial` —
+zero mudança operacional, apenas regravou o snapshot final (`gerado: 2026-09-20T18:07:41`: 186
+chat_ids all-time, 16/18 hoje, último `ENVIADO` 17:30:13 para `5527996320214@c.us`, delta
+logs-vs-CRM 169) e fechou WHAT-01 **Complete por equivalência funcional** em REQUIREMENTS.md e
+ROADMAP.md, citando as propriedades de segurança (dedupe com releitura verificada, blacklist-first,
+kill-switch) e a prova de execução real (Scheduled Tasks `outreach-wa`/`outreach-watch` confirmadas
+`Ready` com Next Run Time futuro). Trabalho não relacionado do usuário
+(`reply_watch.py`/`CLAUDE.md`/`crm-web/tsconfig.tsbuildinfo`) preservado intacto, confirmado por
+`git status --porcelain` antes e depois. Nenhum push feito. Phase 13 agora 1/4 planos. Próximo
+passo: 13-02-PLAN.md (`crm_leads_sync.py`, WHAT-02, Wave 2).
 Resume file: None
