@@ -597,7 +597,7 @@ falhado). Zero linha alterada em `SalesDashboardService.cs`/`SalesDashboardContr
 `page.tsx`/`salesDashboard.ts` (`git diff --stat` vazio confirmado nas 3 tasks). **Esta fase fecha o
 milestone v1.4 inteiro: 6/6 fases (9, 10, 11, 12, 13, 14).**
 
-**Plans:** 1/1 plan complete
+**Plans:** 1/1 plans complete
 
 Plans:
 - [x] 14-01-PLAN.md — Reconferir ao vivo os números do funil (API + re-derivação à mão de cada
@@ -617,7 +617,7 @@ Plans:
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
 | 13. Escala de WhatsApp | 4/4 | Complete   | 2026-09-20 |
-| 14. Dashboard de Conversão do Funil | 1/1 | Complete    | 2026-09-20 |
+| 14. Dashboard de Conversão do Funil | 1/1 | Complete   | 2026-09-20 |
 
 ### Coverage Map (v1.4)
 

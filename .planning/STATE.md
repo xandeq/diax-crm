@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 13-04-PLAN.md - Phase 13 (Escala de WhatsApp) concluida 4/4 planos
-last_updated: "2026-09-20T23:00:30.800Z"
+stopped_at: Completed 14-01-PLAN.md - Phase 14 (Dashboard de Conversao do Funil) concluida 1/1 plano - Milestone v1.4 concluido 6/6 fases
+last_updated: "2026-09-20T23:16:43.360Z"
 progress:
   total_phases: 11
-  completed_phases: 5
+  completed_phases: 7
   total_plans: 23
-  completed_plans: 20
+  completed_plans: 22
 ---
 
 # State — DIAX CRM
@@ -19,12 +19,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 14 — Dashboard de Conversão do Funil
+**Current focus:** Milestone v1.4 concluído (6/6 fases) — aguardando definição do próximo milestone (v1.5) ou retomada do v1.2 pausado
 
 ## Current Position
 
-Phase: 14 (Dashboard de Conversão do Funil) — EXECUTING
-Plan: 1 of 1
+Phase: 14 (Dashboard de Conversão do Funil) — CONCLUÍDA (1/1 plano)
+Plan: 1 of 1 — DASH-01 fechado Complete
+Milestone v1.4 ("Funil de Outreach — Cadência e Qualidade"): **CONCLUÍDO, 6/6 fases** (Phases 9-14).
+Próximo passo: definir escopo de um milestone v1.5, ou retomar `/gsd:execute-phase 2` (v1.2 Agentes
+de IA, pausado desde 2026-05-29).
 
 ## Performance Metrics
 
@@ -71,6 +74,7 @@ Plan: 1 of 1
 | Phase 13-escala-de-whatsapp P03 | 35min | 2 tasks | 3 files |
 | Phase 13-escala-de-whatsapp P02 | 20min | 2 tasks | 4 files |
 | Phase 13-escala-de-whatsapp P04 | 20min | 3 tasks | 7 files |
+| Phase 14-dashboard-de-convers-o-do-funil P01 | 20min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -174,6 +178,8 @@ Plan: 1 of 1
 - [Phase 13-escala-de-whatsapp]: 13-03: whatsapp_weekly_report.py criado (WHAT-03) - metricas() le wa_estado, taxa de resposta honesta (None em denominador zero), divergencia logs-vs-CRM sempre exposta; Scheduled Task DIAX-WA-Weekly-Report sexta 17:00 BRT registrada e provada com entrega real no Telegram (111 enviados/53 respondidos ES da semana), sem tocar daily_waves.py nem DIAX-Email-Waves-Daily (08:40 BRT)
 - [Phase 13-escala-de-whatsapp]: 13-02: crm_leads_sync.py reescrito como sync incremental verificado (delta + fila pendente crmleads-pending.json + releitura pos-push); Scheduled Task DIAX-WA-CrmLeads-Sync horaria registrada; capturou 18 leads reais ja contatados por outreach-send.py que nunca haviam entrado no conjunto de deflexao do bot (ex. 5527998544746@c.us enviado 15/09, ainda fora do crmLeads); n8n confirmado fora do ar, delta ficou em fila (nao perdido, nao falso-sucesso); WHAT-02 fecha Complete
 - [Phase 13-escala-de-whatsapp]: 13-04: wa_escalation.py mediu wa_es (121 enviados/53 respostas, taxa 43,8%, recusa 5,8%) contra limiares travados e commitados antes da medicao (d4fedba2), veredito honesto AVANCAR; achado central: outreach-send.py:escolhe() nunca filtrou por segmento, o portao wa_es->wa_br nunca existiu em codigo, --apply nao liga nada de operacional. WHAT-04 fecha Complete, Phase 13 concluida 4/4 planos, runbook ESCALA-WHATSAPP-runbook.md publicado
+- [Phase 14-dashboard-de-convers-o-do-funil]: 14-01: DASH-01 fecha Complete (veredito BATE na re-derivacao ao vivo + shot-report.ok=true na prova visual); gap do filtro por periodo (criterio #3 do ROADMAP) documentado como deferido/gap de escopo, nao como falha, em DASHBOARD-funil-runbook.md
+- [Phase 14-dashboard-de-convers-o-do-funil]: 14-01 fecha o milestone v1.4 inteiro: 6/6 fases entregues (9-14), 11/14 requisitos Complete e 3 Partial (EMAL-01/02/04) por decisao deliberada de seguranca/calendario ja registrada nas Fases 12/13, nao por falha de implementacao
 
 ### Testing Protocol
 
@@ -210,7 +216,7 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
 
 ### Pending Todos
 
-**v1.4 (atual):**
+**v1.4 (concluído 2026-09-20 — 6/6 fases, ver Phase 14 abaixo):**
 
 - Phase 9 (Backfill de Score do Backlog) concluída 2026-09-19 — BFIL-01 completo, evidência em
   `docs/lead-quality/BACKFILL-EVIDENCE.md`.
@@ -301,6 +307,22 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   13-04-PLAN.md (`wa_escalation.py`, WHAT-04, escalonamento wa_es→wa_br), usando a taxa de resposta
   ES medida em 13-03 (46,8%, 52/111) e o estado do conjunto de deflexão de 13-02 como base real.
 
+- Phase 14 (Dashboard de Conversão do Funil) CONCLUÍDA (1/1 plano, 2026-09-20) — 14-01 verificou ao
+  vivo (sem alterar código) que `SalesDashboardService.BuildFunnel` já implementa DASH-01: login
+  real + `GET /api/v1/sales-dashboard` re-derivado manualmente etapa a etapa, veredito `BATE` (zero
+  discrepância, evidência em `dashboard-funil-evidencia.json`); prova visual real via Playwright
+  (`dashboard-funil-shot.mjs`, 4/4 checks, screenshot 114,6 KB, `bate_exato: true`); `dotnet test
+  SalesDashboardTests` 5/5. Runbook `docs/email-marketing/DASHBOARD-funil-runbook.md` (282 linhas)
+  publicado com a natureza cumulativa de `conversionToNext`, o caso `Negociando=0→100%`, e o gap
+  deferido do filtro por período (critério #3 do ROADMAP, não implementado, gap de escopo por D-01
+  verify-only). DASH-01 fecha `Complete` em REQUIREMENTS.md e ROADMAP.md sem contradição. Zero linha
+  alterada em `SalesDashboardService.cs`/`SalesDashboardController.cs`/`page.tsx`/
+  `salesDashboard.ts`. **Phase 14 concluída 1/1 plano — milestone v1.4 concluído 6/6 fases (9-14).**
+  Estado honesto dos 14 requisitos do milestone: 11 `Complete`, 3 `Partial` (EMAL-01/02/04, decisão
+  deliberada de segurança/calendário já registrada nas Fases 12/13, confirmação real pendente da
+  execução agendada de 2026-09-21 08:40 BRT). Próximo passo: definir milestone v1.5 (`/gsd:discuss`
+  ou equivalente) ou retomar v1.2 (`/gsd:execute-phase 2`).
+
 **v1.3 (shipped, referência):**
 
 - Nenhum pendente — Phases 7 e 8 concluídas, deployadas e verificadas em produção (PRs #99, #111)
@@ -330,8 +352,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T21:48:11.066Z
-Stopped at: Completed 13-04-PLAN.md - Phase 13 (Escala de WhatsApp) concluida 4/4 planos
+Last session: 2026-09-20T23:15:00.532Z
+Stopped at: Completed 14-01-PLAN.md - Phase 14 (Dashboard de Conversao do Funil) concluida 1/1 plano - Milestone v1.4 concluido 6/6 fases
 Plano 13-03 (Phase 13 — Escala de WhatsApp, WHAT-03) executado do início ao fim, sem checkpoint,
 em paralelo ao 13-02. Task 1 criou `docs/email-marketing/whatsapp_weekly_report.py` — único código
 genuinamente novo desta fase (nem `daily_waves.py:weekly_report()` nem `funnel_analysis.py` tocam
