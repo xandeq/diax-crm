@@ -252,7 +252,7 @@ dependência de um único notebook.
  (completed 2026-09-19)
 - [x] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02)
  (completed 2026-09-20)
-- [ ] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04)
+- [x] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04) — 6/6 planos entregues; EMAL-01/02/04 Partial por decisão deliberada/calendário, ver Nota de execução (completed 2026-09-20)
 - [ ] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04)
 - [ ] **Phase 14: Dashboard de Conversão do Funil** — Conversão percentual por etapa do funil (DASH-01)
 
@@ -409,7 +409,27 @@ nichos produzindo campanha. O gargalo de EMAL-02 é **estoque de lead por nicho*
 volume (backend já permite 900/dia). Verificar a fase contra mecanismo entregue + honestidade do
 relatório, não contra `pct=100` e `300/dia` entregues.
 
-**Plans:** 5/6 plans executed
+**Nota de execução (2026-09-20, fechamento no 12-06):** Fase fechada com os 6 planos executados e os
+quatro mecanismos entregues e provados em `--dry --force`/leitura de produção
+(`dmarc_escalation.py`, curva de warmup em `waves_core.py`/`daily_waves.py`, `ab_report.py`,
+`build_webmail_wave()`) — ver runbook consolidado `docs/email-marketing/ESCALA-EMAIL-runbook.md`. No
+checkpoint humano da Task 2 do 12-06, o usuário respondeu `aguardar`: não forçar uma execução real
+fora de calendário num domingo (2026-09-20, fora do trigger seg-sex 08:40 BRT da task
+`DIAX-Email-Waves-Daily`); a execução agendada roda de verdade na próxima segunda-feira (2026-09-21
+08:40 BRT) sem precisar de `--force`, já que o guard de fim de semana passa naturalmente em dia útil.
+Por isso, lendo os 4 critérios de sucesso à luz do que foi encontrado ao vivo: **critério 1**
+(DMARC `pct=100`) permanece não atingido por decisão de segurança — bounce (5,08%/7d, 10,58%/30d)
+acima do limiar de reversão D-04 (>5%), degrau segurado em `pct=25` (EMAL-01, já `Partial` desde o
+12-05); **critério 2** (volume real 300/dia) tem o mecanismo pronto e provado em `--dry --force`, mas
+a confirmação em execução real fica pendente de 2026-09-21 (EMAL-02 fecha `Partial`); **critérios 3 e
+4** (A/B medido, webmail com cap) têm a medição/mecanismo comprovados sobre dados reais de produção
+já existentes, sem depender de nenhum envio futuro — EMAL-03 fecha `Complete`; EMAL-04 fecha
+`Partial` pela mesma razão do critério 2 (a campanha real com destinatários confirmados no CRM ainda
+não rodou). Isto é considerado fase completa no nível de entrega de mecanismo — 6/6 planos, zero
+trabalho de implementação restante; o que falta é só confirmação observacional de uma execução que já
+está agendada para rodar sozinha na segunda-feira.
+
+**Plans:** 6/6 plans executed
 
 Plans:
 - [x] 12-01-PLAN.md — `dmarc_escalation.py`: leitura da zona WHM, saúde real de `email_events`,
@@ -425,8 +445,12 @@ Plans:
   Decisão do usuário: `prova-e-segura` — drill provado em produção contra `_gsddrill`, degrau real
   segurado em `pct=25` (bounce 5,08%/7d acima do limiar D-04 de 5%), `_dmarc` inalterado por escolha
   deliberada.
-- [ ] 12-06-PLAN.md — Runbook consolidado `ESCALA-EMAIL-runbook.md`, verificação humana da execução
-  real e fechamento honesto de EMAL-01..04 na rastreabilidade (Wave 3, EMAL-01..04, tem checkpoint)
+- [x] 12-06-PLAN.md — Runbook consolidado `ESCALA-EMAIL-runbook.md` (Task 1), checkpoint humano de
+  verificação da execução real (Task 2), e fechamento honesto de EMAL-01..04 na rastreabilidade
+  (Task 3) (Wave 3, EMAL-01..04, tem checkpoint). Decisão do usuário no checkpoint: `aguardar` — não
+  forçar execução real fora de calendário num domingo (2026-09-20); a task agendada
+  `DIAX-Email-Waves-Daily` confirma na segunda-feira 2026-09-21 08:40 BRT sem precisar de `--force`.
+  EMAL-02/04 fecham `Partial` até essa confirmação; EMAL-03 fecha `Complete` (não depende de envio).
 
 ---
 
@@ -485,7 +509,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 9. Backfill de Score do Backlog | 2/2 | Complete    | 2026-09-19 |
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
-| 12. Escala de Email | 5/6 | In Progress|  |
+| 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
 | 13. Escala de WhatsApp | 0/? | Not started | — |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
@@ -499,9 +523,9 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | QUAL-01 | Phase 11 | Complete |
 | QUAL-02 | Phase 11 | Complete |
 | EMAL-01 | Phase 12 | Partial (mecanismo provado, degrau segurado em pct=25 por decisão do usuário) |
-| EMAL-02 | Phase 12 | Pending |
-| EMAL-03 | Phase 12 | Complete |
-| EMAL-04 | Phase 12 | Complete |
+| EMAL-02 | Phase 12 | Partial (mecanismo provado em --dry --force; confirmação de execução real pendente da task agendada de 2026-09-21 08:40 BRT — usuário respondeu `aguardar` no checkpoint do 12-06) |
+| EMAL-03 | Phase 12 | Complete (medição real sobre dados de produção, não depende de envio futuro) |
+| EMAL-04 | Phase 12 | Partial (mesma razão de EMAL-02 — ver Nota de execução da Phase 12) |
 | WHAT-01 | Phase 13 | Pending |
 | WHAT-02 | Phase 13 | Pending |
 | WHAT-03 | Phase 13 | Pending |
@@ -510,8 +534,10 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 
 **Total mapped: 14/14**
 
-*Phase 12 planejada 2026-09-20: 6 planos, 3 waves (EMAL-01..04). v1.4 roadmap created: 2026-09-19 — Funil de Outreach — Cadência e Qualidade (6 phases, 14
-requirements). Numeração de fases continua de v1.3 (Phase 8) → v1.4 começa em Phase 9. Nenhum plano
-criado ainda — próximo passo: `/gsd:plan-phase 9`.*
+*Phase 12 planejada 2026-09-20: 6 planos, 3 waves (EMAL-01..04), concluída 2026-09-20 (6/6 planos,
+EMAL-01/02/04 Partial, EMAL-03 Complete — checkpoint da Task 2 do 12-06 respondido `aguardar`,
+confirmação real pendente da execução agendada de 2026-09-21). v1.4 roadmap created: 2026-09-19 —
+Funil de Outreach — Cadência e Qualidade (6 phases, 14 requirements). Numeração de fases continua de
+v1.3 (Phase 8) → v1.4 começa em Phase 9. Próximo passo: `/gsd:plan-phase 13` (Escala de WhatsApp).*
 
 ---

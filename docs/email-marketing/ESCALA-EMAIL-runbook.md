@@ -22,6 +22,31 @@ andamento antes da Phase 11, preservado sem alteração).
 | EMAL-03 | A/B de subject medido por taxa de clique | `ab_report.py` | `python ab_report.py --days 30 --json` | Medição implementada e rodável; veredito real = `INCONCLUSIVO` (amostra de cliques abaixo do mínimo) |
 | EMAL-04 | Wave paralela de leads webmail (cap próprio) | `daily_waves.py build_webmail_wave()` | `python daily_waves.py --dry --force` (linha `DRY: webmail =`) | Caminho paralelo implementado e provado em `--dry`; execução real (envio de verdade) ainda pendente de aprovação humana — ver §7 e o checkpoint da Task 2 deste plano |
 
+**Checkpoint da Task 2 — resolução `aguardar` (2026-09-20):** apresentado o checkpoint humano
+(estado da task `DIAX-Email-Waves-Daily`, as quatro linhas de prova do `--dry --force` acima), o
+usuário respondeu **`aguardar`**: não forçar uma execução real (`--force`) num domingo fora de
+calendário. A task agendada roda de verdade sozinha na próxima **segunda-feira, 2026-09-21, 08:40
+BRT** — nesse dia o guard de fim de semana passa naturalmente, sem precisar de `--force`. Por isso
+EMAL-02 e EMAL-04 fecham como `Partial` na rastreabilidade (mecanismo entregue e provado, confirmação
+de execução real pendente), não `Complete`. EMAL-03 fecha `Complete` porque a medição do A/B já roda
+sobre dados reais de produção existentes, sem depender de nenhum envio futuro.
+
+**O que conferir na segunda-feira (2026-09-21) para fechar essa pendência**, sem precisar de nova
+sessão de planejamento — só ler o resultado:
+
+1. **Mensagem do Telegram** da execução das 08:40 BRT: confirmar que aparece `Agendados hoje: <N> /
+   alvo 87 (warmup dia 1/8)` (alvo numérico, não `alvo ?` — ver o bug cosmético do §8) e, se houver
+   lead webmail suficiente, `📬 Webmail (teste): <N>/15 — tag auto wm`.
+2. **Contagem de destinatários da campanha de webmail** no CRM
+   (`https://crm.alexandrequeiroz.com.br` → Email Marketing): a campanha
+   `AQ - webmail - Presenca Digital - 2026-09-21 auto wm` deve existir com **no máximo 15**
+   destinatários, todos de domínio `FREE_WEBMAIL` (gmail/hotmail/etc.), e nenhuma campanha de nicho
+   corporativo daquele dia deve conter destinatário de webmail.
+3. Se ambos baterem, atualizar `EMAL-02`/`EMAL-04` de `Partial` para `Complete` em
+   `.planning/REQUIREMENTS.md` e `.planning/ROADMAP.md`, citando a mensagem real do Telegram e a
+   contagem de destinatários como prova — sem precisar reabrir a Phase 12 nem criar um plano novo,
+   é só atualizar a evidência citada.
+
 ---
 
 ## 2. Warmup de volume (EMAL-02)

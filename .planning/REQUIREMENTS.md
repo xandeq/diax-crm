@@ -14,9 +14,9 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 ### Email
 
 - [ ] **EMAL-01** (parcial — ver Traceability): DMARC sobe de `pct=25` para `pct=100`
-- [x] **EMAL-02**: Volume de envio escala de 87 para 300/dia com warmup gradual
+- [ ] **EMAL-02** (parcial — ver Traceability): Volume de envio escala de 87 para 300/dia com warmup gradual
 - [x] **EMAL-03**: A/B de subject (variant A/B) tem o resultado medido e reportado (hoje só alterna, ninguém lê)
-- [x] **EMAL-04**: Leads "webmail" (gmail/hotmail comercial, 560 hoje ignorados) testados com cap pequeno + tag própria
+- [ ] **EMAL-04** (parcial — ver Traceability): Leads "webmail" (gmail/hotmail comercial, 560 hoje ignorados) testados com cap pequeno + tag própria
 
 ### WhatsApp
 
@@ -65,9 +65,9 @@ Deferido — não bloqueia v1.4.
 | QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: critério `classify_intent(text) != 'negative'` documentado verbatim com citação de linha em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
 | QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: prova ao vivo reconferida — customer_id 2dcb6a14-006a-426c-bc60-b6599a8f0e64 avançou Status 1→2 via audit log 14s após classificação `positive`, caminho negativo sem falso positivo confirmado, runbook em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
 | EMAL-01 | Phase 12 — Escala de Email | Partial (12-05: mecanismo de escrita/reversão real provado em produção contra registro descartável `_gsddrill`, checkpoint humano executado; degrau real NÃO avançado — usuário escolheu `prova-e-segura` porque bounce rate (5,08% em 7d, 10,58% em 30d) está acima do próprio limiar de reversão D-04 (>5%), então subir violaria a regra que o usuário mesmo travou; `_dmarc` permanece em `pct=25` por decisão deliberada, não falha; runbook em `docs/email-marketing/DMARC-escalonamento.md`) |
-| EMAL-02 | Phase 12 — Escala de Email | Complete |
-| EMAL-03 | Phase 12 — Escala de Email | Complete |
-| EMAL-04 | Phase 12 — Escala de Email | Complete |
+| EMAL-02 | Phase 12 — Escala de Email | Partial (12-02: curva `WARMUP_TARGETS=[87,104,125,150,180,216,260,300]` (+20%/dia) e guard `already_queued_today()` em lockstep com o alvo implementados em `waves_core.py`/`daily_waves.py build_waves()`, provados verbatim em `python daily_waves.py --dry --force` — `WARMUP dia 1/8 — alvo 87/dia`; 12-06 Task 2: checkpoint humano respondido `aguardar` — usuário optou por não forçar execução real fora de calendário num domingo (2026-09-20); a task agendada `DIAX-Email-Waves-Daily` roda de verdade na segunda-feira 2026-09-21 08:40 BRT sem precisar de `--force`. Destrava quando essa execução confirmar o alvo real no Telegram — runbook em `docs/email-marketing/ESCALA-EMAIL-runbook.md` §2-3) |
+| EMAL-03 | Phase 12 — Escala de Email | Complete (12-03/12-04: `ab_report.py` mede taxa de clique por variante `sA`/`sB` sobre dados reais de produção (936 envios/30d), `--selftest` 9/9 OK, `previews/ab-report.json` gravado com veredito real `INCONCLUSIVO` (12 cliques < 30 mínimo) — a medição existe e é consultável sem depender de nenhum envio futuro, que é o que o requisito pede; human-verified 2026-09-20 (leitura direta do JSON e do código, sem checkpoint pendente); runbook em `docs/email-marketing/ESCALA-EMAIL-runbook.md` §4) |
+| EMAL-04 | Phase 12 — Escala de Email | Partial (12-04: caminho paralelo `build_webmail_wave()` implementado, `WEBMAIL_CAP=15`/dia, marca `auto wm`, fora do A/B por construção, 719 leads webmail nunca-contactados medidos ao vivo; provado em `--dry --force` — `DRY: webmail = 12 leads (cap 15, já hoje 0)`; 12-06 Task 2: checkpoint humano respondido `aguardar` (mesma decisão de EMAL-02) — campanha real com destinatários confirmados no CRM ainda pendente da execução agendada de 2026-09-21 08:40 BRT. Destrava quando essa execução mostrar a campanha `AQ - webmail - ... auto wm` no CRM com ≤15 destinatários — runbook em `docs/email-marketing/ESCALA-EMAIL-runbook.md` §5) |
 | WHAT-01 | Phase 13 — Escala de WhatsApp | Pending |
 | WHAT-02 | Phase 13 — Escala de WhatsApp | Pending |
 | WHAT-03 | Phase 13 — Escala de WhatsApp | Pending |
@@ -78,4 +78,4 @@ Deferido — não bloqueia v1.4.
 
 ---
 *Requirements defined: 2026-09-19*
-*Last updated: 2026-09-19 — roadmap criado (Phases 9-14), traceability preenchida pelo roadmapper.*
+*Last updated: 2026-09-20 — 12-06 fechou a rastreabilidade da Phase 12 (EMAL-01/02/04 Partial, EMAL-03 Complete) após checkpoint `aguardar` do usuário na Task 2.*
