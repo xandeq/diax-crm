@@ -19,7 +19,8 @@ import os, sys, json, re, datetime, urllib.parse, requests, html as _html
 sys.path.insert(0, 'D:/claude-code/diax-crm/docs/email-marketing/')
 sys.path.insert(0, r'C:\Users\acq20\.claude\skills\financas\scripts')
 from waves_core import (DIR, base, HEALTHY, PER_PROVIDER, ts, load_env, login,
-                        gen_image, fetch_leads, assign_providers, ensure_breaker_closed)
+                        gen_image, fetch_leads, assign_providers, ensure_breaker_closed,
+                        warmup_target, max_per_seg, next_warmup_day, WARMUP_KEEP_RATIO)
 from waves_copy import build_html_v2, SEGMENTS as SEG_W1, WAVES as W23
 import db as crmdb
 from waves_lib import (compute_wave_slots, brt_label, fup_candidates, is_role_mailbox, is_foreign_lead,
@@ -255,11 +256,17 @@ def refresh_healthy(H):
 def build_waves(H, st):
     today = datetime.date.today().isoformat()
     n_prov = refresh_healthy(H)
+    wd     = st.get('warmup_day', 1)
+    target = warmup_target(wd)
     global MAX_PER_SEG
-    MAX_PER_SEG = PER_PROVIDER * n_prov
+    MAX_PER_SEG = max_per_seg(target, n_seg=12, n_prov=n_prov, min_seg=MIN_SEG)
+    log_line(f'WARMUP dia {wd}/8 — alvo {target}/dia · {n_prov} provider(s) · MAX_PER_SEG={MAX_PER_SEG}')
     guard = already_queued_today()
-    if guard >= 50:
-        log_line(f'GUARD: {guard} itens já agendados hoje — pulando waves'); return []
+    # O guard existe para pegar agendamento duplicado (task rodando duas vezes), não para
+    # limitar volume. Com o alvo subindo de 87 a 300, um literal 50 truncaria a rampa em
+    # silêncio a partir do dia 3 (Pitfall 4 da pesquisa da Phase 12). Ele sobe junto com o alvo.
+    if guard >= target:
+        log_line(f'GUARD: {guard} itens já agendados hoje (alvo {target}) — pulando waves'); return []
     # Horários tolerantes a atraso: task rodou 13:13 em 03/09 (PC dormindo) e o
     # /schedule recusou 09:00 (passado) -> 0 emails. Calcula ANTES do fetch (caro).
     now_utc = datetime.datetime.utcnow()
@@ -300,6 +307,7 @@ def build_waves(H, st):
         log_line(f'site-check falhou (emails saem sem achado): {e}')
 
     if DRY:
+        log_line(f'DRY: alvo do dia = {target} (warmup dia {wd})')
         log_line(f'DRY: plano = {[(c["seg"], len(l)) for c, l in plan]}')
         for cfg, leads in plan[:2]:
             for ld in leads[:3]:
@@ -358,6 +366,23 @@ def build_waves(H, st):
         log_line(f'  {cfg["seg"]:14} personalizados={pers}')
         fired.append({'seg': cfg['seg'], 'n': jr.get('queuedCount') or 0, 'brt': brt})
         log_line(f'  {cfg["seg"]:14} queue={r.status_code} n={jr.get("queuedCount")} skip={jr.get("skippedCount")} sched {brt} BRT (reag {moved})')
+
+    # Avanço honesto do degrau de warmup + alvo-vs-entregue no resumo. Inalcançável em --dry
+    # (a função já retornou acima no branch DRY). Só avalia uma vez por dia: a task pode
+    # rodar duas vezes (retry), e o degrau não pode pular dois dias na mesma execução dupla.
+    entregue = sum(f['n'] for f in fired)
+    st['warmup_target_hoje'] = target
+    st['warmup_delivered']   = entregue
+    if st.get('warmup_last_date') == today:
+        log_line(f'WARMUP: dia {wd} já avaliado hoje ({today}) — não reavalia (2a execução do dia)')
+    else:
+        novo = next_warmup_day(wd, entregue, target)
+        if novo != wd:
+            st['warmup_day'] = novo; st['warmup_last_date'] = today
+            log_line(f'WARMUP: dia {wd} -> {novo} (entregue {entregue}/{target})')
+        else:
+            st['warmup_last_date'] = today
+            log_line(f'WARMUP: SEGURA no dia {wd} — entregue {entregue}/{target} (<{int(WARMUP_KEEP_RATIO*100)}%)')
     return fired
 
 # ---------- 2. FOLLOW-UP ----------
@@ -742,10 +767,14 @@ def main():
     seg_txt = ' · '.join(f"{f['seg']}({f['n']})@{f['brt']}" for f in fired) or '—'
     hot_txt = '\n'.join(f"  🔥 {r.name or r.recipient_email} — {r.clicks or 0} click, {r.opens or 0} opens" for r in hot[:10]) or '  (nenhum)'
     msg = (f'📧 <b>Email waves {datetime.date.today().strftime("%d/%m")}</b>\n'
-           f'Agendados hoje: <b>{total}</b>\n{seg_txt}\n'
+           f'Agendados hoje: <b>{total}</b> / alvo {st.get("warmup_target_hoje", "?")} (warmup dia {st.get("warmup_day", 1)}/8)\n{seg_txt}\n'
            f'Follow-ups: FUP1 <b>{fups}</b> · FUP2 <b>{fup2}</b> · FUP3 <b>{fup3}</b>\n'
            f'Leads quentes 24h ({len(hot)}):\n{hot_txt}'
            + (('\n💬 <b>RESPONDERAM (ligar!):</b>\n' + '\n'.join(f'  {e}' for e in replies[:10])) if replies else ''))
+    alvo = st.get('warmup_target_hoje') or 0
+    if alvo and total < alvo * 0.8:
+        msg += (f'\n📉 <b>ABAIXO DO ALVO</b>: {total}/{alvo}. Provável falta de estoque por nicho '
+                f'(MIN_SEG={MIN_SEG}, nichos cortados por niche_cut_list) — degrau do warmup SEGURADO.')
     if WAVE_ERRORS:
         msg += f'\n🚨 <b>{len(WAVE_ERRORS)} campanha(s) FALHARAM</b> (schedule/queue): ' + ', '.join(WAVE_ERRORS[:6])
     if crm_tasks:
