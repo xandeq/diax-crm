@@ -1,0 +1,49 @@
+{
+ "enviados": {
+  "total": 111,
+  "wa_es": 111,
+  "wa_br": 0,
+  "desconhecido": 0,
+  "unicos": {
+   "total": 111,
+   "wa_es": 111,
+   "wa_br": 0
+  }
+ },
+ "respondidos": {
+  "total": 53,
+  "wa_es": 52,
+  "wa_br": 1
+ },
+ "optout": {
+  "total": 7,
+  "novos_periodo": null
+ },
+ "taxa_resposta": {
+  "geral": 0.4774774774774775,
+  "wa_es": 0.46846846846846846,
+  "wa_br": null
+ },
+ "crm": {
+  "enviados_total": 17,
+  "enviados_periodo": 0,
+  "respostas_task_items": 8,
+  "respostas_periodo": 0,
+  "optout": 0
+ },
+ "divergencia": {
+  "enviados_logs": 111,
+  "enviados_crm": 0,
+  "delta": 111,
+  "causa": "outreach-send.py nao chama POST /api/v1/integrations/whatsapp-event"
+ },
+ "periodo": {
+  "de": "2026-09-13T18:18:11",
+  "ate": "2026-09-20T18:18:11",
+  "dias": 7,
+  "fuso_logs": "BRT",
+  "fuso_crm": "UTC"
+ },
+ "blacklist_tamanho": 7,
+ "gerado": "2026-09-20T18:18:11"
+}
