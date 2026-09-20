@@ -6,7 +6,7 @@
 - ⚠️ **v1.1 Produtividade Pessoal** — Superado (planejado 2026-04-03, nunca executado pelo GSD; código evoluiu via sprints)
 - ⏸️ **v1.2 Agentes de IA** — Pausado em paralelo desde 2026-05-29 (Phase 02, 2/4 plans); Phases 3-6 definidas, não iniciadas. Não abandonado — retomar com `/gsd:execute-phase 2`.
 - ✅ **v1.3 Pipeline de Aquisição** — Phases 7-8 (shipped 2026-09-08) — [arquivo](milestones/v1.3-ROADMAP.md)
-- 🟢 **v1.4 Funil de Outreach — Cadência e Qualidade** — Phases 9-14 (roadmap ativo, ver seção abaixo)
+- ✅ **v1.4 Funil de Outreach — Cadência e Qualidade** — Phases 9-14, 6/6 concluídas (shipped 2026-09-20, ver seção abaixo)
 
 ---
 
@@ -232,9 +232,9 @@ estiver pausado.
 
 ## v1.4 — Funil de Outreach — Cadência e Qualidade
 
-**Status:** 🟢 Roadmap ativo (criado 2026-09-19). Numeração de fases continua de onde v1.3 parou
-(Phase 8) — v1.4 começa em **Phase 9**. Roda em paralelo ao v1.2 pausado, sem tocar nos arquivos de
-`src/Diax.Domain/Agents/*` nem correlatos.
+**Status:** ✅ Concluído 2026-09-20 (criado 2026-09-19, 6/6 fases entregues). Numeração de fases
+continuou de onde v1.3 parou (Phase 8) — v1.4 começou em **Phase 9**. Rodou em paralelo ao v1.2
+pausado, sem tocar nos arquivos de `src/Diax.Domain/Agents/*` nem correlatos.
 
 **Milestone Goal:** Profissionalizar o funil de outreach de ponta a ponta — limpar/pontuar o
 backlog que antecede o v1.3, dar cadência real ao follow-up (email+WhatsApp), tornar "Qualified" um
@@ -254,7 +254,7 @@ dependência de um único notebook.
  (completed 2026-09-20)
 - [x] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04) — 6/6 planos entregues; EMAL-01/02/04 Partial por decisão deliberada/calendário, ver Nota de execução (completed 2026-09-20)
 - [x] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04) (completed 2026-09-20)
-- [ ] **Phase 14: Dashboard de Conversão do Funil** — Conversão percentual por etapa do funil (DASH-01)
+- [x] **Phase 14: Dashboard de Conversão do Funil** — Conversão percentual por etapa do funil (DASH-01) (completed 2026-09-20)
 
 ### Phase Details
 
@@ -573,10 +573,34 @@ visualmente enganoso; (b) o **critério 3 (filtro por período) NÃO tem impleme
 D-01, esse gap é **documentado e deferido** para milestone futura, nunca marcado como entregue.
 Verificar a fase contra os critérios 1, 2 e 4 mais o gap explicitado do critério 3.
 
-**Plans:** 1 plan, 1 wave
+**Nota de execução (2026-09-20, fechamento no 14-01):** Fase fechada com o único plano executado sem
+checkpoint. Task 1 capturou ao vivo `GET /api/v1/sales-dashboard` (login real, `2026-09-20T20:02:07
+-03:00`) e re-derivou manualmente cada `conversionToNext` das 5 etapas contra a fórmula de
+`BuildFunnel` — veredito `BATE`, zero discrepância dentro de `1e-4`, evidência em
+`docs/email-marketing/previews/dashboard-funil-evidencia.json`; `dotnet test SalesDashboardTests`
+5/5 passou. Task 2 capturou prova visual real da página `/dashboard-comercial/` renderizada em
+produção via Playwright (`docs/email-marketing/qa-e2e/dashboard-funil-shot.mjs`, modelado em
+`crm-e2e.mjs`) — 4/4 checks de DOM `true`, screenshot de 114,6 KB
+(`docs/email-marketing/previews/dashboard-funil-screenshot.png`), comparação contra a API da Task 1
+com `bate_exato: true`. Task 3 publicou `docs/email-marketing/DASHBOARD-funil-runbook.md` (282
+linhas) documentando a fórmula verbatim, a natureza **cumulativa** de `conversionToNext` (não é taxa
+adjacente Contacted→Qualified, é "% do pool em-ou-além desta etapa que já passou dela"), o caso
+`Negociando=0 → 100%` (quirk conhecido e aceito, não bug), e o escopo 5-de-7 status do `CustomerStatus`.
+Lendo os 4 critérios de sucesso à luz do que foi medido: **critérios 1, 2 e 4** atendidos pela
+implementação já existente desde o PR #61 (2026-07-03), com a ressalva de que o critério 1 deve ser
+lido com a natureza cumulativa da fórmula, não como taxa adjacente; **critério 3 (filtro por período)
+NÃO atendido** — `SalesDashboardController.Get()` não recebe parâmetro de data e `page.tsx` não tem
+date picker, gap conhecido e deferido por D-01 (verify-only, zero código de aplicação novo além do
+harness de evidência). Como `veredito == "BATE"` **e** `shot-report.ok == true`, DASH-01 fecha
+`Complete` (regra de honestidade do plano: só fecharia `Partial` se qualquer um dos dois tivesse
+falhado). Zero linha alterada em `SalesDashboardService.cs`/`SalesDashboardController.cs`/
+`page.tsx`/`salesDashboard.ts` (`git diff --stat` vazio confirmado nas 3 tasks). **Esta fase fecha o
+milestone v1.4 inteiro: 6/6 fases (9, 10, 11, 12, 13, 14).**
+
+**Plans:** 1/1 plan complete
 
 Plans:
-- [ ] 14-01-PLAN.md — Reconferir ao vivo os números do funil (API + re-derivação à mão de cada
+- [x] 14-01-PLAN.md — Reconferir ao vivo os números do funil (API + re-derivação à mão de cada
   `conversionToNext`), capturar prova visual da página renderizada em produção via Playwright, e
   publicar o runbook `DASHBOARD-funil-runbook.md` com a natureza cumulativa da fórmula, o caso
   `Negociando = 0 → 100%` e o gap deferido do filtro por período; fechar DASH-01 na
@@ -593,7 +617,7 @@ Plans:
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
 | 13. Escala de WhatsApp | 4/4 | Complete   | 2026-09-20 |
-| 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
+| 14. Dashboard de Conversão do Funil | 1/1 | Complete    | 2026-09-20 |
 
 ### Coverage Map (v1.4)
 
@@ -612,7 +636,7 @@ Plans:
 | WHAT-02 | Phase 13 | Complete (13-02 — sync incremental verificado + Scheduled Task horaria, gap real de 18 leads sem deflexao capturado e enfileirado) |
 | WHAT-03 | Phase 13 | Complete (13-03 — whatsapp_weekly_report.py + Scheduled Task sexta 17:00 BRT, entrega real no Telegram provada) |
 | WHAT-04 | Phase 13 | Complete (13-04 — `wa_escalation.py`, limiares travados antes da medição, veredito honesto `AVANCAR` sobre dados reais, achado de que o portão de segmento nunca existiu no emissor oficial) |
-| DASH-01 | Phase 14 | Pending |
+| DASH-01 | Phase 14 | Complete (14-01 — veredito `BATE` na re-derivação ao vivo + prova visual real `ok: true`; gap do filtro por período (critério #3) conhecido e deferido, não escondido) |
 
 **Total mapped: 14/14**
 
@@ -634,7 +658,16 @@ recusa 5,8%); achado central — `outreach-send.py:escolhe()` nunca filtrou por 
 portão que WHAT-04 pedia para abrir nunca existiu como trava de código, e `--apply` não liga nada
 de operacional (`SEM PORTAO DE SEGMENTO`). Runbook consolidado `ESCALA-WHATSAPP-runbook.md`
 publicado, rastreabilidade WHAT-01..04 fechada sem contradição entre REQUIREMENTS.md e ROADMAP.md.
-**Phase 13 concluída 4/4 planos.** Próximo passo: `/gsd:plan-phase 14` (Dashboard de Conversão do
-Funil).*
+**Phase 13 concluída 4/4 planos.** 14-01 concluído 2026-09-20 (fecha a fase e o milestone): DASH-01
+reconferido ao vivo — `dashboard-funil-evidencia.json` (veredito `BATE`, zero discrepância na
+re-derivação manual dos 5 estágios) + prova visual real via Playwright (`dashboard-funil-shot.mjs`,
+4/4 checks, screenshot 114,6 KB, `bate_exato: true` contra a API) + `dotnet test` 5/5; runbook
+`DASHBOARD-funil-runbook.md` (282 linhas) publicado com a natureza cumulativa de `conversionToNext`,
+o caso `Negociando=0→100%` e o gap deferido do filtro por período (critério #3 do ROADMAP, não
+implementado, registrado como gap conhecido e não escondido). DASH-01 fecha `Complete` — a regra de
+honestidade do plano (`Complete` só se `veredito==BATE` **e** `shot-report.ok==true`) foi satisfeita
+nas duas frentes. Zero linha alterada nos 4 arquivos de aplicação sob D-01. **Phase 14 concluída 1/1
+plano.** **Milestone v1.4 concluído: 6/6 fases (9, 10, 11, 12, 13, 14) — 11 requisitos `Complete`, 3
+`Partial` por decisão deliberada/calendário (EMAL-01/02/04, ver Coverage Map acima).***
 
 ---
