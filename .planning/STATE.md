@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 12-05-PLAN.md
-last_updated: "2026-09-20T16:44:05.927Z"
+stopped_at: Completed 12-06-PLAN.md
+last_updated: "2026-09-20T20:00:00.000Z"
 progress:
   total_phases: 11
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # State — DIAX CRM
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 12 — Escala de Email
+**Current focus:** Phase 13 — Escala de WhatsApp (Phase 12 concluída 2026-09-20; próximo passo `/gsd:plan-phase 13`)
 
 ## Current Position
 
-Phase: 12 (Escala de Email) — EXECUTING
-Plan: 6 of 6
+Phase: 12 (Escala de Email) — COMPLETE (6/6 planos, EMAL-02/04 fecham Partial pendente de confirmação em 2026-09-21)
+Plan: 6 of 6 — done
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Plan: 6 of 6
 | Phase 12 P01 | 25min | 2 tasks | 1 files |
 | Phase 12 P04 | 15min | 2 tasks | 3 files |
 | Phase 12-escala-de-email P05 | 25min | 3 tasks | 3 files |
+| Phase 12-escala-de-email P06 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,7 @@ Plan: 6 of 6
 - [Phase 12]: [Phase 12] 12-04: contagem ao vivo dos 24/24 dominios FREE_WEBMAIL = 719 leads nunca-contactados (nao 560 do REQUIREMENTS.md, nem ~712 aproximado da pesquisa) — valor que vale e o medido agora
 - [Phase 12]: [Phase 12] 12-04: cap diario webmail = 15 (meio da faixa 10-20 do CONTEXT.md), marca 'AQ - webmail - ... auto wm' fica fora do A/B por construcao (ab_report.parse_variant so reconhece sufixo auto s[AB])
 - [Phase 12-escala-de-email]: 12-05: checkpoint humano resolvido com prova-e-segura - drill de reversao provado em producao contra _gsddrill (write->verify->revert->cleanup), degrau real segurado em pct=25 porque bounce rate (5,08% em 7d) ja excede o limiar de reversao D-04 (>5%); EMAL-01 marcado Partial ate a saude da base melhorar
+- [Phase 12-escala-de-email]: 12-06: checkpoint humano da Task 2 resolvido com `aguardar` - usuario optou por nao forcar execucao real (--force) fora de calendario num domingo (2026-09-20); task agendada DIAX-Email-Waves-Daily confirma sozinha na segunda-feira 2026-09-21 08:40 BRT sem --force; EMAL-02/04 fecham Partial ate essa confirmacao, EMAL-03 fecha Complete (medicao ja roda sobre dados reais sem depender de envio futuro); runbook consolidado ESCALA-EMAIL-runbook.md publicado (Task 1); Phase 12 fechada 6/6 planos
 
 ### Testing Protocol
 
@@ -223,13 +225,12 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   preservado). QUAL-01/QUAL-02 fechados em REQUIREMENTS.md/ROADMAP.md. Próximo passo:
   `/gsd:plan-phase 12` (Escala de Email).
 
-- Phase 12 (Escala de Email) EM ANDAMENTO (5/6 planos) — 12-04 concluído 2026-09-20: caminho
+- Phase 12 (Escala de Email) CONCLUÍDA (6/6 planos, 2026-09-20) — 12-04 concluído 2026-09-20: caminho
   paralelo de webmail (`build_webmail_wave()`, cap 15/dia, marca `auto wm`, fora do A/B por
   construção) + `mode='corp'|'webmail'` explícito em `email_ok()`/`fetch_leads()` (default corp
   inalterado, confirmado por `git diff` do bloco `FREE_WEBMAIL`) + A/B do 12-03 ligado no resumo
   de sexta. Contagem ao vivo: 719 leads webmail nunca-contactados (24/24 domínios, não 560 do
-  REQUIREMENTS.md nem ~712 aproximado da pesquisa). EMAL-04 fechado; EMAL-03 fechado (medição do
-  12-03 + relatório agora ligado).
+  REQUIREMENTS.md nem ~712 aproximado da pesquisa).
 
   12-05 concluído 2026-09-20 (retomada pós-checkpoint): checkpoint da Task 1 resolvido com
   `prova-e-segura` — drill de reversão (`--drill` novo em `dmarc_escalation.py`) provado em
@@ -241,8 +242,24 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   semeado com `dmarc_pct=25`/`dmarc_changed_at=2026-09-20`/`dmarc_history` (hold), sem escrita de
   DNS. `docs/email-marketing/DMARC-escalonamento.md` (211 linhas) publicado. EMAL-01 corrigido de
   "Complete" (impreciso) para "Partial" em REQUIREMENTS.md e ROADMAP.md — mecanismo entregue e
-  provado, degrau real não avançado por escolha, não falha. Resta 12-06 (checkpoint de verificação
-  humana final da fase, fechamento consolidado de EMAL-01..04).
+  provado, degrau real não avançado por escolha, não falha.
+
+  12-06 concluído 2026-09-20 (fecha a fase): Task 1 publicou o runbook consolidado
+  `docs/email-marketing/ESCALA-EMAIL-runbook.md` (336+ linhas, 9 seções) com a bateria completa
+  (`waves_smoke.py` 7/7, ambos `--selftest`, `daily_waves.py --dry --force`) e a seção obrigatória
+  de realidade de estoque (34 de 4.232 leads corporativos nunca-contactados são de fato roteáveis
+  pela rotação de nichos nesta execução — o gargalo é distribuição por nicho, não teto de volume).
+  Task 2 (checkpoint humano bloqueante) apresentou estado da Scheduled Task
+  `DIAX-Email-Waves-Daily` e as 4 linhas de prova do `--dry --force`; usuário respondeu `aguardar`
+  — não forçar execução real num domingo fora de calendário; a task agendada confirma sozinha na
+  segunda-feira 2026-09-21 08:40 BRT sem precisar de `--force`. Task 3 fechou a rastreabilidade
+  honestamente: EMAL-02 e EMAL-04 corrigidos de "Complete" (impreciso, sem evidência citável) para
+  "Partial" (mecanismo entregue e provado, confirmação real pendente de 2026-09-21); EMAL-03 fecha
+  "Complete" (medição já roda sobre dados reais de produção, não depende de envio futuro);
+  contradição entre ROADMAP.md ("Pending") e REQUIREMENTS.md ("Complete") para EMAL-02, encontrada
+  pelo verificador em `12-VERIFICATION.md`, corrigida — os dois documentos agora concordam. **Phase
+  12 está 100% concluída (6/6 planos)** no nível de entrega de mecanismo; próximo passo:
+  `/gsd:plan-phase 13` (Escala de WhatsApp).
 
 **v1.3 (shipped, referência):**
 
@@ -273,21 +290,24 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T16:44:05.922Z
-Stopped at: Completed 12-05-PLAN.md
-Phase 11 plan 01 (único plano da fase) executado — QUAL-01/QUAL-02 fechados via verificação ao vivo,
-zero código de aplicação alterado (D-01). Task 1 reconferiu ao vivo (não copiou da pesquisa de
-2026-09-20): Scheduled Task `DIAX-Reply-Watch` `State=Ready`/`LastTaskResult=0`/cadência PT30M-PT11H
-seg-sex sem divergência, e o cross-reference contra o audit log do CRM confirmou
-`atendimento@listamais.com.br` (customer_id `2dcb6a14-006a-426c-bc60-b6599a8f0e64`) avançou
-`Status: 1→2` em `2026-09-07T11:00:22.9668226Z`, 14s depois da classificação `positive` no log do
-script — mesma correlação da pesquisa, agora reconferida nesta sessão. Caminho negativo
-(`coordenacao@atomclinica.com.br`, `recepcao@vilaaltodospinhais.com.br`) confirmado sem nenhum
-evento de `Status` no audit log — sem falso positivo. Guard MD5 de `reply_watch.py` idêntico nos 3
-checkpoints (antes da Task 1, depois da Task 1, depois da Task 2) — `BC93E487DDFA9DA7EC5BC4284F8F2328`
-— e `git status`/`git diff` confirmam o diff não commitado do usuário (saudação WhatsApp) intacto o
-tempo todo. Task 2 criou `docs/email-marketing/QUALIFIED-avanco-automatico.md` (195 linhas, 5 seções)
-e fechou QUAL-01/QUAL-02 em REQUIREMENTS.md e no Coverage Map do ROADMAP.md. **Phase 11 está 100%
-concluída (1/1 plano).** v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
-Próximo passo: `/gsd:plan-phase 12` (Escala de Email).
+Last session: 2026-09-20T20:00:00.000Z
+Stopped at: Completed 12-06-PLAN.md
+Plano 12-06 (fechamento da Phase 12) executado até o fim, retomado pós-checkpoint da Task 2 com a
+decisão do usuário `aguardar`. Task 1 publicou `docs/email-marketing/ESCALA-EMAIL-runbook.md`
+consolidando os 4 mecanismos (DMARC, warmup, A/B, webmail) com a bateria de verificação rodada ao
+vivo e a seção de realidade de estoque (só 34 de 4.232 leads corporativos nunca-contactados são
+roteáveis pela rotação de nichos nesta execução). Task 2 apresentou o checkpoint (estado da
+Scheduled Task `DIAX-Email-Waves-Daily`, 4 linhas de prova do `--dry --force`) — usuário respondeu
+`aguardar`: não forçar execução real (`--force`) num domingo fora de calendário; a task agendada
+confirma sozinha na segunda-feira 2026-09-21 08:40 BRT. Task 3 fechou a rastreabilidade: EMAL-02 e
+EMAL-04 corrigidos de "Complete" (sem evidência citável) para "Partial" (mecanismo provado,
+confirmação real pendente de 2026-09-21); EMAL-03 fecha "Complete"; a contradição EMAL-02 entre
+ROADMAP.md ("Pending") e REQUIREMENTS.md ("Complete"), achada pelo verificador em
+`12-VERIFICATION.md`, foi corrigida — os dois documentos agora concordam. Runbook atualizado com
+nota de "o que conferir na segunda-feira" para fechar EMAL-02/04 sem precisar de sessão nova.
+**Phase 12 está 100% concluída (6/6 planos)** no nível de entrega de mecanismo — EMAL-01/02/04
+honestamente `Partial` por calendário/segurança, EMAL-03 `Complete`. Nenhum `.py` foi alterado
+(`reply_watch.py`/`CLAUDE.md`/`tsconfig.tsbuildinfo` preservados intactos, trabalho não relacionado
+em andamento). Nenhum envio real foi disparado. v1.2 segue pausado em paralelo (ver "v1.2 —
+Pausado" acima), sem alteração. Próximo passo: `/gsd:plan-phase 13` (Escala de WhatsApp).
 Resume file: None
