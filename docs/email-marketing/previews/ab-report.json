@@ -1,0 +1,38 @@
+{
+  "janela_dias": 30,
+  "gerado_em": "2026-09-20T16:07:52Z",
+  "variantes": {
+    "sA": {
+      "sent": 88,
+      "clicks": 2,
+      "opens": 2,
+      "bounces": 7,
+      "dias": 5,
+      "campanhas": 17
+    },
+    "sB": {
+      "sent": 270,
+      "clicks": 10,
+      "opens": 9,
+      "bounces": 15,
+      "dias": 8,
+      "campanhas": 37
+    }
+  },
+  "veredito": "INCONCLUSIVO",
+  "motivo": "12 cliques no total < 30 minimo para decidir",
+  "subject_exemplos": {
+    "logistica": [
+      "controle de fretes",
+      "fretes sem planilha"
+    ],
+    "arquitetura": [
+      "portfólio no google",
+      "projetos no google"
+    ],
+    "estudio": [
+      "agendamento das aulas",
+      "faltas nas aulas"
+    ]
+  }
+}

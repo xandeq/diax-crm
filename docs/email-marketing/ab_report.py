@@ -30,6 +30,12 @@ import json
 import pathlib
 import datetime
 
+if hasattr(sys.stdout, 'reconfigure'):
+    # console Windows (cp1252) quebra em emoji/HTML entity do format_tg() — mesma regra
+    # documentada do projeto (PYTHONIOENCODING=utf-8); reconfigura em vez de exigir env var externa.
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 DIR = str(pathlib.Path(__file__).resolve().parent) + '/'
 if DIR not in sys.path:
     sys.path.insert(0, DIR)
