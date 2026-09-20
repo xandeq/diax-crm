@@ -1,0 +1,38 @@
+{
+ "gerado": "2026-09-20T18:39:30",
+ "veredito": "AVANCAR",
+ "motivo": "AVANCAR: taxa wa_es 43.8% >= 10.0% minimo, recusa 5.8% <= 8.0% teto (53 respostas em 121 envios)",
+ "limiares": {
+  "MIN_ENVIADOS_ES": 60,
+  "MIN_RESPOSTAS_ES": 10,
+  "TAXA_MINIMA": 0.1,
+  "TETO_RECUSA": 0.08
+ },
+ "metricas": {
+  "wa_es": {
+   "enviados": 121,
+   "respondidos": 53,
+   "recusas": 7,
+   "taxa": 0.4380165289256198
+  },
+  "wa_br": {
+   "enviados": 0,
+   "respondidos": 1,
+   "recusas": 0,
+   "taxa": null
+  }
+ },
+ "portao": {
+  "existe_portao": false,
+  "onde": "nenhum",
+  "observacao": "export_whatsapp_leads.py ordena wa_es antes de wa_br via --es-only=True, mas outreach-send.py:escolhe() nao filtra por segmento (so STOP/blacklist/sent/janela/CAP/prioridade/encoding) — wa_br ja pode ser escolhido pelo emissor ao vivo assim que a prioridade permitir"
+ },
+ "historico": [
+  {
+   "data": "2026-09-20T18:39:30",
+   "veredito": "AVANCAR",
+   "motivo": "AVANCAR: taxa wa_es 43.8% >= 10.0% minimo, recusa 5.8% <= 8.0% teto (53 respostas em 121 envios)",
+   "aplicado": false
+  }
+ ]
+}
