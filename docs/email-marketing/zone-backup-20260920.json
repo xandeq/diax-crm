@@ -1,0 +1,1770 @@
+{
+  "metadata": {
+    "result": 1,
+    "version": 1,
+    "command": "dumpzone",
+    "reason": "Zone Serialized"
+  },
+  "data": {
+    "zone": [
+      {
+        "record": [
+          {
+            "raw": "; cPanel first:102.0.18 (update_time):1788552713 Cpanel::ZoneFile::VERSION:1.3 hostname:srv232.prodns.com.br latest:134.0.54",
+            "type": ":RAW",
+            "Line": 1
+          },
+          {
+            "type": ":RAW",
+            "Line": 2,
+            "raw": "; Zone file for alexandrequeiroz.com.br"
+          },
+          {
+            "type": "$TTL",
+            "ttl": "14400",
+            "Line": 3
+          },
+          {
+            "retry": "7200",
+            "name": "alexandrequeiroz.com.br.",
+            "refresh": "86400",
+            "type": "SOA",
+            "ttl": 86400,
+            "minimum": "86400",
+            "Lines": 1,
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "mname": "ns232.prodns.com.br",
+            "Line": 4,
+            "expire": "3600000",
+            "rname": "root.srv232.prodns.com.br",
+            "serial": "2026090401",
+            "class": "IN"
+          },
+          {
+            "nsdname": "ns232.prodns.com.br",
+            "name": "alexandrequeiroz.com.br.",
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "class": "IN",
+            "type": "NS",
+            "ttl": 86400,
+            "Line": 5
+          },
+          {
+            "name": "alexandrequeiroz.com.br.",
+            "nsdname": "ns233.prodns.com.br",
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "class": "IN",
+            "type": "NS",
+            "ttl": 86400,
+            "Line": 6
+          },
+          {
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "name": "alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 7,
+            "class": "IN"
+          },
+          {
+            "name": "localhost.alexandrequeiroz.com.br.",
+            "dname_raw": "localhost",
+            "class": "IN",
+            "Line": 8,
+            "type": "A",
+            "ttl": 14400,
+            "address": "127.0.0.1"
+          },
+          {
+            "type": "MX",
+            "ttl": 14400,
+            "Line": 9,
+            "class": "IN",
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "name": "alexandrequeiroz.com.br.",
+            "preference": "0",
+            "exchange": "mail.alexandrequeiroz.com.br"
+          },
+          {
+            "dname_raw": "mail",
+            "name": "mail.alexandrequeiroz.com.br.",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 10,
+            "address": "108.167.132.104",
+            "class": "IN"
+          },
+          {
+            "cname": "alexandrequeiroz.com.br",
+            "dname_raw": "www",
+            "name": "www.alexandrequeiroz.com.br.",
+            "ttl": 14400,
+            "type": "CNAME",
+            "Line": 11,
+            "class": "IN"
+          },
+          {
+            "Line": 12,
+            "type": "CNAME",
+            "ttl": 14400,
+            "class": "IN",
+            "dname_raw": "ftp",
+            "cname": "alexandrequeiroz.com.br",
+            "name": "ftp.alexandrequeiroz.com.br."
+          },
+          {
+            "Line": 13,
+            "type": "CNAME",
+            "ttl": 14400,
+            "class": "IN",
+            "cname": "alexandrequeiroz.com.br",
+            "dname_raw": "cpanel",
+            "name": "cpanel.alexandrequeiroz.com.br."
+          },
+          {
+            "Line": 14,
+            "type": "CNAME",
+            "ttl": 14400,
+            "class": "IN",
+            "dname_raw": "webmail",
+            "cname": "alexandrequeiroz.com.br",
+            "name": "webmail.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "alexandrequeiroz.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "alexandrequeiroz.com.br",
+            "char_str_list": [
+              "v=spf1 a mx include:websitewelcome.com include:sendinblue.com include:spf.mailjet.com include:sendgrid.net ~all"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "Line": 15,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "v=spf1 a mx include:websitewelcome.com include:sendinblue.com include:spf.mailjet.com include:sendgrid.net ~all"
+          },
+          {
+            "dname_raw": "webdisk",
+            "name": "webdisk.alexandrequeiroz.com.br.",
+            "type": "A",
+            "Line": 16,
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "class": "IN"
+          },
+          {
+            "dname_raw": "_carddavs._tcp",
+            "priority": "0",
+            "port": "2080",
+            "name": "_carddavs._tcp.alexandrequeiroz.com.br.",
+            "target": "srv232.prodns.com.br",
+            "ttl": 14400,
+            "type": "SRV",
+            "Line": 17,
+            "class": "IN",
+            "weight": "0"
+          },
+          {
+            "name": "_carddavs._tcp.alexandrequeiroz.com.br.",
+            "dname_raw": "_carddavs._tcp",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "Line": 18,
+            "txtdata": "path=/"
+          },
+          {
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 19,
+            "class": "IN",
+            "dname_raw": "whm",
+            "name": "whm.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "autoconfig.alexandrequeiroz.com.br.",
+            "dname_raw": "autoconfig",
+            "class": "IN",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 20,
+            "address": "108.167.132.104"
+          },
+          {
+            "weight": "0",
+            "class": "IN",
+            "ttl": 14400,
+            "type": "SRV",
+            "Line": 21,
+            "target": "srv232.prodns.com.br",
+            "name": "_carddav._tcp.alexandrequeiroz.com.br.",
+            "port": "2079",
+            "priority": "0",
+            "dname_raw": "_carddav._tcp"
+          },
+          {
+            "name": "_carddav._tcp.alexandrequeiroz.com.br.",
+            "dname_raw": "_carddav._tcp",
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 14400,
+            "Line": 22
+          },
+          {
+            "target": "cpanelemaildiscovery.cpanel.net",
+            "Line": 23,
+            "type": "SRV",
+            "ttl": 14400,
+            "class": "IN",
+            "weight": "0",
+            "dname_raw": "_autodiscover._tcp",
+            "priority": "0",
+            "port": "443",
+            "name": "_autodiscover._tcp.alexandrequeiroz.com.br."
+          },
+          {
+            "priority": "0",
+            "name": "_caldavs._tcp.alexandrequeiroz.com.br.",
+            "port": "2080",
+            "dname_raw": "_caldavs._tcp",
+            "class": "IN",
+            "weight": "0",
+            "target": "srv232.prodns.com.br",
+            "Line": 24,
+            "type": "SRV",
+            "ttl": 14400
+          },
+          {
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "Line": 25,
+            "txtdata": "path=/",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN",
+            "dname_raw": "_caldavs._tcp",
+            "name": "_caldavs._tcp.alexandrequeiroz.com.br."
+          },
+          {
+            "class": "IN",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 26,
+            "address": "108.167.132.104",
+            "name": "cpcalendars.alexandrequeiroz.com.br.",
+            "dname_raw": "cpcalendars"
+          },
+          {
+            "name": "autodiscover.alexandrequeiroz.com.br.",
+            "dname_raw": "autodiscover",
+            "class": "IN",
+            "address": "108.167.132.104",
+            "type": "A",
+            "Line": 27,
+            "ttl": 14400
+          },
+          {
+            "dname_raw": "cpcontacts",
+            "name": "cpcontacts.alexandrequeiroz.com.br.",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 28,
+            "address": "108.167.132.104",
+            "class": "IN"
+          },
+          {
+            "weight": "0",
+            "class": "IN",
+            "type": "SRV",
+            "ttl": 14400,
+            "Line": 29,
+            "target": "srv232.prodns.com.br",
+            "port": "2079",
+            "name": "_caldav._tcp.alexandrequeiroz.com.br.",
+            "priority": "0",
+            "dname_raw": "_caldav._tcp"
+          },
+          {
+            "name": "_caldav._tcp.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldav._tcp",
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 30,
+            "ttl": 14400
+          },
+          {
+            "name": "default._domainkey.alexandrequeiroz.com.br.",
+            "dname_raw": "default._domainkey",
+            "char_str_list": [
+              "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtZgiTLpn0fqXNYmD8/D/rAKCTmXY4+/v7eYYwlT/kyph+9+Jhr+yNddHRbFA1erqM5wcwwhnj0SDpyGCpJcCbVxbg8mXInpt7K0fAom/pAITfgjIJxF6s3lh0KMpQpodHC5wsGT5C95XOBfBithi6ACOzoyQp0S4XQqWGq/6vf46XYmfmq/cW/QIk1rythqtB",
+              "FcL1c39eTIHtMpVsCs+XCnT+GO/avALHogHvJZFQ9pIK/LOV3bOpcuntCEV8GQQx+mvEPMIljv0ls6Loxb6GviGNDnY0At4UvOWTLz2XJ1OSzRAVSuDsztUL/MZwz8Fh0e7SGHkBkrLibM+W+4dIQIDAQAB;"
+            ],
+            "class": "IN",
+            "Line": 31,
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtZgiTLpn0fqXNYmD8/D/rAKCTmXY4+/v7eYYwlT/kyph+9+Jhr+yNddHRbFA1erqM5wcwwhnj0SDpyGCpJcCbVxbg8mXInpt7K0fAom/pAITfgjIJxF6s3lh0KMpQpodHC5wsGT5C95XOBfBithi6ACOzoyQp0S4XQqWGq/6vf46XYmfmq/cW/QIk1rythqtBFcL1c39eTIHtMpVsCs+XCnT+GO/avALHogHvJZFQ9pIK/LOV3bOpcuntCEV8GQQx+mvEPMIljv0ls6Loxb6GviGNDnY0At4UvOWTLz2XJ1OSzRAVSuDsztUL/MZwz8Fh0e7SGHkBkrLibM+W+4dIQIDAQAB;"
+          },
+          {
+            "class": "IN",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 32,
+            "address": "108.167.132.100",
+            "name": "ns1.alexandrequeiroz.com.br.",
+            "dname_raw": "ns1"
+          },
+          {
+            "name": "ns2.alexandrequeiroz.com.br.",
+            "dname_raw": "ns2",
+            "class": "IN",
+            "Line": 33,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.101"
+          },
+          {
+            "name": "_cpanel-dcv-test-record.alexandrequeiroz.com.br.",
+            "dname_raw": "_cpanel-dcv-test-record",
+            "char_str_list": [
+              "_cpanel-dcv-test-record=6yG5YJcdjs1WRSjFeyH6BvYJH4AvgG0CtOImNeBbDAmQc1wVYKMX4xwQrPKhFVra"
+            ],
+            "class": "IN",
+            "Line": 34,
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "_cpanel-dcv-test-record=6yG5YJcdjs1WRSjFeyH6BvYJH4AvgG0CtOImNeBbDAmQc1wVYKMX4xwQrPKhFVra"
+          },
+          {
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 14400,
+            "Line": 35,
+            "txtdata": "kWlS6o9OAa4H5oDllP7Y1PCNEnaPOV1FEahFp963Os4",
+            "char_str_list": [
+              "kWlS6o9OAa4H5oDllP7Y1PCNEnaPOV1FEahFp963Os4"
+            ],
+            "class": "IN",
+            "dname_raw": "_acme-challenge",
+            "name": "_acme-challenge.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "k2._domainkey.alexandrequeiroz.com.br.",
+            "dname_raw": "k2._domainkey",
+            "cname": "dkim2.mcsv.net",
+            "class": "IN",
+            "type": "CNAME",
+            "ttl": 14400,
+            "Line": 36
+          },
+          {
+            "cname": "dkim3.mcsv.net",
+            "dname_raw": "k3._domainkey",
+            "name": "k3._domainkey.alexandrequeiroz.com.br.",
+            "type": "CNAME",
+            "Line": 37,
+            "ttl": 14400,
+            "class": "IN"
+          },
+          {
+            "dname_raw": "monteverdemadeiras.com.br",
+            "name": "monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "type": "A",
+            "Line": 38,
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "class": "IN"
+          },
+          {
+            "class": "IN",
+            "address": "108.167.132.104",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 39,
+            "name": "www.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "www.monteverdemadeiras.com.br"
+          },
+          {
+            "txtdata": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA17IPEdNreEl7oaL542+571btY/RfwQKI4N0i+T9KxHHMPMyiokYAchSz/O1AV/BbXZrehNavk1cTU/yXaJh58ILdpHrRAnifVdOQsqPLeqACQ/fIiub7FiZfqI9hEWONxYY2K514TtdQLw50edLD9LN+lJorHGrwaRQQSJz4SNhiqkRRctoWtWUQJv2E2pzbPAwo4TpO1KPDjRQc9jPpiFRyeddDzEhHhdjaSeN6qW5fCPxuYbMFqaVN0Z5ZrTlhnQ3KcKAuCRQ4G5TLZC83QUWD2tk3/TnwcuAjJMonyXma7PW3jJUCA7xp4aozRbiLhWU7E9x4zD3v9gqiH19jXwIDAQAB;",
+            "Line": 40,
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "class": "IN",
+            "char_str_list": [
+              "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA17IPEdNreEl7oaL542+571btY/RfwQKI4N0i+T9KxHHMPMyiokYAchSz/O1AV/BbXZrehNavk1cTU/yXaJh58ILdpHrRAnifVdOQsqPLeqACQ/fIiub7FiZfqI9hEWONxYY2K514TtdQLw50edLD9LN+lJorHGrwaRQQSJz4SNhiqkRRctoWtWUQJv2E2pzbP",
+              "Awo4TpO1KPDjRQc9jPpiFRyeddDzEhHhdjaSeN6qW5fCPxuYbMFqaVN0Z5ZrTlhnQ3KcKAuCRQ4G5TLZC83QUWD2tk3/TnwcuAjJMonyXma7PW3jJUCA7xp4aozRbiLhWU7E9x4zD3v9gqiH19jXwIDAQAB;"
+            ],
+            "dname_raw": "default._domainkey.monteverdemadeiras.com.br",
+            "name": "default._domainkey.monteverdemadeiras.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 41,
+            "class": "IN",
+            "dname_raw": "whm.monteverdemadeiras.com.br",
+            "name": "whm.monteverdemadeiras.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "target": "srv232.prodns.com.br",
+            "ttl": 14400,
+            "type": "SRV",
+            "Line": 42,
+            "class": "IN",
+            "weight": "0",
+            "dname_raw": "_caldavs._tcp.monteverdemadeiras.com.br",
+            "priority": "0",
+            "port": "2080",
+            "name": "_caldavs._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "_caldavs._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldavs._tcp.monteverdemadeiras.com.br",
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "type": "TXT",
+            "unencoded": 1,
+            "Line": 43,
+            "ttl": 14400
+          },
+          {
+            "class": "IN",
+            "Line": 44,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "name": "cpanel.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "cpanel.monteverdemadeiras.com.br"
+          },
+          {
+            "class": "IN",
+            "Line": 45,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "name": "webdisk.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "webdisk.monteverdemadeiras.com.br"
+          },
+          {
+            "class": "IN",
+            "address": "108.167.132.104",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 46,
+            "name": "cpcontacts.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "cpcontacts.monteverdemadeiras.com.br"
+          },
+          {
+            "target": "srv232.prodns.com.br",
+            "type": "SRV",
+            "Line": 47,
+            "ttl": 14400,
+            "class": "IN",
+            "weight": "0",
+            "dname_raw": "_caldav._tcp.monteverdemadeiras.com.br",
+            "priority": "0",
+            "port": "2079",
+            "name": "_caldav._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "txtdata": "path=/",
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 14400,
+            "Line": 48,
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "dname_raw": "_caldav._tcp.monteverdemadeiras.com.br",
+            "name": "_caldav._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "dname_raw": "webmail.monteverdemadeiras.com.br",
+            "name": "webmail.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 49,
+            "class": "IN"
+          },
+          {
+            "dname_raw": "_autodiscover._tcp.monteverdemadeiras.com.br",
+            "priority": "0",
+            "name": "_autodiscover._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "port": "443",
+            "target": "cpanelemaildiscovery.cpanel.net",
+            "type": "SRV",
+            "Line": 50,
+            "ttl": 14400,
+            "class": "IN",
+            "weight": "0"
+          },
+          {
+            "class": "IN",
+            "weight": "0",
+            "target": "srv232.prodns.com.br",
+            "Line": 51,
+            "type": "SRV",
+            "ttl": 14400,
+            "priority": "0",
+            "name": "_carddavs._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "port": "2080",
+            "dname_raw": "_carddavs._tcp.monteverdemadeiras.com.br"
+          },
+          {
+            "txtdata": "path=/",
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "Line": 52,
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "dname_raw": "_carddavs._tcp.monteverdemadeiras.com.br",
+            "name": "_carddavs._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "autoconfig.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "autoconfig.monteverdemadeiras.com.br",
+            "class": "IN",
+            "Line": 53,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104"
+          },
+          {
+            "class": "IN",
+            "weight": "0",
+            "target": "srv232.prodns.com.br",
+            "type": "SRV",
+            "Line": 54,
+            "ttl": 14400,
+            "priority": "0",
+            "port": "2079",
+            "name": "_carddav._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_carddav._tcp.monteverdemadeiras.com.br"
+          },
+          {
+            "dname_raw": "_carddav._tcp.monteverdemadeiras.com.br",
+            "name": "_carddav._tcp.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "Line": 55,
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "path=/",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN"
+          },
+          {
+            "address": "108.167.132.104",
+            "Line": 56,
+            "type": "A",
+            "ttl": 14400,
+            "class": "IN",
+            "dname_raw": "cpcalendars.monteverdemadeiras.com.br",
+            "name": "cpcalendars.monteverdemadeiras.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "autodiscover.monteverdemadeiras.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "autodiscover.monteverdemadeiras.com.br",
+            "class": "IN",
+            "type": "A",
+            "Line": 57,
+            "ttl": 14400,
+            "address": "108.167.132.104"
+          },
+          {
+            "name": "tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "tarefista",
+            "class": "IN",
+            "address": "108.167.132.104",
+            "type": "A",
+            "Line": 58,
+            "ttl": 14400
+          },
+          {
+            "name": "www.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "www.tarefista",
+            "class": "IN",
+            "Line": 59,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104"
+          },
+          {
+            "char_str_list": [
+              "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA62QN0TjIi2Ry9R3P8dHFXDnWMGJ1hCN4WamCSMcyD95sYObmxqUwXm5tW0vRdMq25slNaOlAEF+vSQvmY99cWdXCSzqlB/WAtrl9T+Znd6LCD0OeMlLh9S4DuSDV15yl/b3h0yZHDp1qsLrv1M1ptq394oMwlzC1j5jK75KAQV1R18x5HHtw3awxDWAJOmaYg",
+              "BhmEeXUCcpSa/YOaR122XWT479qkcFbEZnetsuUtVfJtkwHm4zQHq7RZrDY3nITva6WwVmgIDZnaAX7ykwozfQx5UvNlCPUQ0O03VZ6OMWAlcfs/Dm3rcknMgY+ovjHtc4VmNtk0SZBUdYmCvYaHwIDAQAB;"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "Line": 60,
+            "txtdata": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA62QN0TjIi2Ry9R3P8dHFXDnWMGJ1hCN4WamCSMcyD95sYObmxqUwXm5tW0vRdMq25slNaOlAEF+vSQvmY99cWdXCSzqlB/WAtrl9T+Znd6LCD0OeMlLh9S4DuSDV15yl/b3h0yZHDp1qsLrv1M1ptq394oMwlzC1j5jK75KAQV1R18x5HHtw3awxDWAJOmaYgBhmEeXUCcpSa/YOaR122XWT479qkcFbEZnetsuUtVfJtkwHm4zQHq7RZrDY3nITva6WwVmgIDZnaAX7ykwozfQx5UvNlCPUQ0O03VZ6OMWAlcfs/Dm3rcknMgY+ovjHtc4VmNtk0SZBUdYmCvYaHwIDAQAB;",
+            "name": "default._domainkey.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "default._domainkey.tarefista"
+          },
+          {
+            "class": "IN",
+            "Line": 61,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "name": "autoconfig.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "autoconfig.tarefista"
+          },
+          {
+            "ttl": 14400,
+            "type": "SRV",
+            "Line": 62,
+            "target": "cpanelemaildiscovery.cpanel.net",
+            "weight": "0",
+            "class": "IN",
+            "dname_raw": "_autodiscover._tcp.tarefista",
+            "port": "443",
+            "name": "_autodiscover._tcp.tarefista.alexandrequeiroz.com.br.",
+            "priority": "0"
+          },
+          {
+            "class": "IN",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 63,
+            "address": "108.167.132.104",
+            "name": "cpanel.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "cpanel.tarefista"
+          },
+          {
+            "type": "A",
+            "ttl": 14400,
+            "Line": 64,
+            "address": "108.167.132.104",
+            "class": "IN",
+            "dname_raw": "autodiscover.tarefista",
+            "name": "autodiscover.tarefista.alexandrequeiroz.com.br."
+          },
+          {
+            "class": "IN",
+            "weight": "0",
+            "target": "srv232.prodns.com.br",
+            "type": "SRV",
+            "Line": 65,
+            "ttl": 14400,
+            "priority": "0",
+            "port": "2079",
+            "name": "_caldav._tcp.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldav._tcp.tarefista"
+          },
+          {
+            "dname_raw": "_caldav._tcp.tarefista",
+            "name": "_caldav._tcp.tarefista.alexandrequeiroz.com.br.",
+            "ttl": 14400,
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 66,
+            "txtdata": "path=/",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN"
+          },
+          {
+            "dname_raw": "webmail.tarefista",
+            "name": "webmail.tarefista.alexandrequeiroz.com.br.",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 67,
+            "address": "108.167.132.104",
+            "class": "IN"
+          },
+          {
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 68,
+            "class": "IN",
+            "dname_raw": "cpcalendars.tarefista",
+            "name": "cpcalendars.tarefista.alexandrequeiroz.com.br."
+          },
+          {
+            "class": "IN",
+            "weight": "0",
+            "target": "srv232.prodns.com.br",
+            "type": "SRV",
+            "ttl": 14400,
+            "Line": 69,
+            "priority": "0",
+            "port": "2079",
+            "name": "_carddav._tcp.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "_carddav._tcp.tarefista"
+          },
+          {
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 14400,
+            "Line": 70,
+            "txtdata": "path=/",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN",
+            "dname_raw": "_carddav._tcp.tarefista",
+            "name": "_carddav._tcp.tarefista.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "webdisk.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "webdisk.tarefista",
+            "class": "IN",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 71,
+            "address": "108.167.132.104"
+          },
+          {
+            "class": "IN",
+            "address": "108.167.132.104",
+            "Line": 72,
+            "type": "A",
+            "ttl": 14400,
+            "name": "cpcontacts.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "cpcontacts.tarefista"
+          },
+          {
+            "port": "2080",
+            "name": "_carddavs._tcp.tarefista.alexandrequeiroz.com.br.",
+            "priority": "0",
+            "dname_raw": "_carddavs._tcp.tarefista",
+            "weight": "0",
+            "class": "IN",
+            "type": "SRV",
+            "ttl": 14400,
+            "Line": 73,
+            "target": "srv232.prodns.com.br"
+          },
+          {
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "unencoded": 1,
+            "Line": 74,
+            "type": "TXT",
+            "ttl": 14400,
+            "name": "_carddavs._tcp.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "_carddavs._tcp.tarefista"
+          },
+          {
+            "dname_raw": "_caldavs._tcp.tarefista",
+            "port": "2080",
+            "name": "_caldavs._tcp.tarefista.alexandrequeiroz.com.br.",
+            "priority": "0",
+            "type": "SRV",
+            "Line": 75,
+            "ttl": 14400,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN"
+          },
+          {
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "ttl": 14400,
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 76,
+            "name": "_caldavs._tcp.tarefista.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldavs._tcp.tarefista"
+          },
+          {
+            "address": "108.167.132.104",
+            "Line": 77,
+            "type": "A",
+            "ttl": 14400,
+            "class": "IN",
+            "dname_raw": "whm.tarefista",
+            "name": "whm.tarefista.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "programadorinternacional.com.br",
+            "class": "IN",
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 78
+          },
+          {
+            "dname_raw": "www.programadorinternacional.com.br",
+            "name": "www.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "type": "A",
+            "Line": 79,
+            "ttl": 14400,
+            "class": "IN"
+          },
+          {
+            "dname_raw": "default._domainkey.programadorinternacional.com.br",
+            "name": "default._domainkey.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "unencoded": 1,
+            "ttl": 14400,
+            "type": "TXT",
+            "Line": 80,
+            "txtdata": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvUvG5cP9rXtNqO3MDd8exMnVMc6t+d+TRSb4WH4A1Da/c017vfMZLFRIr5N4U+bR0oijwW+eF20eIfhGZEfGq0EeSVY0yu33k63jtuujTvjFDknkFbWz3uMVKEvgZBWr6V1lTnHIwMgKEMDys2u76smqoV4spgiEuNBTzFsYq+MHjh86vE3AECzbNmUok56vSTt+EMDFTZYp2wdwUsT4K6DhtOMJEIywC2MKBIe+HHwjAHOjI31LKFtJdQzQTFL0VwQydi1AO2jInEXN9BNYodGq1/w438e4oQnIwiddh7NE8z9Yeo0cEKrBUnzR67w/nFr+fL+RnKPElMc8mDVG4wIDAQAB;",
+            "char_str_list": [
+              "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvUvG5cP9rXtNqO3MDd8exMnVMc6t+d+TRSb4WH4A1Da/c017vfMZLFRIr5N4U+bR0oijwW+eF20eIfhGZEfGq0EeSVY0yu33k63jtuujTvjFDknkFbWz3uMVKEvgZBWr6V1lTnHIwMgKEMDys2u76smqoV4spgiEuNBTzFsYq+MHjh86vE3AECzbNmUok56vS",
+              "Tt+EMDFTZYp2wdwUsT4K6DhtOMJEIywC2MKBIe+HHwjAHOjI31LKFtJdQzQTFL0VwQydi1AO2jInEXN9BNYodGq1/w438e4oQnIwiddh7NE8z9Yeo0cEKrBUnzR67w/nFr+fL+RnKPElMc8mDVG4wIDAQAB;"
+            ],
+            "class": "IN"
+          },
+          {
+            "dname_raw": "autodiscover.programadorinternacional.com.br",
+            "name": "autodiscover.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "Line": 81,
+            "type": "A",
+            "ttl": 14400,
+            "class": "IN"
+          },
+          {
+            "ttl": 14400,
+            "type": "SRV",
+            "Line": 82,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN",
+            "dname_raw": "_carddavs._tcp.programadorinternacional.com.br",
+            "port": "2080",
+            "name": "_carddavs._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "priority": "0"
+          },
+          {
+            "txtdata": "path=/",
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 83,
+            "ttl": 14400,
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "dname_raw": "_carddavs._tcp.programadorinternacional.com.br",
+            "name": "_carddavs._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "dname_raw": "cpcalendars.programadorinternacional.com.br",
+            "name": "cpcalendars.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 84,
+            "class": "IN"
+          },
+          {
+            "dname_raw": "_autodiscover._tcp.programadorinternacional.com.br",
+            "priority": "0",
+            "port": "443",
+            "name": "_autodiscover._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "target": "cpanelemaildiscovery.cpanel.net",
+            "type": "SRV",
+            "ttl": 14400,
+            "Line": 85,
+            "class": "IN",
+            "weight": "0"
+          },
+          {
+            "class": "IN",
+            "type": "A",
+            "Line": 86,
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "name": "webmail.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "webmail.programadorinternacional.com.br"
+          },
+          {
+            "address": "108.167.132.104",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 87,
+            "class": "IN",
+            "dname_raw": "cpcontacts.programadorinternacional.com.br",
+            "name": "cpcontacts.programadorinternacional.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "priority": "0",
+            "port": "2079",
+            "name": "_caldav._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldav._tcp.programadorinternacional.com.br",
+            "class": "IN",
+            "weight": "0",
+            "target": "srv232.prodns.com.br",
+            "type": "SRV",
+            "Line": 88,
+            "ttl": 14400
+          },
+          {
+            "name": "_caldav._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldav._tcp.programadorinternacional.com.br",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 89,
+            "ttl": 14400,
+            "txtdata": "path=/"
+          },
+          {
+            "class": "IN",
+            "address": "108.167.132.104",
+            "type": "A",
+            "Line": 90,
+            "ttl": 14400,
+            "name": "whm.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "whm.programadorinternacional.com.br"
+          },
+          {
+            "Line": 91,
+            "type": "SRV",
+            "ttl": 14400,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN",
+            "dname_raw": "_caldavs._tcp.programadorinternacional.com.br",
+            "name": "_caldavs._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "port": "2080",
+            "priority": "0"
+          },
+          {
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "type": "TXT",
+            "unencoded": 1,
+            "Line": 92,
+            "ttl": 14400,
+            "name": "_caldavs._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldavs._tcp.programadorinternacional.com.br"
+          },
+          {
+            "class": "IN",
+            "Line": 93,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "name": "webdisk.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "webdisk.programadorinternacional.com.br"
+          },
+          {
+            "dname_raw": "_carddav._tcp.programadorinternacional.com.br",
+            "port": "2079",
+            "name": "_carddav._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "priority": "0",
+            "type": "SRV",
+            "Line": 94,
+            "ttl": 14400,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN"
+          },
+          {
+            "name": "_carddav._tcp.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_carddav._tcp.programadorinternacional.com.br",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "Line": 95,
+            "txtdata": "path=/"
+          },
+          {
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 96,
+            "class": "IN",
+            "dname_raw": "autoconfig.programadorinternacional.com.br",
+            "name": "autoconfig.programadorinternacional.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "cpanel.programadorinternacional.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "cpanel.programadorinternacional.com.br",
+            "class": "IN",
+            "type": "A",
+            "Line": 97,
+            "ttl": 14400,
+            "address": "108.167.132.104"
+          },
+          {
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 98,
+            "ttl": 14400,
+            "txtdata": "WOY6SvOVybmF0o_T8treVwbFbl7an7APg9glTUvVBu0",
+            "char_str_list": [
+              "WOY6SvOVybmF0o_T8treVwbFbl7an7APg9glTUvVBu0"
+            ],
+            "class": "IN",
+            "dname_raw": "_acme-challenge.com.br",
+            "name": "_acme-challenge.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "openai.alexandrequeiroz.com.br.",
+            "dname_raw": "openai",
+            "char_str_list": [
+              "openai-domain-verification=dv-8lvIdAQQiywShi9jESkaMM5x"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "Line": 99,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "openai-domain-verification=dv-8lvIdAQQiywShi9jESkaMM5x"
+          },
+          {
+            "char_str_list": [
+              "openai-domain-verification=dv-8lvIdAQQiywShi9jESkaMM5x"
+            ],
+            "class": "IN",
+            "type": "TXT",
+            "unencoded": 1,
+            "Line": 100,
+            "ttl": 14400,
+            "txtdata": "openai-domain-verification=dv-8lvIdAQQiywShi9jESkaMM5x",
+            "name": "openai.alexandrequeiroz.com.br.",
+            "dname_raw": "openai"
+          },
+          {
+            "class": "IN",
+            "address": "204.188.228.151",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 101,
+            "name": "api.alexandrequeiroz.com.br.",
+            "dname_raw": "api"
+          },
+          {
+            "name": "crm.alexandrequeiroz.com.br.",
+            "dname_raw": "crm",
+            "class": "IN",
+            "type": "A",
+            "Line": 102,
+            "ttl": 14400,
+            "address": "108.167.132.104"
+          },
+          {
+            "address": "108.167.132.104",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 103,
+            "class": "IN",
+            "dname_raw": "www.crm",
+            "name": "www.crm.alexandrequeiroz.com.br."
+          },
+          {
+            "type": "TXT",
+            "unencoded": 1,
+            "Line": 104,
+            "ttl": 14400,
+            "txtdata": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwWzcQd5lcft85Oi3TUH0ja8Jhw1RKukG5yGwySLPAM+RICD2qv/nPy2ZOjNRrqn/5vVoiV5pFzqAeS2DbwacHl7U85OQIWkEMZWPePP1xwXnl/2JbfYtSgyiP42NxGW6DKRQspTjhTHjKKqmHJooiFGbwEbNjC2kqITQF/I+DbwHFyWwCzklYbn7uwuQqXhFts8RB9aoy3Ux5Xiq7DOxWXLzzUtL5CQH/HKc68WgQkCIufhQW1Sqju5KgZfwlKJRnlRmF2EFhmuIxxvEFrhz2xwil6cBm68GfKnJqsJZI4ze4SbXZWCKoE8OxZ+ohJ7RsEUt+olEAxqIEro9UhxJJQIDAQAB;",
+            "char_str_list": [
+              "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwWzcQd5lcft85Oi3TUH0ja8Jhw1RKukG5yGwySLPAM+RICD2qv/nPy2ZOjNRrqn/5vVoiV5pFzqAeS2DbwacHl7U85OQIWkEMZWPePP1xwXnl/2JbfYtSgyiP42NxGW6DKRQspTjhTHjKKqmHJooiFGbwEbNjC2kqITQF/I+DbwHFyWwCzklYbn7uwuQqXhFt",
+              "s8RB9aoy3Ux5Xiq7DOxWXLzzUtL5CQH/HKc68WgQkCIufhQW1Sqju5KgZfwlKJRnlRmF2EFhmuIxxvEFrhz2xwil6cBm68GfKnJqsJZI4ze4SbXZWCKoE8OxZ+ohJ7RsEUt+olEAxqIEro9UhxJJQIDAQAB;"
+            ],
+            "class": "IN",
+            "dname_raw": "default._domainkey.crm",
+            "name": "default._domainkey.crm.alexandrequeiroz.com.br."
+          },
+          {
+            "ttl": 14400,
+            "type": "A",
+            "Line": 105,
+            "address": "108.167.132.104",
+            "class": "IN",
+            "dname_raw": "cpanel.crm",
+            "name": "cpanel.crm.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "autodiscover.crm.alexandrequeiroz.com.br.",
+            "dname_raw": "autodiscover.crm",
+            "class": "IN",
+            "Line": 106,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104"
+          },
+          {
+            "type": "SRV",
+            "ttl": 14400,
+            "Line": 107,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN",
+            "dname_raw": "_caldavs._tcp.crm",
+            "name": "_caldavs._tcp.crm.alexandrequeiroz.com.br.",
+            "port": "2080",
+            "priority": "0"
+          },
+          {
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "Line": 108,
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "name": "_caldavs._tcp.crm.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldavs._tcp.crm"
+          },
+          {
+            "dname_raw": "_carddavs._tcp.crm",
+            "priority": "0",
+            "port": "2080",
+            "name": "_carddavs._tcp.crm.alexandrequeiroz.com.br.",
+            "target": "srv232.prodns.com.br",
+            "Line": 109,
+            "type": "SRV",
+            "ttl": 14400,
+            "class": "IN",
+            "weight": "0"
+          },
+          {
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 110,
+            "ttl": 14400,
+            "txtdata": "path=/",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN",
+            "dname_raw": "_carddavs._tcp.crm",
+            "name": "_carddavs._tcp.crm.alexandrequeiroz.com.br."
+          },
+          {
+            "dname_raw": "cpcontacts.crm",
+            "name": "cpcontacts.crm.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "type": "A",
+            "Line": 111,
+            "ttl": 14400,
+            "class": "IN"
+          },
+          {
+            "class": "IN",
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 112,
+            "name": "whm.crm.alexandrequeiroz.com.br.",
+            "dname_raw": "whm.crm"
+          },
+          {
+            "dname_raw": "webdisk.crm",
+            "name": "webdisk.crm.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "Line": 113,
+            "type": "A",
+            "ttl": 14400,
+            "class": "IN"
+          },
+          {
+            "dname_raw": "_carddav._tcp.crm",
+            "port": "2079",
+            "name": "_carddav._tcp.crm.alexandrequeiroz.com.br.",
+            "priority": "0",
+            "ttl": 14400,
+            "type": "SRV",
+            "Line": 114,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN"
+          },
+          {
+            "dname_raw": "_carddav._tcp.crm",
+            "name": "_carddav._tcp.crm.alexandrequeiroz.com.br.",
+            "ttl": 14400,
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 115,
+            "txtdata": "path=/",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN"
+          },
+          {
+            "type": "A",
+            "Line": 116,
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "class": "IN",
+            "dname_raw": "webmail.crm",
+            "name": "webmail.crm.alexandrequeiroz.com.br."
+          },
+          {
+            "dname_raw": "_autodiscover._tcp.crm",
+            "priority": "0",
+            "port": "443",
+            "name": "_autodiscover._tcp.crm.alexandrequeiroz.com.br.",
+            "target": "cpanelemaildiscovery.cpanel.net",
+            "type": "SRV",
+            "Line": 117,
+            "ttl": 14400,
+            "class": "IN",
+            "weight": "0"
+          },
+          {
+            "type": "A",
+            "ttl": 14400,
+            "Line": 118,
+            "address": "108.167.132.104",
+            "class": "IN",
+            "dname_raw": "cpcalendars.crm",
+            "name": "cpcalendars.crm.alexandrequeiroz.com.br."
+          },
+          {
+            "target": "srv232.prodns.com.br",
+            "type": "SRV",
+            "Line": 119,
+            "ttl": 14400,
+            "class": "IN",
+            "weight": "0",
+            "dname_raw": "_caldav._tcp.crm",
+            "priority": "0",
+            "port": "2079",
+            "name": "_caldav._tcp.crm.alexandrequeiroz.com.br."
+          },
+          {
+            "dname_raw": "_caldav._tcp.crm",
+            "name": "_caldav._tcp.crm.alexandrequeiroz.com.br.",
+            "txtdata": "path=/",
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 14400,
+            "Line": 120,
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ]
+          },
+          {
+            "name": "autoconfig.crm.alexandrequeiroz.com.br.",
+            "dname_raw": "autoconfig.crm",
+            "class": "IN",
+            "address": "108.167.132.104",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 121
+          },
+          {
+            "txtdata": "brevo-code:4948224d4e6b7a46c749e523ce999f39",
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 122,
+            "ttl": 14400,
+            "class": "IN",
+            "char_str_list": [
+              "brevo-code:4948224d4e6b7a46c749e523ce999f39"
+            ],
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "name": "alexandrequeiroz.com.br."
+          },
+          {
+            "Line": 123,
+            "type": "CNAME",
+            "ttl": 14400,
+            "class": "IN",
+            "dname_raw": "brevo1._domainkey",
+            "cname": "b1.alexandrequeiroz-com-br.dkim.brevo.com",
+            "name": "brevo1._domainkey.alexandrequeiroz.com.br."
+          },
+          {
+            "dname_raw": "brevo2._domainkey",
+            "cname": "b2.alexandrequeiroz-com-br.dkim.brevo.com",
+            "name": "brevo2._domainkey.alexandrequeiroz.com.br.",
+            "type": "CNAME",
+            "ttl": 14400,
+            "Line": 124,
+            "class": "IN"
+          },
+          {
+            "name": "_dmarc.alexandrequeiroz.com.br.",
+            "dname_raw": "_dmarc",
+            "char_str_list": [
+              "v=DMARC1; p=quarantine; pct=25; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r"
+            ],
+            "class": "IN",
+            "type": "TXT",
+            "unencoded": 1,
+            "Line": 125,
+            "ttl": 14400,
+            "txtdata": "v=DMARC1; p=quarantine; pct=25; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r"
+          },
+          {
+            "dname_raw": "extratordedados.com.br",
+            "name": "extratordedados.com.br.alexandrequeiroz.com.br.",
+            "type": "A",
+            "Line": 126,
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "class": "IN"
+          },
+          {
+            "dname_raw": "www.extratordedados.com.br",
+            "name": "www.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "Line": 127,
+            "type": "A",
+            "ttl": 14400,
+            "class": "IN"
+          },
+          {
+            "name": "default._domainkey.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "default._domainkey.extratordedados.com.br",
+            "char_str_list": [
+              "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypwrlo0mllOPmEVo1z9A7dZUFNeK9haER8DRlfXZbaxZHVAstLwwSUtVirsfj+U6RzsGcWsEnZqJSiuq7QYdVBNheooAEvFgFPNK3G13JoGKM0mVf+7lEbeJbQoAqdC1XGCwyQ12ORt2+qyILR5a/l6p38oiIgLBx+xDs1c0rUe5T9BIZCx319HWbgwkkmk7Y",
+              "jEPwFhXxEkgJmP7/JE2AGj3ZWqbSrv1ntUT6KDZludoGLup3o1YveS+MZvnZKiuRo45VUePqqPxYWKbqTxVH8pu7dGckecOPM5FVJURcNLfZWTAlnp7WYqSYM+YPSJsUc3PRSVXaSvNlkYClmRghwIDAQAB;"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "Line": 128,
+            "txtdata": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypwrlo0mllOPmEVo1z9A7dZUFNeK9haER8DRlfXZbaxZHVAstLwwSUtVirsfj+U6RzsGcWsEnZqJSiuq7QYdVBNheooAEvFgFPNK3G13JoGKM0mVf+7lEbeJbQoAqdC1XGCwyQ12ORt2+qyILR5a/l6p38oiIgLBx+xDs1c0rUe5T9BIZCx319HWbgwkkmk7YjEPwFhXxEkgJmP7/JE2AGj3ZWqbSrv1ntUT6KDZludoGLup3o1YveS+MZvnZKiuRo45VUePqqPxYWKbqTxVH8pu7dGckecOPM5FVJURcNLfZWTAlnp7WYqSYM+YPSJsUc3PRSVXaSvNlkYClmRghwIDAQAB;"
+          },
+          {
+            "class": "IN",
+            "type": "A",
+            "ttl": 14400,
+            "Line": 129,
+            "address": "108.167.132.104",
+            "name": "whm.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "whm.extratordedados.com.br"
+          },
+          {
+            "priority": "0",
+            "port": "2079",
+            "name": "_caldav._tcp.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldav._tcp.extratordedados.com.br",
+            "class": "IN",
+            "weight": "0",
+            "target": "srv232.prodns.com.br",
+            "ttl": 14400,
+            "type": "SRV",
+            "Line": 130
+          },
+          {
+            "name": "_caldav._tcp.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldav._tcp.extratordedados.com.br",
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "unencoded": 1,
+            "Line": 131,
+            "type": "TXT",
+            "ttl": 14400
+          },
+          {
+            "Line": 132,
+            "type": "A",
+            "ttl": 14400,
+            "address": "108.167.132.104",
+            "class": "IN",
+            "dname_raw": "cpcontacts.extratordedados.com.br",
+            "name": "cpcontacts.extratordedados.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "dname_raw": "autodiscover.extratordedados.com.br",
+            "name": "autodiscover.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "address": "108.167.132.104",
+            "Line": 133,
+            "type": "A",
+            "ttl": 14400,
+            "class": "IN"
+          },
+          {
+            "target": "srv232.prodns.com.br",
+            "type": "SRV",
+            "ttl": 14400,
+            "Line": 134,
+            "class": "IN",
+            "weight": "0",
+            "dname_raw": "_caldavs._tcp.extratordedados.com.br",
+            "priority": "0",
+            "name": "_caldavs._tcp.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "port": "2080"
+          },
+          {
+            "name": "_caldavs._tcp.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "_caldavs._tcp.extratordedados.com.br",
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "txtdata": "path=/",
+            "ttl": 14400,
+            "unencoded": 1,
+            "type": "TXT",
+            "Line": 135
+          },
+          {
+            "dname_raw": "_autodiscover._tcp.extratordedados.com.br",
+            "port": "443",
+            "name": "_autodiscover._tcp.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "priority": "0",
+            "Line": 136,
+            "type": "SRV",
+            "ttl": 14400,
+            "target": "cpanelemaildiscovery.cpanel.net",
+            "weight": "0",
+            "class": "IN"
+          },
+          {
+            "dname_raw": "_carddav._tcp.extratordedados.com.br",
+            "port": "2079",
+            "name": "_carddav._tcp.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "priority": "0",
+            "Line": 137,
+            "type": "SRV",
+            "ttl": 14400,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN"
+          },
+          {
+            "Line": 138,
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "path=/",
+            "char_str_list": [
+              "path=/"
+            ],
+            "class": "IN",
+            "dname_raw": "_carddav._tcp.extratordedados.com.br",
+            "name": "_carddav._tcp.extratordedados.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "webmail.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "webmail.extratordedados.com.br",
+            "class": "IN",
+            "type": "A",
+            "Line": 139,
+            "ttl": 14400,
+            "address": "108.167.132.104"
+          },
+          {
+            "type": "SRV",
+            "Line": 140,
+            "ttl": 14400,
+            "target": "srv232.prodns.com.br",
+            "weight": "0",
+            "class": "IN",
+            "dname_raw": "_carddavs._tcp.extratordedados.com.br",
+            "name": "_carddavs._tcp.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "port": "2080",
+            "priority": "0"
+          },
+          {
+            "txtdata": "path=/",
+            "unencoded": 1,
+            "ttl": 14400,
+            "type": "TXT",
+            "Line": 141,
+            "class": "IN",
+            "char_str_list": [
+              "path=/"
+            ],
+            "dname_raw": "_carddavs._tcp.extratordedados.com.br",
+            "name": "_carddavs._tcp.extratordedados.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "address": "108.167.132.104",
+            "Line": 142,
+            "type": "A",
+            "ttl": 14400,
+            "class": "IN",
+            "dname_raw": "cpanel.extratordedados.com.br",
+            "name": "cpanel.extratordedados.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "type": "A",
+            "ttl": 14400,
+            "Line": 143,
+            "address": "108.167.132.104",
+            "class": "IN",
+            "dname_raw": "webdisk.extratordedados.com.br",
+            "name": "webdisk.extratordedados.com.br.alexandrequeiroz.com.br."
+          },
+          {
+            "class": "IN",
+            "address": "108.167.132.104",
+            "Line": 144,
+            "type": "A",
+            "ttl": 14400,
+            "name": "cpcalendars.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "cpcalendars.extratordedados.com.br"
+          },
+          {
+            "class": "IN",
+            "address": "108.167.132.104",
+            "ttl": 14400,
+            "type": "A",
+            "Line": 145,
+            "name": "autoconfig.extratordedados.com.br.alexandrequeiroz.com.br.",
+            "dname_raw": "autoconfig.extratordedados.com.br"
+          },
+          {
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 14400,
+            "Line": 146,
+            "txtdata": "google-site-verification=qUHx2N92czde-FnzU2ucuJDn0U_XxON3G3WWIMWx-0k",
+            "char_str_list": [
+              "google-site-verification=qUHx2N92czde-FnzU2ucuJDn0U_XxON3G3WWIMWx-0k"
+            ],
+            "class": "IN",
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "name": "alexandrequeiroz.com.br."
+          },
+          {
+            "name": "resend._domainkey.alexandrequeiroz.com.br.",
+            "dname_raw": "resend._domainkey",
+            "char_str_list": [
+              "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC9mIuEvvhAQrEtWdAAAQ4I1jovyo1NbbaGMQ9Vq0n0ZCL8GYf4xTjY5WHDvVzkGYkymNyQTl/RSw6KEkAkI4IgFOKiS6mJq6+1+vIR3OhKMoZ/uEwtWagL9lPzqPD2oW4LSEuhbdeymin5fZ0yqGNG91dl2G6B4em7Ke7ceWxbHQIDAQAB"
+            ],
+            "class": "IN",
+            "type": "TXT",
+            "unencoded": 1,
+            "Line": 147,
+            "ttl": 14400,
+            "txtdata": "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC9mIuEvvhAQrEtWdAAAQ4I1jovyo1NbbaGMQ9Vq0n0ZCL8GYf4xTjY5WHDvVzkGYkymNyQTl/RSw6KEkAkI4IgFOKiS6mJq6+1+vIR3OhKMoZ/uEwtWagL9lPzqPD2oW4LSEuhbdeymin5fZ0yqGNG91dl2G6B4em7Ke7ceWxbHQIDAQAB"
+          },
+          {
+            "preference": "10",
+            "exchange": "feedback-smtp.us-east-1.amazonses.com",
+            "name": "send.alexandrequeiroz.com.br.",
+            "dname_raw": "send",
+            "class": "IN",
+            "ttl": 14400,
+            "type": "MX",
+            "Line": 148
+          },
+          {
+            "name": "send.alexandrequeiroz.com.br.",
+            "dname_raw": "send",
+            "char_str_list": [
+              "v=spf1 include:amazonses.com ~all"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "Line": 149,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "v=spf1 include:amazonses.com ~all"
+          },
+          {
+            "type": "CNAME",
+            "Line": 150,
+            "ttl": 3600,
+            "class": "IN",
+            "dname_raw": "em",
+            "cname": "u107471676.wl177.sendgrid.net",
+            "name": "em.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "s1._domainkey.alexandrequeiroz.com.br.",
+            "dname_raw": "s1._domainkey",
+            "cname": "s1.domainkey.u107471676.wl177.sendgrid.net",
+            "class": "IN",
+            "Line": 151,
+            "type": "CNAME",
+            "ttl": 3600
+          },
+          {
+            "name": "s2._domainkey.alexandrequeiroz.com.br.",
+            "dname_raw": "s2._domainkey",
+            "cname": "s2.domainkey.u107471676.wl177.sendgrid.net",
+            "class": "IN",
+            "type": "CNAME",
+            "ttl": 3600,
+            "Line": 152
+          },
+          {
+            "dname_raw": "mailjet._5a2c8143.alexandrequeiroz.com.br",
+            "name": "mailjet._5a2c8143.alexandrequeiroz.com.br.alexandrequeiroz.com.br.",
+            "Line": 153,
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "5a2c8143143f15498fb46f4cc98e8189",
+            "char_str_list": [
+              "5a2c8143143f15498fb46f4cc98e8189"
+            ],
+            "class": "IN"
+          },
+          {
+            "cname": "api.elasticemail.com",
+            "dname_raw": "tracking",
+            "name": "tracking.alexandrequeiroz.com.br.",
+            "type": "CNAME",
+            "ttl": 14400,
+            "Line": 154,
+            "class": "IN"
+          },
+          {
+            "name": "alexandrequeiroz.com.br.",
+            "dname_raw": "alexandrequeiroz.com.br.",
+            "class": "IN",
+            "char_str_list": [
+              "v=spf1 ip4:108.167.132.0/24 include:eig.spf.a.cloudfilter.net include:sendinblue.com include:spf.mailjet.com ~all"
+            ],
+            "txtdata": "v=spf1 ip4:108.167.132.0/24 include:eig.spf.a.cloudfilter.net include:sendinblue.com include:spf.mailjet.com ~all",
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 300,
+            "Line": 155
+          },
+          {
+            "name": "api._domainkey.alexandrequeiroz.com.br.",
+            "dname_raw": "api._domainkey",
+            "char_str_list": [
+              "k=rsa;t=s;p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbmGbQMzYeMvxwtNQoXN0waGYaciuKx8mtMh5czguT4EZlJXuCt6V+l56mmt3t68FEX5JJ0q4ijG71BGoFRkl87uJi7LrQt1ZZmZCvrEII0YO4mp8sDLXC8g1aUAoi8TJgxq2MJqCaMyj5kAm3Fdy2tzftPCV/lbdiJqmBnWKjtwIDAQAB"
+            ],
+            "class": "IN",
+            "unencoded": 1,
+            "Line": 156,
+            "type": "TXT",
+            "ttl": 14400,
+            "txtdata": "k=rsa;t=s;p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCbmGbQMzYeMvxwtNQoXN0waGYaciuKx8mtMh5czguT4EZlJXuCt6V+l56mmt3t68FEX5JJ0q4ijG71BGoFRkl87uJi7LrQt1ZZmZCvrEII0YO4mp8sDLXC8g1aUAoi8TJgxq2MJqCaMyj5kAm3Fdy2tzftPCV/lbdiJqmBnWKjtwIDAQAB"
+          },
+          {
+            "class": "IN",
+            "ttl": 300,
+            "type": "CNAME",
+            "Line": 157,
+            "name": "mt32.alexandrequeiroz.com.br.",
+            "dname_raw": "mt32",
+            "cname": "smtp.mailtrap.live"
+          },
+          {
+            "dname_raw": "rwmt1._domainkey",
+            "cname": "rwmt1.dkim.smtp.mailtrap.live",
+            "name": "rwmt1._domainkey.alexandrequeiroz.com.br.",
+            "ttl": 300,
+            "type": "CNAME",
+            "Line": 158,
+            "class": "IN"
+          },
+          {
+            "ttl": 300,
+            "type": "CNAME",
+            "Line": 159,
+            "class": "IN",
+            "dname_raw": "rwmt2._domainkey",
+            "cname": "rwmt2.dkim.smtp.mailtrap.live",
+            "name": "rwmt2._domainkey.alexandrequeiroz.com.br."
+          },
+          {
+            "cname": "t.mailtrap.live",
+            "dname_raw": "mt-link",
+            "name": "mt-link.alexandrequeiroz.com.br.",
+            "type": "CNAME",
+            "ttl": 300,
+            "Line": 160,
+            "class": "IN"
+          },
+          {
+            "dname_raw": "mlsend2._domainkey",
+            "cname": "mlsend2._domainkey.mailersend.net",
+            "name": "mlsend2._domainkey.alexandrequeiroz.com.br.",
+            "ttl": 300,
+            "type": "CNAME",
+            "Line": 161,
+            "class": "IN"
+          },
+          {
+            "Line": 162,
+            "type": "CNAME",
+            "ttl": 300,
+            "class": "IN",
+            "cname": "mailersend.net",
+            "dname_raw": "mta",
+            "name": "mta.alexandrequeiroz.com.br."
+          },
+          {
+            "name": "mailjet._domainkey.alexandrequeiroz.com.br.",
+            "dname_raw": "mailjet._domainkey",
+            "class": "IN",
+            "char_str_list": [
+              "k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvVDdR2ta6SwC08nmEK/ZHRVqc5n/O6KizfHF750mWUlVRnH/UgaAwUhknq9tD4bmbym8qyPkCNy7xp7M65iTtJMHt6lEDt5Rh65XTYQyHuaKaJpXIuO1i7gIVDmq5kNntXREHKJtLk9K+D5PDwD7v1FRDsVV4oGWJuZsqCKagMLajeUi76ZB74VQpLd6hSG7rCDni6yk8R",
+              "5y9UZIs2xyWecGnOwcwK9vIcIEigu8D9m9MRfTwkTwFL4DB6aXC3lyupa0slhFAcLi3XdW631tGkMZXHYLFp6ujD2EARt0niP4IykB9Jl7TM9KxyS+2bPTnYLQhvnXalCQB7/dL4M4mQIDAQAB"
+            ],
+            "txtdata": "k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvVDdR2ta6SwC08nmEK/ZHRVqc5n/O6KizfHF750mWUlVRnH/UgaAwUhknq9tD4bmbym8qyPkCNy7xp7M65iTtJMHt6lEDt5Rh65XTYQyHuaKaJpXIuO1i7gIVDmq5kNntXREHKJtLk9K+D5PDwD7v1FRDsVV4oGWJuZsqCKagMLajeUi76ZB74VQpLd6hSG7rCDni6yk8R5y9UZIs2xyWecGnOwcwK9vIcIEigu8D9m9MRfTwkTwFL4DB6aXC3lyupa0slhFAcLi3XdW631tGkMZXHYLFp6ujD2EARt0niP4IykB9Jl7TM9KxyS+2bPTnYLQhvnXalCQB7/dL4M4mQIDAQAB",
+            "unencoded": 1,
+            "type": "TXT",
+            "ttl": 300,
+            "Line": 163
+          },
+          {
+            "char_str_list": [
+              "5a2c8143143f15498fb46f4cc98e8189"
+            ],
+            "class": "IN",
+            "type": "TXT",
+            "unencoded": 1,
+            "ttl": 300,
+            "Line": 164,
+            "txtdata": "5a2c8143143f15498fb46f4cc98e8189",
+            "name": "mailjet._5a2c8143.alexandrequeiroz.com.br.",
+            "dname_raw": "mailjet._5a2c8143"
+          }
+        ]
+      }
+    ]
+  }
+}
