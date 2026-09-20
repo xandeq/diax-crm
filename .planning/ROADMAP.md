@@ -475,7 +475,38 @@ paralelo)
   4. Após validar a taxa de resposta em `wa_es` (480 leads) contra um critério objetivo documentado,
      o disparo escala para `wa_br` (1138 leads)
 
-**Plans:** TBD
+**Plans:** 4 planos, 3 waves (planejada 2026-09-20)
+
+**Nota de planejamento (2026-09-20, medicao ao vivo durante o plan-phase):** o `13-RESEARCH.md` esta
+DEFASADO em pontos load-bearing e os planos partem do que foi medido, nao dele. Achados que mudam a
+leitura dos criterios de sucesso: (a) **o n8n local esta fora do ar** (porta 5678 fechada, task
+`n8n-local` Disabled) — o bot `8nKTlX4Y7Hy1EUEn` esta `active=1` mas inerte, porque o hook do WAHA
+aponta para `host.docker.internal:5678`; (b) **quem envia de verdade hoje nao e o workflow do n8n** e
+sim `D:/claude-code/n8n-local/outreach-send.py` pela task `outreach-wa` (janela 09-18h, cap 18/dia,
+blacklist-first, gravacao verificada, kill-switch), com envio real registrado em 2026-09-20 17:00 e
+185 chat_ids ja contatados — o `waOutreach1a1AQ` foi desligado de proposito apos o incidente de
+12/09 (Code node do n8n nao grava o dedupe de forma confiavel -> 7a mensagem para um lead que havia
+recusado); (c) o CAP/MAX_PRIO ao vivo do workflow sao `2`/`4`, nao `1`/`3` como diz a pesquisa (que
+leu o JSON exportado, defasado); (d) **o CRM so conhece uma fracao dos envios** (~17 contra ~185),
+porque `outreach-send.py` nao chama `POST /api/v1/integrations/whatsapp-event` — por isso o
+relatorio de WHAT-03 le a operacao como fonte primaria e o CRM como conferencia, expondo a
+divergencia. Criterio 1 deve ser lido como "handoff comprovadamente em execucao", com a escolha
+entre caminho Python e reativacao do n8n feita por checkpoint humano (D-03). Criterio 4 (WHAT-04)
+provavelmente fecha `Partial`: a amostra de `wa_es` e pequena e o proprio "portao" de segmento pode
+nunca ter existido (a fila ordena wa_es primeiro, mas nao exclui wa_br).
+
+Plans:
+- [ ] 13-01-PLAN.md — `wa_estado.py` (leitor unico do estado real: logs + sqlite do n8n + CRM) +
+  snapshot baseline + checkpoint humano bloqueante de WHAT-01 e execucao da decisao com prova de
+  envio real (Wave 1, WHAT-01, tem checkpoint)
+- [ ] 13-02-PLAN.md — `crm_leads_sync.py` reescrito como sync incremental/verificado/offline-safe do
+  conjunto de deflexao `crmLeads` + Scheduled Task `DIAX-WA-CrmLeads-Sync` horaria (Wave 2, WHAT-02)
+- [ ] 13-03-PLAN.md — `whatsapp_weekly_report.py` (enviados/respondidos/opt-out por segmento, com
+  divergencia CRM explicita) + task `DIAX-WA-Weekly-Report` sexta 17:00 BRT no Telegram (Wave 2,
+  WHAT-03, D-01/D-02)
+- [ ] 13-04-PLAN.md — `wa_escalation.py` (decide puro wa_es->wa_br com limiar definido antes da
+  medicao, gate `--apply`), runbook `ESCALA-WHATSAPP-runbook.md` e fechamento honesto da
+  rastreabilidade WHAT-01..04 (Wave 3, WHAT-01..04)
 
 ---
 
@@ -510,7 +541,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
-| 13. Escala de WhatsApp | 0/? | Not started | — |
+| 13. Escala de WhatsApp | 0/4 | Planned     | — |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
 ### Coverage Map (v1.4)
