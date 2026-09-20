@@ -110,8 +110,9 @@ def dns_verify():
 
 def step_health(since_dt):
     """Unica fonte de verdade de bounce/spam (Pitfall 3): email_events.event_type 4 (Bounced) e
-    5 (Spam), contados por queue_item_id DISTINTO. NUNCA EmailCampaign.UnsubscribeCount — mistura
-    spam com opt-out voluntario (achado da pesquisa, BrevoWebhookController.HandleOptOutAsync)."""
+    5 (Spam), contados por queue_item_id DISTINTO. Nunca o contador agregado de opt-out da
+    campanha, que mistura spam com descadastro voluntario (achado da pesquisa,
+    BrevoWebhookController.HandleOptOutAsync)."""
     sys.path.insert(0, r'C:\Users\acq20\.claude\skills\financas\scripts')
     import db as crmdb
     cx = crmdb.connect(); cur = cx.cursor()
@@ -211,6 +212,245 @@ def selftest():
     ok &= _assert(
         parse_pct('v=DMARC1; p=quarantine; rua=mailto:rua@dmarc.brevo.com') is None,
         'parse_pct devolve None em string sem pct=')
+    ok &= _selftest_decide()
+    return ok
+
+
+# ---------- decisao (funcao pura — nao consulta nada) ----------
+
+def decide(st, health, today):
+    """(acao, motivo, pct_alvo). Ordem de avaliacao FIXA:
+      a) bounce/spam acima do limiar -> revert (ou hold se pct ja e o minimo). Vem ANTES de
+         tudo de proposito: reversao por saude nao espera os 7 dias nem exige amostra minima
+         (D-02/D-04).
+      b) pct==100 -> done
+      c) sem dmarc_changed_at no state -> hold
+      d) menos de STEP_MIN_DAYS desde o ultimo degrau -> hold
+      e) amostra insuficiente (health['sent'] < ADVANCE_MIN_SENT) -> hold. So bloqueia AVANCO,
+         nunca reversao — ver (a).
+      f) senao -> advance
+    """
+    pct = get_pct(st)
+    bounce_pct = health['bounce_rate'] * 100
+    spam_pct = health['spam_rate'] * 100
+
+    if health['bounce_rate'] > BOUNCE_REVERT or health['spam_rate'] > SPAM_REVERT:
+        motivo = (f"bounce={bounce_pct:.2f}% spam={spam_pct:.2f}% em {health['sent']} envios "
+                  f"(limiar bounce>{BOUNCE_REVERT*100:.0f}% ou spam>{SPAM_REVERT*100:.1f}%)")
+        if pct <= STEPS[0]:
+            return ('hold', f'ja no degrau minimo (pct={STEPS[0]}) - {motivo}', STEPS[0])
+        idx = STEPS.index(pct) if pct in STEPS else 0
+        alvo = STEPS[max(idx - 1, 0)]
+        return ('revert', motivo, alvo)
+
+    if pct >= STEPS[-1]:
+        return ('done', f'pct={STEPS[-1]} atingido', STEPS[-1])
+
+    changed_at = get_changed_at(st)
+    if not changed_at:
+        return ('hold', 'sem data de ultimo degrau no state (dmarc_changed_at ausente)', pct)
+
+    changed_date = datetime.date.fromisoformat(changed_at)
+    dias_passados = (today - changed_date).days
+    if dias_passados < STEP_MIN_DAYS:
+        faltam = STEP_MIN_DAYS - dias_passados
+        return ('hold', f'faltam {faltam} dias para o proximo degrau ({dias_passados}/{STEP_MIN_DAYS} dias)', pct)
+
+    if health['sent'] < ADVANCE_MIN_SENT:
+        return ('hold', f"amostra insuficiente: {health['sent']} enviados < {ADVANCE_MIN_SENT}", pct)
+
+    idx = STEPS.index(pct) if pct in STEPS else 0
+    proximo = STEPS[min(idx + 1, len(STEPS) - 1)]
+    motivo = (f"bounce={bounce_pct:.2f}% spam={spam_pct:.2f}% em {health['sent']} envios, "
+              f"{dias_passados} dias no degrau — dentro dos limiares")
+    return ('advance', motivo, proximo)
+
+
+def next_step(pct):
+    idx = STEPS.index(pct) if pct in STEPS else 0
+    return STEPS[min(idx + 1, len(STEPS) - 1)]
+
+
+def prev_step(pct):
+    idx = STEPS.index(pct) if pct in STEPS else 0
+    return STEPS[max(idx - 1, 0)]
+
+
+# ---------- escrita (gated por apply=False default — NUNCA acionada por este plano) ----------
+
+def set_pct(pct, apply=False):
+    """Monta (e, se apply=True, executa) a escrita no WHM. Sempre re-localiza a Line ATUAL via
+    read_zone_dmarc() primeiro (Pitfall 1 — nunca reaproveitar a Line de uma chamada anterior,
+    nem a do --status). Em dry-run (default), imprime a requisicao com o token mascarado e
+    NAO faz nenhuma chamada de escrita."""
+    load_env()
+    zone = read_zone_dmarc()
+    line = zone['line']
+    txtdata = TPL.format(pct=pct)
+    params = {
+        'api.version': 1, 'domain': DOMAIN, 'line': line, 'type': 'TXT',
+        'name': RECORD, 'class': 'IN', 'ttl': TTL, 'txtdata': txtdata,
+    }
+    host = os.environ.get('WHM_HOST'); port = os.environ.get('WHM_PORT'); user = os.environ.get('WHM_USER')
+    url = f'https://{host}:{port}/json-api/editzonerecord'
+
+    if not apply:
+        print('DRY-RUN - requisicao que SERIA enviada:')
+        print(f'  GET {url}')
+        print(f'  Authorization: whm {user}:***')
+        for k, v in params.items():
+            print(f'  {k}={v}')
+        print(f'  txtdata final: {txtdata}')
+        return {'applied': False, 'params': params}
+
+    resp = whm_get('editzonerecord', params)
+    if resp.get('metadata', {}).get('result') != 1:
+        raise RuntimeError(f'editzonerecord falhou: {resp}')
+    time.sleep(5)
+    verify_out = dns_verify()
+    if f'pct={pct}' not in verify_out:
+        raise RuntimeError(f'verificacao pos-escrita falhou — nslookup nao mostra pct={pct}:\n{verify_out}')
+    log_line(f'editzonerecord aplicado: line={line} pct={pct} - verificado no NS autoritativo')
+    return {'applied': True, 'params': params, 'response': resp, 'verify': verify_out}
+
+
+def commit_state(st, pct, acao, health=None, motivo=None):
+    """Grava dmarc_pct/dmarc_changed_at/dmarc_history. Chamada APENAS no caminho apply=True
+    (Pitfall 2: a data e a unica memoria de "quando mudou" — DNS nao guarda isso; gravar em
+    dry-run corromperia o gate dos 7 dias). Additive: preserva todas as chaves existentes."""
+    from_pct = get_pct(st)
+    today_iso = datetime.date.today().isoformat()
+    st['dmarc_pct'] = pct
+    st['dmarc_changed_at'] = today_iso
+    st.setdefault('dmarc_history', []).append({
+        'date': today_iso, 'from': from_pct, 'to': pct, 'acao': acao, 'motivo': motivo, 'health': health,
+    })
+    save_state(st)
+    return st
+
+
+def tg_send(text):
+    """Copia modulo-local do padrao de daily_waves.py — NAO importa/estende
+    D:/claude-code/n8n-local/alerta_telegram.py (choices fechados waha/n8n, state em outro repo)."""
+    try:
+        tok = os.environ.get('TELEGRAM_BOT_TOKEN'); chat = os.environ.get('TELEGRAM_CHAT_ID')
+        if not tok or not chat: return
+        requests.post(f'https://api.telegram.org/bot{tok}/sendMessage',
+                      json={'chat_id': chat, 'text': text, 'parse_mode': 'HTML'}, timeout=20)
+    except Exception as e:
+        log_line(f'telegram falhou: {e}')
+
+
+# ---------- CLI: camada de decisao/escrita ----------
+
+def do_check(simulate_bad=False):
+    load_env()
+    st = load_state()
+    if simulate_bad:
+        # --simulate-bad-window exercita o caminho de REVERSAO de decide() sem depender do
+        # banco real. O pct real de producao hoje e 25 (o minimo) — nesse pct, mesmo saude
+        # ruim so produz 'hold, ja no minimo' (ver decide(), ramo a). Para de fato exercitar
+        # o caminho 'revert', o pct usado na simulacao tambem e sintetico (nao vem do state
+        # real nem e persistido) — documentado aqui de proposito, nao e um bug.
+        st = {'dmarc_pct': 50, 'dmarc_changed_at': (datetime.date.today() - datetime.timedelta(days=10)).isoformat()}
+        health = {'sent': 500, 'bounced': 60, 'spam': 0, 'bounce_rate': 0.12, 'spam_rate': 0.0, 'since': 'simulado'}
+        print('(--simulate-bad-window ativo - pct=50 e health INJETADOS, nao vem do banco/state real)')
+    else:
+        since_dt, _desc = _since_datetime_from_state(st)
+        health = step_health(since_dt)
+    acao, motivo, pct_alvo = decide(st, health, datetime.date.today())
+    print(f"acao={acao} pct_atual={get_pct(st)} pct_alvo={pct_alvo}")
+    print(f"motivo: {motivo}")
+    print(f"health: sent={health['sent']} bounced={health.get('bounced')} spam={health.get('spam')} "
+          f"bounce_rate={health['bounce_rate']*100:.2f}% spam_rate={health['spam_rate']*100:.2f}%")
+    return acao, motivo, pct_alvo
+
+
+def do_advance(apply=False):
+    st = load_state()
+    pct = get_pct(st)
+    alvo = next_step(pct)
+    health = None
+    if apply:
+        since_dt, _ = _since_datetime_from_state(st)
+        health = step_health(since_dt)
+    result = set_pct(alvo, apply=apply)
+    if apply:
+        commit_state(st, alvo, 'advance', health=health, motivo='advance manual (12-05)')
+        tg_send(f"✅ <b>DMARC {pct}% → {alvo}%</b> — bounce {health['bounce_rate']*100:.2f}% / "
+                f"spam {health['spam_rate']*100:.2f}% em {health['sent']} envios. Próximo degrau em 7 dias.")
+    return result
+
+
+def do_revert(apply=False):
+    st = load_state()
+    pct = get_pct(st)
+    alvo = prev_step(pct)
+    health = None
+    if apply:
+        since_dt, _ = _since_datetime_from_state(st)
+        health = step_health(since_dt)
+    result = set_pct(alvo, apply=apply)
+    if apply:
+        data_ref = get_changed_at(st) or 'desconhecida'
+        commit_state(st, alvo, 'revert', health=health, motivo='revert manual (12-05)')
+        tg_send(f"🚨 <b>DMARC REVERTIDO</b> {pct}% → {alvo}% — bounce {health['bounce_rate']*100:.2f}% / "
+                f"spam {health['spam_rate']*100:.2f}% em {health['sent']} envios desde {data_ref}")
+    return result
+
+
+def do_set_pct(pct, apply=False):
+    st = load_state()
+    result = set_pct(pct, apply=apply)
+    if apply:
+        commit_state(st, pct, 'set-pct-manual', motivo=f'set-pct manual {get_pct(st)}->{pct}')
+    return result
+
+
+# ---------- autoteste offline (Task 2: cenarios de decide()) ----------
+
+def _selftest_decide():
+    ok = True
+    today = datetime.date(2026, 9, 20)
+    health_clean = {'sent': 500, 'bounced': 0, 'spam': 0, 'bounce_rate': 0.0, 'spam_rate': 0.0}
+
+    # bounce 12% com pct=50 -> revert para 25
+    st_50 = {'dmarc_pct': 50, 'dmarc_changed_at': '2026-09-01'}
+    health_bad = {'sent': 500, 'bounced': 60, 'spam': 0, 'bounce_rate': 0.12, 'spam_rate': 0.0}
+    acao, _, alvo = decide(st_50, health_bad, today)
+    ok &= _assert(acao == 'revert' and alvo == 25, f'bounce 12% pct=50 -> revert para 25 (got {acao}/{alvo})')
+
+    # bounce 12% com pct=25 -> hold (ja no minimo)
+    st_25 = {'dmarc_pct': 25, 'dmarc_changed_at': '2026-09-01'}
+    acao, _, alvo = decide(st_25, health_bad, today)
+    ok &= _assert(acao == 'hold' and alvo == 25, f'bounce 12% pct=25 -> hold no minimo (got {acao}/{alvo})')
+
+    # spam 0.2% com bounce 0% -> revert
+    health_spam = {'sent': 500, 'bounced': 0, 'spam': 1, 'bounce_rate': 0.0, 'spam_rate': 0.002}
+    acao, _, _ = decide(st_50, health_spam, today)
+    ok &= _assert(acao == 'revert', f'spam 0.2% bounce 0% -> revert (got {acao})')
+
+    # saude limpa + changed_at 3 dias atras -> hold citando dias que faltam
+    st_3d = {'dmarc_pct': 25, 'dmarc_changed_at': (today - datetime.timedelta(days=3)).isoformat()}
+    acao, motivo, _ = decide(st_3d, health_clean, today)
+    ok &= _assert(acao == 'hold' and 'dias' in motivo, f'3 dias -> hold citando dias (got {acao}/{motivo})')
+
+    # saude limpa + 8 dias + sent=150 -> hold por amostra insuficiente
+    st_8d = {'dmarc_pct': 25, 'dmarc_changed_at': (today - datetime.timedelta(days=8)).isoformat()}
+    health_150 = {'sent': 150, 'bounced': 0, 'spam': 0, 'bounce_rate': 0.0, 'spam_rate': 0.0}
+    acao, motivo, _ = decide(st_8d, health_150, today)
+    ok &= _assert(acao == 'hold' and '150' in motivo, f'8 dias sent=150 -> hold por amostra (got {acao}/{motivo})')
+
+    # saude limpa + 8 dias + sent=500 e pct=25 -> advance para 50
+    health_500 = {'sent': 500, 'bounced': 0, 'spam': 0, 'bounce_rate': 0.0, 'spam_rate': 0.0}
+    acao, _, alvo = decide(st_8d, health_500, today)
+    ok &= _assert(acao == 'advance' and alvo == 50, f'8 dias sent=500 pct=25 -> advance para 50 (got {acao}/{alvo})')
+
+    # pct=100 e saude limpa -> done
+    st_100 = {'dmarc_pct': 100, 'dmarc_changed_at': (today - datetime.timedelta(days=30)).isoformat()}
+    acao, _, _ = decide(st_100, health_clean, today)
+    ok &= _assert(acao == 'done', f'pct=100 saude limpa -> done (got {acao})')
+
     return ok
 
 
@@ -218,12 +458,25 @@ def selftest():
 
 def main():
     argv = sys.argv[1:]
+    apply_flag = '--apply' in argv
+    simulate_bad = '--simulate-bad-window' in argv
+
     if '--selftest' in argv:
         sys.exit(0 if selftest() else 1)
-    if '--status' in argv or not argv:
+    if '--status' in argv:
         do_status(); return
-    print(f'flag desconhecida ou ainda nao implementada nesta task: {argv}', file=sys.stderr)
-    sys.exit(2)
+    if '--check' in argv:
+        do_check(simulate_bad=simulate_bad); return
+    if '--advance' in argv:
+        do_advance(apply=apply_flag); return
+    if '--revert' in argv:
+        do_revert(apply=apply_flag); return
+    if '--set-pct' in argv:
+        idx = argv.index('--set-pct')
+        pct = int(argv[idx + 1])
+        do_set_pct(pct, apply=apply_flag); return
+    # sem argumentos = mesmo que --check
+    do_check(simulate_bad=simulate_bad)
 
 
 if __name__ == '__main__':
