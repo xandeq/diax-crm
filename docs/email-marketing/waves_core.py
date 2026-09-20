@@ -10,13 +10,49 @@ deste modulo. Separar os dois dessincroniza em silencio. Ver waves_smoke.py chec
 
 Funcoes PURAS do orquestrador continuam em waves_lib.py — nao duplicar nada de la aqui.
 """
-import os, sys, re, json, time, datetime, io, base64, urllib.parse, requests
+import os, sys, re, json, time, datetime, io, base64, math, urllib.parse, requests
 from pathlib import Path
 
 DIR = str(Path(__file__).resolve().parent) + '/'
 base = 'https://api.alexandrequeiroz.com.br'
 HEALTHY = ['Brevo', 'Mailjet', 'Resend', 'SendGrid']
 PER_PROVIDER = 5  # 5 x 4 = 20 por segmento; 4 segs = 20/provider/hora (<=22 buffer)
+
+# ---------- Warmup de volume (EMAL-02, Phase 12) ----------
+# D-03 (decisão travada): 87 -> 300/dia em +20%/dia, ~8 dias úteis. Ritmo padrão de warmup de
+# deliverability — NÃO é negociável pra mais rápido. A curva é literal de propósito: um
+# `int(87*1.2**n)` daria 87,104,125,150,180,215,259,311 e estouraria o teto de 300.
+WARMUP_TARGETS = [87, 104, 125, 150, 180, 216, 260, 300]
+WARMUP_KEEP_RATIO = 0.80   # entregou menos que isso do alvo? segura o degrau (warmup honesto)
+PER_PROVIDER_WAVE_CAP = 40 # teto por provider por wave/hora; backend HourlyLimit=225 é o hard stop
+SEGS_PER_WAVE = 4          # daily_waves.build_waves(): wave_idx = i // 4
+
+
+def warmup_target(day):
+    """Alvo de volume do dia N do warmup (1-indexed), clampado em [87, 300]."""
+    idx = min(max(day, 1), len(WARMUP_TARGETS)) - 1
+    return WARMUP_TARGETS[idx]
+
+
+def max_per_seg(target, n_seg=12, n_prov=4, min_seg=4):
+    """Quantos leads buscar por segmento pra somar ~`target`/dia, dividido pelos `n_seg`
+    segmentos do plano. Clamp superior por provider: hoje PER_PROVIDER=5 x 4 segs/wave =
+    20/provider/wave (nota original "<=22 buffer"); no alvo 300 isso sobe a 25/provider/wave,
+    ainda dentro do novo teto de 40 e bem abaixo do HourlyLimit=225 do backend. Clamp inferior
+    por `min_seg` — nunca justifica menos que isso por nicho. Próximo gargalo, depois desta
+    fase, é a cota diária de free tier por provider (300/dia ÷ 4 providers = 75/provider/dia).
+    """
+    per_seg = math.ceil(target / max(n_seg, 1))
+    cap = PER_PROVIDER_WAVE_CAP * n_prov / SEGS_PER_WAVE
+    return int(max(min(per_seg, cap), min_seg))
+
+
+def next_warmup_day(dia, entregue, alvo):
+    """Avança 1 degrau se entregou >= WARMUP_KEEP_RATIO do alvo; senão segura o degrau atual.
+    Nunca ultrapassa o último dia da curva (teto 300)."""
+    if alvo > 0 and entregue >= alvo * WARMUP_KEEP_RATIO:
+        return min(dia + 1, len(WARMUP_TARGETS))
+    return dia
 
 FREE_WEBMAIL = {
     'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'yahoo.com.br', 'hotmail.com.br',

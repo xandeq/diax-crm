@@ -6,7 +6,7 @@ nao mudou NADA do comportamento observavel de daily_waves.py. Falha em silencio 
 fase (COPY_BANK menor, import quebrado num dependente vivo) — este script a torna barulhenta.
 
 Uso:
-  python waves_smoke.py                    # roda os 5 checks, exit 0/1
+  python waves_smoke.py                    # roda os 6 checks, exit 0/1
   python waves_smoke.py --update-baseline  # regrava waves-baseline.json (so ANTES do refactor)
 """
 import os
@@ -199,12 +199,50 @@ def check_imports_locais_resolvem(baseline):
     return True, ''
 
 
+def check_warmup_curva(baseline):
+    """Offline puro — importa waves_core (nao daily_waves), nao le nada do baseline."""
+    import waves_core as w
+
+    if w.WARMUP_TARGETS != [87, 104, 125, 150, 180, 216, 260, 300]:
+        return False, f'WARMUP_TARGETS inesperado: {w.WARMUP_TARGETS!r}'
+
+    if w.warmup_target(1) != 87:
+        return False, f'warmup_target(1) != 87: {w.warmup_target(1)!r}'
+    if w.warmup_target(8) != 300:
+        return False, f'warmup_target(8) != 300: {w.warmup_target(8)!r}'
+    if w.warmup_target(99) != 300:
+        return False, f'warmup_target(99) != 300 (sem clamp no teto): {w.warmup_target(99)!r}'
+    if w.warmup_target(0) != 87:
+        return False, f'warmup_target(0) != 87 (sem clamp no piso): {w.warmup_target(0)!r}'
+    if w.warmup_target(-5) != 87:
+        return False, f'warmup_target(-5) != 87 (sem clamp no piso): {w.warmup_target(-5)!r}'
+
+    if w.max_per_seg(300, n_seg=12, n_prov=4) != 25:
+        return False, f'max_per_seg(300,12,4) != 25: {w.max_per_seg(300, n_seg=12, n_prov=4)!r}'
+    if w.max_per_seg(87, n_seg=12, n_prov=4) != 8:
+        return False, f'max_per_seg(87,12,4) != 8: {w.max_per_seg(87, n_seg=12, n_prov=4)!r}'
+    if w.max_per_seg(300, n_seg=12, n_prov=2) != 20:
+        return False, f'max_per_seg(300,12,2) != 20 (clamp por provider): {w.max_per_seg(300, n_seg=12, n_prov=2)!r}'
+    if w.max_per_seg(1, n_seg=12, n_prov=4) < 4:
+        return False, f'max_per_seg nunca pode devolver menos que MIN_SEG(4): {w.max_per_seg(1, n_seg=12, n_prov=4)!r}'
+
+    if w.next_warmup_day(3, 150, 125) != 4:
+        return False, f'next_warmup_day(3,150,125) != 4 (>=80% deveria avancar): {w.next_warmup_day(3, 150, 125)!r}'
+    if w.next_warmup_day(3, 40, 125) != 3:
+        return False, f'next_warmup_day(3,40,125) != 3 (<80% deveria segurar): {w.next_warmup_day(3, 40, 125)!r}'
+    if w.next_warmup_day(8, 300, 300) != 8:
+        return False, f'next_warmup_day(8,300,300) != 8 (nao deveria passar do teto): {w.next_warmup_day(8, 300, 300)!r}'
+
+    return True, ''
+
+
 CHECKS = [
     ('rotation_coberta', check_rotation_coberta),
     ('copy_bank_integro', check_copy_bank_integro),
     ('template_v2_identico', check_template_v2_identico),
     ('healthy_mutavel_in_place', check_healthy_mutavel_in_place),
     ('imports_locais_resolvem', check_imports_locais_resolvem),
+    ('warmup_curva', check_warmup_curva),
 ]
 
 
