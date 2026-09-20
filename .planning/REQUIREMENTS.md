@@ -16,7 +16,7 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 - [x] **EMAL-01**: DMARC sobe de `pct=25` para `pct=100`
 - [x] **EMAL-02**: Volume de envio escala de 87 para 300/dia com warmup gradual
 - [x] **EMAL-03**: A/B de subject (variant A/B) tem o resultado medido e reportado (hoje só alterna, ninguém lê)
-- [ ] **EMAL-04**: Leads "webmail" (gmail/hotmail comercial, 560 hoje ignorados) testados com cap pequeno + tag própria
+- [x] **EMAL-04**: Leads "webmail" (gmail/hotmail comercial, 560 hoje ignorados) testados com cap pequeno + tag própria
 
 ### WhatsApp
 
@@ -67,7 +67,7 @@ Deferido — não bloqueia v1.4.
 | EMAL-01 | Phase 12 — Escala de Email | Complete |
 | EMAL-02 | Phase 12 — Escala de Email | Complete |
 | EMAL-03 | Phase 12 — Escala de Email | Complete |
-| EMAL-04 | Phase 12 — Escala de Email | Pending |
+| EMAL-04 | Phase 12 — Escala de Email | Complete |
 | WHAT-01 | Phase 13 — Escala de WhatsApp | Pending |
 | WHAT-02 | Phase 13 — Escala de WhatsApp | Pending |
 | WHAT-03 | Phase 13 — Escala de WhatsApp | Pending |

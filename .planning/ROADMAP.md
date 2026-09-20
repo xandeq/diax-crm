@@ -409,7 +409,7 @@ nichos produzindo campanha. O gargalo de EMAL-02 é **estoque de lead por nicho*
 volume (backend já permite 900/dia). Verificar a fase contra mecanismo entregue + honestidade do
 relatório, não contra `pct=100` e `300/dia` entregues.
 
-**Plans:** 3/6 plans executed
+**Plans:** 4/6 plans executed
 
 Plans:
 - [x] 12-01-PLAN.md — `dmarc_escalation.py`: leitura da zona WHM, saúde real de `email_events`,
@@ -418,7 +418,7 @@ Plans:
   `already_queued_today()` subindo em lockstep e alvo-vs-entregue no resumo (Wave 1, EMAL-02)
 - [x] 12-03-PLAN.md — `ab_report.py`: taxa de clique por variante sA/sB, veredito com amostra mínima,
   `previews/ab-report.json` (Wave 1, EMAL-03)
-- [ ] 12-04-PLAN.md — Caminho paralelo `mode=webmail` + `build_webmail_wave()` (cap 15/dia, marca
+- [x] 12-04-PLAN.md — Caminho paralelo `mode=webmail` + `build_webmail_wave()` (cap 15/dia, marca
   `auto wm`) e A/B ligado no ramo de sexta (Wave 2, EMAL-04/EMAL-03)
 - [ ] 12-05-PLAN.md — Checkpoint humano antes da 1ª escrita real de DNS, drill de reversão em registro
   descartável, execução da decisão + runbook `DMARC-escalonamento.md` (Wave 2, EMAL-01, tem checkpoint)
@@ -482,7 +482,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 9. Backfill de Score do Backlog | 2/2 | Complete    | 2026-09-19 |
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
-| 12. Escala de Email | 3/6 | In Progress|  |
+| 12. Escala de Email | 4/6 | In Progress|  |
 | 13. Escala de WhatsApp | 0/? | Not started | — |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
@@ -497,8 +497,8 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | QUAL-02 | Phase 11 | Complete |
 | EMAL-01 | Phase 12 | Pending |
 | EMAL-02 | Phase 12 | Pending |
-| EMAL-03 | Phase 12 | Pending |
-| EMAL-04 | Phase 12 | Pending |
+| EMAL-03 | Phase 12 | Complete |
+| EMAL-04 | Phase 12 | Complete |
 | WHAT-01 | Phase 13 | Pending |
 | WHAT-02 | Phase 13 | Pending |
 | WHAT-03 | Phase 13 | Pending |

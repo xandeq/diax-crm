@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-09-20T16:12:05.002Z"
+stopped_at: Completed 12-04-PLAN.md
+last_updated: "2026-09-20T16:21:56.295Z"
 progress:
   total_phases: 11
   completed_phases: 3
   total_plans: 18
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 12 (Escala de Email) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Plan: 4 of 6
 | Phase 12 P03 | 25min | 2 tasks | 2 files |
 | Phase 12 P02 | 15min | 2 tasks | 3 files |
 | Phase 12 P01 | 25min | 2 tasks | 1 files |
+| Phase 12 P04 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -159,6 +160,8 @@ Plan: 4 of 6
 - [Phase 12]: EMAL-03: achado - 578/936 (61.8%) dos envios de 30d vem de campanhas Outreach Cold fora do escopo sA/sB (fluxo OutreachController separado de daily_waves.py) - registrado como limitacao, nao corrigido
 - [Phase 12]: v1.4 12-02: guard anti-duplicado (already_queued_today) sobe em lockstep com o alvo de warmup do dia — literal 50 removido, corrige o Pitfall 4 da pesquisa (rampa truncada em silencio a partir do dia 3)
 - [Phase 12]: [Phase 12] 12-01: decide() e funcao pura com reversao por saude (D-04) avaliada ANTES do gate de 7 dias/amostra minima, que so bloqueia avanco nunca reversao; set_pct() sempre re-localiza a Line da zona WHM via dumpzone antes de qualquer escrita (Pitfall 1); apply=False e default em toda a CLI, zero escrita real executada neste plano
+- [Phase 12]: [Phase 12] 12-04: contagem ao vivo dos 24/24 dominios FREE_WEBMAIL = 719 leads nunca-contactados (nao 560 do REQUIREMENTS.md, nem ~712 aproximado da pesquisa) — valor que vale e o medido agora
+- [Phase 12]: [Phase 12] 12-04: cap diario webmail = 15 (meio da faixa 10-20 do CONTEXT.md), marca 'AQ - webmail - ... auto wm' fica fora do A/B por construcao (ab_report.parse_variant so reconhece sufixo auto s[AB])
 
 ### Testing Protocol
 
@@ -218,6 +221,15 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   preservado). QUAL-01/QUAL-02 fechados em REQUIREMENTS.md/ROADMAP.md. Próximo passo:
   `/gsd:plan-phase 12` (Escala de Email).
 
+- Phase 12 (Escala de Email) EM ANDAMENTO (4/6 planos) — 12-04 concluído 2026-09-20: caminho
+  paralelo de webmail (`build_webmail_wave()`, cap 15/dia, marca `auto wm`, fora do A/B por
+  construção) + `mode='corp'|'webmail'` explícito em `email_ok()`/`fetch_leads()` (default corp
+  inalterado, confirmado por `git diff` do bloco `FREE_WEBMAIL`) + A/B do 12-03 ligado no resumo
+  de sexta. Contagem ao vivo: 719 leads webmail nunca-contactados (24/24 domínios, não 560 do
+  REQUIREMENTS.md nem ~712 aproximado da pesquisa). EMAL-04 fechado; EMAL-03 fechado (medição do
+  12-03 + relatório agora ligado). Restam 12-05 (checkpoint de decisão + drill + escrita real do
+  DMARC, gated) e 12-06 (checkpoint de verificação humana final da fase).
+
 **v1.3 (shipped, referência):**
 
 - Nenhum pendente — Phases 7 e 8 concluídas, deployadas e verificadas em produção (PRs #99, #111)
@@ -247,8 +259,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T16:12:04.991Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-09-20T16:21:56.292Z
+Stopped at: Completed 12-04-PLAN.md
 Phase 11 plan 01 (único plano da fase) executado — QUAL-01/QUAL-02 fechados via verificação ao vivo,
 zero código de aplicação alterado (D-01). Task 1 reconferiu ao vivo (não copiou da pesquisa de
 2026-09-20): Scheduled Task `DIAX-Reply-Watch` `State=Ready`/`LastTaskResult=0`/cadência PT30M-PT11H
