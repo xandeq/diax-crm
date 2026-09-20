@@ -17,7 +17,7 @@
  },
  "optout": {
   "total": 7,
-  "novos_periodo": null
+  "novos_periodo": 0
  },
  "taxa_resposta": {
   "geral": 0.4774774774774775,
@@ -38,12 +38,12 @@
   "causa": "outreach-send.py nao chama POST /api/v1/integrations/whatsapp-event"
  },
  "periodo": {
-  "de": "2026-09-13T18:18:11",
-  "ate": "2026-09-20T18:18:11",
+  "de": "2026-09-13T18:20:31",
+  "ate": "2026-09-20T18:20:31",
   "dias": 7,
   "fuso_logs": "BRT",
   "fuso_crm": "UTC"
  },
  "blacklist_tamanho": 7,
- "gerado": "2026-09-20T18:18:11"
+ "gerado": "2026-09-20T18:20:31"
 }
