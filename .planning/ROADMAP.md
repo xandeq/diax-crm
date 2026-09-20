@@ -465,8 +465,8 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | BFIL-01 | Phase 9 | Complete |
 | SCRP-01 | Phase 10 | Complete |
 | OBSV-01 | Phase 10 | Complete |
-| QUAL-01 | Phase 11 | Pending |
-| QUAL-02 | Phase 11 | Pending |
+| QUAL-01 | Phase 11 | Complete |
+| QUAL-02 | Phase 11 | Complete |
 | EMAL-01 | Phase 12 | Pending |
 | EMAL-02 | Phase 12 | Pending |
 | EMAL-03 | Phase 12 | Pending |

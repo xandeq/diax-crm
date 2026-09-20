@@ -27,8 +27,8 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 
 ### Funil / Qualified
 
-- [ ] **QUAL-01**: Critério objetivo de avanço Contacted→Qualified definido e documentado (hoje é implícito/manual)
-- [ ] **QUAL-02**: `reply_watch.py` avança status automaticamente no CRM quando o critério QUAL-01 é atingido
+- [x] **QUAL-01**: Critério objetivo de avanço Contacted→Qualified definido e documentado (hoje é implícito/manual)
+- [x] **QUAL-02**: `reply_watch.py` avança status automaticamente no CRM quando o critério QUAL-01 é atingido
 
 ### Consolidação
 
@@ -62,8 +62,8 @@ Deferido — não bloqueia v1.4.
 | BFIL-01 | Phase 9 — Backfill de Score do Backlog | Complete (09-01: test + trigger script; 09-02: production execution proven idempotent, human-verified 2026-09-19, evidence in docs/lead-quality/BACKFILL-EVIDENCE.md) |
 | SCRP-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Complete (10-04: os 48 fire_*.py arquivados em archive/ com README, 7 dependentes vivos religados em waves_core.py no 10-03, motor reverificado pós-arquivamento — waves_smoke.py 5/5, daily_waves.py --dry --force ate FIM sem traceback, human-verified 2026-09-19) |
 | OBSV-01 | Phase 10 — Motor de Cadência Único + Pipeline Fora do Notebook | Complete (10-05: alerta Telegram por transição de estado em `waha-watchdog.py`/`watchdog-n8n.ps1`, task `waha-watchdog` registrada, prova real via n8n local caído, human-verified 2026-09-19, runbook em docs/email-marketing/OBSERVABILIDADE-watchdogs.md) |
-| QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Pending |
-| QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Pending |
+| QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: critério `classify_intent(text) != 'negative'` documentado verbatim com citação de linha em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
+| QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: prova ao vivo reconferida — customer_id 2dcb6a14-006a-426c-bc60-b6599a8f0e64 avançou Status 1→2 via audit log 14s após classificação `positive`, caminho negativo sem falso positivo confirmado, runbook em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
 | EMAL-01 | Phase 12 — Escala de Email | Pending |
 | EMAL-02 | Phase 12 — Escala de Email | Pending |
 | EMAL-03 | Phase 12 — Escala de Email | Pending |
