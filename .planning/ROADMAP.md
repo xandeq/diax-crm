@@ -250,7 +250,7 @@ dependência de um único notebook.
 - [x] **Phase 9: Backfill de Score do Backlog** — Recalcular LeadScore/Segment do backlog pré-v1.3 com o motor oficial C# (BFIL-01) (completed 2026-09-19)
 - [x] **Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook** — Consolidar os 79+ scripts `fire_*.py` num motor único e alertar quando WAHA/n8n caem (SCRP-01, OBSV-01) — 5 plans, 4 waves, planejada 2026-09-19
  (completed 2026-09-19)
-- [ ] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02)
+- [x] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02) (completed 2026-09-20)
 - [ ] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04)
 - [ ] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04)
 - [ ] **Phase 14: Dashboard de Conversão do Funil** — Conversão percentual por etapa do funil (DASH-01)
@@ -367,10 +367,10 @@ diff não commitado do usuário fica intacto), WhatsApp e endurecimento do crit�
 O critério 2 deve ser lido como "o script aplica o critério, comprovadamente e com o trabalho em
 andamento preservado" — não como "passa a aplicar" (já aplica desde 2026-09-04).
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 11-01-PLAN.md — Reconferir ao vivo a prova de QUAL-02 (Scheduled Task + audit log do CRM) e
+- [x] 11-01-PLAN.md — Reconferir ao vivo a prova de QUAL-02 (Scheduled Task + audit log do CRM) e
   publicar o runbook `QUALIFIED-avanco-automatico.md` com critério, prova, limites e dependências;
   fechar QUAL-01/QUAL-02 na rastreabilidade (Wave 1, QUAL-01/QUAL-02)
 
@@ -453,7 +453,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 |-------|----------------|--------|-----------|
 | 9. Backfill de Score do Backlog | 2/2 | Complete    | 2026-09-19 |
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
-| 11. Qualified Objetivo e Automático | 0/? | Not started | — |
+| 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 0/? | Not started | — |
 | 13. Escala de WhatsApp | 0/? | Not started | — |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |

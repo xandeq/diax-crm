@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 10-04-PLAN.md
-last_updated: "2026-09-19T23:07:12.211Z"
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-09-20T13:41:29.653Z"
 progress:
   total_phases: 11
-  completed_phases: 2
-  total_plans: 11
-  completed_plans: 9
+  completed_phases: 3
+  total_plans: 12
+  completed_plans: 10
 ---
 
 # State — DIAX CRM
@@ -19,13 +19,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 11 — Qualified Objetivo e Automático
+**Current focus:** Phase 12 — Escala de Email (Phase 11 concluída)
 
 ## Current Position
 
-Phase: 10 (Motor de Cadência Único + Pipeline Fora do Notebook) — COMPLETE (5/5 planos)
-Plan: N/A — fase encerrada via `gsd-tools phase complete 10`. Próxima fase: 11 (Qualified
-Objetivo e Automático), nenhum plano criado ainda — próximo passo: `/gsd:plan-phase 11`
+Phase: 11 (Qualified Objetivo e Automático) — COMPLETE (1/1 planos)
+Plan: N/A — único plano da fase (11-01) executado e verificado. QUAL-01/QUAL-02 fecham a fase.
+Próxima fase: 12 (Escala de Email), nenhum plano criado ainda — próximo passo: `/gsd:plan-phase 12`
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Objetivo e Automático), nenhum plano criado ainda — próximo passo: `/gsd:pla
 | Phase 10 P02 | 35min | 3 tasks | 3 files |
 | Phase 10 P03 | 20min | 3 tasks | 8 files |
 | Phase 10 P04 | 25min | 2 tasks | 52 files |
+| Phase 11 P01 | 45min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,7 @@ Objetivo e Automático), nenhum plano criado ainda — próximo passo: `/gsd:pla
 - [Phase 10]: [Phase 10] 10-02: waves_core.py e waves_copy.py criados por copia verbatim (nao movimentacao) de fire_today_20/fire_w1_2707/fire_w2w3_2707; daily_waves.py religado nos modulos novos com prova de equivalencia total (md5 dos 3 fontes inalterado, 7/7 inspect.getsource identico, hash do template igual ao baseline, smoke 5/5 apos cada task, dry-run --force com rede real sem erro)
 - [Phase 10]: 10-03: 7 dependentes vivos de fire_today_20.py (import_extrator_bridge.py, replenish_leads.py, rescrape_21/27/tavily_27.py, scrape_and_import.py, debug_campaign.py) religados em waves_core.py; grep from fire_|import fire_ zerado, D-03 do 10-04 satisfeito; debug_campaign.py alterado sem jamais ser importado/executado (py_compile + AST estatico)
 - [Phase 10]: 10-04: 6 de 48 fire_*.py sao tracked no git (nao 3 como estimado) - mv de sistema de arquivos + git add escopado detecta rename automatico para tracked, evitando git mv forcado
+- [Phase 11]: [Phase 11] 11-01: cited atendimento@listamais.com.br (not pedido@bfffitnessatacado.com.br) as QUAL-02 proof - the latter's Status 1->2 predates any reply_watch.py log entry, not attributable to this mechanism
 
 ### Testing Protocol
 
@@ -200,7 +202,15 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   10-04 arquivou os 48 fire_*.py em docs/email-marketing/archive/ (com README de aviso), fechou
   MIGRACAO-fire-scripts.md e marcou SCRP-01 completo — último requirement pendente da fase.
   Motor reverificado pós-arquivamento: waves_smoke.py 5/5, daily_waves.py --dry --force até FIM
-  sem traceback. Próximo passo: `/gsd:plan-phase 11` (Qualified Objetivo e Automático).
+  sem traceback.
+
+- Phase 11 (Qualified Objetivo e Automático) CONCLUÍDA (1/1 plano, 2026-09-20) — 11-01 verificou ao
+  vivo (sem alterar código) que `reply_watch.py` já implementa QUAL-01/QUAL-02, publicou
+  `docs/email-marketing/QUALIFIED-avanco-automatico.md` com critério + prova reconferida (audit log,
+  customer_id `2dcb6a14-006a-426c-bc60-b6599a8f0e64`, Status 1→2, caminho negativo sem falso
+  positivo), guard MD5 de `reply_watch.py` idêntico do início ao fim (diff não commitado do usuário
+  preservado). QUAL-01/QUAL-02 fechados em REQUIREMENTS.md/ROADMAP.md. Próximo passo:
+  `/gsd:plan-phase 12` (Escala de Email).
 
 **v1.3 (shipped, referência):**
 
@@ -231,21 +241,21 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-19T23:04:40.263Z
-Stopped at: Completed 10-04-PLAN.md
-Phase 10 plan 04 (SCRP-01) concluído — o checkpoint humano do 10-04 foi aprovado ("Aprovado, move
-os 48 (Recomendado)") em sessão anterior, com as 4 pré-condições reconferidas ao vivo (grep de
-dependência de fire_* vazio, waves_smoke.py 5/5, import_extrator_bridge.py --dry com erro de SSH
-esperado — não ImportError —, contagem de 48 fire_*.py confirmada). Nesta sessão: os 48 fire_*.py
-foram movidos para docs/email-marketing/archive/ (6 tracked via rename detectado pelo git — mais
-do que os 3 estimados no checkpoint —, 42 untracked como novos), archive/README.md criado com
-aviso de conteúdo histórico não-executável, motor reverificado DEPOIS do arquivamento
-(waves_smoke.py 5/5, import_extrator_bridge/replenish_leads importam OK, py_compile
-debug_campaign.py OK, daily_waves.py --dry --force até FIM sem traceback), md5 dos 3 arquivos
-fonte (fire_today_20/fire_w1_2707/fire_w2w3_2707) idêntico antes/depois do move,
-MIGRACAO-fire-scripts.md fechado como registro do que foi feito (status CONCLUÍDO, 7 imports
-atuais colados, rollback documentado), e SCRP-01 marcado Complete em REQUIREMENTS.md — último
-requirement pendente da Phase 10. **Phase 10 está 100% concluída (5/5 planos, SCRP-01 e OBSV-01
-ambos fechados).** v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
-Próximo passo: `/gsd:plan-phase 11` (Qualified Objetivo e Automático).
+Last session: 2026-09-20T13:41:29.646Z
+Stopped at: Completed 11-01-PLAN.md
+Phase 11 plan 01 (único plano da fase) executado — QUAL-01/QUAL-02 fechados via verificação ao vivo,
+zero código de aplicação alterado (D-01). Task 1 reconferiu ao vivo (não copiou da pesquisa de
+2026-09-20): Scheduled Task `DIAX-Reply-Watch` `State=Ready`/`LastTaskResult=0`/cadência PT30M-PT11H
+seg-sex sem divergência, e o cross-reference contra o audit log do CRM confirmou
+`atendimento@listamais.com.br` (customer_id `2dcb6a14-006a-426c-bc60-b6599a8f0e64`) avançou
+`Status: 1→2` em `2026-09-07T11:00:22.9668226Z`, 14s depois da classificação `positive` no log do
+script — mesma correlação da pesquisa, agora reconferida nesta sessão. Caminho negativo
+(`coordenacao@atomclinica.com.br`, `recepcao@vilaaltodospinhais.com.br`) confirmado sem nenhum
+evento de `Status` no audit log — sem falso positivo. Guard MD5 de `reply_watch.py` idêntico nos 3
+checkpoints (antes da Task 1, depois da Task 1, depois da Task 2) — `BC93E487DDFA9DA7EC5BC4284F8F2328`
+— e `git status`/`git diff` confirmam o diff não commitado do usuário (saudação WhatsApp) intacto o
+tempo todo. Task 2 criou `docs/email-marketing/QUALIFIED-avanco-automatico.md` (195 linhas, 5 seções)
+e fechou QUAL-01/QUAL-02 em REQUIREMENTS.md e no Coverage Map do ROADMAP.md. **Phase 11 está 100%
+concluída (1/1 plano).** v1.2 segue pausado em paralelo (ver "v1.2 — Pausado" acima), sem alteração.
+Próximo passo: `/gsd:plan-phase 12` (Escala de Email).
 Resume file: None
