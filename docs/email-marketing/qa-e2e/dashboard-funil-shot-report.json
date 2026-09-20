@@ -1,0 +1,58 @@
+{
+  "url": "https://crm.alexandrequeiroz.com.br/dashboard-comercial/",
+  "capturado_em": {
+    "utc": "2026-09-20T23:06:55Z",
+    "brt": "2026-09-20T20:06:55-03:00"
+  },
+  "checks": {
+    "titulo_funil": true,
+    "rotulo_conversao": true,
+    "cinco_etapas": true,
+    "sem_erro": true
+  },
+  "comparacao_api": {
+    "por_etapa": [
+      {
+        "stage": "Lead",
+        "na_api": 4246,
+        "na_tela": 4246,
+        "delta": 0
+      },
+      {
+        "stage": "Contacted",
+        "na_api": 2972,
+        "na_tela": 2972,
+        "delta": 0
+      },
+      {
+        "stage": "Qualified",
+        "na_api": 34,
+        "na_tela": 34,
+        "delta": 0
+      },
+      {
+        "stage": "Negotiating",
+        "na_api": 0,
+        "na_tela": 0,
+        "delta": 0
+      },
+      {
+        "stage": "Customer",
+        "na_api": 2,
+        "na_tela": 2,
+        "delta": 0
+      }
+    ],
+    "bate_exato": true,
+    "evidencia_capturado_em": {
+      "brt": "2026-09-20T20:02:07-03:00",
+      "utc": "2026-09-20T23:02:07Z"
+    },
+    "shot_capturado_em": {
+      "utc": "2026-09-20T23:06:55Z",
+      "brt": "2026-09-20T20:06:55-03:00"
+    }
+  },
+  "consoleErrors": [],
+  "ok": true
+}
