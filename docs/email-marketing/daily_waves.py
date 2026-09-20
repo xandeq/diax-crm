@@ -43,6 +43,13 @@ FUP_CAPS = {2: 30, 3: 20}    # FUP2 / FUP3
 WAVE_ERRORS = []             # campanhas que falharam em schedule/queue (p/ alerta)
 MIN_SEG = 4  # menos que isso nao justifica campanha propria
 
+# ---------- Webmail (EMAL-04, Phase 12 plano 04) ----------
+WEBMAIL_CAP   = 15    # EMAL-04: cap pequeno e proprio. Webmail tem reputacao pior e a base ja
+                      # esta com bounce acima de 10% — conservador dentro da faixa 10-20 do CONTEXT.
+WEBMAIL_SEG   = 'webmail'
+WEBMAIL_MARK  = 'wm'  # sufixo do nome da campanha: fica FORA do A/B (ab_report so aceita s[AB])
+WEBMAIL_MIN   = 5     # menos que isso nao justifica campanha propria (espelha MIN_SEG)
+
 # ---------- COPY BANK (rotação) ----------
 def _harvest():
     bank = {}
@@ -219,11 +226,11 @@ def personalize_queue(cid, leads, site_res):
 
 # ---------- 1. WAVES ----------
 
-def fetch_multi(terms, H, se, sd, sc, want):
+def fetch_multi(terms, H, se, sd, sc, want, mode='corp'):
     out = []
     for t in terms:
         if len(out) >= want: break
-        leads, _ = fetch_leads({'search': t}, H, se, sd, sc, want - len(out))
+        leads, _ = fetch_leads({'search': t}, H, se, sd, sc, want - len(out), mode=mode)
         out.extend(leads or [])
     return out[:want]
 
@@ -384,6 +391,99 @@ def build_waves(H, st):
             st['warmup_last_date'] = today
             log_line(f'WARMUP: SEGURA no dia {wd} — entregue {entregue}/{target} (<{int(WARMUP_KEEP_RATIO*100)}%)')
     return fired
+
+def build_webmail_wave(H, st):
+    """Caminho PARALELO pra leads de webmail comercial (gmail/hotmail/etc.): cap e marca
+    própria, fora da rotação dos 20 nichos corporativos e fora do A/B do 12-03. NÃO é a
+    remoção do filtro FREE_WEBMAIL (Pitfall 5 da pesquisa da Phase 12) — é um segundo
+    caminho de busca, usando mode='webmail' em fetch_leads/email_ok (criado no 12-04 Task 1).
+    Não participa da rotação de 20 nichos, não consome o cursor, não mexe em MAX_PER_SEG."""
+    today = datetime.date.today().isoformat()
+    wm = st.setdefault('webmail_sent', {})
+    ja = wm.get(today, 0)
+    if ja >= WEBMAIL_CAP:
+        log_line(f'WEBMAIL: cap {WEBMAIL_CAP} já atingido hoje')
+        return []
+    want = WEBMAIL_CAP - ja
+
+    cfg = COPY_BANK['geral_vitoria']  # nicho generico, serve p/ populacao heterogenea de webmail
+    se, sd, sc = set(), set(), set()  # conjuntos PROPRIOS — nao os de build_waves
+    leads = fetch_multi(cfg['search_terms'], H, se, sd, sc, want, mode='webmail')
+    if len(leads) < want:
+        # busca por termo nao rendeu o suficiente: cai pra pagina geral (webmail nao se agrupa por nicho)
+        extra, _ = fetch_leads({'search': ''}, H, se, sd, sc, want - len(leads), mode='webmail')
+        leads.extend(extra or [])
+
+    before = len(leads)
+    leads = [ld for ld in leads
+             if not is_role_mailbox(ld['email']) and not is_foreign_lead(ld['email'], ld.get('company') or '')]
+    descartados = before - len(leads)
+    if descartados:
+        log_line(f'WEBMAIL: {descartados} descartado(s) (role-mailbox/estrangeiro)')
+
+    if len(leads) < WEBMAIL_MIN:
+        log_line(f'WEBMAIL: {len(leads)} leads (<{WEBMAIL_MIN}) — sem campanha hoje')
+        return []
+
+    # webmail vai depois das corporativas — e experimento, usa o ULTIMO slot disponivel
+    slots = compute_wave_slots(datetime.datetime.utcnow())
+    if not slots:
+        log_line('WEBMAIL: sem slot restante hoje (cutoff) — fica p/ amanhã')
+        return []
+    when_dt = slots[-1]
+    brt = brt_label(when_dt)
+    when_api = when_dt.strftime('%Y-%m-%dT%H:%M:%SZ'); when_sql = when_dt.strftime('%Y-%m-%d %H:%M:%S')
+
+    if DRY:
+        log_line(f'DRY: webmail = {len(leads)} leads (cap {WEBMAIL_CAP}, já hoje {ja})')
+        return []
+
+    leads = assign_providers(leads)
+    img = gen_image(cfg['img'], H, keyword='webmail')
+    if not img:
+        log_line('WEBMAIL: sem imagem — pulo')
+        return []
+    html = build_html_v2(cfg['hook'], cfg['subhead'], img, cfg['intro'] + ACHADO_MARK, cfg['bullets'], cfg['wa'])
+    H2 = login()
+    cr = requests.post(base + '/api/v1/email-campaigns/campaigns', headers=H2, timeout=30,
+                       json={'name': f'AQ - {WEBMAIL_SEG} - {cfg["service"]} - {today} auto {WEBMAIL_MARK}',
+                             'subject': cfg['subject'], 'fromName': 'Alexandre Queiroz',
+                             'fromEmail': 'contato@alexandrequeiroz.com.br', 'bodyHtml': html})
+    if cr.status_code not in (200, 201):
+        log_line(f'WEBMAIL: criacao {cr.status_code} {cr.text[:150]}')
+        return []
+    cid = cr.json().get('id') or cr.json().get('campaignId')
+    # /schedule tira a campanha de Draft (readiness gate do queue) — mesmo padrão de build_waves.
+    sr = requests.post(base + f'/api/v1/email-campaigns/campaigns/{cid}/schedule', headers=H2,
+                       json={'scheduledAt': when_api}, timeout=30)
+    if sr.status_code not in (200, 201):
+        log_line(f'WEBMAIL: schedule {sr.status_code} {sr.text[:200]} (when={when_api})')
+        WAVE_ERRORS.append(f'{WEBMAIL_SEG} schedule {sr.status_code}')
+        return []
+    payload = [{'customerId': ld['id'], 'assignedProvider': ld['assignedProvider']} for ld in leads]
+    r = requests.post(base + '/api/v1/email-providers/queue-with-assignment', headers=H2, timeout=60,
+                      json={'campaignId': cid, 'leads': payload})
+    if r.status_code not in (200, 201, 202):
+        log_line(f'WEBMAIL: queue {r.status_code} {r.text[:200]}')
+        WAVE_ERRORS.append(f'{WEBMAIL_SEG} queue {r.status_code}')
+        return []
+    jr = r.json()
+    moved = reschedule(cid, when_sql)
+    try:
+        pers = personalize_queue(cid, leads, {})  # sem site-check dedicado p/ webmail
+    except Exception as e:
+        pers = -1; log_line(f'WEBMAIL: personalize falhou (itens saem com intro padrão): {e}')
+    queued = jr.get('queuedCount') or 0
+    log_line(f'  {WEBMAIL_SEG:14} personalizados={pers}')
+    log_line(f'  {WEBMAIL_SEG:14} queue={r.status_code} n={queued} skip={jr.get("skippedCount")} sched {brt} BRT (reag {moved})')
+
+    wm[today] = ja + queued
+    # poda: mantem so os ultimos 30 dias (fup_sent ja cresceu p/ 523 entradas sem poda — nao repetir)
+    cutoff = (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
+    for d in [d for d in wm if d < cutoff]:
+        del wm[d]
+
+    return [{'seg': WEBMAIL_SEG, 'n': queued, 'brt': brt}]
 
 # ---------- 2. FOLLOW-UP ----------
 
@@ -755,6 +855,7 @@ def main():
     if not ensure_breaker_closed(H):
         log_line('ABORT: breaker aberto'); tg_send('⚠️ Email waves ABORTADAS: circuit breaker aberto'); return
     fired = build_waves(H, st)
+    wm_fired = build_webmail_wave(H, st)
     replies = scan_replies()          # antes dos FUPs: quem respondeu não recebe mais toque
     fups = run_followups(st)
     fup2 = run_fup_stage(st, 2, replies)
@@ -775,6 +876,9 @@ def main():
     if alvo and total < alvo * 0.8:
         msg += (f'\n📉 <b>ABAIXO DO ALVO</b>: {total}/{alvo}. Provável falta de estoque por nicho '
                 f'(MIN_SEG={MIN_SEG}, nichos cortados por niche_cut_list) — degrau do warmup SEGURADO.')
+    wm_total = sum(f['n'] for f in wm_fired)
+    if wm_total or wm_fired:
+        msg += f'\n📬 Webmail (teste): <b>{wm_total}</b>/{WEBMAIL_CAP} — tag <code>auto wm</code>\n'
     if WAVE_ERRORS:
         msg += f'\n🚨 <b>{len(WAVE_ERRORS)} campanha(s) FALHARAM</b> (schedule/queue): ' + ', '.join(WAVE_ERRORS[:6])
     if crm_tasks:
@@ -789,6 +893,11 @@ def main():
             msg += '\n\n' + format_niche_report(niche_refresh(30))
         except Exception as e:
             log_line(f'niche_refresh falhou: {e}')
+        try:   # import preguicoso: nao paga custo do modulo nos dias que nao sao sexta
+            import ab_report
+            msg += '\n\n' + ab_report.format_tg(ab_report.report(30))
+        except Exception as e:
+            log_line(f'ab_report falhou: {e}')
     # segunda e sexta: purge (quota 500MB; audit_logs cresce ~15k linhas/semana com o worker)
     if datetime.date.today().weekday() in (0, 4) and not DRY:
         try:
