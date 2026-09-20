@@ -1,0 +1,1028 @@
+{
+ "gerado": "2026-09-20T17:56:34",
+ "janela_dias": 7,
+ "envios": [
+  {
+   "ts": "2026-09-14T12:45:25",
+   "chat_id": "5527998711110@c.us",
+   "nome": "Construtora Canal",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T13:00:11",
+   "chat_id": "5527999938287@c.us",
+   "nome": "Apartamento para Venda, Vila Velha / ES, bairro ",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T13:30:11",
+   "chat_id": "5527981014334@c.us",
+   "nome": "Pousada",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T14:00:11",
+   "chat_id": "5527992837788@c.us",
+   "nome": "Advogado Previdenciáóóório",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T14:30:11",
+   "chat_id": "5527992581395@c.us",
+   "nome": "Sarah Sayuri Psicóloga",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T15:00:15",
+   "chat_id": "5527997891456@c.us",
+   "nome": "Imobiliária Paulo Gomes",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T15:30:28",
+   "chat_id": "5527988538890@c.us",
+   "nome": "Guara Pousada",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T16:00:11",
+   "chat_id": "5527992677267@c.us",
+   "nome": "Lojas",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T16:30:11",
+   "chat_id": "5527988284424@c.us",
+   "nome": "Parede Pedra Yoga",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T17:00:12",
+   "chat_id": "5527981146458@c.us",
+   "nome": "SPF Advocacia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-14T17:30:11",
+   "chat_id": "5527999162773@c.us",
+   "nome": "Correta Vitória",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T09:00:11",
+   "chat_id": "5527998544746@c.us",
+   "nome": "AONI IMÓVEIS",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T10:00:11",
+   "chat_id": "5527997296146@c.us",
+   "nome": "Corretor Leal Negócios Imobiliários",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T10:30:11",
+   "chat_id": "5527998854949@c.us",
+   "nome": "Moraes Corretor",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T11:37:57",
+   "chat_id": "5527981590940@c.us",
+   "nome": "Sandro Pinheiro Imóveis",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T12:00:11",
+   "chat_id": "5527999760116@c.us",
+   "nome": "Sygrid Garcia Imóveis",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T13:00:11",
+   "chat_id": "5527999526924@c.us",
+   "nome": "Cursos De Inglês, Espanhol, Informática E Portug",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T13:30:11",
+   "chat_id": "5527996969313@c.us",
+   "nome": "NC Corretora De Imóveis, Imobiliária Em Serra",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T14:00:17",
+   "chat_id": "5527988657227@c.us",
+   "nome": "Ribeiro Fialho Advocacia – Viabilizando Negócios",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T15:00:11",
+   "chat_id": "5527998063956@c.us",
+   "nome": "Prime Vitória Transportes Executivo",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T15:30:11",
+   "chat_id": "5527999973744@c.us",
+   "nome": "Óticas Cachoeiro",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T16:00:11",
+   "chat_id": "5527995780500@c.us",
+   "nome": "DR Engenharia, Consultoria E Projetos Ltda",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T16:30:12",
+   "chat_id": "5527996891211@c.us",
+   "nome": "Bergamini",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T17:00:12",
+   "chat_id": "5527997095392@c.us",
+   "nome": "Ótica Em Vitória",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-15T17:30:11",
+   "chat_id": "5527992996616@c.us",
+   "nome": "Clínica Praia do Canto",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T09:00:11",
+   "chat_id": "5527997218779@c.us",
+   "nome": "Gráfica Canela Verde",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T09:30:11",
+   "chat_id": "5527981228861@c.us",
+   "nome": "CCA Soluções Contábeis",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T10:00:12",
+   "chat_id": "5527995023487@c.us",
+   "nome": "Feriane & Faccim Advocacia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T10:30:12",
+   "chat_id": "5527997285152@c.us",
+   "nome": "Pousada Coqueiral",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T11:00:11",
+   "chat_id": "5527998440077@c.us",
+   "nome": "Imobiliria Alex Tongo",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T11:30:11",
+   "chat_id": "5527992694911@c.us",
+   "nome": "Odonto Dreams",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T12:00:11",
+   "chat_id": "5527996516314@c.us",
+   "nome": "Shark Consultoria",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T12:30:12",
+   "chat_id": "5527996071983@c.us",
+   "nome": "PMB Advocacia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T13:00:11",
+   "chat_id": "5527996256518@c.us",
+   "nome": "Dcontabile Contabilidade Em Serra",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T13:30:11",
+   "chat_id": "5527996174072@c.us",
+   "nome": "Psicóloga Amanda Angeli Ortelan",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T14:00:13",
+   "chat_id": "5527997348179@c.us",
+   "nome": "Segantini Arquitetura",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T14:30:12",
+   "chat_id": "5527997120441@c.us",
+   "nome": "Colégio São José",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T15:00:11",
+   "chat_id": "5527995706894@c.us",
+   "nome": "Copygloria",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T15:30:11",
+   "chat_id": "5527997866810@c.us",
+   "nome": "Get Innovation Consultoria Empresarial",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T16:00:12",
+   "chat_id": "5527992649892@c.us",
+   "nome": "Psicóloga Danielle Pansini",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T16:30:12",
+   "chat_id": "5527988108620@c.us",
+   "nome": "My Site 1",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T17:00:12",
+   "chat_id": "5527992365313@c.us",
+   "nome": "Psicóloga Karla Cardozo",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-16T17:30:12",
+   "chat_id": "5527992717579@c.us",
+   "nome": "Ampla Engenharia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T09:00:12",
+   "chat_id": "5527999959301@c.us",
+   "nome": "Imóveis Vila Velha Vitória",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T10:00:13",
+   "chat_id": "5527999262489@c.us",
+   "nome": "Clínica da Família",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T10:30:13",
+   "chat_id": "5527997216147@c.us",
+   "nome": "Eletrica Santana Ltda",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T11:00:13",
+   "chat_id": "5527999435604@c.us",
+   "nome": "O Imóvel Que Você Procura, Está Aqui Na Ricardo ",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T11:30:13",
+   "chat_id": "5527995313101@c.us",
+   "nome": "Apartamento Para Venda, Vila Velha / ES, Bairro ",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T12:00:13",
+   "chat_id": "5527988568703@c.us",
+   "nome": "Cfrv2020",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T13:00:13",
+   "chat_id": "5527981438865@c.us",
+   "nome": "Vitória Material De Construção",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T13:30:13",
+   "chat_id": "5527998882645@c.us",
+   "nome": "WSR Contabilidade",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T14:00:13",
+   "chat_id": "5527981743195@c.us",
+   "nome": "Instituto Lorentz",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T14:30:13",
+   "chat_id": "5527998313935@c.us",
+   "nome": "J.Vixs Contabilidade E Finanças",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T15:00:13",
+   "chat_id": "5527995834621@c.us",
+   "nome": "Pop Jazz",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T15:30:13",
+   "chat_id": "5527998827483@c.us",
+   "nome": "Advogado Em Vila Velha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T16:00:14",
+   "chat_id": "5527999112828@c.us",
+   "nome": "Matias Imóveis Em Guarapari/ES",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T16:30:13",
+   "chat_id": "5527997798599@c.us",
+   "nome": "Psicóloga Andreia Amorim Cordeiro/Vila Velha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T17:00:14",
+   "chat_id": "5527996132941@c.us",
+   "nome": "Loja De Reparo Em Notebook E Manutenção No Shopp",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-17T17:30:14",
+   "chat_id": "5527999796138@c.us",
+   "nome": "Amorim & Luchi Advocacia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T09:00:13",
+   "chat_id": "5527998305516@c.us",
+   "nome": "Lead Local_Business_Data",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T09:30:14",
+   "chat_id": "5527998646242@c.us",
+   "nome": "Escola de Dança Jimmy de Oliveira",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T10:00:17",
+   "chat_id": "5527997455064@c.us",
+   "nome": "Advogada Em Vila Velha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T10:30:14",
+   "chat_id": "5527998239455@c.us",
+   "nome": "Psicóloga Em Vitória Giuliana De Paula",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T11:30:13",
+   "chat_id": "5527992446372@c.us",
+   "nome": "Daniela Alencar: Nutricionista Esportiva, Clínic",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T12:00:14",
+   "chat_id": "5527999187919@c.us",
+   "nome": "Centro Médico Campo Grande",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T12:30:14",
+   "chat_id": "5527981118524@c.us",
+   "nome": "Imobiliária Em Vila Velha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T13:00:14",
+   "chat_id": "5527997226476@c.us",
+   "nome": "World Informática",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T13:30:14",
+   "chat_id": "5527998065503@c.us",
+   "nome": "Marco Contabilidade Consultiva",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T14:00:14",
+   "chat_id": "5527998206536@c.us",
+   "nome": "Advocacia De Consórcio",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T14:30:14",
+   "chat_id": "5527999986668@c.us",
+   "nome": "Imobiliária Romanha Imóveis LTDA Em Serra",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T15:00:14",
+   "chat_id": "5527999706622@c.us",
+   "nome": "Vitória Reformas E Serviços",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T15:30:14",
+   "chat_id": "5527996395981@c.us",
+   "nome": "Baroni Advogados",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T16:00:13",
+   "chat_id": "5527999124995@c.us",
+   "nome": "Naked Vitória",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T16:30:13",
+   "chat_id": "5527981314144@c.us",
+   "nome": "Destakse",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T17:00:12",
+   "chat_id": "5527999687235@c.us",
+   "nome": "VM Logística",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-18T17:30:13",
+   "chat_id": "5527997919802@c.us",
+   "nome": "Argosvig-Es.com",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T09:00:12",
+   "chat_id": "5527997507294@c.us",
+   "nome": "Vinicius Gama Arquitetura",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T09:30:14",
+   "chat_id": "5527997566698@c.us",
+   "nome": "Diamante Corretora De Imoveis",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T10:00:15",
+   "chat_id": "5527992830707@c.us",
+   "nome": "Resende & Cetto Advocacia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T10:30:21",
+   "chat_id": "5527999976902@c.us",
+   "nome": "Moah Comunicação",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T11:00:13",
+   "chat_id": "5527996441736@c.us",
+   "nome": "Gaeta Hotel",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T11:30:13",
+   "chat_id": "5527999972916@c.us",
+   "nome": "Vicar",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T12:00:13",
+   "chat_id": "5527996626952@c.us",
+   "nome": "Gráfica Serra",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T12:30:12",
+   "chat_id": "5527999921117@c.us",
+   "nome": "Hospedagem E Gastronomia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T13:00:13",
+   "chat_id": "5527998777376@c.us",
+   "nome": "RHF Talentos",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T13:30:13",
+   "chat_id": "5527996696361@c.us",
+   "nome": "Fale Conosco",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T14:00:13",
+   "chat_id": "5527999669208@c.us",
+   "nome": "Psicóloga Edilene Soares Monteiro",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T14:30:13",
+   "chat_id": "5527999268637@c.us",
+   "nome": "Talita Costa, Imobiliária Em Cariacica",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T15:00:13",
+   "chat_id": "5527992518330@c.us",
+   "nome": "Vitória Gestão",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T15:30:13",
+   "chat_id": "5527999741809@c.us",
+   "nome": "Lead Local_Business_Data",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T16:00:13",
+   "chat_id": "5527981076580@c.us",
+   "nome": "Gts",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T16:30:15",
+   "chat_id": "5527998128718@c.us",
+   "nome": "Veterinária Da Ilha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T17:00:13",
+   "chat_id": "5527993164209@c.us",
+   "nome": "Vila Trampolim",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-19T17:30:13",
+   "chat_id": "5527997533266@c.us",
+   "nome": "Construções E Reformas Em Vitória",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T09:00:12",
+   "chat_id": "5527999812488@c.us",
+   "nome": "Mgt",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T09:30:19",
+   "chat_id": "5527999191957@c.us",
+   "nome": "Unid Mata Da Praia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T10:10:20",
+   "chat_id": "5527992768859@c.us",
+   "nome": "Deblon Lanches Vila Velha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T10:33:38",
+   "chat_id": "5527999445089@c.us",
+   "nome": "MB Centro De Fisioterapia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T11:00:17",
+   "chat_id": "5527997560299@c.us",
+   "nome": "Imobiliária 100% Vila Velha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T11:30:12",
+   "chat_id": "5527988316166@c.us",
+   "nome": "Metacorpus Studio Pilates",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T12:00:13",
+   "chat_id": "5527981499314@c.us",
+   "nome": "Kontado Contabilidade Ltda",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T12:30:12",
+   "chat_id": "5527998125738@c.us",
+   "nome": "Leia",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T13:00:13",
+   "chat_id": "5527998701133@c.us",
+   "nome": "Galpão para Venda, Vila Velha / ES, bairro Inter",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T13:30:12",
+   "chat_id": "5527995329218@c.us",
+   "nome": "Scaramussa Advogados",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T14:30:12",
+   "chat_id": "5527998658243@c.us",
+   "nome": "Jefferson Gonzaga Advogado Em Cariacica (27) 998",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T15:00:13",
+   "chat_id": "5527997736925@c.us",
+   "nome": "Advogado Em Vila Velha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T15:30:13",
+   "chat_id": "5527999152182@c.us",
+   "nome": "Flegler Advocacia Previdenciária",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T16:00:12",
+   "chat_id": "5527997292774@c.us",
+   "nome": "1O Ofício Vitória",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T16:30:13",
+   "chat_id": "5527999933947@c.us",
+   "nome": "Pousada Convento Da Penha",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T17:00:13",
+   "chat_id": "5527999016777@c.us",
+   "nome": "Imóveis À Venda Em Guarapari/ES",
+   "segmento": "wa_es"
+  },
+  {
+   "ts": "2026-09-20T17:30:13",
+   "chat_id": "5527996320214@c.us",
+   "nome": "Cominoti Construções",
+   "segmento": "wa_es"
+  }
+ ],
+ "envios_por_segmento": {
+  "wa_es": 111,
+  "wa_br": 0,
+  "desconhecido": 0
+ },
+ "respostas": [
+  {
+   "ts": "2026-09-14T09:12:22",
+   "chat_id": "5527997376060@c.us"
+  },
+  {
+   "ts": "2026-09-14T11:38:58",
+   "chat_id": "5527981823044@c.us"
+  },
+  {
+   "ts": "2026-09-14T13:30:16",
+   "chat_id": "5527981014334@c.us"
+  },
+  {
+   "ts": "2026-09-14T15:36:01",
+   "chat_id": "5527988538890@c.us"
+  },
+  {
+   "ts": "2026-09-14T16:00:16",
+   "chat_id": "5527992677267@c.us"
+  },
+  {
+   "ts": "2026-09-14T16:16:10",
+   "chat_id": "5527988538890@c.us"
+  },
+  {
+   "ts": "2026-09-14T16:49:38",
+   "chat_id": "5527992837788@c.us"
+  },
+  {
+   "ts": "2026-09-14T17:30:42",
+   "chat_id": "5527999162773@c.us"
+  },
+  {
+   "ts": "2026-09-14T17:35:03",
+   "chat_id": "5527992837788@c.us"
+  },
+  {
+   "ts": "2026-09-14T20:26:00",
+   "chat_id": "5519988441001@c.us"
+  },
+  {
+   "ts": "2026-09-14T20:27:08",
+   "chat_id": "5527999162773@c.us"
+  },
+  {
+   "ts": "2026-09-14T20:27:22",
+   "chat_id": "5527992677267@c.us"
+  },
+  {
+   "ts": "2026-09-14T21:04:26",
+   "chat_id": "5527999162773@c.us"
+  },
+  {
+   "ts": "2026-09-15T08:07:25",
+   "chat_id": "5527999162773@c.us"
+  },
+  {
+   "ts": "2026-09-15T09:00:14",
+   "chat_id": "5527998544746@c.us"
+  },
+  {
+   "ts": "2026-09-15T10:02:29",
+   "chat_id": "5527997296146@c.us"
+  },
+  {
+   "ts": "2026-09-15T10:37:20",
+   "chat_id": "5527998544746@c.us"
+  },
+  {
+   "ts": "2026-09-15T11:39:30",
+   "chat_id": "5527981590940@c.us"
+  },
+  {
+   "ts": "2026-09-15T12:07:47",
+   "chat_id": "5527999760116@c.us"
+  },
+  {
+   "ts": "2026-09-15T12:37:44",
+   "chat_id": "5527999162773@c.us"
+  },
+  {
+   "ts": "2026-09-15T13:00:15",
+   "chat_id": "5527999526924@c.us"
+  },
+  {
+   "ts": "2026-09-15T14:13:25",
+   "chat_id": "5527999526924@c.us"
+  },
+  {
+   "ts": "2026-09-15T15:30:14",
+   "chat_id": "5527999973744@c.us"
+  },
+  {
+   "ts": "2026-09-15T15:47:11",
+   "chat_id": "5527996969313@c.us"
+  },
+  {
+   "ts": "2026-09-15T16:33:11",
+   "chat_id": "5527996891211@c.us"
+  },
+  {
+   "ts": "2026-09-15T17:00:15",
+   "chat_id": "5527997095392@c.us"
+  },
+  {
+   "ts": "2026-09-15T17:11:32",
+   "chat_id": "5527999973744@c.us"
+  },
+  {
+   "ts": "2026-09-15T17:43:40",
+   "chat_id": "5527992996616@c.us"
+  },
+  {
+   "ts": "2026-09-15T18:42:46",
+   "chat_id": "5527992996616@c.us"
+  },
+  {
+   "ts": "2026-09-16T09:30:18",
+   "chat_id": "5527981228861@c.us"
+  },
+  {
+   "ts": "2026-09-16T10:02:02",
+   "chat_id": "5527981228861@c.us"
+  },
+  {
+   "ts": "2026-09-16T10:12:50",
+   "chat_id": "5527988657227@c.us"
+  },
+  {
+   "ts": "2026-09-16T10:32:59",
+   "chat_id": "5527997285152@c.us"
+  },
+  {
+   "ts": "2026-09-16T11:00:14",
+   "chat_id": "5527998440077@c.us"
+  },
+  {
+   "ts": "2026-09-16T11:40:05",
+   "chat_id": "5527997285152@c.us"
+  },
+  {
+   "ts": "2026-09-16T12:55:53",
+   "chat_id": "5527995023487@c.us"
+  },
+  {
+   "ts": "2026-09-16T13:05:32",
+   "chat_id": "5527995023487@c.us"
+  },
+  {
+   "ts": "2026-09-16T13:35:29",
+   "chat_id": "5527995023487@c.us"
+  },
+  {
+   "ts": "2026-09-16T16:00:15",
+   "chat_id": "5527992649892@c.us"
+  },
+  {
+   "ts": "2026-09-16T16:05:00",
+   "chat_id": "5527997120441@c.us"
+  },
+  {
+   "ts": "2026-09-16T16:30:18",
+   "chat_id": "5527988108620@c.us"
+  },
+  {
+   "ts": "2026-09-16T17:46:47",
+   "chat_id": "5527992649892@c.us"
+  },
+  {
+   "ts": "2026-09-17T09:00:15",
+   "chat_id": "5527999959301@c.us"
+  },
+  {
+   "ts": "2026-09-17T10:00:18",
+   "chat_id": "5527999262489@c.us"
+  },
+  {
+   "ts": "2026-09-17T12:00:18",
+   "chat_id": "5527988568703@c.us"
+  },
+  {
+   "ts": "2026-09-17T14:09:16",
+   "chat_id": "5527981743195@c.us"
+  },
+  {
+   "ts": "2026-09-17T14:30:15",
+   "chat_id": "5527998313935@c.us"
+  },
+  {
+   "ts": "2026-09-17T14:46:14",
+   "chat_id": "5527981743195@c.us"
+  },
+  {
+   "ts": "2026-09-17T15:00:14",
+   "chat_id": "5527995834621@c.us"
+  },
+  {
+   "ts": "2026-09-17T15:37:55",
+   "chat_id": "5527998827483@c.us"
+  },
+  {
+   "ts": "2026-09-17T17:00:26",
+   "chat_id": "5527996132941@c.us"
+  },
+  {
+   "ts": "2026-09-17T17:35:49",
+   "chat_id": "5527999796138@c.us"
+  },
+  {
+   "ts": "2026-09-18T10:00:14",
+   "chat_id": "5527997798599@c.us"
+  },
+  {
+   "ts": "2026-09-18T12:00:18",
+   "chat_id": "5527999187919@c.us"
+  },
+  {
+   "ts": "2026-09-18T13:30:16",
+   "chat_id": "5527998065503@c.us"
+  },
+  {
+   "ts": "2026-09-18T13:39:37",
+   "chat_id": "5527997226476@c.us"
+  },
+  {
+   "ts": "2026-09-18T14:23:52",
+   "chat_id": "5527997226476@c.us"
+  },
+  {
+   "ts": "2026-09-19T11:00:16",
+   "chat_id": "5527996441736@c.us"
+  },
+  {
+   "ts": "2026-09-19T12:00:17",
+   "chat_id": "5527996626952@c.us"
+  },
+  {
+   "ts": "2026-09-19T12:30:19",
+   "chat_id": "5527999921117@c.us"
+  },
+  {
+   "ts": "2026-09-19T13:30:16",
+   "chat_id": "5527996696361@c.us"
+  },
+  {
+   "ts": "2026-09-19T14:00:20",
+   "chat_id": "5527999669208@c.us"
+  },
+  {
+   "ts": "2026-09-19T17:00:16",
+   "chat_id": "5527993164209@c.us"
+  },
+  {
+   "ts": "2026-09-20T05:00:27",
+   "chat_id": "5527993164209@c.us"
+  },
+  {
+   "ts": "2026-09-20T09:30:34",
+   "chat_id": "5527999191957@c.us"
+  },
+  {
+   "ts": "2026-09-20T10:10:23",
+   "chat_id": "5527992768859@c.us"
+  },
+  {
+   "ts": "2026-09-20T12:35:45",
+   "chat_id": "5527998125738@c.us"
+  },
+  {
+   "ts": "2026-09-20T13:30:21",
+   "chat_id": "5527995329218@c.us"
+  },
+  {
+   "ts": "2026-09-20T14:30:19",
+   "chat_id": "5527998658243@c.us"
+  },
+  {
+   "ts": "2026-09-20T15:00:47",
+   "chat_id": "5527997736925@c.us"
+  },
+  {
+   "ts": "2026-09-20T16:02:08",
+   "chat_id": "5527997736925@c.us"
+  },
+  {
+   "ts": "2026-09-20T16:30:16",
+   "chat_id": "5527999933947@c.us"
+  },
+  {
+   "ts": "2026-09-20T17:00:16",
+   "chat_id": "5527999016777@c.us"
+  }
+ ],
+ "respostas_por_segmento": {
+  "wa_es": 72,
+  "wa_br": 1,
+  "desconhecido": 0
+ },
+ "blacklist": [
+  "5527936187331@c.us",
+  "5527995292539@c.us",
+  "5527998990482@c.us",
+  "5527999832152@c.us",
+  "5527996207901@c.us",
+  "5527981823044@c.us",
+  "5527997376060@c.us"
+ ],
+ "blacklist_por_segmento": {
+  "wa_es": 7,
+  "wa_br": 0,
+  "desconhecido": 0
+ },
+ "blacklist_suspeita": false,
+ "enviados_sent_json_total": 186,
+ "alertas_total": 66,
+ "outreach_hoje": {
+  "enviados": 16,
+  "cap": 18
+ },
+ "n8n": {
+  "porta_5678_aberta": false,
+  "task_n8n_local": "Disabled",
+  "workflows": {
+   "waOutreach1a1AQ": {
+    "active": 0,
+    "ultima_execucao": "2026-09-12 17:05:36.307",
+    "cap": 2,
+    "max_prio": 4
+   },
+   "8nKTlX4Y7Hy1EUEn": {
+    "active": 1,
+    "ultima_execucao": "2026-09-12 17:14:17.329",
+    "crm_leads": 1057
+   }
+  },
+  "erro": null
+ },
+ "crm": {
+  "enviados_total": 17,
+  "enviados_periodo": 0,
+  "respostas_task_items": 8,
+  "respostas_periodo": 0,
+  "optout": 0
+ },
+ "divergencia": {
+  "enviados_logs": 186,
+  "enviados_crm": 17,
+  "delta": 169,
+  "causa": "outreach-send.py nao chama POST /api/v1/integrations/whatsapp-event"
+ }
+}
