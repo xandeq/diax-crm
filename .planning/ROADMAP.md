@@ -248,7 +248,8 @@ dependência de um único notebook.
 ### Phases
 
 - [x] **Phase 9: Backfill de Score do Backlog** — Recalcular LeadScore/Segment do backlog pré-v1.3 com o motor oficial C# (BFIL-01) (completed 2026-09-19)
-- [x] **Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook** — Consolidar os 79+ scripts `fire_*.py` num motor único e alertar quando WAHA/n8n caem (SCRP-01, OBSV-01) — 5 plans, 4 waves, planejada 2026-09-19 (completed 2026-09-19)
+- [x] **Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook** — Consolidar os 79+ scripts `fire_*.py` num motor único e alertar quando WAHA/n8n caem (SCRP-01, OBSV-01) — 5 plans, 4 waves, planejada 2026-09-19
+ (completed 2026-09-19)
 - [ ] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02)
 - [ ] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04)
 - [ ] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04)
@@ -358,7 +359,20 @@ descartar esse trabalho em andamento — nunca assumir que o arquivo está limpo
   4. Um lead que não atinge o critério (resposta automática, bounce, opt-out) permanece em Contacted
      — o critério não gera falso positivo
 
-**Plans:** TBD
+**Nota de planejamento (2026-09-20, decisões travadas em `11-CONTEXT.md`):** a pesquisa desta fase
+confirmou que `reply_watch.py` **já implementa** QUAL-01 (`classify_intent(text) != 'negative'`) e
+QUAL-02 (`crm_status` → `PATCH /api/v1/customers/{id}/status`), rodando pela task `DIAX-Reply-Watch`.
+D-01 travou o escopo em **verificar e documentar**: nenhuma linha de `reply_watch.py` é alterada (o
+diff não commitado do usuário fica intacto), WhatsApp e endurecimento do critério ficam adiados.
+O critério 2 deve ser lido como "o script aplica o critério, comprovadamente e com o trabalho em
+andamento preservado" — não como "passa a aplicar" (já aplica desde 2026-09-04).
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 11-01-PLAN.md — Reconferir ao vivo a prova de QUAL-02 (Scheduled Task + audit log do CRM) e
+  publicar o runbook `QUALIFIED-avanco-automatico.md` com critério, prova, limites e dependências;
+  fechar QUAL-01/QUAL-02 na rastreabilidade (Wave 1, QUAL-01/QUAL-02)
 
 ---
 
