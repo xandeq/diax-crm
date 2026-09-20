@@ -19,11 +19,18 @@ responder. Relatório semanal do canal. Escala wa_es→wa_br após validar taxa 
 - **D-02:** Sai **sexta à tarde**, mesmo padrão de cadência do A/B de email (Fase 12) — fecha a
   semana.
 
-### Claude's Discretion (não discutido a fundo — usar bom senso, documentar decisão tomada)
+### WHAT-01 — ativação real (fechado após research)
 
-- **WHAT-01** (confirmar handoff n8n→WAHA): fase de verificação — igual ao padrão da Phase 11
-  (QUAL-01/02 já existiam, só precisou provar). Pesquisar se `wa-outreach-1a1.json`
-  (`n8n-local/workflows/local/`) já roda de verdade antes de assumir que precisa construir algo.
+Research achou que `waOutreach1a1AQ` está **active=0** no n8n (não é fase de verificação como
+esperado — precisa ativar de verdade) e ainda tem `CAP=1` (valor de teste, documentado deveria ser
+20/dia).
+
+- **D-03:** Sobe o CAP de 1 pra um valor conservador (ex. 5-10/dia, não direto pro 20 documentado) e
+  ativa o workflow (`active=1`) só com **checkpoint humano antes** — mesmo padrão de cautela usado
+  no warmup de volume/DMARC da Fase 12. Confirmar via execution log do n8n que rodou de verdade
+  após ativar, não só que o toggle mudou.
+
+### Claude's Discretion (não discutido a fundo — usar bom senso, documentar decisão tomada)
 - **WHAT-02** (bot desvia pra humano): critério de "é prospecção" vs atendimento normal fica a
   critério de implementação — pesquisar como o bot atual (`8nKTlX4Y7Hy1EUEn` mencionado no
   REQUIREMENTS.md) diferencia contexto hoje antes de decidir a heurística.
