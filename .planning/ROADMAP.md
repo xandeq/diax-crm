@@ -409,10 +409,10 @@ nichos produzindo campanha. O gargalo de EMAL-02 é **estoque de lead por nicho*
 volume (backend já permite 900/dia). Verificar a fase contra mecanismo entregue + honestidade do
 relatório, não contra `pct=100` e `300/dia` entregues.
 
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
-- [ ] 12-01-PLAN.md — `dmarc_escalation.py`: leitura da zona WHM, saúde real de `email_events`,
+- [x] 12-01-PLAN.md — `dmarc_escalation.py`: leitura da zona WHM, saúde real de `email_events`,
   decisão advance/hold/revert e escrita gated por `--apply` (Wave 1, EMAL-01, zero escrita de DNS)
 - [x] 12-02-PLAN.md — Curva de warmup 87→300 (+20%/dia) em `waves_core`/`daily_waves`, com o guard
   `already_queued_today()` subindo em lockstep e alvo-vs-entregue no resumo (Wave 1, EMAL-02)
@@ -482,7 +482,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 9. Backfill de Score do Backlog | 2/2 | Complete    | 2026-09-19 |
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
-| 12. Escala de Email | 2/6 | In Progress|  |
+| 12. Escala de Email | 3/6 | In Progress|  |
 | 13. Escala de WhatsApp | 0/? | Not started | — |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 

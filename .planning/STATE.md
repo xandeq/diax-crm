@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-09-20T16:11:42.292Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-09-20T16:12:05.002Z"
 progress:
   total_phases: 11
   completed_phases: 3
@@ -158,6 +158,7 @@ Plan: 4 of 6
 - [Phase 12]: EMAL-03: vencedor do A/B de subject decidido por taxa de CLIQUE (D-05), nunca open rate; MIN_CLICKS=30/MIN_DELTA=20% discricionarios documentados em ab_report.py
 - [Phase 12]: EMAL-03: achado - 578/936 (61.8%) dos envios de 30d vem de campanhas Outreach Cold fora do escopo sA/sB (fluxo OutreachController separado de daily_waves.py) - registrado como limitacao, nao corrigido
 - [Phase 12]: v1.4 12-02: guard anti-duplicado (already_queued_today) sobe em lockstep com o alvo de warmup do dia — literal 50 removido, corrige o Pitfall 4 da pesquisa (rampa truncada em silencio a partir do dia 3)
+- [Phase 12]: [Phase 12] 12-01: decide() e funcao pura com reversao por saude (D-04) avaliada ANTES do gate de 7 dias/amostra minima, que so bloqueia avanco nunca reversao; set_pct() sempre re-localiza a Line da zona WHM via dumpzone antes de qualquer escrita (Pitfall 1); apply=False e default em toda a CLI, zero escrita real executada neste plano
 
 ### Testing Protocol
 
@@ -246,8 +247,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T16:10:59.326Z
-Stopped at: Completed 12-03-PLAN.md
+Last session: 2026-09-20T16:12:04.991Z
+Stopped at: Completed 12-01-PLAN.md
 Phase 11 plan 01 (único plano da fase) executado — QUAL-01/QUAL-02 fechados via verificação ao vivo,
 zero código de aplicação alterado (D-01). Task 1 reconferiu ao vivo (não copiou da pesquisa de
 2026-09-20): Scheduled Task `DIAX-Reply-Watch` `State=Ready`/`LastTaskResult=0`/cadência PT30M-PT11H
