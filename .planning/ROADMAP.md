@@ -250,7 +250,8 @@ dependência de um único notebook.
 - [x] **Phase 9: Backfill de Score do Backlog** — Recalcular LeadScore/Segment do backlog pré-v1.3 com o motor oficial C# (BFIL-01) (completed 2026-09-19)
 - [x] **Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook** — Consolidar os 79+ scripts `fire_*.py` num motor único e alertar quando WAHA/n8n caem (SCRP-01, OBSV-01) — 5 plans, 4 waves, planejada 2026-09-19
  (completed 2026-09-19)
-- [x] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02) (completed 2026-09-20)
+- [x] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02)
+ (completed 2026-09-20)
 - [ ] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04)
 - [ ] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04)
 - [ ] **Phase 14: Dashboard de Conversão do Funil** — Conversão percentual por etapa do funil (DASH-01)
@@ -395,7 +396,34 @@ não tem warmup/controle de taxa confiável)
   4. Os 560 leads "webmail" (gmail/hotmail comercial) são disparados com cap de volume próprio e tag
      distinta dos demais, permitindo medir a taxa de resposta separadamente
 
-**Plans:** TBD
+**Nota de planejamento (2026-09-20, decisões travadas em `12-CONTEXT.md` + medição ao vivo):** D-01
+escalona 25→50→75→100 com **1 degrau por semana** — as 4 semanas NÃO cabem numa sessão de execução;
+o plano entrega a ferramenta, prova a reversão e dá (ou segura) o primeiro degrau sob checkpoint
+humano, deixando a cadência restante documentada. D-04 trava o limiar de reversão em bounce >5% OU
+spam >0,1%, lido de `email_events` (não do agregado `UnsubscribeCount`, que mistura spam com
+descadastro voluntário). D-05 trava a métrica do A/B em **taxa de clique**, não open rate.
+**Medição ao vivo de 2026-09-20 que muda a leitura dos critérios 1 e 2:** bounce rate está em
+**10,58% (30d)** — acima do próprio limiar de reversão de D-04 —, então o motor de decisão
+provavelmente segura o degrau; e o volume real é **936 envios em 30 dias (~31/dia)**, com só 2 dos 20
+nichos produzindo campanha. O gargalo de EMAL-02 é **estoque de lead por nicho**, não o teto de
+volume (backend já permite 900/dia). Verificar a fase contra mecanismo entregue + honestidade do
+relatório, não contra `pct=100` e `300/dia` entregues.
+
+**Plans:** 6 plans, 3 waves
+
+Plans:
+- [ ] 12-01-PLAN.md — `dmarc_escalation.py`: leitura da zona WHM, saúde real de `email_events`,
+  decisão advance/hold/revert e escrita gated por `--apply` (Wave 1, EMAL-01, zero escrita de DNS)
+- [ ] 12-02-PLAN.md — Curva de warmup 87→300 (+20%/dia) em `waves_core`/`daily_waves`, com o guard
+  `already_queued_today()` subindo em lockstep e alvo-vs-entregue no resumo (Wave 1, EMAL-02)
+- [ ] 12-03-PLAN.md — `ab_report.py`: taxa de clique por variante sA/sB, veredito com amostra mínima,
+  `previews/ab-report.json` (Wave 1, EMAL-03)
+- [ ] 12-04-PLAN.md — Caminho paralelo `mode=webmail` + `build_webmail_wave()` (cap 15/dia, marca
+  `auto wm`) e A/B ligado no ramo de sexta (Wave 2, EMAL-04/EMAL-03)
+- [ ] 12-05-PLAN.md — Checkpoint humano antes da 1ª escrita real de DNS, drill de reversão em registro
+  descartável, execução da decisão + runbook `DMARC-escalonamento.md` (Wave 2, EMAL-01, tem checkpoint)
+- [ ] 12-06-PLAN.md — Runbook consolidado `ESCALA-EMAIL-runbook.md`, verificação humana da execução
+  real e fechamento honesto de EMAL-01..04 na rastreabilidade (Wave 3, EMAL-01..04, tem checkpoint)
 
 ---
 
@@ -454,7 +482,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 9. Backfill de Score do Backlog | 2/2 | Complete    | 2026-09-19 |
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
-| 12. Escala de Email | 0/? | Not started | — |
+| 12. Escala de Email | 0/6 | Planned     | — |
 | 13. Escala de WhatsApp | 0/? | Not started | — |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
@@ -479,7 +507,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 
 **Total mapped: 14/14**
 
-*v1.4 roadmap created: 2026-09-19 — Funil de Outreach — Cadência e Qualidade (6 phases, 14
+*Phase 12 planejada 2026-09-20: 6 planos, 3 waves (EMAL-01..04). v1.4 roadmap created: 2026-09-19 — Funil de Outreach — Cadência e Qualidade (6 phases, 14
 requirements). Numeração de fases continua de v1.3 (Phase 8) → v1.4 começa em Phase 9. Nenhum plano
 criado ainda — próximo passo: `/gsd:plan-phase 9`.*
 
