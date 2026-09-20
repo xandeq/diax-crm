@@ -1,0 +1,130 @@
+{
+  "capturado_em": {
+    "brt": "2026-09-20T20:02:07-03:00",
+    "utc": "2026-09-20T23:02:07Z"
+  },
+  "fonte": {
+    "login": "https://api.alexandrequeiroz.com.br/api/v1/auth/login",
+    "dashboard": "https://api.alexandrequeiroz.com.br/api/v1/sales-dashboard"
+  },
+  "funnel_bruto": [
+    {
+      "stage": "Lead",
+      "label": "Leads",
+      "count": 4246,
+      "conversionToNext": 0.4147
+    },
+    {
+      "stage": "Contacted",
+      "label": "Contactados",
+      "count": 2972,
+      "conversionToNext": 0.012
+    },
+    {
+      "stage": "Qualified",
+      "label": "Qualificados",
+      "count": 34,
+      "conversionToNext": 0.0556
+    },
+    {
+      "stage": "Negotiating",
+      "label": "Negociando",
+      "count": 0,
+      "conversionToNext": 1
+    },
+    {
+      "stage": "Customer",
+      "label": "Clientes",
+      "count": 2,
+      "conversionToNext": null
+    }
+  ],
+  "rederivacao": [
+    {
+      "stage": "Lead",
+      "count": 4246,
+      "ahead": 3008,
+      "basis": 7254,
+      "esperado": 0.4147,
+      "retornado": 0.4147,
+      "bate": true
+    },
+    {
+      "stage": "Contacted",
+      "count": 2972,
+      "ahead": 36,
+      "basis": 3008,
+      "esperado": 0.012,
+      "retornado": 0.012,
+      "bate": true
+    },
+    {
+      "stage": "Qualified",
+      "count": 34,
+      "ahead": 2,
+      "basis": 36,
+      "esperado": 0.0556,
+      "retornado": 0.0556,
+      "bate": true
+    },
+    {
+      "stage": "Negotiating",
+      "count": 0,
+      "ahead": 2,
+      "basis": 2,
+      "esperado": 1.0,
+      "retornado": 1,
+      "bate": true
+    },
+    {
+      "stage": "Customer",
+      "count": 2,
+      "ahead": 0,
+      "basis": 2,
+      "esperado": null,
+      "retornado": null,
+      "bate": true
+    }
+  ],
+  "veredito": "BATE",
+  "delta_vs_pesquisa": [
+    {
+      "stage": "Lead",
+      "pesquisa_2026_09_20": 4246,
+      "medido_agora": 4246,
+      "delta": 0
+    },
+    {
+      "stage": "Contacted",
+      "pesquisa_2026_09_20": 2972,
+      "medido_agora": 2972,
+      "delta": 0
+    },
+    {
+      "stage": "Qualified",
+      "pesquisa_2026_09_20": 34,
+      "medido_agora": 34,
+      "delta": 0
+    },
+    {
+      "stage": "Negotiating",
+      "pesquisa_2026_09_20": 0,
+      "medido_agora": 0,
+      "delta": 0
+    },
+    {
+      "stage": "Customer",
+      "pesquisa_2026_09_20": 2,
+      "medido_agora": 2,
+      "delta": 0
+    }
+  ],
+  "negociando_zero": {
+    "observado": true,
+    "count": 0,
+    "ahead": 2,
+    "basis": 2,
+    "conversionToNext": 1,
+    "leitura": "100% avancaram sobre etapa com zero leads (ahead=2, basis=2, 2/2=1.0)"
+  }
+}
