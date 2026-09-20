@@ -253,7 +253,7 @@ dependência de um único notebook.
 - [x] **Phase 11: Qualified Objetivo e Automático** — Critério explícito de avanço Contacted→Qualified aplicado automaticamente pelo `reply_watch.py` (QUAL-01, QUAL-02)
  (completed 2026-09-20)
 - [x] **Phase 12: Escala de Email** — DMARC 100%, volume 300/dia com warmup, A/B de subject medido, leads webmail testados (EMAL-01..04) — 6/6 planos entregues; EMAL-01/02/04 Partial por decisão deliberada/calendário, ver Nota de execução (completed 2026-09-20)
-- [ ] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04)
+- [x] **Phase 13: Escala de WhatsApp** — Handoff confirmado, bot desvia pra humano, relatório semanal, escalar wa_es→wa_br (WHAT-01..04) (completed 2026-09-20)
 - [ ] **Phase 14: Dashboard de Conversão do Funil** — Conversão percentual por etapa do funil (DASH-01)
 
 ### Phase Details
@@ -475,7 +475,26 @@ paralelo)
   4. Após validar a taxa de resposta em `wa_es` (480 leads) contra um critério objetivo documentado,
      o disparo escala para `wa_br` (1138 leads)
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans executed
+
+**Nota de execução (2026-09-20, fechamento no 13-04):** Fase fechada com os 4 planos executados.
+Divergências reais em relação ao `13-RESEARCH.md` (medidas ao vivo, não a pesquisa lida como
+estado atual): (a) o n8n local ficou fora do ar durante toda a fase (porta 5678 fechada, task
+`n8n-local` `Disabled`) — o bot `8nKTlX4Y7Hy1EUEn` está `active=1` no banco mas inerte na prática,
+porque o hook do WAHA aponta para `host.docker.internal:5678`; (b) quem envia de verdade é
+`outreach-send.py` (task `outreach-wa`), não o workflow `waOutreach1a1AQ` citado literalmente nos
+requisitos — declarado handoff oficial por decisão humana no checkpoint do 13-01; (c) CAP/MAX_PRIO
+ao vivo do workflow n8n são `2`/`4`, não `1`/`3` como a pesquisa registrou (JSON exportado
+defasado); (d) o CRM conhece só uma fração dos envios reais (17 de 186, delta 169) porque
+`outreach-send.py` nunca chama `POST /api/v1/integrations/whatsapp-event` — `whatsapp_weekly_report.py`
+e `wa_escalation.py` leem a operação como fonte primária e o CRM só como conferência. WHAT-04, que
+a pesquisa e o CONTEXT.md previam fechar `Partial`/`INCONCLUSIVO` por amostra pequena, na medição
+real desta sessão teve amostra suficiente (121 envios, 53 respostas em `wa_es`, histórico completo
+do audit log desde 2026-09-13) e veredito honesto `AVANCAR` — e o achado central foi que o "portão"
+de segmento citado no requisito nunca existiu como trava de código no emissor oficial
+(`outreach-send.py:escolhe()` não filtra por segmento), então `--apply` não liga nada: só valida
+com dados reais um comportamento que a fila já executa por ordenação/esgotamento. Runbook
+consolidado da fase: `docs/email-marketing/ESCALA-WHATSAPP-runbook.md`.
 
 **Nota de planejamento (2026-09-20, medicao ao vivo durante o plan-phase):** o `13-RESEARCH.md` esta
 DEFASADO em pontos load-bearing e os planos partem do que foi medido, nao dele. Achados que mudam a
@@ -507,9 +526,13 @@ Plans:
 - [x] 13-03-PLAN.md — `whatsapp_weekly_report.py` (enviados/respondidos/opt-out por segmento, com
   divergencia CRM explicita) + task `DIAX-WA-Weekly-Report` sexta 17:00 BRT no Telegram (Wave 2,
   WHAT-03, D-01/D-02)
-- [ ] 13-04-PLAN.md — `wa_escalation.py` (decide puro wa_es->wa_br com limiar definido antes da
+- [x] 13-04-PLAN.md — `wa_escalation.py` (decide puro wa_es->wa_br com limiar definido antes da
   medicao, gate `--apply`), runbook `ESCALA-WHATSAPP-runbook.md` e fechamento honesto da
-  rastreabilidade WHAT-01..04 (Wave 3, WHAT-01..04)
+  rastreabilidade WHAT-01..04 (Wave 3, WHAT-01..04). Limiares travados e commitados
+  (`d4fedba2`) antes da 1a medicao real; veredito `AVANCAR` (wa_es: 121 enviados/53 respostas,
+  taxa 43,8%) sobre historico completo desde 2026-09-13; achado: nunca existiu portao de
+  segmento em codigo no emissor oficial (`outreach-send.py:escolhe()`), `--apply` nao liga
+  nada de operacional. WHAT-04 fecha `Complete`.
 
 ---
 
@@ -544,7 +567,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
-| 13. Escala de WhatsApp | 3/4 | In Progress|  |
+| 13. Escala de WhatsApp | 4/4 | Complete    | 2026-09-20 |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
 ### Coverage Map (v1.4)
@@ -563,7 +586,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | WHAT-01 | Phase 13 | Complete (por equivalencia funcional — 13-01, decisao `python-oficial`) |
 | WHAT-02 | Phase 13 | Complete (13-02 — sync incremental verificado + Scheduled Task horaria, gap real de 18 leads sem deflexao capturado e enfileirado) |
 | WHAT-03 | Phase 13 | Complete (13-03 — whatsapp_weekly_report.py + Scheduled Task sexta 17:00 BRT, entrega real no Telegram provada) |
-| WHAT-04 | Phase 13 | Pending |
+| WHAT-04 | Phase 13 | Complete (13-04 — `wa_escalation.py`, limiares travados antes da medição, veredito honesto `AVANCAR` sobre dados reais, achado de que o portão de segmento nunca existiu no emissor oficial) |
 | DASH-01 | Phase 14 | Pending |
 
 **Total mapped: 14/14**
@@ -579,6 +602,14 @@ active=0 por escolha deliberada). 13-02 e 13-03 concluídos 2026-09-20 em parale
 WHAT-02 fecha Complete (crm_leads_sync.py reescrito, Scheduled Task DIAX-WA-CrmLeads-Sync horária,
 18 leads reais sem deflexão capturados e enfileirados com n8n fora do ar); WHAT-03 fecha Complete
 (whatsapp_weekly_report.py, Scheduled Task DIAX-WA-Weekly-Report sexta 17:00 BRT, entrega real no
-Telegram provada). Próximo passo: 13-04-PLAN.md (wa_escalation.py, WHAT-04).*
+Telegram provada). 13-04 concluído 2026-09-20 (fecha a fase): `wa_escalation.py` publicado com os
+4 limiares travados e commitados (`d4fedba2`) antes de qualquer medição real; veredito honesto
+`AVANCAR` sobre o histórico completo do audit log (121 envios/53 respostas em wa_es, taxa 43,8%,
+recusa 5,8%); achado central — `outreach-send.py:escolhe()` nunca filtrou por segmento, então o
+portão que WHAT-04 pedia para abrir nunca existiu como trava de código, e `--apply` não liga nada
+de operacional (`SEM PORTAO DE SEGMENTO`). Runbook consolidado `ESCALA-WHATSAPP-runbook.md`
+publicado, rastreabilidade WHAT-01..04 fechada sem contradição entre REQUIREMENTS.md e ROADMAP.md.
+**Phase 13 concluída 4/4 planos.** Próximo passo: `/gsd:plan-phase 14` (Dashboard de Conversão do
+Funil).*
 
 ---

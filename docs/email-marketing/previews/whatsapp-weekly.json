@@ -38,12 +38,12 @@
   "causa": "outreach-send.py nao chama POST /api/v1/integrations/whatsapp-event"
  },
  "periodo": {
-  "de": "2026-09-13T18:20:31",
-  "ate": "2026-09-20T18:20:31",
+  "de": "2026-09-13T18:40:35",
+  "ate": "2026-09-20T18:40:35",
   "dias": 7,
   "fuso_logs": "BRT",
   "fuso_crm": "UTC"
  },
  "blacklist_tamanho": 7,
- "gerado": "2026-09-20T18:20:31"
+ "gerado": "2026-09-20T18:40:35"
 }
