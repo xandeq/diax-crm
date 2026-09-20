@@ -37,12 +37,32 @@ usaram para outros domínios.
 - **D-03:** Escalona 87→300/dia em **+20%/dia** (87→104→125→150→180→216→260→300, ~8 dias úteis).
   Ritmo padrão de warmup de deliverability — não é negociável pra mais rápido.
 
-### Claude's Discretion (áreas não discutidas — usar bom senso, documentar decisão tomada)
+### Limiar de reversão do DMARC (D-04, fechado após research)
 
-- **A/B de subject:** qual métrica decide vencedor (open rate vs. reply rate) e onde o resultado
-  fica visível — não discutido a fundo, pesquisar o que o Brevo já expõe via API antes de decidir.
-- **Leads webmail (560):** cap diário e nome da tag — não discutido a fundo, usar critério
-  conservador (ex. cap pequeno tipo 10-20/dia) dado que domínio webmail tende a ter reputação pior.
+- **D-04:** Reverte automaticamente se **bounce >5% OU spam complaint >0.1%** no degrau atual,
+  lido de `email_events` (não do campo agregado `UnsubscribeCount`, que mistura spam com opt-out
+  voluntário — achado da pesquisa, ver 12-RESEARCH.md).
+
+### A/B de subject (D-05, fechado após research)
+
+- **D-05:** Métrica vencedora = **taxa de clique**, não open rate (Apple MPP infla opens
+  artificialmente — o próprio `BrevoWebhookController.cs` já desconfia disso). Reusa a infra
+  `SUBJ_B`/`ab_flip`/sufixo `sA`/`sB` já existente — só falta agrupar e medir.
+
+### Leads webmail (Claude's Discretion — não aprofundado)
+
+- Cap diário e nome da tag ficam a critério de implementação — usar critério conservador (cap
+  pequeno, ex. 10-20/dia) dado que domínio webmail tende a ter reputação pior. Confirmar o número
+  "560 leads" com query ao vivo antes de confiar nele (pode estar desatualizado).
+
+### Achado de research a respeitar no planejamento
+
+- **Guard de fila diária** (`already_queued_today() >= 50` em `daily_waves.py`) trunca silenciosamente
+  a partir do dia 3 do warmup de volume (quando o alvo passa de 50/dia) — precisa subir esse guard
+  junto com o ramp, senão o warmup nunca realmente chega em 300.
+- Limite de backend (`Email:DailyLimit=900`) não é bloqueio — 300/dia fica bem abaixo, non-issue.
+- WHM: reusar o caminho exato de `docs/email-marketing/run_gates_20260904.sh` (já provado, criou o
+  registro DMARC atual) — não reinventar a chamada `dumpzone`→`editzonerecord`.
 
 </decisions>
 
