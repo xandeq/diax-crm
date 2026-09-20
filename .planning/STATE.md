@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 13-02-PLAN.md e 13-03-PLAN.md (executados em paralelo, ambos concluidos)
-last_updated: "2026-09-20T21:30:13.023Z"
+stopped_at: Completed 13-04-PLAN.md - Phase 13 (Escala de WhatsApp) concluida 4/4 planos
+last_updated: "2026-09-20T21:48:11.081Z"
 progress:
   total_phases: 11
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 22
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # State — DIAX CRM
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-19)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Phase 13 — Escala de WhatsApp
+**Current focus:** Phase 13 — Escala de WhatsApp (concluída 4/4 planos) — próximo: Phase 14 (Dashboard de Conversão do Funil)
 
 ## Current Position
 
-Phase: 13 (Escala de WhatsApp) — EXECUTING
-Plan: 4 of 4
+Phase: 13 (Escala de WhatsApp) — COMPLETE (4/4 planos)
+Plan: 4 of 4 (fase concluída)
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Plan: 4 of 4
 | Phase 13-escala-de-whatsapp P01 | 25min | 3 tasks | 4 files |
 | Phase 13-escala-de-whatsapp P03 | 35min | 2 tasks | 3 files |
 | Phase 13-escala-de-whatsapp P02 | 20min | 2 tasks | 4 files |
+| Phase 13-escala-de-whatsapp P04 | 20min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,7 @@ Plan: 4 of 4
 - [Phase 13-escala-de-whatsapp]: 13-01: checkpoint da Task 2 respondido python-oficial — outreach-send.py/task outreach-wa declarado handoff oficial de WHAT-01, waOutreach1a1AQ permanece active=0 por escolha deliberada (incidente de dedupe de 12/09); WHAT-01 fecha Complete por equivalencia funcional
 - [Phase 13-escala-de-whatsapp]: 13-03: whatsapp_weekly_report.py criado (WHAT-03) - metricas() le wa_estado, taxa de resposta honesta (None em denominador zero), divergencia logs-vs-CRM sempre exposta; Scheduled Task DIAX-WA-Weekly-Report sexta 17:00 BRT registrada e provada com entrega real no Telegram (111 enviados/53 respondidos ES da semana), sem tocar daily_waves.py nem DIAX-Email-Waves-Daily (08:40 BRT)
 - [Phase 13-escala-de-whatsapp]: 13-02: crm_leads_sync.py reescrito como sync incremental verificado (delta + fila pendente crmleads-pending.json + releitura pos-push); Scheduled Task DIAX-WA-CrmLeads-Sync horaria registrada; capturou 18 leads reais ja contatados por outreach-send.py que nunca haviam entrado no conjunto de deflexao do bot (ex. 5527998544746@c.us enviado 15/09, ainda fora do crmLeads); n8n confirmado fora do ar, delta ficou em fila (nao perdido, nao falso-sucesso); WHAT-02 fecha Complete
+- [Phase 13-escala-de-whatsapp]: 13-04: wa_escalation.py mediu wa_es (121 enviados/53 respostas, taxa 43,8%, recusa 5,8%) contra limiares travados e commitados antes da medicao (d4fedba2), veredito honesto AVANCAR; achado central: outreach-send.py:escolhe() nunca filtrou por segmento, o portao wa_es->wa_br nunca existiu em codigo, --apply nao liga nada de operacional. WHAT-04 fecha Complete, Phase 13 concluida 4/4 planos, runbook ESCALA-WHATSAPP-runbook.md publicado
 
 ### Testing Protocol
 
@@ -328,8 +330,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T21:30:13.016Z
-Stopped at: Completed 13-02-PLAN.md e 13-03-PLAN.md (executados em paralelo, ambos concluidos)
+Last session: 2026-09-20T21:48:11.066Z
+Stopped at: Completed 13-04-PLAN.md - Phase 13 (Escala de WhatsApp) concluida 4/4 planos
 Plano 13-03 (Phase 13 — Escala de WhatsApp, WHAT-03) executado do início ao fim, sem checkpoint,
 em paralelo ao 13-02. Task 1 criou `docs/email-marketing/whatsapp_weekly_report.py` — único código
 genuinamente novo desta fase (nem `daily_waves.py:weekly_report()` nem `funnel_analysis.py` tocam

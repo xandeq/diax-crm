@@ -475,7 +475,7 @@ paralelo)
   4. Após validar a taxa de resposta em `wa_es` (480 leads) contra um critério objetivo documentado,
      o disparo escala para `wa_br` (1138 leads)
 
-**Plans:** 4/4 plans executed
+**Plans:** 4/4 plans complete
 
 **Nota de execução (2026-09-20, fechamento no 13-04):** Fase fechada com os 4 planos executados.
 Divergências reais em relação ao `13-RESEARCH.md` (medidas ao vivo, não a pesquisa lida como
@@ -567,7 +567,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
-| 13. Escala de WhatsApp | 4/4 | Complete    | 2026-09-20 |
+| 13. Escala de WhatsApp | 4/4 | Complete   | 2026-09-20 |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
 ### Coverage Map (v1.4)
