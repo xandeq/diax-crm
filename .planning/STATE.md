@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Funil de Outreach — Cadência e Qualidade
-status: in_progress
-stopped_at: Beginning Phase 12
-last_updated: "2026-09-20T16:02:53.259Z"
+milestone: v1.1
+milestone_name: — Produtividade Pessoal
+status: unknown
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-09-20T16:11:15.678Z"
 progress:
   total_phases: 11
   completed_phases: 3
   total_plans: 18
-  completed_plans: 10
+  completed_plans: 13
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 12 (Escala de Email) — EXECUTING
-Plan: 1 of 6
+Plan: 3 of 6
 
 ## Performance Metrics
 
@@ -61,6 +61,8 @@ Plan: 1 of 6
 | Phase 10 P03 | 20min | 3 tasks | 8 files |
 | Phase 10 P04 | 25min | 2 tasks | 52 files |
 | Phase 11 P01 | 45min | 2 tasks | 3 files |
+| Phase 12 P03 | 25min | 2 tasks | 2 files |
+| Phase 12 P02 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -152,6 +154,9 @@ Plan: 1 of 6
 - [Phase 10]: 10-03: 7 dependentes vivos de fire_today_20.py (import_extrator_bridge.py, replenish_leads.py, rescrape_21/27/tavily_27.py, scrape_and_import.py, debug_campaign.py) religados em waves_core.py; grep from fire_|import fire_ zerado, D-03 do 10-04 satisfeito; debug_campaign.py alterado sem jamais ser importado/executado (py_compile + AST estatico)
 - [Phase 10]: 10-04: 6 de 48 fire_*.py sao tracked no git (nao 3 como estimado) - mv de sistema de arquivos + git add escopado detecta rename automatico para tracked, evitando git mv forcado
 - [Phase 11]: [Phase 11] 11-01: cited atendimento@listamais.com.br (not pedido@bfffitnessatacado.com.br) as QUAL-02 proof - the latter's Status 1->2 predates any reply_watch.py log entry, not attributable to this mechanism
+- [Phase 12]: EMAL-03: vencedor do A/B de subject decidido por taxa de CLIQUE (D-05), nunca open rate; MIN_CLICKS=30/MIN_DELTA=20% discricionarios documentados em ab_report.py
+- [Phase 12]: EMAL-03: achado - 578/936 (61.8%) dos envios de 30d vem de campanhas Outreach Cold fora do escopo sA/sB (fluxo OutreachController separado de daily_waves.py) - registrado como limitacao, nao corrigido
+- [Phase 12]: v1.4 12-02: guard anti-duplicado (already_queued_today) sobe em lockstep com o alvo de warmup do dia — literal 50 removido, corrige o Pitfall 4 da pesquisa (rampa truncada em silencio a partir do dia 3)
 
 ### Testing Protocol
 
@@ -240,8 +245,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T13:41:29.646Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-09-20T16:10:59.326Z
+Stopped at: Completed 12-03-PLAN.md
 Phase 11 plan 01 (único plano da fase) executado — QUAL-01/QUAL-02 fechados via verificação ao vivo,
 zero código de aplicação alterado (D-01). Task 1 reconferiu ao vivo (não copiou da pesquisa de
 2026-09-20): Scheduled Task `DIAX-Reply-Watch` `State=Ready`/`LastTaskResult=0`/cadência PT30M-PT11H

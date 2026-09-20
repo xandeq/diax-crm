@@ -14,7 +14,7 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 ### Email
 
 - [ ] **EMAL-01**: DMARC sobe de `pct=25` para `pct=100`
-- [ ] **EMAL-02**: Volume de envio escala de 87 para 300/dia com warmup gradual
+- [x] **EMAL-02**: Volume de envio escala de 87 para 300/dia com warmup gradual
 - [ ] **EMAL-03**: A/B de subject (variant A/B) tem o resultado medido e reportado (hoje só alterna, ninguém lê)
 - [ ] **EMAL-04**: Leads "webmail" (gmail/hotmail comercial, 560 hoje ignorados) testados com cap pequeno + tag própria
 
@@ -65,7 +65,7 @@ Deferido — não bloqueia v1.4.
 | QUAL-01 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: critério `classify_intent(text) != 'negative'` documentado verbatim com citação de linha em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
 | QUAL-02 | Phase 11 — Qualified Objetivo e Automático | Complete (11-01: prova ao vivo reconferida — customer_id 2dcb6a14-006a-426c-bc60-b6599a8f0e64 avançou Status 1→2 via audit log 14s após classificação `positive`, caminho negativo sem falso positivo confirmado, runbook em docs/email-marketing/QUALIFIED-avanco-automatico.md, human-verified 2026-09-20) |
 | EMAL-01 | Phase 12 — Escala de Email | Pending |
-| EMAL-02 | Phase 12 — Escala de Email | Pending |
+| EMAL-02 | Phase 12 — Escala de Email | Complete |
 | EMAL-03 | Phase 12 — Escala de Email | Pending |
 | EMAL-04 | Phase 12 — Escala de Email | Pending |
 | WHAT-01 | Phase 13 — Escala de WhatsApp | Pending |
