@@ -106,6 +106,7 @@ Nenhum desvio de escopo. Um ajuste de implementação registrado (não é desvio
 ## Issues Encountered
 
 - `Set-ScheduledTask -Settings` via `powershell -NoProfile -Command "..."` dentro do Bash tool falhou porque `$t` foi interpretado como variável do shell git-bash antes de chegar ao PowerShell — contornado escrevendo o script em um `.ps1` temporário no scratchpad e executando com `powershell -File`. Não é um bug do plano nem do código, é peculiaridade do ambiente (mesma classe do achado do 13-01 com `schtasks /query` e `MSYS_NO_PATHCONV=1`).
+- **Race de git index com o executor paralelo (13-02):** o commit final de metadados (`gsd-tools commit`, hash `17389892`) executa `git commit -m` sem restringir a arquivos (commita todo o índice, não só o que acabou de ser `git add`). Entre meu `git add` dos 4 arquivos de metadados e o `git commit`, o executor paralelo do 13-02 aparentemente deu `git add` em `.gitignore`, `docs/email-marketing/previews/crmleads-pending.json` e `docs/email-marketing/previews/whatsapp-estado.json` (trabalho legítimo dele, não meu) — esses 3 arquivos foram parar dentro do meu commit `17389892` em vez de um commit próprio do 13-02. Nenhuma perda de dado (as mudanças estão commitadas, só com a mensagem/atribuição do 13-03 em vez do 13-02) — registrado aqui para o 13-02/verificador saberem que esses 3 arquivos já estão em `17389892`, não precisam de commit adicional. Risco estrutural do padrão "dois executores commitando no mesmo índice git compartilhado", não um erro deste plano especificamente.
 
 ## User Setup Required
 
