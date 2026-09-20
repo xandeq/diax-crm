@@ -475,7 +475,7 @@ paralelo)
   4. Após validar a taxa de resposta em `wa_es` (480 leads) contra um critério objetivo documentado,
      o disparo escala para `wa_br` (1138 leads)
 
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 **Nota de planejamento (2026-09-20, medicao ao vivo durante o plan-phase):** o `13-RESEARCH.md` esta
 DEFASADO em pontos load-bearing e os planos partem do que foi medido, nao dele. Achados que mudam a
@@ -502,7 +502,7 @@ Plans:
   — outreach-send.py/task outreach-wa declarado handoff oficial, waOutreach1a1AQ permanece
   active=0 por escolha deliberada; WHAT-01 fecha Complete por equivalencia funcional, prova em
   previews/whatsapp-estado.json (186 all-time, 16/18 hoje, ultimo ENVIADO 2026-09-20 17:30:13).
-- [ ] 13-02-PLAN.md — `crm_leads_sync.py` reescrito como sync incremental/verificado/offline-safe do
+- [x] 13-02-PLAN.md — `crm_leads_sync.py` reescrito como sync incremental/verificado/offline-safe do
   conjunto de deflexao `crmLeads` + Scheduled Task `DIAX-WA-CrmLeads-Sync` horaria (Wave 2, WHAT-02)
 - [x] 13-03-PLAN.md — `whatsapp_weekly_report.py` (enviados/respondidos/opt-out por segmento, com
   divergencia CRM explicita) + task `DIAX-WA-Weekly-Report` sexta 17:00 BRT no Telegram (Wave 2,
@@ -544,7 +544,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
-| 13. Escala de WhatsApp | 2/4 | In Progress|  |
+| 13. Escala de WhatsApp | 3/4 | In Progress|  |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
 ### Coverage Map (v1.4)
@@ -561,8 +561,8 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | EMAL-03 | Phase 12 | Complete (medição real sobre dados de produção, não depende de envio futuro) |
 | EMAL-04 | Phase 12 | Partial (mesma razão de EMAL-02 — ver Nota de execução da Phase 12) |
 | WHAT-01 | Phase 13 | Complete (por equivalencia funcional — 13-01, decisao `python-oficial`) |
-| WHAT-02 | Phase 13 | Pending |
-| WHAT-03 | Phase 13 | Pending |
+| WHAT-02 | Phase 13 | Complete (13-02 — sync incremental verificado + Scheduled Task horaria, gap real de 18 leads sem deflexao capturado e enfileirado) |
+| WHAT-03 | Phase 13 | Complete (13-03 — whatsapp_weekly_report.py + Scheduled Task sexta 17:00 BRT, entrega real no Telegram provada) |
 | WHAT-04 | Phase 13 | Pending |
 | DASH-01 | Phase 14 | Pending |
 
@@ -575,6 +575,10 @@ Funil de Outreach — Cadência e Qualidade (6 phases, 14 requirements). Numera�
 v1.3 (Phase 8) → v1.4 começa em Phase 9. Phase 13 iniciada 2026-09-20: 13-01 concluído (1/4 planos)
 — checkpoint da Task 2 respondido `python-oficial`, WHAT-01 fecha Complete por equivalência
 funcional (outreach-send.py/task outreach-wa como handoff oficial, waOutreach1a1AQ permanece
-active=0 por escolha deliberada). Próximo passo: 13-02-PLAN.md (crm_leads_sync.py, WHAT-02).*
+active=0 por escolha deliberada). 13-02 e 13-03 concluídos 2026-09-20 em paralelo (3/4 planos):
+WHAT-02 fecha Complete (crm_leads_sync.py reescrito, Scheduled Task DIAX-WA-CrmLeads-Sync horária,
+18 leads reais sem deflexão capturados e enfileirados com n8n fora do ar); WHAT-03 fecha Complete
+(whatsapp_weekly_report.py, Scheduled Task DIAX-WA-Weekly-Report sexta 17:00 BRT, entrega real no
+Telegram provada). Próximo passo: 13-04-PLAN.md (wa_escalation.py, WHAT-04).*
 
 ---

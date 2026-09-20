@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Funil de Outreach — Cadência e Qualidade
 status: in_progress
-stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-09-20T21:25:01.692Z"
+stopped_at: Completed 13-02-PLAN.md e 13-03-PLAN.md (executados em paralelo, ambos concluidos)
+last_updated: "2026-09-20T21:30:13.023Z"
 progress:
   total_phases: 11
   completed_phases: 4
   total_plans: 22
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # State — DIAX CRM
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-09-19)
 ## Current Position
 
 Phase: 13 (Escala de WhatsApp) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Plan: 3 of 4
 | Phase 12-escala-de-email P06 | 20min | 3 tasks | 3 files |
 | Phase 13-escala-de-whatsapp P01 | 25min | 3 tasks | 4 files |
 | Phase 13-escala-de-whatsapp P03 | 35min | 2 tasks | 3 files |
+| Phase 13-escala-de-whatsapp P02 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -170,6 +171,7 @@ Plan: 3 of 4
 - [Phase 12-escala-de-email]: 12-06: checkpoint humano da Task 2 resolvido com `aguardar` - usuario optou por nao forcar execucao real (--force) fora de calendario num domingo (2026-09-20); task agendada DIAX-Email-Waves-Daily confirma sozinha na segunda-feira 2026-09-21 08:40 BRT sem --force; EMAL-02/04 fecham Partial ate essa confirmacao, EMAL-03 fecha Complete (medicao ja roda sobre dados reais sem depender de envio futuro); runbook consolidado ESCALA-EMAIL-runbook.md publicado (Task 1); Phase 12 fechada 6/6 planos
 - [Phase 13-escala-de-whatsapp]: 13-01: checkpoint da Task 2 respondido python-oficial — outreach-send.py/task outreach-wa declarado handoff oficial de WHAT-01, waOutreach1a1AQ permanece active=0 por escolha deliberada (incidente de dedupe de 12/09); WHAT-01 fecha Complete por equivalencia funcional
 - [Phase 13-escala-de-whatsapp]: 13-03: whatsapp_weekly_report.py criado (WHAT-03) - metricas() le wa_estado, taxa de resposta honesta (None em denominador zero), divergencia logs-vs-CRM sempre exposta; Scheduled Task DIAX-WA-Weekly-Report sexta 17:00 BRT registrada e provada com entrega real no Telegram (111 enviados/53 respondidos ES da semana), sem tocar daily_waves.py nem DIAX-Email-Waves-Daily (08:40 BRT)
+- [Phase 13-escala-de-whatsapp]: 13-02: crm_leads_sync.py reescrito como sync incremental verificado (delta + fila pendente crmleads-pending.json + releitura pos-push); Scheduled Task DIAX-WA-CrmLeads-Sync horaria registrada; capturou 18 leads reais ja contatados por outreach-send.py que nunca haviam entrado no conjunto de deflexao do bot (ex. 5527998544746@c.us enviado 15/09, ainda fora do crmLeads); n8n confirmado fora do ar, delta ficou em fila (nao perdido, nao falso-sucesso); WHAT-02 fecha Complete
 
 ### Testing Protocol
 
@@ -265,7 +267,7 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   12 está 100% concluída (6/6 planos)** no nível de entrega de mecanismo; próximo passo:
   `/gsd:plan-phase 13` (Escala de WhatsApp).
 
-- Phase 13 (Escala de WhatsApp) EM ANDAMENTO (2/4 planos, 2026-09-20) — 13-01 concluído:
+- Phase 13 (Escala de WhatsApp) EM ANDAMENTO (3/4 planos, 2026-09-20) — 13-01 concluído:
   `wa_estado.py` criado (leitor único read-only do estado real: audit log + sqlite `mode=ro` do
   n8n + CRM), checkpoint humano da Task 2 respondido `python-oficial` — `outreach-send.py`/task
   `outreach-wa` declarado handoff oficial de WHAT-01, `waOutreach1a1AQ` permanece `active=0` por
@@ -273,16 +275,29 @@ Não resolvido, não abandonado — só não é o foco agora. v1.4 também não 
   funcional, prova em `docs/email-marketing/previews/whatsapp-estado.json` (186 chat_ids all-time,
   16/18 hoje, delta logs-vs-CRM 169). Zero mudança operacional feita.
 
-  13-03 concluído 2026-09-20 (executado em paralelo ao 13-02): `whatsapp_weekly_report.py` criado —
-  único código genuinamente novo da fase, WHAT-03 fechado. `metricas()` le exclusivamente de
-  `wa_estado.py`, `_compute_metricas()` pura permite `--selftest` 9/9 100% offline. `--dry` contra
-  dados reais: 111 enviados (100% wa_es), 53 respondidos (52 ES + 1 BR), taxa geral 47,7% (ES
-  46,8%). Scheduled Task `DIAX-WA-Weekly-Report` registrada (sexta 17:00 BRT, distinta da
-  `DIAX-Email-Waves-Daily` 08:40 BRT que ficou intocada) e provada com execução real
-  (`LastTaskResult=0`, mensagem verbatim entregue no Telegram, citada em `13-03-SUMMARY.md`).
-  `wa-weekly-report.vbs` fora do repositório git (rastreado só pelo SUMMARY). Próximo passo:
-  aguardar 13-02 (`crm_leads_sync.py`, WHAT-02, paralelo) e seguir para 13-04-PLAN.md
-  (`wa_escalation.py`, WHAT-04, escalonamento wa_es→wa_br).
+  13-02 e 13-03 concluídos 2026-09-20 (executados em paralelo, mesmo working directory). 13-02:
+  `crm_leads_sync.py` reescrito de populador manual de 22 linhas para sync incremental verificado
+  (`fontes/atuais/delta/empurrar/verificar`, `--selftest` 16/16 offline via núcleo `_executar()`
+  com I/O injetada). Scheduled Task `DIAX-WA-CrmLeads-Sync` registrada (diária 09:00, repetição 1h
+  por 10h) e provada com execução real (`LastTaskResult=0`). Prova de deflexão: dos 18 ids no
+  delta desta execução, todos os 18 são leads que `outreach-send.py` genuinamente contatou mas
+  nunca haviam entrado em `staticData.global.crmLeads` — ex. `5527998544746@c.us` enviado em
+  15/09, ainda fora da deflexão. n8n confirmado fora do ar, delta gravado em
+  `previews/crmleads-pending.json` (fila durável, sem sucesso falso). WHAT-02 fecha `Complete`.
+
+  13-03: `whatsapp_weekly_report.py` criado — único código genuinamente novo da fase, WHAT-03
+  fechado. `metricas()` le exclusivamente de `wa_estado.py`, `_compute_metricas()` pura permite
+  `--selftest` 9/9 100% offline. `--dry` contra dados reais: 111 enviados (100% wa_es), 53
+  respondidos (52 ES + 1 BR), taxa geral 47,7% (ES 46,8%). Scheduled Task `DIAX-WA-Weekly-Report`
+  registrada (sexta 17:00 BRT, distinta da `DIAX-Email-Waves-Daily` 08:40 BRT que ficou intocada) e
+  provada com execução real (`LastTaskResult=0`, mensagem verbatim entregue no Telegram, citada em
+  `13-03-SUMMARY.md`). `wa-weekly-report.vbs`/`crm-leads-sync.vbs` fora do repositório git
+  (rastreados só pelos respectivos SUMMARYs). Nota de execução paralela: o commit final de 13-03
+  absorveu os 3 arquivos já staged da Task 2 de 13-02 (`crmleads-pending.json`,
+  `whatsapp-estado.json`, `.gitignore`) no mesmo commit `17389892` — conteúdo íntegro, só a
+  atribuição do hash ficou co-misturada (documentado em `13-02-SUMMARY.md`). Próximo passo:
+  13-04-PLAN.md (`wa_escalation.py`, WHAT-04, escalonamento wa_es→wa_br), usando a taxa de resposta
+  ES medida em 13-03 (46,8%, 52/111) e o estado do conjunto de deflexão de 13-02 como base real.
 
 **v1.3 (shipped, referência):**
 
@@ -313,8 +328,8 @@ migration não integrada, commits locais não pushados).
 
 ## Session Continuity
 
-Last session: 2026-09-20T21:25:01.679Z
-Stopped at: Completed 13-03-PLAN.md
+Last session: 2026-09-20T21:30:13.016Z
+Stopped at: Completed 13-02-PLAN.md e 13-03-PLAN.md (executados em paralelo, ambos concluidos)
 Plano 13-03 (Phase 13 — Escala de WhatsApp, WHAT-03) executado do início ao fim, sem checkpoint,
 em paralelo ao 13-02. Task 1 criou `docs/email-marketing/whatsapp_weekly_report.py` — único código
 genuinamente novo desta fase (nem `daily_waves.py:weekly_report()` nem `funnel_analysis.py` tocam
@@ -331,9 +346,33 @@ provando uma execução real via `schtasks /run`: `LastTaskResult=0`, mensagem e
 Telegram (texto verbatim citado em `13-03-SUMMARY.md`). `daily_waves.py` confirmado intocado por
 `git status` (Pitfall 3 da pesquisa respeitado). D-01 honrado pelo canal/estilo Telegram, não pelo
 import (mesma decisão de repositórios separados já travada na Fase 12 para
-`alerta_telegram.py`/`dmarc_escalation.py`). Trabalho não relacionado do usuário
-(`reply_watch.py`/`CLAUDE.md`/`crm-web/tsconfig.tsbuildinfo`/`crm_leads_sync.py` do 13-02 paralelo)
-preservado intacto. Nenhum push feito. Próximo passo: aguardar 13-02 (paralelo) e seguir para
+`alerta_telegram.py`/`dmarc_escalation.py`).
+
+Plano 13-02 (Phase 13 — Escala de WhatsApp, WHAT-02) executado do início ao fim, sem checkpoint,
+em paralelo ao 13-03 (mesmo working directory/index git — ver nota de colisão de commit abaixo).
+Task 1 reescreveu `docs/email-marketing/crm_leads_sync.py` (de 22 linhas sem verificação para 407
+linhas) com `fontes()`/`atuais()`/`delta()`/`empurrar()`/`verificar()`/`main()`, núcleo de decisão
+`_executar()` com I/O injetada permitindo `--selftest` 100% offline (16/16 OK: normalização de id
+torto, delta vazio, fusão de pendentes, n8n fora do ar, verificação com faltante, `--reset` isolado
+ao primeiro lote). Task 2 criou `D:\claude-code\_scripts\crm-leads-sync.vbs` (mesmo padrão sem BOM)
+e registrou a Scheduled Task `DIAX-WA-CrmLeads-Sync` (diária 09:00, repetição de 1h por 10h,
+`ExecutionTimeLimit` 10min), provando uma execução real via `schtasks /run`: `LastTaskResult=0`.
+Prova de deflexão: dos 18 ids no delta real desta execução, TODOS os 18 são leads que
+`outreach-send.py` genuinamente contatou (`outreach-sent.json`) mas que nunca haviam entrado no
+conjunto `staticData.global.crmLeads` do bot — ex. `5527998544746@c.us` (AONI IMOVEIS) enviado em
+2026-09-15 09:00:11, ainda fora da deflexão até este sync rodar. n8n confirmado fora do ar (porta
+5678 fechada), então os 18 ids foram gravados em `previews/crmleads-pending.json` (fila durável,
+não perdida, não sucesso falso) — aplicados automaticamente assim que o n8n voltar. WHAT-02 fecha
+`Complete`. Nota de execução paralela: entre o `git add` e o `git commit` da Task 2 de 13-02, o
+commit final de 13-03 (`gsd-tools.cjs commit`) absorveu os 3 arquivos já staged de 13-02
+(`crmleads-pending.json`, `whatsapp-estado.json`, `.gitignore`) no commit `17389892` — conteúdo
+correto e íntegro (confirmado via `git show`), apenas a atribuição do hash ficou co-misturada;
+documentado em `13-02-SUMMARY.md`, sem rebase/reset por segurança (outro executor podia estar
+ativo). Trabalho não relacionado do usuário (`reply_watch.py`/`CLAUDE.md`/
+`crm-web/tsconfig.tsbuildinfo`) preservado intacto em ambos os planos.
+
+Nenhum push feito em nenhum dos dois planos. Phase 13 agora 3/4 planos. Próximo passo:
 13-04-PLAN.md (`wa_escalation.py`, WHAT-04, escalonamento wa_es→wa_br, Wave 3), que já pode usar
-a taxa de resposta ES medida aqui (46,8%, 52/111) como base real.
+a taxa de resposta ES medida em 13-03 (46,8%, 52/111) e o estado do conjunto de deflexão de 13-02
+(`crm_leads_sync.py --status`) como base real.
 Resume file: None
