@@ -475,7 +475,7 @@ paralelo)
   4. Após validar a taxa de resposta em `wa_es` (480 leads) contra um critério objetivo documentado,
      o disparo escala para `wa_br` (1138 leads)
 
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 **Nota de planejamento (2026-09-20, medicao ao vivo durante o plan-phase):** o `13-RESEARCH.md` esta
 DEFASADO em pontos load-bearing e os planos partem do que foi medido, nao dele. Achados que mudam a
@@ -504,7 +504,7 @@ Plans:
   previews/whatsapp-estado.json (186 all-time, 16/18 hoje, ultimo ENVIADO 2026-09-20 17:30:13).
 - [ ] 13-02-PLAN.md — `crm_leads_sync.py` reescrito como sync incremental/verificado/offline-safe do
   conjunto de deflexao `crmLeads` + Scheduled Task `DIAX-WA-CrmLeads-Sync` horaria (Wave 2, WHAT-02)
-- [ ] 13-03-PLAN.md — `whatsapp_weekly_report.py` (enviados/respondidos/opt-out por segmento, com
+- [x] 13-03-PLAN.md — `whatsapp_weekly_report.py` (enviados/respondidos/opt-out por segmento, com
   divergencia CRM explicita) + task `DIAX-WA-Weekly-Report` sexta 17:00 BRT no Telegram (Wave 2,
   WHAT-03, D-01/D-02)
 - [ ] 13-04-PLAN.md — `wa_escalation.py` (decide puro wa_es->wa_br com limiar definido antes da
@@ -544,7 +544,7 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
 | 10. Motor de Cadência Único + Pipeline Fora do Notebook | 5/5 | Complete    | 2026-09-19 |
 | 11. Qualified Objetivo e Automático | 1/1 | Complete   | 2026-09-20 |
 | 12. Escala de Email | 6/6 | Complete    | 2026-09-20 |
-| 13. Escala de WhatsApp | 1/4 | In Progress|  |
+| 13. Escala de WhatsApp | 2/4 | In Progress|  |
 | 14. Dashboard de Conversão do Funil | 0/? | Not started | — |
 
 ### Coverage Map (v1.4)

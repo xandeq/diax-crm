@@ -22,7 +22,7 @@ Requirements para o milestone v1.4 "Funil de Outreach — Cadência e Qualidade"
 
 - [x] **WHAT-01** (por equivalência funcional — ver Traceability): Handoff (`n8n-wa-outreach-1a1.json`) confirmado em execução pela sessão que opera o WAHA local
 - [ ] **WHAT-02**: Bot inbound de IA (`8nKTlX4Y7Hy1EUEn`) desvia lead de prospecção pra humano em vez de responder
-- [ ] **WHAT-03**: Relatório semanal de métricas do canal WhatsApp (enviados/respondidos/opt-out)
+- [x] **WHAT-03**: Relatório semanal de métricas do canal WhatsApp (enviados/respondidos/opt-out)
 - [ ] **WHAT-04**: Escalar de `wa_es` (480 leads) para `wa_br` (1138) após validar taxa de resposta em ES
 
 ### Funil / Qualified
@@ -70,7 +70,7 @@ Deferido — não bloqueia v1.4.
 | EMAL-04 | Phase 12 — Escala de Email | Partial (12-04: caminho paralelo `build_webmail_wave()` implementado, `WEBMAIL_CAP=15`/dia, marca `auto wm`, fora do A/B por construção, 719 leads webmail nunca-contactados medidos ao vivo; provado em `--dry --force` — `DRY: webmail = 12 leads (cap 15, já hoje 0)`; 12-06 Task 2: checkpoint humano respondido `aguardar` (mesma decisão de EMAL-02) — campanha real com destinatários confirmados no CRM ainda pendente da execução agendada de 2026-09-21 08:40 BRT. Destrava quando essa execução mostrar a campanha `AQ - webmail - ... auto wm` no CRM com ≤15 destinatários — runbook em `docs/email-marketing/ESCALA-EMAIL-runbook.md` §5) |
 | WHAT-01 | Phase 13 — Escala de WhatsApp | Complete por equivalência funcional (13-01: checkpoint humano da Task 2 respondido `python-oficial` — o handoff real de prospecção hoje roda por `D:\claude-code\n8n-local\outreach-send.py` via task Windows `outreach-wa` (Ready/Enabled, próxima execução 21/09 09:00, repetição 30min até 18h), não pelo workflow `waOutreach1a1AQ` citado literalmente no requisito, que permanece `active=0` por escolha deliberada desde o incidente de 12/09 (Code node do n8n com `fs.writeFileSync` não confiável no dedupe → 7ª mensagem para lead que já havia recusado). Propriedades de segurança que sustentam a equivalência: gravação de dedupe com releitura verificada (`grava_verificado()`), blacklist como primeira checagem, kill-switch `logs/OUTREACH-STOP`. Prova de execução real (snapshot `previews/whatsapp-estado.json`, gerado 2026-09-20T18:07:41): 186 chat_ids em `outreach-sent.json` (all-time), 16/18 enviados no dia, último `ENVIADO` 2026-09-20 17:30:13 para `5527996320214@c.us` (Cominoti Construções). `waOutreach1a1AQ` confirmado inalterado no mesmo snapshot: `active=0`, `cap=2`, `max_prio=4`, última execução 2026-09-12 17:05:36 — idêntico ao medido no planejamento, nenhuma mudança operacional feita nesta task. Divergência logs-vs-CRM medida: 186 vs 17 (delta 169), causa conhecida e documentada (`outreach-send.py` não chama `POST /api/v1/integrations/whatsapp-event`). Zero CAP change, zero ativação de n8n, zero mudança de Scheduled Task) |
 | WHAT-02 | Phase 13 — Escala de WhatsApp | Pending |
-| WHAT-03 | Phase 13 — Escala de WhatsApp | Pending |
+| WHAT-03 | Phase 13 — Escala de WhatsApp | Complete |
 | WHAT-04 | Phase 13 — Escala de WhatsApp | Pending |
 | DASH-01 | Phase 14 — Dashboard de Conversão do Funil | Pending |
 

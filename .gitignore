@@ -58,7 +58,12 @@ nul
 # evidencia de quarentena contem PII (emails de leads) — nunca commitar
 docs/email-marketing/quarantine-*.json
 
-# Settings locais do Claude Code � podem conter comandos aprovados com segredos embutidos
+# logs operacionais dos scripts docs/email-marketing/*.py — runtime output, nunca versionado
+# (padrao ja em vigor: daily-waves-*.log/dmarc-escalation.log/reply-watch.log nunca foram
+# commitados; formalizando aqui em vez de deixar gerado-mas-nao-rastreado)
+docs/email-marketing/logs/
+
+# Settings locais do Claude Code � podem conter comandos aprovados com segredos embutidos
 .claude/settings.local.json
 
 # VS Code MCP config: contem N8N_API_KEY real (usar .vscode/mcp.json.example como modelo)
