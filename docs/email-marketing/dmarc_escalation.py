@@ -19,6 +19,9 @@ Uso:
   python dmarc_escalation.py --set-pct 50              # dry-run de um pct especifico (nao escreve)
   python dmarc_escalation.py --advance --apply         # ESCREVE de verdade — fora de escopo do 12-01
   python dmarc_escalation.py --simulate-bad-window --check   # forca health ruim p/ testar revert
+  python dmarc_escalation.py --drill                   # dry-run do drill de reversao (12-05)
+  python dmarc_escalation.py --drill --apply            # roda o drill de verdade contra _gsddrill,
+                                                          # NUNCA contra o _dmarc real
 """
 import os, sys, re, json, time, datetime, subprocess
 from pathlib import Path
@@ -37,6 +40,10 @@ TTL      = 14400
 NS_AUTH  = 'ns232.prodns.com.br'
 STEPS    = [25, 50, 75, 100]                     # D-01: um degrau por semana
 TPL      = 'v=DMARC1; p=quarantine; pct={pct}; rua=mailto:rua@dmarc.brevo.com; adkim=r; aspf=r'
+
+# 12-05 Task 2: registro descartavel para provar o par escrita<->reversao SEM usar o _dmarc real
+# como cobaia. Subdominio inexistente, sem nenhum servico apontando pra ele, TTL curto.
+DRILL_RECORD = '_gsddrill.alexandrequeiroz.com.br.'
 
 STEP_MIN_DAYS    = 7      # D-01: 1 degrau por semana
 BOUNCE_REVERT    = 0.05   # D-04 (decisao travada do usuario): bounce > 5% reverte
@@ -341,6 +348,163 @@ def tg_send(text):
         log_line(f'telegram falhou: {e}')
 
 
+# ---------- drill de reversao (12-05 Task 2) — nunca toca o _dmarc real ----------
+
+def dns_verify_name(name):
+    """Mesma logica de dns_verify(), mas parametrizada por nome — usada pelo drill contra
+    DRILL_RECORD, nunca contra RECORD."""
+    r = subprocess.run(['nslookup', '-type=TXT', name.rstrip('.'), NS_AUTH],
+                        capture_output=True, text=True, timeout=30)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def _drill_find(name):
+    """dumpzone -> lista de registros TXT com este name (0, 1 ou, em teoria, mais de 1 — o
+    chamador decide o que fazer com cada contagem; drill nunca assume 'exatamente 1' como
+    read_zone_dmarc faz para o _dmarc real)."""
+    resp = whm_get('dumpzone', {'api.version': 1, 'domain': DOMAIN})
+    records = resp['data']['zone'][0]['record']
+    found = [r for r in records if r.get('type') == 'TXT' and r.get('name') == name]
+    return found
+
+
+def _nslookup_retry(name, expect_substr, max_tries=3, wait_between=15, wait_before=10):
+    """Fura cache aguardando o NS recarregar a zona (TTL curto nao afeta consulta direta ao NS,
+    mas o reload nao e instantaneo). Regra de 2 retries do projeto: no maximo 3 tentativas."""
+    log_line(f'aguardando {wait_before}s antes do primeiro nslookup de {name}...')
+    time.sleep(wait_before)
+    last_out = ''
+    for attempt in range(1, max_tries + 1):
+        last_out = dns_verify_name(name)
+        if expect_substr in last_out:
+            return last_out
+        if attempt < max_tries:
+            log_line(f'nslookup tentativa {attempt}/{max_tries} nao contem {expect_substr!r}, retry em {wait_between}s')
+            time.sleep(wait_between)
+    raise RuntimeError(f'nslookup nao mostrou {expect_substr!r} apos {max_tries} tentativas em {name}:\n{last_out}')
+
+
+def _drill_fallback_b(log, motivo):
+    """Fallback B (12-05 Task 2): se addzonerecord/removezonerecord nao funcionarem, reescreve o
+    _dmarc real com o MESMO valor que ele ja tem (pct=25) — exercita localizar->editar->verificar
+    contra o registro real com resultado semanticamente nulo. Nao chama commit_state (nao e um
+    degrau). LIMITACAO CONHECIDA, declarada aqui de proposito: a MUDANCA de valor do _dmarc so
+    fica provada em dry-run neste caminho, nunca em producao."""
+    log_line(f'FALLBACK B acionado: {motivo}')
+    log['fallback_used'] = True
+    log['fallback_motivo'] = motivo
+    result = set_pct(25, apply=True)  # reescreve com o MESMO valor - resultado semanticamente nulo
+    log['fallback_result'] = result
+    tg_send('🧪 DMARC drill (fallback B): addzonerecord indisponivel, exercitado '
+            'localizar/editar/verificar contra o _dmarc real com valor identico (pct=25→25). '
+            'Mudanca de valor NAO provada em producao neste caminho.')
+    return log
+
+
+def do_drill(apply=False):
+    """Task 2 (12-05): prova em producao, de ponta a ponta, do par escrita<->reversao contra
+    DRILL_RECORD — nunca contra o _dmarc real. Dry-run por padrao (apply=False, so imprime o
+    plano); apply=True executa de verdade. PROIBIDO alterar o txtdata do _dmarc para um valor
+    diferente do atual neste caminho (o fallback B reescreve com o MESMO valor, de proposito)."""
+    load_env()
+    name = DRILL_RECORD
+    log = {'target': name, 'steps': [], 'fallback_used': False}
+
+    if not apply:
+        print('DRY-RUN --drill: nenhuma chamada de escrita executada. Use --drill --apply para rodar de verdade.')
+        print(f'  alvo: {name}')
+        print('  sequencia: addzonerecord(v1) -> localizar -> editzonerecord(v2) -> nslookup(v2) -> '
+              'localizar -> editzonerecord(v1, reversao) -> nslookup(v1) -> removezonerecord -> '
+              'dumpzone(confere ausencia) -> tg_send de teste')
+        return log
+
+    pre_existing = _drill_find(name)
+    if pre_existing:
+        raise RuntimeError(f'{name} ja existe na zona antes do drill comecar (lixo de execucao anterior?): {pre_existing}')
+
+    # Passo 1: addzonerecord v1
+    add_params = {'api.version': 1, 'domain': DOMAIN, 'type': 'TXT', 'name': name,
+                  'class': 'IN', 'ttl': 300, 'txtdata': 'gsd-drill-v1'}
+    try:
+        add_resp = whm_get('addzonerecord', add_params)
+    except Exception as e:
+        log_line(f'addzonerecord levantou excecao ({e}) - acionando fallback B')
+        return _drill_fallback_b(log, motivo=str(e))
+    if add_resp.get('metadata', {}).get('result') != 1:
+        log_line(f'addzonerecord nao retornou result=1 ({add_resp}) - acionando fallback B')
+        return _drill_fallback_b(log, motivo=str(add_resp))
+    log['steps'].append({'step': 1, 'action': 'addzonerecord v1', 'result': add_resp.get('metadata')})
+    log_line(f'drill passo 1 OK: addzonerecord {name} = gsd-drill-v1')
+
+    try:
+        # Passo 2+3: localizar por nome (nunca pela posicao do add) e editar para v2
+        found = _drill_find(name)
+        if len(found) != 1:
+            raise RuntimeError(f'esperava exatamente 1 {name} apos add, achei {len(found)}: {found}')
+        line = int(found[0]['Line'])
+        edit_v2 = {'api.version': 1, 'domain': DOMAIN, 'line': line, 'type': 'TXT', 'name': name,
+                   'class': 'IN', 'ttl': 300, 'txtdata': 'gsd-drill-v2'}
+        edit_resp = whm_get('editzonerecord', edit_v2)
+        if edit_resp.get('metadata', {}).get('result') != 1:
+            raise RuntimeError(f'editzonerecord (v2) falhou: {edit_resp}')
+        log['steps'].append({'step': 3, 'action': 'editzonerecord v2', 'line': line, 'result': edit_resp.get('metadata')})
+        log_line(f'drill passo 3 OK: editzonerecord line={line} -> gsd-drill-v2')
+
+        # Passo 4: verificar v2 no NS autoritativo — a mesma asserção que set_pct(apply=True) faz
+        out_v2 = _nslookup_retry(name, 'gsd-drill-v2')
+        log['steps'].append({'step': 4, 'nslookup': out_v2.strip()})
+        log_line('drill passo 4 OK: nslookup confirma gsd-drill-v2')
+
+        # Passo 5: reversao — relocalizar (a Line pode ter mudado) e editar de volta para v1
+        found2 = _drill_find(name)
+        if len(found2) != 1:
+            raise RuntimeError(f'esperava exatamente 1 {name} antes de reverter, achei {len(found2)}: {found2}')
+        line2 = int(found2[0]['Line'])
+        edit_v1 = {'api.version': 1, 'domain': DOMAIN, 'line': line2, 'type': 'TXT', 'name': name,
+                   'class': 'IN', 'ttl': 300, 'txtdata': 'gsd-drill-v1'}
+        edit_resp2 = whm_get('editzonerecord', edit_v1)
+        if edit_resp2.get('metadata', {}).get('result') != 1:
+            raise RuntimeError(f'editzonerecord (reversao v1) falhou: {edit_resp2}')
+        log['steps'].append({'step': 5, 'action': 'editzonerecord reversao v1', 'line': line2, 'result': edit_resp2.get('metadata')})
+        log_line(f'drill passo 5 OK: editzonerecord line={line2} -> gsd-drill-v1 (reversao)')
+
+        out_v1 = _nslookup_retry(name, 'gsd-drill-v1')
+        log['steps'].append({'step': '5-verify', 'nslookup': out_v1.strip()})
+        log_line('drill passo 5 verify OK: nslookup confirma gsd-drill-v1 apos reversao — prova o caminho de D-02')
+
+        # Passo 6: remover pela Line relocalizada e confirmar ausencia no dumpzone final
+        found3 = _drill_find(name)
+        if found3:
+            line3 = int(found3[0]['Line'])
+            rm_resp = whm_get('removezonerecord', {'api.version': 1, 'domain': DOMAIN, 'line': line3})
+            log['steps'].append({'step': 6, 'action': 'removezonerecord', 'line': line3, 'result': rm_resp.get('metadata')})
+            log_line(f'drill passo 6: removezonerecord line={line3} result={rm_resp.get("metadata")}')
+        found_final = _drill_find(name)
+        if found_final:
+            raise RuntimeError(f'{name} ainda presente na zona apos removezonerecord: {found_final}')
+        log['steps'].append({'step': 'dumpzone-final', 'contains_gsddrill': False})
+        log_line('drill passo 6 confirmado: dumpzone final NAO contem _gsddrill')
+
+    finally:
+        # Limpeza garantida: um registro de drill orfao na zona e lixo, nao incidente, mas nao
+        # pode ficar. Tenta remover de novo se, por qualquer excecao acima, ainda existir.
+        try:
+            leftover = _drill_find(name)
+            if leftover:
+                line4 = int(leftover[0]['Line'])
+                whm_get('removezonerecord', {'api.version': 1, 'domain': DOMAIN, 'line': line4})
+                log_line(f'limpeza finally: removeu {name} orfao (line={line4})')
+        except Exception as e:
+            log_line(f'limpeza finally falhou: {e} - {name} pode ter ficado orfao, checar manualmente')
+
+    # Passo 7: Telegram de teste pelo mesmo tg_send() que a reversao real usaria
+    tg_send('🧪 DMARC drill: reversão exercitada com sucesso em _gsddrill (nenhuma alteração no _dmarc)')
+    log['steps'].append({'step': 7, 'action': 'tg_send teste'})
+    log_line('drill passo 7: telegram de teste enviado')
+
+    return log
+
+
 # ---------- CLI: camada de decisao/escrita ----------
 
 def do_check(simulate_bad=False):
@@ -475,6 +639,8 @@ def main():
         idx = argv.index('--set-pct')
         pct = int(argv[idx + 1])
         do_set_pct(pct, apply=apply_flag); return
+    if '--drill' in argv:
+        do_drill(apply=apply_flag); return
     # sem argumentos = mesmo que --check
     do_check(simulate_bad=simulate_bad)
 
