@@ -555,7 +555,32 @@ métrica de dashboard — reportar um critério manual/inconsistente produziria 
   4. Um gargalo numa etapa específica (ex.: Contacted→Qualified baixo) é identificável visualmente,
      sem precisar exportar dados pra planilha
 
-**Plans:** TBD
+**Nota de planejamento (2026-09-20, decisões travadas em `14-CONTEXT.md` + pesquisa de alta
+confiança):** DASH-01 **já está em produção** desde 2026-07-03 (PR #61, commit `c200f4b7`) — mais
+de dois meses antes deste milestone começar. `SalesDashboardService.BuildFunnel` calcula a
+conversão percentual por etapa e `dashboard-comercial/page.tsx` a renderiza, com a página linkada
+no menu (`AppShell.tsx`) e no command palette. D-01 trava o escopo desta fase em **verificar e
+documentar** (mesmo padrão da Phase 11): nenhuma linha muda em `SalesDashboardService.cs`,
+`SalesDashboardController.cs`, `page.tsx` ou `salesDashboard.ts`. D-02 exige prova com dado real
+**e** prova de que a página renderiza (screenshot), não só que o endpoint responde.
+
+Dois achados da pesquisa mudam a leitura dos critérios de sucesso: (a) `conversionToNext` é uma
+razão **cumulativa** (`ahead` soma TODAS as etapas posteriores, não só a seguinte), então o
+critério 1 está atendido mas não deve ser lido como taxa adjacente Contacted→Qualified — com
+`Negociando = 0` a tela mostra "100% avançaram" sobre uma barra vazia, matematicamente correto e
+visualmente enganoso; (b) o **critério 3 (filtro por período) NÃO tem implementação nenhuma** —
+`SalesDashboardController.Get()` não recebe parâmetro de data e a página não tem date picker. Por
+D-01, esse gap é **documentado e deferido** para milestone futura, nunca marcado como entregue.
+Verificar a fase contra os critérios 1, 2 e 4 mais o gap explicitado do critério 3.
+
+**Plans:** 1 plan, 1 wave
+
+Plans:
+- [ ] 14-01-PLAN.md — Reconferir ao vivo os números do funil (API + re-derivação à mão de cada
+  `conversionToNext`), capturar prova visual da página renderizada em produção via Playwright, e
+  publicar o runbook `DASHBOARD-funil-runbook.md` com a natureza cumulativa da fórmula, o caso
+  `Negociando = 0 → 100%` e o gap deferido do filtro por período; fechar DASH-01 na
+  rastreabilidade (Wave 1, DASH-01)
 
 ---
 
