@@ -7,19 +7,12 @@ updates:
     open-pull-requests-limit: 5
 
   - package-ecosystem: "nuget"
-    directory: "/api-core/src/Diax.Api"
+    directory: "/api-core"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-
-  - package-ecosystem: "nuget"
-    directory: "/api-core/src/Diax.Application"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: "nuget"
-    directory: "/api-core/src/Diax.Infrastructure"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+    groups:
+      efcore:
+        patterns:
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.Extensions.Caching.Memory"
