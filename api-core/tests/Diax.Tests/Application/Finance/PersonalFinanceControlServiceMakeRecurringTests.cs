@@ -250,6 +250,36 @@ public class PersonalFinanceControlServiceMakeRecurringTests
         _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// Regression: a inactive/missing source account used to silently fall back to
+    /// "the first active account" (which could be an illiquid investment account),
+    /// creating a recurring template that debits the wrong account every month.
+    /// Now it must fail explicitly instead of guessing, and create nothing.
+    /// </summary>
+    [Fact]
+    public async Task MakeRecurring_SourceAccountInactive_FailsInsteadOfGuessingAnotherAccount()
+    {
+        var userId = Guid.NewGuid();
+        var inactiveAccount = NewAccount(userId, isActive: false);
+        var source = NewSourceExpense(userId, inactiveAccount.Id);
+
+        _txRepo.Setup(r => r.GetByIdAndUserAsync(source.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(source);
+        _accountRepo.Setup(r => r.GetByIdAndUserAsync(inactiveAccount.Id, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(inactiveAccount);
+
+        var otherActiveAccount = NewAccount(userId);
+        _accountRepo.Setup(r => r.GetAllByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<FinancialAccount> { otherActiveAccount });
+
+        var result = await BuildService().MakeExpenseRecurringAsync(source.Id, 3, userId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("PersonalFinance.InvalidAccount", result.Error.Code);
+        _recurringRepo.Verify(r => r.AddAsync(It.IsAny<RecurringTransaction>()), Times.Never);
+        _txRepo.Verify(r => r.AddAsync(It.IsAny<Transaction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Fact]
     public async Task MakeRecurring_Indefinite_MaterialisesTwelveMonthHorizon()
     {
