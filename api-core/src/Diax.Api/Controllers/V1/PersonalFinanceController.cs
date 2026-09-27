@@ -189,10 +189,11 @@ public class PersonalFinanceController : BaseApiController
                 defaultAccount.Id,
                 null,
                 null,
-                TransactionStatus.Paid,
+                request.IsPaid ? TransactionStatus.Paid : TransactionStatus.Pending,
                 request.PaymentDate,
                 request.Details,
-                false),
+                false,
+                DueDate: CreateDueDate(request.Year, request.Month, request.DayOfMonth, request.ReceiveMonthOffset)),
             userId.Value,
             cancellationToken);
 
@@ -214,6 +215,8 @@ public class PersonalFinanceController : BaseApiController
         if (!accountId.HasValue)
             return BadRequest(new { message = "Nenhuma conta financeira ativa encontrada para atualizar a receita." });
 
+        // Personal-control incomes have no user-selectable category; the seeded income
+        // category is not user-owned, so re-sending it fails validation (Transaction.InvalidCategory).
         var result = await _transactionService.UpdateAsync(
             id,
             new UpdateTransactionRequest(
@@ -221,7 +224,7 @@ public class PersonalFinanceController : BaseApiController
                 request.Amount,
                 date,
                 PaymentMethod.Pix,
-                existing.Value.CategoryId,
+                null,
                 request.IsRecurring,
                 accountId,
                 null,
@@ -229,7 +232,8 @@ public class PersonalFinanceController : BaseApiController
                 request.IsPaid ? TransactionStatus.Paid : TransactionStatus.Pending,
                 request.PaymentDate,
                 request.Details,
-                false),
+                false,
+                DueDate: CreateDueDate(request.Year, request.Month, request.DayOfMonth, request.ReceiveMonthOffset)),
             userId.Value,
             cancellationToken);
 
@@ -665,14 +669,35 @@ public class PersonalFinanceController : BaseApiController
             };
         }).ToList();
 
+        var standardExpenses = source.Expenses.Where(item => !item.IsSubscription).ToList();
+        // Blocos por salário só com o que se paga à vista (cartão vai na fatura), igual à grade de despesas.
+        var cycle = PaymentCycle.Compute(source.Incomes, standardExpenses.Where(item => item.PaymentMethod != PaymentMethod.CreditCard).ToList());
+
         return new
         {
             period = new
             {
                 year = source.Year,
                 month = source.Month,
-                label = $"{source.Month:D2}/{source.Year}"
+                label = $"{source.Month:D2}/{source.Year}",
+                cycle = cycle.Cycle == null ? null : new
+                {
+                    start = cycle.Cycle.Start,
+                    end = cycle.Cycle.End,
+                    label = cycle.Cycle.Label
+                }
             },
+            blocks = cycle.Blocks.Select(b => new
+            {
+                incomeId = b.IncomeId,
+                incomeName = b.IncomeName,
+                incomeAmount = b.IncomeAmount,
+                cashDate = b.CashDate,
+                expensesTotal = b.ExpensesTotal,
+                expensesCount = b.ExpensesCount,
+                balance = b.Balance
+            }),
+            unassigned = new { total = cycle.UnassignedTotal, count = cycle.UnassignedCount },
             summary = new
             {
                 totalIncome = source.Summary.TotalIncome,
@@ -701,7 +726,9 @@ public class PersonalFinanceController : BaseApiController
                 id = item.Id,
                 name = item.Description,
                 amount = item.Amount,
-                dayOfMonth = item.Date.Day,
+                dayOfMonth = item.DueDate?.Day ?? item.Date.Day,
+                cashDate = PaymentCycle.CashDate(item),
+                receiveMonthOffset = MonthOffset(item),
                 isRecurring = item.IsRecurring,
                 isPaid = item.Status == TransactionStatus.Paid,
                 paymentDate = item.PaidDate,
@@ -709,17 +736,18 @@ public class PersonalFinanceController : BaseApiController
                 createdAt = item.CreatedAt,
                 updatedAt = item.UpdatedAt
             }),
-            expenses = source.Expenses.Where(item => !item.IsSubscription).Select(item => new
+            expenses = standardExpenses.Select(item => new
             {
                 id = item.Id,
                 name = item.Description,
                 amount = item.Amount,
                 paymentType = item.PaymentMethod == PaymentMethod.CreditCard ? "credit" : "debit",
-                dueDay = item.Date.Day,
+                dueDay = item.DueDate?.Day ?? item.Date.Day,
                 dueDate = item.DueDate,
-                dueMonthOffset = item.DueDate.HasValue
-                    ? ((item.DueDate.Value.Year - item.Date.Year) * 12 + item.DueDate.Value.Month - item.Date.Month)
-                    : 0,
+                dueMonthOffset = MonthOffset(item),
+                paidWith = cycle.PaidWith.TryGetValue(item.Id, out var income)
+                    ? new { incomeId = income.Id, incomeName = income.Description, cashDate = PaymentCycle.CashDate(income) }
+                    : null,
                 isPaid = item.Status == TransactionStatus.Paid,
                 paymentDate = item.PaidDate,
                 details = item.Details,
@@ -848,6 +876,10 @@ public class PersonalFinanceController : BaseApiController
         }
     }
 
+    private static int MonthOffset(TransactionResponse item) => item.DueDate.HasValue
+        ? Math.Clamp((item.DueDate.Value.Year - item.Date.Year) * 12 + item.DueDate.Value.Month - item.Date.Month, 0, 3)
+        : 0;
+
     private static string ToBillingFrequency(FrequencyType frequencyType) => frequencyType switch
     {
         FrequencyType.Weekly => "weekly",
@@ -965,7 +997,8 @@ public class PersonalFinanceController : BaseApiController
         bool IsRecurring = true,
         bool IsPaid = true,
         DateTime? PaymentDate = null,
-        [StringLength(2000)] string? Details = null);
+        [StringLength(2000)] string? Details = null,
+        [Range(0, 3)] int ReceiveMonthOffset = 0);
 
     public record PersonalControlExpenseRequest(
         [Range(2000, 2100)] int Year,

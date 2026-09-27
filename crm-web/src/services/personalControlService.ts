@@ -4,10 +4,37 @@ export type PersonalControlKind = 'income' | 'expense' | 'subscription';
 export type PersonalControlPaymentType = 'debit' | 'credit';
 export type PersonalControlBillingFrequency = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 
+export interface PersonalControlCycle {
+  /** 1ª data de caixa do mês (ISO). */
+  start: string;
+  /** Véspera da 1ª data de caixa do mês seguinte (ISO). */
+  end: string;
+  /** Ex.: "25/09→24/10". */
+  label: string;
+}
+
 export interface PersonalControlPeriod {
   year: number;
   month: number;
   label: string;
+  cycle?: PersonalControlCycle | null;
+}
+
+/** Bloco "paga com qual salário": receita + fixas atribuídas a ela. */
+export interface PersonalControlBlock {
+  incomeId: string;
+  incomeName: string;
+  incomeAmount: number;
+  cashDate: string;
+  expensesTotal: number;
+  expensesCount: number;
+  balance: number;
+}
+
+export interface PersonalControlPaidWith {
+  incomeId: string;
+  incomeName: string;
+  cashDate: string;
 }
 
 export interface PersonalControlSummary {
@@ -59,6 +86,10 @@ export interface PersonalControlIncomeItem {
   name: string;
   amount: number;
   dayOfMonth: number;
+  /** Data em que o dinheiro cai (ISO); = dia do mês quando receiveMonthOffset é 0. */
+  cashDate?: string;
+  /** 0 = cai no próprio mês; 1 = mês seguinte. */
+  receiveMonthOffset?: number;
   isRecurring: boolean;
   isPaid: boolean;
   paymentDate?: string;
@@ -77,6 +108,8 @@ export interface PersonalControlExpenseItem {
   dueDate?: string;
   /** 0 = mesmo mês; 1 = mês seguinte; 2 = daqui a 2 meses. */
   dueMonthOffset?: number;
+  /** Último salário cuja data de caixa ≤ vencimento real; null = saldo anterior. */
+  paidWith?: PersonalControlPaidWith | null;
   isPaid: boolean;
   paymentDate?: string;
   details?: string;
@@ -114,6 +147,8 @@ export interface PersonalControlMonthView {
   subscriptions: PersonalControlSubscriptionItem[];
   cardSummaries: PersonalControlCardSummary[];
   invoicesDueThisMonth: PersonalControlInvoiceDueThisMonth[];
+  blocks?: PersonalControlBlock[];
+  unassigned?: { total: number; count: number };
 }
 
 export interface CreatePersonalControlIncomeRequest {
@@ -122,6 +157,8 @@ export interface CreatePersonalControlIncomeRequest {
   name: string;
   amount: number;
   dayOfMonth: number;
+  /** 0 = cai no próprio mês (padrão); 1 = mês seguinte; até 3. */
+  receiveMonthOffset?: number;
   isRecurring?: boolean;
   isPaid?: boolean;
   paymentDate?: string;

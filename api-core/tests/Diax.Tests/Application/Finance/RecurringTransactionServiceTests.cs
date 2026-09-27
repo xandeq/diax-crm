@@ -308,6 +308,43 @@ public class RecurringTransactionServiceTests
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // ── UpdateAsync / DueMonthOffset ──────────────────────────────────
+
+    [Fact]
+    public async Task UpdateAsync_NullDueMonthOffset_KeepsStoredValue()
+    {
+        var userId = Guid.NewGuid();
+        var account = new FinancialAccount("Conta", AccountType.Checking, 0m, userId, true);
+        var existing = new RecurringTransaction
+        {
+            UserId = userId, Type = PlannerTransactionType.Expense, Description = "Aluguel", Amount = 100m,
+            CategoryId = Guid.NewGuid(), FrequencyType = FrequencyType.Monthly, DayOfMonth = 1,
+            StartDate = new DateTime(2026, 1, 1), PaymentMethod = PaymentMethod.DebitCard,
+            FinancialAccountId = account.Id, IsActive = true, DueMonthOffset = 1,
+        };
+        _repo.Setup(r => r.GetByIdAsync(existing.Id, userId)).ReturnsAsync(existing);
+        _repo.Setup(r => r.ExistsDuplicateAsync(userId, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<Diax.Domain.Finance.TransactionType>(), It.IsAny<RecurringItemKind>(), existing.Id))
+            .ReturnsAsync(false);
+        _accountRepo.Setup(r => r.GetByIdAndUserAsync(account.Id, userId, It.IsAny<CancellationToken>())).ReturnsAsync(account);
+
+        var request = new UpdateRecurringTransactionRequest
+        {
+            Type = PlannerTransactionType.Expense, Description = "Aluguel", Amount = 120m, CategoryId = existing.CategoryId,
+            FrequencyType = FrequencyType.Monthly, DayOfMonth = 1, StartDate = existing.StartDate,
+            PaymentMethod = PaymentMethod.DebitCard, FinancialAccountId = account.Id, IsActive = true, DueMonthOffset = null,
+        };
+
+        var result = await Build().UpdateAsync(existing.Id, request, userId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, existing.DueMonthOffset);
+        Assert.Equal(120m, existing.Amount);
+
+        request.DueMonthOffset = 2;
+        Assert.True((await Build().UpdateAsync(existing.Id, request, userId)).IsSuccess);
+        Assert.Equal(2, existing.DueMonthOffset);
+    }
+
     // ── GetByIdAsync ──────────────────────────────────────────────────
 
     [Fact]
