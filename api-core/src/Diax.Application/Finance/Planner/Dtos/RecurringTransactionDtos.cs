@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Diax.Domain.Finance;
 using Diax.Domain.Finance.Planner;
 
@@ -27,6 +28,7 @@ public class RecurringTransactionResponse
     public int Priority { get; set; }
     public bool IsSubscription { get; set; }
     public bool HasVariableAmount { get; set; }
+    public int DueMonthOffset { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -48,6 +50,7 @@ public class CreateRecurringTransactionRequest
     public Guid? FinancialAccountId { get; set; }
     public int Priority { get; set; } = 50;
     public bool HasVariableAmount { get; set; }
+    [Range(0, 3)] public int DueMonthOffset { get; set; }
 }
 
 public class UpdateRecurringTransactionRequest
@@ -68,4 +71,6 @@ public class UpdateRecurringTransactionRequest
     public bool IsActive { get; set; } = true;
     public int Priority { get; set; } = 50;
     public bool HasVariableAmount { get; set; }
+    /// <summary>Null = mantém o valor atual (formulários antigos não enviam o campo).</summary>
+    [Range(0, 3)] public int? DueMonthOffset { get; set; }
 }

@@ -345,7 +345,8 @@ public class PersonalFinanceControlService : IApplicationService
                 details: template.Details,
                 recurringTransactionId: template.Id,
                 isSubscription: template.ItemKind == RecurringItemKind.Subscription,
-                hasVariableAmount: template.HasVariableAmount);
+                hasVariableAmount: template.HasVariableAmount,
+                dueDate: template.ResolveDueDate(year, month));
 
             await _transactionRepository.AddAsync(ccTx, cancellationToken);
             return new CopyRecurringItem(template.Id, template.Description, template.Amount, ccTx.Id, null, template.HasVariableAmount);
@@ -374,6 +375,8 @@ public class PersonalFinanceControlService : IApplicationService
         Transaction tx;
         if (domainType == Domain.Finance.TransactionType.Income)
         {
+            // Salário que só cai no mês seguinte (offset) nasce pendente e não credita a conta ainda.
+            var cashDate = template.ResolveDueDate(year, month);
             tx = Transaction.CreateIncome(
                 description: template.Description,
                 amount: template.Amount,
@@ -385,9 +388,12 @@ public class PersonalFinanceControlService : IApplicationService
                 userId: userId,
                 details: template.Details,
                 recurringTransactionId: template.Id,
-                paidDate: targetDate);
+                paidDate: cashDate == null ? targetDate : null,
+                status: cashDate == null ? TransactionStatus.Paid : TransactionStatus.Pending,
+                dueDate: cashDate);
 
-            account.Credit(template.Amount);
+            if (cashDate == null)
+                account.Credit(template.Amount);
         }
         else if (domainType == Domain.Finance.TransactionType.Expense)
         {
@@ -404,7 +410,8 @@ public class PersonalFinanceControlService : IApplicationService
                 details: template.Details,
                 recurringTransactionId: template.Id,
                 isSubscription: template.ItemKind == RecurringItemKind.Subscription,
-                hasVariableAmount: template.HasVariableAmount);
+                hasVariableAmount: template.HasVariableAmount,
+                dueDate: template.ResolveDueDate(year, month));
 
             account.Debit(template.Amount);
         }
@@ -493,6 +500,9 @@ public class PersonalFinanceControlService : IApplicationService
                 : null;
 
             var dayOfMonth = transaction.Date.Day;
+            var dueMonthOffset = transaction.DueDate.HasValue
+                ? Math.Clamp((transaction.DueDate.Value.Year - transaction.Date.Year) * 12 + transaction.DueDate.Value.Month - transaction.Date.Month, 0, 3)
+                : 0;
 
             // Conta ausente/inativa herdaria um template que NUNCA materializa (skip
             // InvalidAccount silencioso em todos os meses). Fallback: primeira conta ativa.
@@ -535,6 +545,7 @@ public class PersonalFinanceControlService : IApplicationService
                 IsActive = true,
                 HasVariableAmount = transaction.HasVariableAmount,
                 Priority = 0,
+                DueMonthOffset = dueMonthOffset,
             };
 
             await _recurringRepository.AddAsync(recurring);

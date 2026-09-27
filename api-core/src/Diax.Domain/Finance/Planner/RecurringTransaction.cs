@@ -92,6 +92,12 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
     /// </summary>
     public bool HasVariableAmount { get; set; }
 
+    /// <summary>
+    /// Meses entre a competência da ocorrência e o vencimento/caixa real (0 = mesmo mês).
+    /// Ex.: aluguel da planilha de setembro que vence 01/10 → 1.
+    /// </summary>
+    public int DueMonthOffset { get; set; }
+
     public void Update(
         TransactionType type,
         string description,
@@ -108,7 +114,8 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
         int priority,
         string? details,
         RecurringItemKind itemKind,
-        bool hasVariableAmount = false)
+        bool hasVariableAmount = false,
+        int dueMonthOffset = 0)
     {
         Type = type;
         Description = description;
@@ -126,6 +133,19 @@ public class RecurringTransaction : AuditableEntity, IUserOwnedEntity
         Details = details;
         ItemKind = itemKind;
         HasVariableAmount = hasVariableAmount;
+        DueMonthOffset = dueMonthOffset;
+    }
+
+    /// <summary>
+    /// Vencimento/caixa real de uma ocorrência com competência (year, month), aplicando o offset.
+    /// Null quando não há deslocamento (vence no próprio mês).
+    /// </summary>
+    public DateTime? ResolveDueDate(int year, int month)
+    {
+        if (DueMonthOffset <= 0) return null;
+        var target = new DateTime(year, month, 1).AddMonths(DueMonthOffset);
+        var day = Math.Min(DayOfMonth, DateTime.DaysInMonth(target.Year, target.Month));
+        return new DateTime(target.Year, target.Month, day, 12, 0, 0, DateTimeKind.Utc);
     }
 
     /// <summary>

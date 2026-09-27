@@ -155,6 +155,7 @@ function incomeFormReset(): EditingState<AmountEditable<CreatePersonalControlInc
     name: '',
     amount: '',
     dayOfMonth: new Date().getDate(),
+    receiveMonthOffset: 0,
     isRecurring: true,
     isPaid: true,
     paymentDate: undefined,
@@ -162,6 +163,13 @@ function incomeFormReset(): EditingState<AmountEditable<CreatePersonalControlInc
     editingId: null,
   };
 }
+
+function ddmm(iso: string) {
+  const d = new Date(iso);
+  return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+const SALDO_ANTERIOR = '__saldo_anterior__';
 
 function expenseFormReset(): EditingState<AmountEditable<CreatePersonalControlExpenseRequest>> {
   const now = currentPeriod();
@@ -896,6 +904,7 @@ function Page() {
   // Sort states
   const [incomeSort, setIncomeSort] = useState<SortConfig>(null);
   const [expenseSort, setExpenseSort] = useState<SortConfig>(null);
+  const [groupBySalary, setGroupBySalary] = useState(false);
   const [subscriptionSort, setSubscriptionSort] = useState<SortConfig>(null);
   const toggleIncomeSort = (key: string) => setIncomeSort((prev) => nextSort(prev, key));
   const toggleExpenseSort = (key: string) => setExpenseSort((prev) => nextSort(prev, key));
@@ -1155,6 +1164,7 @@ function Page() {
         name: incomeForm.name,
         amount,
         dayOfMonth: Number(incomeForm.dayOfMonth),
+        receiveMonthOffset: Number(incomeForm.receiveMonthOffset ?? 0),
         isRecurring: Boolean(incomeForm.isRecurring),
         isPaid: Boolean(incomeForm.isPaid),
         paymentDate: incomeForm.paymentDate || undefined,
@@ -1285,6 +1295,7 @@ function Page() {
       name: item.name,
       amount: item.amount,
       dayOfMonth: item.dayOfMonth,
+      receiveMonthOffset: item.receiveMonthOffset ?? 0,
       isRecurring: item.isRecurring,
       isPaid: item.isPaid,
       paymentDate: item.paymentDate,
@@ -1417,8 +1428,18 @@ function Page() {
     paymentType: (i) => i.paymentType,
     dueDay: (i) => i.dueDay,
     card: (i) => i.creditCardName ?? '',
+    paidWith: (i) => (i.paidWith ? new Date(i.paidWith.cashDate).getTime() : 0),
     isPaid: (i) => i.isPaid,
   });
+  const cycle = monthView?.period.cycle ?? null;
+  const blocks = monthView?.blocks ?? [];
+  // Agrupamento "paga com qual salário": ordem = blocos por data de caixa; sem salário = saldo anterior.
+  const expenseGroups = groupBySalary
+    ? [
+        { key: SALDO_ANTERIOR, block: null, items: sortedExpenses.filter((e) => !e.paidWith) },
+        ...blocks.map((b) => ({ key: b.incomeId, block: b, items: sortedExpenses.filter((e) => e.paidWith?.incomeId === b.incomeId) })),
+      ].filter((g) => g.block !== null || g.items.length > 0)
+    : null;
   const sortedSubscriptions = sortedBy(monthView?.subscriptions ?? [], subscriptionSort, {
     name: (i) => i.name,
     amount: (i) => i.amount,
@@ -1603,8 +1624,9 @@ function Page() {
                         <TableCell>{formatCurrency(item.amount)}</TableCell>
                         <TableCell>
                           <div className="space-y-0.5">
-                            <p className="text-sm font-medium">{pay.label}</p>
-                            {pay.adjusted && <p className="text-xs text-amber-600">Ajustado (fim de semana)</p>}
+                            <p className="text-sm font-medium">{(item.receiveMonthOffset ?? 0) > 0 && item.cashDate ? `Cai ${ddmm(item.cashDate)}` : pay.label}</p>
+                            {(item.receiveMonthOffset ?? 0) > 0 && <p className="text-xs text-muted-foreground">Trabalho de {months[period.month - 1].toLowerCase()}</p>}
+                            {pay.adjusted && (item.receiveMonthOffset ?? 0) === 0 && <p className="text-xs text-amber-600">Ajustado (fim de semana)</p>}
                             {item.paymentDate && (() => {
                               const pd = new Date(item.paymentDate);
                               const actualDay = pd.getUTCDate();
@@ -1668,6 +1690,7 @@ function Page() {
               })}
               <div aria-current="date" className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm font-semibold">
                 {isPending ? 'Atualizando...' : monthTitle(period.year, period.month)}
+                {!isPending && cycle && <span className="ml-2 text-xs font-normal text-muted-foreground" title={`Ciclo de 1 mês a partir da 1ª receita: ${ddmm(cycle.start)} a ${ddmm(cycle.end)}`}>ciclo {cycle.label}</span>}
               </div>
               {[1, 2].map((delta) => {
                 const p = addMonths(period, delta);
@@ -1678,6 +1701,11 @@ function Page() {
                   </button>
                 );
               })}
+              <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
+              <Button variant={groupBySalary ? 'default' : 'outline'} size="sm" onClick={() => setGroupBySalary((v) => !v)} className="gap-1.5" aria-pressed={groupBySalary}>
+                <Wallet className="h-4 w-4" />
+                Por salário
+              </Button>
             </div>
             <div className="overflow-x-auto">
               <Table>
@@ -1687,23 +1715,39 @@ function Page() {
                     <SortHead label="Valor" sortKey="amount" sort={expenseSort} onSort={toggleExpenseSort} />
                     <SortHead label="Tipo" sortKey="paymentType" sort={expenseSort} onSort={toggleExpenseSort} />
                     <SortHead label="Venc." sortKey="dueDay" sort={expenseSort} onSort={toggleExpenseSort} />
+                    <SortHead label="Paga com" sortKey="paidWith" sort={expenseSort} onSort={toggleExpenseSort} />
                     <SortHead label="Cartão" sortKey="card" sort={expenseSort} onSort={toggleExpenseSort} />
                     <SortHead label="Status" sortKey="isPaid" sort={expenseSort} onSort={toggleExpenseSort} />
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : sortedExpenses.length ? sortedExpenses.map((item) => (
+                  {loading ? <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">Carregando dados do mês...</TableCell></TableRow> : sortedExpenses.length ? (expenseGroups ?? [{ key: 'all', block: null, items: sortedExpenses }]).flatMap((group) => [
+                    ...(expenseGroups ? [(
+                      <TableRow key={`group-${group.key}`} className="bg-muted/40 hover:bg-muted/40">
+                        <TableCell colSpan={8} className="py-2">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                            <span className="font-semibold text-sm">{group.block ? `▸ ${group.block.incomeName}` : '▸ Saldo anterior'}</span>
+                            {group.block && <span className="text-muted-foreground">cai {ddmm(group.block.cashDate)} · {formatCurrency(group.block.incomeAmount)}</span>}
+                            <span className="text-muted-foreground">{group.items.length} {group.items.length === 1 ? 'conta' : 'contas'} · {formatCurrency(group.items.reduce((s, e) => s + e.amount, 0))}</span>
+                            {group.block && (() => { const balance = group.block.incomeAmount - group.items.reduce((s, e) => s + e.amount, 0); return <span className={cn('font-medium', balance < 0 ? 'text-rose-600' : 'text-emerald-700')}>sobra do bloco {formatCurrency(balance)}</span>; })()}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )] : []),
+                    ...group.items.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell><div className="space-y-1"><p className="font-medium flex items-center gap-1">{item.name}{item.hasVariableAmount && <span title="Valor variável — verificar mês a mês" className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">~valor</span>}</p>{item.details && <p className="text-xs text-muted-foreground">{item.details}</p>}</div></TableCell>
                       <TableCell>{formatCurrency(item.amount)}</TableCell>
                       <TableCell>{item.paymentType === 'credit' ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 hover:bg-blue-50"><CreditCardIcon className="h-3 w-3" />Crédito</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 hover:bg-emerald-50"><Banknote className="h-3 w-3" />PIX/Déb</Badge>}</TableCell>
-                      <TableCell>{item.dueDate && (item.dueMonthOffset ?? 0) > 0 ? `${String(new Date(item.dueDate).getUTCDate()).padStart(2, '0')}/${String(new Date(item.dueDate).getUTCMonth() + 1).padStart(2, '0')}` : `Dia ${item.dueDay}`}</TableCell>
+                      <TableCell>{item.dueDate && (item.dueMonthOffset ?? 0) > 0 ? ddmm(item.dueDate) : `Dia ${item.dueDay}`}</TableCell>
+                      <TableCell>{item.paidWith ? <span className="text-xs" title={`Cai ${ddmm(item.paidWith.cashDate)}`}>{item.paidWith.incomeName}</span> : <span className="text-xs text-muted-foreground">{blocks.length ? 'Saldo anterior' : '—'}</span>}</TableCell>
                       <TableCell>{item.creditCardName ? <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-50"><CreditCardIcon className="mr-1 h-3 w-3 inline" />{item.creditCardName}</Badge> : <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-50"><Banknote className="mr-1 h-3 w-3 inline" />PIX / Débito</Badge>}</TableCell>
                       <TableCell><StatusBadge paid={item.isPaid} loading={savingKey === `expense-${item.id}`} onClick={() => saveStatus('expense', item.id, !item.isPaid)} /></TableCell>
                       <TableCell><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" title="Tornar recorrente" onClick={() => setMakeRecurringDialog({ item })}><Repeat className="h-4 w-4 text-blue-500" /></Button><Button variant="ghost" size="icon" onClick={() => editExpense(item)}><PencilLine className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteDialog({ kind: 'expense', id: item.id, name: item.name, recurring: Boolean(item.recurringTransactionId) })} disabled={savingKey === `delete-expense-${item.id}`}><Trash2 className="h-4 w-4" /></Button></div></TableCell>
                     </TableRow>
-                  )) : <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
+                    )),
+                  ]) : <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">Nenhuma despesa encontrada.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </div>
@@ -2087,6 +2131,21 @@ function Page() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label htmlFor="income-amount">Valor (R$)</Label><Input id="income-amount" type="text" inputMode="decimal" placeholder="0,00" value={String(incomeForm.amount)} onChange={(event) => setIncomeForm((current) => ({ ...current, amount: event.target.value }))} /></div>
               <div className="space-y-2"><Label htmlFor="income-day">Dia previsto</Label><Input id="income-day" type="number" min="1" max="31" value={incomeForm.dayOfMonth} onChange={(event) => setIncomeForm((current) => ({ ...current, dayOfMonth: Number(event.target.value) }))} /></div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="income-offset">Cai em</Label>
+              <Select value={String(incomeForm.receiveMonthOffset ?? 0)} onValueChange={(value) => setIncomeForm((current) => ({ ...current, receiveMonthOffset: Number(value) }))}>
+                <SelectTrigger id="income-offset"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Neste mês</SelectItem>
+                  <SelectItem value="1">Mês seguinte</SelectItem>
+                  <SelectItem value="2">Daqui a 2 meses</SelectItem>
+                  <SelectItem value="3">Daqui a 3 meses</SelectItem>
+                </SelectContent>
+              </Select>
+              {Number(incomeForm.receiveMonthOffset ?? 0) > 0 && (
+                <p className="text-xs text-muted-foreground">Receita do trabalho deste mês que cai dia {incomeForm.dayOfMonth} de {(() => { const base = { year: incomeForm.editingId ? incomeForm.year : period.year, month: incomeForm.editingId ? incomeForm.month : period.month }; const t = addMonths(base, Number(incomeForm.receiveMonthOffset ?? 0)); return monthTitle(t.year, t.month); })()}.</p>
+              )}
             </div>
             <div className="space-y-2"><Label htmlFor="income-details">Detalhes / Observações</Label><Input id="income-details" value={incomeForm.details || ''} onChange={(event) => setIncomeForm((current) => ({ ...current, details: event.target.value }))} /></div>
             <div className="space-y-3">

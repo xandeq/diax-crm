@@ -137,7 +137,8 @@ public class RecurringTransactionService : IApplicationService
                 FinancialAccountId = request.FinancialAccountId,
                 IsActive = true,
                 Priority = request.Priority,
-                HasVariableAmount = request.HasVariableAmount
+                HasVariableAmount = request.HasVariableAmount,
+                DueMonthOffset = request.DueMonthOffset
             };
 
             await _repository.AddAsync(transaction);
@@ -213,7 +214,8 @@ public class RecurringTransactionService : IApplicationService
                 request.Priority,
                 request.Details?.Trim(),
                 request.ItemKind,
-                request.HasVariableAmount);
+                request.HasVariableAmount,
+                request.DueMonthOffset ?? recurring.DueMonthOffset);
 
             await _repository.UpdateAsync(recurring);
             await _unitOfWork.SaveChangesAsync();
@@ -277,6 +279,7 @@ public class RecurringTransactionService : IApplicationService
             Priority = transaction.Priority,
             IsSubscription = transaction.ItemKind == RecurringItemKind.Subscription,
             HasVariableAmount = transaction.HasVariableAmount,
+            DueMonthOffset = transaction.DueMonthOffset,
             CreatedAt = transaction.CreatedAt,
             UpdatedAt = transaction.UpdatedAt ?? transaction.CreatedAt
         };

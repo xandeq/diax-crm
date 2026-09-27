@@ -102,7 +102,9 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         Guid userId,
         string? details = null,
         Guid? recurringTransactionId = null,
-        DateTime? paidDate = null)
+        DateTime? paidDate = null,
+        TransactionStatus status = TransactionStatus.Paid,
+        DateTime? dueDate = null)
     {
         ValidateCommonFields(description, amount, userId);
 
@@ -122,8 +124,9 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
             UserId = userId,
             Details = details,
             RecurringTransactionId = recurringTransactionId,
-            Status = TransactionStatus.Paid,
-            PaidDate = paidDate ?? DateTime.UtcNow
+            Status = status,
+            PaidDate = status == TransactionStatus.Paid ? paidDate ?? DateTime.UtcNow : null,
+            DueDate = dueDate
         };
     }
 
@@ -290,7 +293,9 @@ public class Transaction : AuditableEntity, IUserOwnedEntity
         if (status.HasValue)
             Status = status.Value;
 
-        if (paidDate.HasValue)
+        if (Status == TransactionStatus.Pending)
+            PaidDate = null;
+        else if (paidDate.HasValue)
             PaidDate = paidDate.Value;
 
         if (isSubscription.HasValue)
