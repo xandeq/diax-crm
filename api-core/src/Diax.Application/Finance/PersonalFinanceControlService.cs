@@ -505,7 +505,9 @@ public class PersonalFinanceControlService : IApplicationService
                 : 0;
 
             // Conta ausente/inativa herdaria um template que NUNCA materializa (skip
-            // InvalidAccount silencioso em todos os meses). Fallback: primeira conta ativa.
+            // InvalidAccount silencioso em todos os meses). Em vez de adivinhar uma conta
+            // "ativa" qualquer (já causou dinheiro sendo debitado de contas de investimento
+            // ilíquidas), falha explicitamente e deixa o usuário escolher a conta correta.
             var financialAccountId = transaction.FinancialAccountId;
             if (transaction.PaymentMethod != PaymentMethod.CreditCard)
             {
@@ -514,15 +516,12 @@ public class PersonalFinanceControlService : IApplicationService
                     : null;
                 if (srcAccount == null || !srcAccount.IsActive)
                 {
-                    var accounts = await _financialAccountRepository.GetAllByUserIdAsync(userId, cancellationToken);
-                    var fallback = accounts.FirstOrDefault(a => a.IsActive);
-                    if (fallback != null)
-                    {
-                        _logger.LogWarning(
-                            "MakeExpenseRecurring: conta da despesa {ExpenseId} ausente/inativa; usando conta ativa {AccountId} ({AccountName})",
-                            expenseId, fallback.Id, fallback.Name);
-                        financialAccountId = fallback.Id;
-                    }
+                    _logger.LogWarning(
+                        "MakeExpenseRecurring: conta da despesa {ExpenseId} ausente/inativa — recusando criar recorrência sem conta válida",
+                        expenseId);
+                    return Result.Failure<MakeRecurringResult>(new Error(
+                        "PersonalFinance.InvalidAccount",
+                        "Esta despesa não tem uma conta financeira ativa vinculada. Edite a despesa e escolha uma conta válida antes de tornar recorrente."));
                 }
             }
 
