@@ -20,6 +20,9 @@ namespace Diax.Application.Customers;
 /// </summary>
 public class CustomerImportService : IApplicationService
 {
+    /// <summary>Tamanho de customers.notes (CustomerConfiguration: HasMaxLength(4000)).</summary>
+    public const int NotesMaxLength = 4000;
+
     private readonly ICustomerRepository _customerRepository;
     private readonly ICustomerImportRepository _importRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -618,7 +621,7 @@ public class CustomerImportService : IApplicationService
                     if (!string.IsNullOrWhiteSpace(row.City)) extraNotes.Add($"Cidade: {row.City}");
                     if (!string.IsNullOrWhiteSpace(row.ValidationStatus)) extraNotes.Add($"Validation Status: {row.ValidationStatus}");
                     if (!string.IsNullOrWhiteSpace(row.ConsentStatus)) extraNotes.Add($"Consent Status: {row.ConsentStatus}");
-                    var finalNotes = string.Join("\n", extraNotes);
+                    var finalNotes = AppendWithinLimit(null, string.Join("\n", extraNotes));
                     customer.UpdateNotes(finalNotes);
 
                     customer.UpdateClassification(
@@ -781,9 +784,13 @@ public class CustomerImportService : IApplicationService
                     if (!string.IsNullOrWhiteSpace(row.ValidationStatus)) extraNotes.Add($"Validation Status: {row.ValidationStatus}");
                     if (!string.IsNullOrWhiteSpace(row.ConsentStatus)) extraNotes.Add($"Consent Status: {row.ConsentStatus}");
 
-                    if (extraNotes.Any())
+                    // O PULL diário relê os mesmos leads: só anexa se a nota ainda não está lá
+                    // (antes crescia todo dia até estourar a coluna e derrubar o import inteiro).
+                    var enrichment = string.Join(" | ", extraNotes);
+                    if (extraNotes.Any() && !(existingCustomer.Notes ?? "").Contains(enrichment, StringComparison.Ordinal))
                     {
-                        var appendedNotes = existingCustomer.Notes + $"\n [Enriquecimento {DateTime.Now:dd/MM}]: " + string.Join(" | ", extraNotes);
+                        var appendedNotes = AppendWithinLimit(
+                            existingCustomer.Notes, $"\n [Enriquecimento {DateTime.Now:dd/MM}]: " + enrichment);
                         existingCustomer.UpdateNotes(appendedNotes);
                         wasUpdated = true;
                     }
@@ -881,6 +888,23 @@ public class CustomerImportService : IApplicationService
     /// <summary>
     /// Valida se um email tem formato válido (básico).
     /// </summary>
+    /// <summary>
+    /// Concatena <paramref name="addition"/> às notas sem passar de <see cref="NotesMaxLength"/>.
+    /// Se não couber, corta o MEIO das notas existentes (preserva o cabeçalho original e a nota nova).
+    /// </summary>
+    private static string AppendWithinLimit(string? existing, string addition)
+    {
+        const string ellipsis = "\n[…]";
+        existing ??= "";
+        if (addition.Length >= NotesMaxLength)
+            return addition[^NotesMaxLength..];
+        if (existing.Length + addition.Length <= NotesMaxLength)
+            return existing + addition;
+
+        var keep = Math.Max(0, NotesMaxLength - addition.Length - ellipsis.Length);
+        return existing[..Math.Min(keep, existing.Length)] + ellipsis + addition;
+    }
+
     private static bool IsValidEmail(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
