@@ -673,6 +673,48 @@ public class CustomerImportServiceTests
     }
 
     [Fact]
+    public async Task Import_SameRowPulledTwice_DoesNotAppendSameEnrichmentNoteAgain()
+    {
+        // Regressão 05/10/2026: o PULL diário relê os mesmos leads e anexava a mesma nota
+        // todo dia até estourar customers.notes (4000) e derrubar o import inteiro.
+        var existing = new Customer("Existing", "repeat@agencia.com.br");
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("repeat@agencia.com.br", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        ImportCustomerRow Row() => new("Existing", "repeat@agencia.com.br")
+        {
+            Notes = "Website: https://agencia.com.br Status no Extrator: novo ID Extrator: 42",
+            City = "Vitoria"
+        };
+
+        await _sut.ImportAsync(new BulkImportRequest(new List<ImportCustomerRow> { Row() }, LeadSource.Scraping), "pull-1");
+        var afterFirst = existing.Notes;
+        await _sut.ImportAsync(new BulkImportRequest(new List<ImportCustomerRow> { Row() }, LeadSource.Scraping), "pull-2");
+
+        Assert.Contains("ID Extrator: 42", afterFirst);
+        Assert.Equal(afterFirst, existing.Notes);
+    }
+
+    [Fact]
+    public async Task Import_EnrichmentNote_NeverExceedsNotesColumnLimit()
+    {
+        var existing = new Customer("Existing", "full@agencia.com.br");
+        existing.UpdateNotes("Extrator import-bridge 2026-09-03 | Viana/ES | " + new string('x', 3990));
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("full@agencia.com.br", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow("Existing", "full@agencia.com.br") { Notes = "nota nova do pull", City = "Vitoria" };
+        var result = await _sut.ImportAsync(new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping), "pull");
+
+        Assert.Equal(0, result.FailedCount);
+        Assert.True(existing.Notes!.Length <= CustomerImportService.NotesMaxLength);
+        Assert.StartsWith("Extrator import-bridge 2026-09-03", existing.Notes);   // cabeçalho original preservado
+        Assert.EndsWith("nota nova do pull | Cidade: Vitoria", existing.Notes);    // nota nova preservada
+    }
+
+    [Fact]
     public async Task Import_EnrichExistingCustomerWithWebsite_PreservesWebsite_RecalculatesWebsiteKind()
     {
         // Customer legado importado antes desta fase: já tem website mas nunca teve WebsiteKind
