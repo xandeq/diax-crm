@@ -74,3 +74,50 @@ public class ExtractorPullWorkerTests
             options.BlockedDomains);
     }
 }
+
+public class ExtractorPullAlertTests
+{
+    private static Diax.Application.Customers.Dtos.BulkImportResponse Result(
+        int success, int failed, int skipped = 0, params string[] errorMessages) =>
+        new(true, success + failed + skipped, success, failed, skipped,
+            errorMessages.Select((m, i) => new Diax.Application.Customers.Dtos.ImportError(i + 1, $"x{i}@a.com", m)).ToList());
+
+    [Fact]
+    public void ZeroImport_WithFailures_BuildsAlert_WithCountsAndTopReasons()
+    {
+        var r = Result(0, 1000, 0, "E-mail obrigatório", "E-mail obrigatório", "Nome inválido");
+
+        var msg = ExtractorPullWorker.BuildZeroImportAlert(r);
+
+        Assert.NotNull(msg);
+        Assert.Contains("0 importados", msg);
+        Assert.Contains("1000 falhas", msg);
+        Assert.Contains("E-mail obrigatório (2x)", msg);
+        Assert.Contains("Nome inválido (1x)", msg);
+    }
+
+    [Theory]
+    [InlineData(33, 967, 0)]  // importou algo: dia normal, sem alerta
+    [InlineData(0, 0, 50)]    // tudo duplicado/ignorado: nada novo, mas não é falha
+    [InlineData(5, 0, 0)]
+    public void NoAlert_WhenSomethingImported_OrNoFailures(int success, int failed, int skipped)
+    {
+        Assert.Null(ExtractorPullWorker.BuildZeroImportAlert(Result(success, failed, skipped)));
+    }
+
+    [Fact]
+    public void ZeroImport_EscapesHtmlInReasons()
+    {
+        var msg = ExtractorPullWorker.BuildZeroImportAlert(Result(0, 1, 0, "<b>bad</b> & co"));
+        Assert.Contains("&lt;b&gt;bad&lt;/b&gt; &amp; co", msg);
+    }
+
+    [Fact]
+    public void GiveUpAlert_MentionsAttemptsAndLastError()
+    {
+        var msg = ExtractorPullWorker.BuildGiveUpAlert(3, "ExtractorImport.HttpError: 401 Unauthorized");
+
+        Assert.Contains("3 tentativas", msg);
+        Assert.Contains("401 Unauthorized", msg);
+    }
+}
