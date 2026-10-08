@@ -391,7 +391,9 @@ public class LeadSanitizationService : ILeadSanitizationService
         }
 
         var decoded = sb.ToString();
-        decoded = CollapseRepeatedChars(decoded);
+        // Colapsa letras repetidas por palavra, preservando URL/e-mail ("www." virava "ww.").
+        decoded = Regex.Replace(decoded, @"\S+",
+            m => LooksLikeUrlOrEmail(m.Value) ? m.Value : CollapseRepeatedChars(m.Value));
 
         decoded = Regex.Replace(decoded, @"Rio\b", "Ã³rio", RegexOptions.IgnoreCase);
         decoded = Regex.Replace(decoded, @"MVeis\b", "MÃ³veis", RegexOptions.IgnoreCase);
@@ -436,6 +438,11 @@ public class LeadSanitizationService : ILeadSanitizationService
 
         return decoded;
     }
+
+    private static bool LooksLikeUrlOrEmail(string token) =>
+        token.Contains("://", StringComparison.Ordinal)
+        || token.Contains('@')
+        || token.StartsWith("www.", StringComparison.OrdinalIgnoreCase);
 
     private static string CollapseRepeatedChars(string input)
     {
