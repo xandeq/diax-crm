@@ -155,6 +155,16 @@ function taskStatusToInt(v: unknown): number | undefined {
   const idx = (TASK_STATUS as readonly string[]).indexOf(s);
   return idx < 0 ? undefined : idx + 1;
 }
+/** Tarefas abertas (Todo/InProgress). Aceita array ou {items}, status string ou número. */
+export function countOpenTasks(data: unknown): number {
+  const list = Array.isArray(data)
+    ? data
+    : ((data as { items?: unknown[] } | null)?.items ?? []);
+  return (list as Array<{ status?: unknown }>).filter((t) => {
+    const s = typeof t?.status === "number" ? t.status : taskStatusToInt(t?.status);
+    return s === 1 || s === 2;
+  }).length;
+}
 function taskPriorityToInt(v: unknown): number | undefined {
   const s = normalizeTaskPriority(v);
   if (!s) return undefined;
@@ -532,10 +542,11 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
-      const [leadsAll, tasks, customers, finance] = await Promise.all([
-        diaxFetch("/api/v1/leads?pageSize=1&page=1"),
-        diaxFetch("/api/v1/tasks?pageSize=100&page=1"),
-        diaxFetch("/api/v1/customers?onlyCustomers=true&pageSize=1&page=1"),
+      // /api/v1/tasks devolve ARRAY (sem paginação) com status serializado como
+      // string ("Todo"); "atrasada" vem do filtro overdueOnly do próprio servidor.
+      const [tasks, overdueTasksRes, finance] = await Promise.all([
+        diaxFetch("/api/v1/tasks"),
+        diaxFetch("/api/v1/tasks?overdueOnly=true"),
         diaxFetch(`/api/v1/finance/summary?startDate=${monthStart}&endDate=${monthEnd}`),
       ]);
 
@@ -554,17 +565,14 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
         funnelCounts[label] = res?.totalCount ?? 0;
       }));
 
-      const taskList = (tasks as { items?: Array<{ status: number; dueDate?: string }> })?.items ?? [];
-      const pendingTasks = taskList.filter((t) => t.status === 1 || t.status === 2).length;
-      const overdueTasks = taskList.filter((t) => {
-        if (!t.dueDate) return false;
-        return (t.status === 1 || t.status === 2) && new Date(t.dueDate) < now;
-      }).length;
+      const pendingTasks = countOpenTasks(tasks);
+      const overdueTasks = countOpenTasks(overdueTasksRes);
 
       const summary = {
         generatedAt: now.toISOString(),
         funnel: funnelCounts,
-        activeCustomers: (customers as { totalCount?: number })?.totalCount ?? 0,
+        // "Cliente ativo" = status Customer. onlyCustomers também inclui Inactive/Churned.
+        activeCustomers: funnelCounts["Customer"] ?? 0,
         tasks: { pending: pendingTasks, overdue: overdueTasks },
         finance: {
           period: `${monthStart.slice(0, 10)} → ${monthEnd.slice(0, 10)}`,
