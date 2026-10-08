@@ -787,7 +787,10 @@ public class CustomerImportService : IApplicationService
                     // O PULL diário relê os mesmos leads: só anexa se a nota ainda não está lá
                     // (antes crescia todo dia até estourar a coluna e derrubar o import inteiro).
                     var enrichment = string.Join(" | ", extraNotes);
-                    if (extraNotes.Any() && !(existingCustomer.Notes ?? "").Contains(enrichment, StringComparison.Ordinal))
+                    // Notas antigas (antes do fix do sanitize) têm "://ww." no lugar de "://www.":
+                    // compara normalizado para não reanexar a mesma nota por causa disso.
+                    var notesForCompare = (existingCustomer.Notes ?? "").Replace("://ww.", "://www.", StringComparison.Ordinal);
+                    if (extraNotes.Any() && !notesForCompare.Contains(enrichment, StringComparison.Ordinal))
                     {
                         var appendedNotes = AppendWithinLimit(
                             existingCustomer.Notes, $"\n [Enriquecimento {DateTime.Now:dd/MM}]: " + enrichment);

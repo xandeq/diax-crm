@@ -697,6 +697,28 @@ public class CustomerImportServiceTests
     }
 
     [Fact]
+    public async Task Import_LegacyMangledWwwInNotes_DoesNotReappendSameEnrichment()
+    {
+        // Notas gravadas antes do fix do sanitize (#164) têm "https://ww." — o pull seguinte
+        // traz "https://www." e anexava uma linha duplicada (visto em produção 08/10).
+        var existing = new Customer("Existing", "legacy@agencia.com.br");
+        existing.UpdateNotes("Website: https://ww.goncalvesadv.com/ Status no Extrator: novo ID Extrator: 107348");
+        var before = existing.Notes;
+        _customerRepoMock
+            .Setup(r => r.GetByEmailAsync("legacy@agencia.com.br", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var row = new ImportCustomerRow("Existing", "legacy@agencia.com.br")
+        {
+            Notes = "Website: https://www.goncalvesadv.com/ Status no Extrator: novo ID Extrator: 107348"
+        };
+        var result = await _sut.ImportAsync(new BulkImportRequest(new List<ImportCustomerRow> { row }, LeadSource.Scraping), "pull");
+
+        Assert.Equal(0, result.FailedCount);
+        Assert.Equal(before, existing.Notes);
+    }
+
+    [Fact]
     public async Task Import_EnrichmentNote_NeverExceedsNotesColumnLimit()
     {
         var existing = new Customer("Existing", "full@agencia.com.br");
