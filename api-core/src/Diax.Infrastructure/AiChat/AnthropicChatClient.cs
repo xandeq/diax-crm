@@ -107,7 +107,9 @@ public class AnthropicChatClient : IAnthropicChatClient
         string? currentEvent = null;
         var dataBuffer = new StringBuilder();
 
-        while (!reader.EndOfStream)
+        // EOF é detectado por ReadLineAsync retornando null (abaixo). Não usar
+        // reader.EndOfStream aqui: ele bloqueia a thread de forma síncrona (CA2024).
+        while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 

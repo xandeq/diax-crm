@@ -21,11 +21,12 @@ updates:
           - "Microsoft.EntityFrameworkCore*"
           - "Microsoft.Extensions.Caching.Memory"
     ignore:
-      # EF Core 10.x requires net10.0; api-core targets net8.0. Grouping bundles
-      # PRs but does not pin every package in the group to the same version, so
-      # Tools/InMemory (versioned independently of the TFM-gated core packages)
-      # jumped to 10.x alone here before, breaking at runtime (MissingMethodException
-      # from a mismatched Microsoft.EntityFrameworkCore.Abstractions). Remove once
-      # the project moves to net10.0.
+      # api-core targets net10.0 but EF Core stays on 9.0.x on purpose (EF 9 runs on
+      # net10). Grouping bundles PRs but does not pin every package in the group to
+      # the same version, so Tools/InMemory jumped to 10.x alone here before, breaking
+      # at runtime (MissingMethodException from a mismatched
+      # Microsoft.EntityFrameworkCore.Abstractions) — see PR #143. Upgrading EF to
+      # 10.x must be a deliberate, separate PR that moves ALL EF packages together
+      # (and is validated against the prod DB schema/migrations). Remove only then.
       - dependency-name: "Microsoft.EntityFrameworkCore*"
         versions: [">=10.0.0"]

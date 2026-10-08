@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DIAX CRM is a monorepo with a Next.js 14 frontend (`crm-web/`), a .NET 8 Clean Architecture backend (`api-core/`), and automation workflows. It is a private CRM for Alexandre Queiroz Marketing Digital — single user, not a SaaS product.
+DIAX CRM is a monorepo with a Next.js 14 frontend (`crm-web/`), a .NET 10 Clean Architecture backend (`api-core/`), and automation workflows. It is a private CRM for Alexandre Queiroz Marketing Digital — single user, not a SaaS product.
 
 **Default ports:**
 - Frontend: http://localhost:3000

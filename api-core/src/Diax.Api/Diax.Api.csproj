@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Diax.Api</RootNamespace>
@@ -10,14 +10,14 @@
     <UserSecretsId>diax-crm-api-secrets</UserSecretsId>
     <!-- SmarterASP/shared IIS: OutOfProcess obrigatório em hospedagem compartilhada -->
     <AspNetCoreHostingModel>OutOfProcess</AspNetCoreHostingModel>
-    <!-- Framework-dependent deployment: usa runtime .NET 8 do servidor SmarterASP -->
+    <!-- Framework-dependent deployment: usa runtime .NET 10 do servidor SmarterASP -->
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.1" />
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
     <PackageReference Include="Amazon.Extensions.Configuration.SystemsManager" Version="7.1.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.31" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
