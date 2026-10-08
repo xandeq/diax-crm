@@ -1,4 +1,6 @@
 using Diax.Application.Customers;
+using Diax.Application.Customers.Dtos;
+using Diax.Application.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,6 +29,7 @@ public class ExtractorPullWorker : BackgroundService
     private DateOnly? _lastRunDate;
     private DateOnly? _attemptsDate;
     private int _attemptsToday;
+    private string? _lastError;
 
     public ExtractorPullWorker(
         IServiceScopeFactory scopeFactory,
@@ -89,6 +92,15 @@ public class ExtractorPullWorker : BackgroundService
                             "[ExtractorPull] Pull diário concluído: {Success} sucesso, {Skipped} ignorados, {Failed} falhas (total {Total})",
                             r.SuccessCount, r.SkippedCount, r.FailedCount, r.TotalRecords);
                         _lastRunDate = today;
+
+                        var alert = BuildZeroImportAlert(r);
+                        if (alert != null)
+                        {
+                            _logger.LogWarning(
+                                "[ExtractorPull] Pull terminou com 0 importados e {Failed} falhas — alertando no Telegram",
+                                r.FailedCount);
+                            await SendAlertAsync(scope.ServiceProvider, alert, stoppingToken);
+                        }
                     }
                     else if (result.Error.Code == "ExtractorImport.NoLeads")
                     {
@@ -101,7 +113,8 @@ public class ExtractorPullWorker : BackgroundService
                         _logger.LogError(
                             "[ExtractorPull] Pull diário falhou ({Code}): {Message}",
                             result.Error.Code, result.Error.Message);
-                        GiveUpForTodayIfExhausted(today);
+                        _lastError = $"{result.Error.Code}: {result.Error.Message}";
+                        await GiveUpForTodayIfExhaustedAsync(today, stoppingToken);
                     }
                 }
             }
@@ -112,14 +125,15 @@ public class ExtractorPullWorker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ExtractorPull] Erro inesperado no pull diário.");
-                GiveUpForTodayIfExhausted(DateOnly.FromDateTime(DateTime.UtcNow));
+                _lastError = $"{ex.GetType().Name}: {ex.Message}";
+                await GiveUpForTodayIfExhaustedAsync(DateOnly.FromDateTime(DateTime.UtcNow), stoppingToken);
             }
         }
 
         _logger.LogInformation("[ExtractorPull] Worker parado");
     }
 
-    private void GiveUpForTodayIfExhausted(DateOnly today)
+    private async Task GiveUpForTodayIfExhaustedAsync(DateOnly today, CancellationToken cancellationToken)
     {
         if (_attemptsToday < MaxAttemptsPerDay)
             return;
@@ -128,5 +142,65 @@ public class ExtractorPullWorker : BackgroundService
         _logger.LogWarning(
             "[ExtractorPull] {Max} tentativas falharam hoje — desistindo até o próximo dia. Investigar causa raiz (token/URL/backend do Extrator).",
             MaxAttemptsPerDay);
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            await SendAlertAsync(scope.ServiceProvider, BuildGiveUpAlert(MaxAttemptsPerDay, _lastError), cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "[ExtractorPull] Falha ao enviar alerta de desistência (non-fatal)");
+        }
+    }
+
+    /// <summary>
+    /// Alerta só para o padrão "pull rodou mas não entrou NADA e houve falhas" (05-07/10/2026:
+    /// 1000 falhas por lead sem e-mail / crash de notes). Dia com ao menos 1 importado, ou com
+    /// tudo ignorado (duplicado) sem falha, NÃO alerta. Retorna null quando não há alerta.
+    /// </summary>
+    public static string? BuildZeroImportAlert(BulkImportResponse r)
+    {
+        if (r.SuccessCount > 0 || r.FailedCount == 0)
+            return null;
+
+        var reasons = (r.Errors ?? new List<ImportError>())
+            .GroupBy(e => e.ErrorMessage)
+            .OrderByDescending(g => g.Count())
+            .Take(3)
+            .Select(g => $"• {EscapeHtml(g.Key)} ({g.Count()}x)");
+
+        return "⚠️ <b>DIAX CRM — PULL do Extrator importou 0 leads</b>\n" +
+               $"0 importados, {r.SkippedCount} ignorados, {r.FailedCount} falhas (de {r.TotalRecords}).\n" +
+               "Principais motivos:\n" + string.Join("\n", reasons) + "\n" +
+               "Logs: diax-api-AAAAMMDD.log, filtro [ExtractorPull]|Importação.";
+    }
+
+    /// <summary>Alerta quando as 3 tentativas do dia falharam (token, URL, Extrator fora do ar, exceção).</summary>
+    public static string BuildGiveUpAlert(int attempts, string? lastError) =>
+        "🔴 <b>DIAX CRM — PULL do Extrator falhou</b>\n" +
+        $"{attempts} tentativas falharam hoje; nenhum lead importado. Próxima tentativa amanhã 12h BRT.\n" +
+        $"Último erro: {EscapeHtml(lastError ?? "desconhecido")}";
+
+    /// <summary>Escape mínimo p/ parse_mode HTML do Telegram (mantém acentos legíveis).</summary>
+    private static string EscapeHtml(string s) =>
+        s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private async Task SendAlertAsync(IServiceProvider services, string message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var telegram = services.GetService<ITelegramSender>();
+            if (telegram == null || !telegram.IsConfigured)
+            {
+                _logger.LogWarning("[ExtractorPull] Telegram não configurado — alerta não enviado: {Message}", message);
+                return;
+            }
+            await telegram.SendAsync(message, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "[ExtractorPull] Falha ao enviar alerta no Telegram (non-fatal)");
+        }
     }
 }
