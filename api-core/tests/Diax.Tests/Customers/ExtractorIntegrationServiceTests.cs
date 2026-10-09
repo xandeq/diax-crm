@@ -558,6 +558,81 @@ public class ExtractorIntegrationServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // ── Leads só-telefone (canal WhatsApp), decisão de 09/10/2026 ───────────────────
+
+    [Fact]
+    public async Task ImportLeads_PhoneOnlyLead_IsCreatedWithoutEmail()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 7001, ContactName = "Padaria Só Telefone", Email = null, Phone = "27999887766", State = "ES" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.SuccessCount);
+        Assert.Equal(0, result.Value.FailedCount);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.Email == null && c.ExternalId == "7001" && c.Phone != null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportLeads_PhoneOnlyLeadPulledAgain_MatchesByExternalId_NoSecondCreate()
+    {
+        var existing = new Customer("Padaria Só Telefone", null);
+        existing.SetExternalId("7001");
+        _customerRepoMock
+            .Setup(r => r.GetByExternalIdAsync("7001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 7001, ContactName = "Padaria Só Telefone", Email = null, Phone = "27999887766", State = "ES" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0, result.Value.FailedCount);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportLeads_PhoneOnlyLead_WithTooShortPhone_IsRejected()
+    {
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 7002, ContactName = "Telefone Lixo", Email = null, Phone = "2799", State = "ES" },
+        }, total: 1);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.Equal(0, result.Value.SuccessCount);
+        _customerRepoMock.Verify(r => r.AddAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Resultados")]
+    [InlineData("  resultados ")]
+    [InlineData("Results")]
+    public async Task ImportLeads_GenericGoogleMapsHeadingAsName_IsSkipped(string junkName)
+    {
+        // 05-07/10/2026: o scraper gravou o cabeçalho do feed do Maps ("Resultados") como nome.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 7003, CompanyName = junkName, Email = null, Phone = "27999887766", State = "ES" },
+            new() { Id = 7004, CompanyName = "Clínica Real", Email = null, Phone = "27999887700", State = "ES" },
+        }, total: 2);
+
+        var result = await _sut.ImportLeadsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.TotalRecords);
+        _customerRepoMock.Verify(r => r.AddAsync(
+            It.Is<Customer>(c => c.ExternalId == "7003"), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Fact]
     public async Task ImportLeads_QualityFilter_DoesNotRejectPhoneOnlyLead()
     {
