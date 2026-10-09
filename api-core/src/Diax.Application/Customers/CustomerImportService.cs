@@ -350,8 +350,12 @@ public class CustomerImportService : IApplicationService
                     continue;
                 }
 
-                // B. Rejeitar e-mail inválido
-                if (string.IsNullOrWhiteSpace(row.Email) || !IsValidEmail(row.Email))
+                // B. E-mail obrigatório, exceto lead de scraping só-telefone (canal WhatsApp):
+                // dedup dele segue ExternalId → telefone (ramo abaixo). Listas frias (Import) seguem exigindo e-mail.
+                var phoneOnly = string.IsNullOrWhiteSpace(row.Email)
+                    && AllowsPhoneOnlyLeads(request.Source)
+                    && HasUsablePhone(row.WhatsApp ?? row.Phone);
+                if (!phoneOnly && (string.IsNullOrWhiteSpace(row.Email) || !IsValidEmail(row.Email)))
                 {
                     errors.Add(new ImportError(
                         i + 1,
@@ -495,7 +499,7 @@ public class CustomerImportService : IApplicationService
                     continue;
                 }
 
-                if (_currentUserService.UserId.HasValue)
+                if (_currentUserService.UserId.HasValue && !string.IsNullOrWhiteSpace(row.Email))
                 {
                     var isSuppressed = await _suppressionRepository.IsSuppressedAsync(
                         _currentUserService.UserId.Value,
@@ -906,6 +910,19 @@ public class CustomerImportService : IApplicationService
 
         var keep = Math.Max(0, NotesMaxLength - addition.Length - ellipsis.Length);
         return existing[..Math.Min(keep, existing.Length)] + ellipsis + addition;
+    }
+
+    /// <summary>Fontes automáticas de scraping podem trazer negócio só com telefone (canal WhatsApp).</summary>
+    private static bool AllowsPhoneOnlyLeads(LeadSource source) =>
+        source is LeadSource.Scraping or LeadSource.GoogleMaps;
+
+    /// <summary>Telefone BR utilizável: DDD + número (10 ou 11 dígitos), aceitando +55.</summary>
+    private static bool HasUsablePhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return false;
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("55") && digits.Length > 11) digits = digits[2..];
+        return digits.Length is 10 or 11;
     }
 
     private static bool IsValidEmail(string email)

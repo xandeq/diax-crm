@@ -83,6 +83,7 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         var allLeads = new List<ImportCustomerRow>();
         var candidates = new List<(ImportCustomerRow Row, ExtractorLead Lead)>();
         var skippedContactless = 0;
+        var skippedGenericName = 0;
         var rejectedLowQuality = 0;
         var skippedByGeo = 0;
         var rejectedNoMx = 0;
@@ -116,6 +117,13 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
                 if (row == null)
                 {
                     skippedContactless++;
+                    continue;
+                }
+
+                // Nome lixo do scraper (cabeçalho do feed do Google Maps gravado como nome, 05-07/10/2026).
+                if (IsGenericScrapedName(row.Name))
+                {
+                    skippedGenericName++;
                     continue;
                 }
 
@@ -185,6 +193,11 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
                 "Ignorados {Skipped} lead(s) sem nome ou sem contato (e-mail/telefone) — evita duplicatas sem chave de dedup.",
                 skippedContactless);
         }
+
+        if (skippedGenericName > 0)
+            _logger.LogInformation(
+                "Ignorados {Skipped} lead(s) com nome genérico do scraper ('Resultados' etc.).",
+                skippedGenericName);
 
         if (rejectedLowQuality > 0)
         {
@@ -325,6 +338,12 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         return !_allowedDdds.Contains(ddd);
     }
 
+    private static readonly HashSet<string> GenericScrapedNames =
+        new(StringComparer.OrdinalIgnoreCase) { "resultados", "resultado", "results", "result" };
+
+    private static bool IsGenericScrapedName(string? name) =>
+        !string.IsNullOrWhiteSpace(name) && GenericScrapedNames.Contains(name.Trim());
+
     private static ImportCustomerRow? MapToImportRow(ExtractorLead lead)
     {
         // Nome é obrigatório — prioriza ContactName, fallback para CompanyName
@@ -335,13 +354,11 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         if (string.IsNullOrWhiteSpace(name))
             return null;
 
-        // IDEMPOTÊNCIA: a deduplicação efetiva a jusante (CustomerImportService) é por EMAIL —
-        // e-mail válido é obrigatório para qualquer fonte (linha ~344 faz `continue` sem e-mail),
-        // então o ramo GetByPhoneAsync é inalcançável neste fluxo (leads só-telefone acabam como
-        // falha rastreável, nunca criam). Pulls repetidos do mesmo e-mail casam o registro existente
-        // (update, não create) → idempotente. Aqui pulamos apenas os leads SEM e-mail E SEM
-        // telefone/whatsapp: sem qualquer contato eles jamais dedupam e sujariam a base — melhor
-        // um pré-skip que um "create órfão".
+        // IDEMPOTÊNCIA: o CustomerImportService casa por ExternalId → e-mail → telefone. Desde
+        // 09/10/2026 lead de scraping só-telefone (10-11 dígitos) é aceito (canal WhatsApp) e dedupa
+        // por ExternalId/telefone. Aqui pulamos apenas os leads SEM e-mail E SEM telefone/whatsapp:
+        // sem qualquer contato eles jamais dedupam e sujariam a base — melhor um pré-skip que um
+        // "create órfão".
         // IMPT-01: o lead.Id agora viaja em ImportCustomerRow.ExternalId e é a PRIMEIRA chave de
         // dedup tentada pelo CustomerImportService (antes de e-mail e telefone).
         var usablePhone = !string.IsNullOrWhiteSpace(lead.WhatsApp) ? lead.WhatsApp : lead.Phone;
