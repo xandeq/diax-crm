@@ -247,9 +247,11 @@ def fetch_leads(seg_cfg, H, seen_emails, seen_domains, seen_company, want, mode=
     page = 1
     examined = 0
     while len(picked) < want and page <= 8:
-        r = requests.get(base + '/api/v1/leads',
-                         params={'search': seg_cfg['search'], 'page': page, 'pageSize': 100},
-                         headers=H, timeout=30).json()
+        params = {'page': page, 'pageSize': 100}
+        if seg_cfg.get('search'):
+            params['search'] = seg_cfg['search']
+        params.update(seg_cfg.get('params') or {})   # filtros extras (segmento de reserva 'extrator')
+        r = requests.get(base + '/api/v1/leads', params=params, headers=H, timeout=30).json()
         items = r.get('items', [])
         if not items:
             break

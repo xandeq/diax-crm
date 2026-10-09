@@ -20,7 +20,8 @@ sys.path.insert(0, 'D:/claude-code/diax-crm/docs/email-marketing/')
 sys.path.insert(0, r'C:\Users\acq20\.claude\skills\financas\scripts')
 from waves_core import (DIR, base, HEALTHY, PER_PROVIDER, ts, load_env, login,
                         gen_image, fetch_leads, assign_providers, ensure_breaker_closed,
-                        warmup_target, max_per_seg, next_warmup_day, WARMUP_KEEP_RATIO)
+                        warmup_target, max_per_seg, next_warmup_day, WARMUP_KEEP_RATIO,
+                        PER_PROVIDER_WAVE_CAP)
 from waves_copy import build_html_v2, SEGMENTS as SEG_W1, WAVES as W23
 import db as crmdb
 from waves_lib import (compute_wave_slots, brt_label, fup_candidates, is_role_mailbox, is_foreign_lead,
@@ -301,6 +302,25 @@ def build_waves(H, st):
         plan.append((cfg, leads))
         log_line(f'  {niche}: {len(leads)} leads OK')
     st['cursor'] = (cursor + tried) % len(ROTATION)
+
+    # Reserva 'extrator' (09/10/2026): desde 06/10 todo nicho da rotação vinha com <4 leads e o
+    # dia saía com 0 emails novos (warmup preso no dia 1), embora o Extrator despeje leads ES
+    # novos todo dia que não casam com os termos dos nichos (contabilidade, fisioterapia...).
+    # Completa o alvo com leads recentes do Extrator nunca emailados, copy genérico de Vitória.
+    planned = sum(len(l) for _, l in plan)
+    falta = min(target - planned, PER_PROVIDER_WAVE_CAP * n_prov)
+    if falta >= MIN_SEG:
+        since = (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
+        cfg_x = dict(COPY_BANK['geral_vitoria'], seg='extrator')
+        leads_x, _ = fetch_leads({'params': {'neverEmailed': 'true', 'hasEmail': 'true', 'source': 4,
+                                             'createdAfter': since, 'sortBy': 'createdAt',
+                                             'sortDescending': 'true'}},
+                                 H, se, sd, sc, falta)
+        if len(leads_x) >= MIN_SEG:
+            plan.append((cfg_x, leads_x))
+            log_line(f'  extrator (reserva, recentes 30d): {len(leads_x)} leads OK')
+        else:
+            log_line(f'  extrator (reserva): {len(leads_x)} (<{MIN_SEG}) — pulo')
 
     # Diagnóstico real do site de cada lead (cache 30d) → 1 frase personalizada por email.
     site_res = {}
