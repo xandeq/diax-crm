@@ -312,6 +312,11 @@ def build_waves(H, st):
     if falta >= MIN_SEG:
         since = (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
         cfg_x = dict(COPY_BANK['geral_vitoria'], seg='extrator')
+        # Desde 10/10 o Extrator raspa também Linhares/Aracruz/Colatina/Cachoeiro: "Grande Vitória"
+        # no copy seria falso para esses leads -> texto neutro de cidade.
+        _neutro = lambda v: (v.replace('na Grande Vitória', 'na sua cidade') if isinstance(v, str)
+                             else [_neutro(x) for x in v] if isinstance(v, list) else v)
+        cfg_x = {k: _neutro(v) for k, v in cfg_x.items()}
         leads_x, _ = fetch_leads({'params': {'neverEmailed': 'true', 'hasEmail': 'true', 'source': 4,
                                              'createdAfter': since, 'sortBy': 'createdAt',
                                              'sortDescending': 'true'}},
