@@ -7,7 +7,7 @@ import {
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, Menu, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
-  Wallet, Zap, Cpu, Newspaper, Home, Layers
+  Wallet, Zap, Cpu, Newspaper, Home, Layers, BookOpen
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -94,6 +94,7 @@ const navGroups: NavGroup[] = [
     section: 'IA',
     items: [
       { icon: MessageSquare, label: 'Claude Chat', href: '/ai-chat/', badge: 'NEW' },
+      { icon: BookOpen, label: 'Prompt Studio', href: '/prompts/', badge: 'NEW' },
       { icon: Cpu, label: 'Anthropic Proxy', href: '/tools/anthropic-proxy', badge: 'API' },
       { icon: Layers, label: 'OpenRouter Proxy', href: '/tools/openrouter-proxy', badge: 'API' },
       { icon: Zap, label: 'Ferramentas IA', children: [
@@ -400,6 +401,7 @@ const ROUTE_LABELS: Record<string, string> = {
   utilities: 'Utilitários',
   'image-generation': 'Geração de Imagens',
   'prompt-generator': 'Gerador de Prompts',
+  prompts: 'Prompt Studio',
   'humanize-text': 'Humanizar Texto',
   'email-subject-optimizer': 'Otimizador de Email',
   'lead-persona-generator': 'Gerador de Personas',
@@ -491,6 +493,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { label: 'Ir para Planilha Financeira', href: '/finance/personal-control', category: 'Finanças' },
     { label: 'Ir para Transações', href: '/finance/transactions', category: 'Finanças' },
     { label: 'Ir para Claude Chat', href: '/ai-chat', category: 'IA' },
+    { label: 'Ir para Prompt Studio (biblioteca de prompts)', href: '/prompts/', category: 'IA' },
+    { label: 'Ir para Gerador de Prompts', href: '/utilities/prompt-generator', category: 'IA' },
     { label: 'Criar Novo Lead', href: '/leads', category: 'Ações' }
   ];
 

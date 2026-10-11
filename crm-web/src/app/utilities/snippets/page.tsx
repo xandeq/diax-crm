@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { snippetService, formatBytes, type SnippetResponse, type SnippetAttachment } from '@/services/snippetService';
-import { AlertCircle, Copy, Download, ExternalLink, Loader2, Paperclip, Plus, Trash2, X } from 'lucide-react';
+import { promptStudioService } from '@/services/promptStudio';
+import { AlertCircle, BookmarkPlus, Copy, Download, ExternalLink, Loader2, Paperclip, Plus, Trash2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -44,6 +46,7 @@ export default function SnippetsPage() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [pageReady, setPageReady] = useState(false);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -144,6 +147,20 @@ export default function SnippetsPage() {
       setTimeout(() => setCopiedId(null), 1500);
     } catch {
       setError('Não foi possível copiar o conteúdo');
+    }
+  }
+
+  async function handleConvertToPrompt(id: string) {
+    setConvertingId(id);
+    try {
+      const saved = await promptStudioService.fromSnippet(id);
+      toast.success('Prompt criado no Prompt Studio', {
+        action: { label: 'Abrir', onClick: () => router.push(`/prompts/?p=${saved.prompt.id}`) },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao converter em prompt');
+    } finally {
+      setConvertingId(null);
     }
   }
 
@@ -382,6 +399,20 @@ export default function SnippetsPage() {
                         >
                           <Copy className="h-4 w-4 mr-2" />
                           {copiedId === snippet.id ? 'Copiado' : 'Copiar'}
+                        </Button>
+                      )}
+                      {snippet.content && (snippet.language === 'text' || snippet.language === 'markdown') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={convertingId === snippet.id}
+                          onClick={() => handleConvertToPrompt(snippet.id)}
+                          title="Cria um prompt versionado no Prompt Studio (o snippet continua aqui)"
+                        >
+                          {convertingId === snippet.id
+                            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            : <BookmarkPlus className="h-4 w-4 mr-2" />}
+                          Virar prompt
                         </Button>
                       )}
                       <Button variant="outline" size="sm" asChild>
