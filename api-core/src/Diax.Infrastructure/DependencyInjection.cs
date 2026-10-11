@@ -239,6 +239,8 @@ public static class DependencyInjection
         services.AddScoped<Diax.Domain.ErrorLogs.IErrorLogRepository, Diax.Infrastructure.Data.Repositories.ErrorLogRepository>();
         services.AddScoped<ISnippetRepository, SnippetRepository>();
         services.AddScoped<ISnippetAttachmentRepository, SnippetAttachmentRepository>();
+        services.AddScoped<Diax.Domain.PromptLibrary.IPromptRepository, PromptRepository>();
+        services.AddScoped<Diax.Domain.PromptLibrary.IPromptCollectionRepository, PromptCollectionRepository>();
         services.AddScoped<IUserPromptRepository, UserPromptRepository>();
         services.AddScoped<IChecklistCategoryRepository, ChecklistCategoryRepository>();
         services.AddScoped<IChecklistItemRepository, ChecklistItemRepository>();

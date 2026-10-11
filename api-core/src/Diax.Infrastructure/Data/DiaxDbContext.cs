@@ -15,6 +15,7 @@ using Diax.Domain.ErrorLogs;
 using Diax.Domain.Logs;
 using Diax.Domain.Briefings;
 using Diax.Domain.Snippets;
+using Diax.Domain.PromptLibrary;
 using Diax.Domain.PromptGenerator;
 using Diax.Domain.AI;
 using Diax.Domain.AiChat;
@@ -94,6 +95,12 @@ public class DiaxDbContext : DbContext
     public DbSet<DailyBriefing> DailyBriefings => Set<DailyBriefing>();
     public DbSet<ChecklistCategory> ChecklistCategories => Set<ChecklistCategory>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
+
+    // Prompt Studio (biblioteca de prompts)
+    public DbSet<Prompt> Prompts => Set<Prompt>();
+    public DbSet<PromptVersion> PromptVersions => Set<PromptVersion>();
+    public DbSet<PromptTag> PromptTags => Set<PromptTag>();
+    public DbSet<PromptCollection> PromptCollections => Set<PromptCollection>();
 
     // Calendar
     public DbSet<Appointment> Appointments => Set<Appointment>();
@@ -273,6 +280,8 @@ public class DiaxDbContext : DbContext
         modelBuilder.Entity<InvestmentOpportunity>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<NextAction>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
         modelBuilder.Entity<WealthProfile>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<Prompt>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
+        modelBuilder.Entity<PromptCollection>().HasQueryFilter(e => _currentUserService == null || (_currentUserService.UserId != null && e.UserId == _currentUserService.UserId));
 
         // ===== NAMING PADRÃO (snake_case) =====
         // Aplica nome padrão para tabelas e colunas.

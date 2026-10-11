@@ -99,6 +99,10 @@ public static class DependencyInjection
         services.AddSingleton<IEmailTemplateEngine, EmailTemplateEngine>();
         services.AddScoped<SnippetService>();
         services.AddScoped<ISnippetService, SnippetService>();
+
+        // ===== PROMPT STUDIO (biblioteca de prompts) =====
+        services.AddScoped<Diax.Application.PromptLibrary.IPromptLibraryService, Diax.Application.PromptLibrary.PromptLibraryService>();
+        services.AddScoped<Diax.Application.PromptLibrary.IPromptCollectionService, Diax.Application.PromptLibrary.PromptCollectionService>();
         services.AddScoped<IChecklistCategoryService, ChecklistCategoryService>();
         services.AddScoped<IChecklistItemService, ChecklistItemService>();
         services.AddScoped<IAiProviderAdminService, AiProviderAdminService>();
