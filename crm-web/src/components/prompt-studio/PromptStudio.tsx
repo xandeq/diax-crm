@@ -374,7 +374,11 @@ export function PromptStudio() {
 
   const copyText = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Sem foco na janela a Clipboard API pode ficar pendente: limita a espera e cai no fallback.
+      await Promise.race([
+        navigator.clipboard.writeText(text),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('clipboard timeout')), 1500)),
+      ]);
       return true;
     } catch {
       const ta = document.createElement('textarea');
@@ -413,7 +417,8 @@ export function PromptStudio() {
   // ───────────── Teclado ─────────────
   const keyHandler = useRef<(e: KeyboardEvent) => void>(() => {});
   keyHandler.current = (e: KeyboardEvent) => {
-    if (document.querySelector('[role="dialog"]')) return;
+    // Só diálogos abertos bloqueiam atalhos (o Radix mantém o nó montado durante a animação de saída).
+    if (document.querySelector('[role="dialog"][data-state="open"]')) return;
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); openSave(); return; }
     if (mod && e.key === 'Enter') { e.preventDefault(); void copyRendered(); return; }
@@ -541,21 +546,21 @@ export function PromptStudio() {
       </Dialog>
 
       <Dialog open={conflict} onOpenChange={setConflict}>
-        <DialogContent className="max-w-md bg-[#0D1F18] border-white/10 text-slate-200">
+        <DialogContent className="max-w-lg bg-[#0D1F18] border-white/10 text-slate-200">
           <DialogHeader>
             <DialogTitle className="text-slate-50">Esse prompt mudou em outro lugar</DialogTitle>
             <DialogDescription className="text-slate-400">
               Uma nova versão foi salva (talvez pelo Claude Code) enquanto você editava. Seu rascunho continua aqui.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end [&>button]:whitespace-nowrap">
             <button className="h-9 rounded-lg px-3 text-sm text-slate-300 hover:bg-white/5" onClick={() => { setConflict(false); setTab('history'); }}>
               Ver histórico
             </button>
             <button className="h-9 rounded-lg border border-white/10 px-3 text-sm text-slate-200 hover:bg-white/5" onClick={discardDraft}>
               Descartar o meu
             </button>
-            <button className="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-[#04140D] hover:bg-emerald-600"
+            <button className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-[#04140D] hover:bg-emerald-600"
               onClick={() => void overwriteOnConflict()}>
               Salvar o meu como nova versão
             </button>

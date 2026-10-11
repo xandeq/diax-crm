@@ -26,13 +26,22 @@ export function VariablesPanel(p: Props) {
 
   return (
     <aside className="ps-vars ps-pane" aria-label="Variáveis e prompt renderizado">
+      {/* Ações no topo: o toast global (canto inferior direito) não cobre o botão principal. */}
       <div className="ps-vars-head">
-        <h3>Variáveis</h3>
-        {p.variables.length > 0 && (
-          <span className={`ps-missing ${missing.length ? '' : 'ok'}`}>
-            {missing.length ? `${missing.length} faltando` : 'Tudo preenchido'}
-          </span>
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <h3>Variáveis</h3>
+          {p.variables.length > 0 && (
+            <span className={`ps-missing ${missing.length ? '' : 'ok'}`}>
+              {missing.length ? `${missing.length} faltando` : 'Tudo preenchido'}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="ps-btn ghost" onClick={p.onClear} disabled={Object.keys(p.values).length === 0}>Limpar</button>
+          <button className="ps-btn primary" onClick={p.onCopy} title="Copiar renderizado (Ctrl+Enter)">
+            {p.copied ? <Check size={14} /> : <Copy size={14} />} {p.copied ? 'Copiado' : 'Copiar'}
+          </button>
+        </div>
       </div>
 
       <div className="ps-fields">
@@ -87,13 +96,6 @@ export function VariablesPanel(p: Props) {
           const val = p.values[s.name] || meta?.default || '';
           return val ? <span key={i} className="ok">{val}</span> : <span key={i} className="miss">{s.raw}</span>;
         })}
-      </div>
-
-      <div className="ps-vars-actions">
-        <button className="ps-btn primary" onClick={p.onCopy} title="Copiar renderizado (Ctrl+Enter)">
-          {p.copied ? <Check size={14} /> : <Copy size={14} />} {p.copied ? 'Copiado' : 'Copiar'}
-        </button>
-        <button className="ps-btn" onClick={p.onClear} disabled={Object.keys(p.values).length === 0}>Limpar</button>
       </div>
     </aside>
   );
