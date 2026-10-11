@@ -66,9 +66,9 @@ button.ps-tag[aria-pressed="true"] { outline: 1.5px solid currentColor; }
 /* Lista */
 .ps-list { border-right: 1px solid var(--ps-border); display: flex; flex-direction: column; }
 .ps-list-head { position: sticky; top: 0; z-index: 1; background: var(--ps-bg); padding: 12px 12px 8px; border-bottom: 1px solid var(--ps-border); display: flex; flex-direction: column; gap: 8px; }
-.ps-list-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ps-list-title h2 { margin: 0; font-size: 14.5px; font-weight: 600; color: var(--ps-t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ps-select { background: var(--ps-surface); border: 1px solid var(--ps-border); border-radius: 7px; padding: 4px 6px; font-size: 12px; color: var(--ps-t2); outline: none; }
+.ps-list-title { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.ps-list-title h2 { margin: 0; flex: 1 1 auto; min-width: 56px; font-size: 14.5px; font-weight: 600; color: var(--ps-t1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-select { max-width: 104px; background: var(--ps-surface); border: 1px solid var(--ps-border); border-radius: 7px; padding: 4px 6px; font-size: 12px; color: var(--ps-t2); outline: none; }
 .ps-select option { background: #0B1510; }
 .ps-filter { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid var(--ps-border); border-radius: 8px; background: var(--ps-surface); color: var(--ps-t3); }
 .ps-filter:focus-within { border-color: var(--ps-accent); }
@@ -181,25 +181,34 @@ button.ps-chip:hover { border-color: var(--ps-border-2); color: var(--ps-t1); }
 .ps-rendered { margin: 0 14px 14px; padding: 12px; border: 1px solid var(--ps-border); border-radius: 8px; background: var(--ps-bg); font: 12px/19px var(--ps-mono); white-space: pre-wrap; max-height: 320px; overflow: auto; color: var(--ps-t2); }
 .ps-rendered .ok { background: var(--ps-accent-dim); color: var(--ps-t1); border-radius: 3px; }
 .ps-rendered .miss { background: var(--ps-miss-bg); color: var(--ps-miss); border-radius: 3px; }
-.ps-vars-actions { position: sticky; bottom: 0; margin-top: auto; padding: 12px 14px; display: flex; gap: 8px; background: var(--ps-pane); border-top: 1px solid var(--ps-border); }
-.ps-vars-actions .primary { flex: 1; justify-content: center; }
 
 .ps-center { flex: 1; display: grid; place-items: center; color: var(--ps-t3); text-align: center; padding: 24px; }
 
-/* Responsivo */
-@media (max-width: 1279px) {
-  .ps { grid-template-columns: minmax(250px, 300px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+/* Responsivo — container queries: o Studio vive dentro do AppShell (sidebar de ~220px),
+   então o que importa é a largura disponível para ELE, não a da janela. */
+.ps-container { container-type: inline-size; container-name: studio; }
+.ps { position: relative; }
+.ps-editor { container-type: inline-size; container-name: editor; }
+
+/* < 1400px: sidebar do Studio vira gaveta (botão ☰ na lista); lista + editor + variáveis */
+@container studio (max-width: 1399px) {
+  .ps { grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(250px, 280px); }
   .ps-side { display: none; }
   .ps.side-open .ps-side { display: flex; position: absolute; z-index: 20; width: 240px; top: 0; bottom: 0; left: 0; box-shadow: 0 20px 40px rgba(0,0,0,.5); }
-  .ps { position: relative; }
+}
+@container studio (min-width: 1400px) { .ps-menu { display: none !important; } }
+
+/* < 1000px: variáveis descem para baixo do editor */
+@container studio (max-width: 999px) {
+  .ps { grid-template-columns: minmax(230px, 280px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .ps-list { grid-row: 1 / span 2; }
   .ps-editor { grid-column: 2; grid-row: 1; }
   .ps-vars { grid-column: 2; grid-row: 2; border-left: 0; border-top: 1px solid var(--ps-border); max-height: 42vh; }
-  .ps-vars-actions { position: static; }
 }
-@media (min-width: 1280px) { .ps-menu { display: none !important; } }
-@media (max-width: 767px) {
-  .ps { height: calc(100dvh - 56px - 48px); grid-template-columns: 1fr; grid-template-rows: auto; border-radius: 10px; }
+
+/* < 700px (celular): um painel por vez */
+@container studio (max-width: 699px) {
+  .ps { grid-template-columns: 1fr; grid-template-rows: auto; border-radius: 10px; }
   .ps-list { grid-row: auto; border-right: 0; }
   .ps-editor, .ps-vars { display: none; grid-column: 1; grid-row: auto; max-height: none; }
   .ps.show-detail { display: flex; flex-direction: column; overflow: auto; }
@@ -207,9 +216,15 @@ button.ps-chip:hover { border-color: var(--ps-border-2); color: var(--ps-t1); }
   .ps.show-detail .ps-editor, .ps.show-detail .ps-vars { display: flex; }
   .ps.show-detail .ps-pane { overflow: visible; }
   .ps-back { display: inline-flex; }
-  .ps-hist { grid-template-columns: 1fr; }
   .ps-ed-wrap { min-height: 240px; flex: none; height: 300px; }
-  .ps-vars-actions { position: sticky; bottom: 0; }
+}
+@media (max-width: 767px) { .ps { height: calc(100dvh - 56px - 48px); } }
+
+/* Dentro do editor estreito: histórico empilha (lista de versões em cima do diff) */
+@container editor (max-width: 640px) {
+  .ps-hist { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .ps-vlist { max-height: 160px; }
+  .ps-ed-top { flex-wrap: wrap; }
 }
 @media (prefers-reduced-motion: reduce) { .ps * { transition-duration: 1ms !important; animation: none !important; } }
 `;
