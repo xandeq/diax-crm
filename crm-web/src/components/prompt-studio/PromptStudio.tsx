@@ -518,6 +518,7 @@ export function PromptStudio() {
   return (
     <>
       <style>{STUDIO_CSS}</style>
+      <div className="ps-container">
       <div className={`ps ${sideOpen ? 'side-open' : ''} ${showDetail ? 'show-detail' : ''}`}>
         <StudioSidebar
           view={view} collectionId={collectionId} activeTags={activeTags} counts={counts}
@@ -594,6 +595,7 @@ export function PromptStudio() {
             <aside className="ps-vars ps-pane" aria-hidden="true" />
           </>
         )}
+      </div>
       </div>
 
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)}
