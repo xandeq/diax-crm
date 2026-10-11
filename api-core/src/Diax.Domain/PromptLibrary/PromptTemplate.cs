@@ -39,13 +39,15 @@ public static class PromptTemplate
     }
 
     /// <summary>
-    /// Substitui variáveis. Valor vazio/ausente usa o default; sem default, o placeholder fica
-    /// intacto e o nome entra em <see cref="RenderResult.Missing"/>.
+    /// Substitui variáveis. Valor vazio/ausente usa o default; sem default, uma variável
+    /// <paramref name="optional"/> vira texto vazio e as demais ficam intactas e entram em
+    /// <see cref="RenderResult.Missing"/>.
     /// </summary>
     public static RenderResult Render(
         string content,
         IReadOnlyDictionary<string, string?>? values,
-        IReadOnlyDictionary<string, string?>? defaults = null)
+        IReadOnlyDictionary<string, string?>? defaults = null,
+        IReadOnlyCollection<string>? optional = null)
     {
         var missing = new List<string>();
         var used = new HashSet<string>(StringComparer.Ordinal);
@@ -62,6 +64,7 @@ public static class PromptTemplate
 
             if (value is null)
             {
+                if (optional != null && optional.Contains(name, StringComparer.Ordinal)) return string.Empty;
                 if (!missing.Contains(name, StringComparer.Ordinal)) missing.Add(name);
                 return m.Value;
             }

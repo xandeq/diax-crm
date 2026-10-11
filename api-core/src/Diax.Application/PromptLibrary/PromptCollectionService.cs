@@ -3,6 +3,7 @@ using Diax.Application.PromptLibrary.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.PromptLibrary;
 using Diax.Shared.Results;
+using Microsoft.EntityFrameworkCore;
 
 namespace Diax.Application.PromptLibrary;
 
@@ -50,7 +51,15 @@ public class PromptCollectionService : IApplicationService, IPromptCollectionSer
         }
         catch (ArgumentException ex)
         {
+            _repository.ResetTracking();
             return Result.Failure<PromptCollectionDto>(new Error(ErrValidation, ex.Message));
+        }
+        catch (DbUpdateException)
+        {
+            // Corrida no índice único (user_id, name): limpa o tracker para não contaminar
+            // a próxima operação (ex.: próximo item de um import).
+            _repository.ResetTracking();
+            return Result.Failure<PromptCollectionDto>(new Error(ErrConflict, "Já existe uma coleção com esse nome."));
         }
     }
 
@@ -71,7 +80,13 @@ public class PromptCollectionService : IApplicationService, IPromptCollectionSer
         }
         catch (ArgumentException ex)
         {
+            _repository.ResetTracking();
             return Result.Failure<PromptCollectionDto>(new Error(ErrValidation, ex.Message));
+        }
+        catch (DbUpdateException)
+        {
+            _repository.ResetTracking();
+            return Result.Failure<PromptCollectionDto>(new Error(ErrConflict, "Já existe uma coleção com esse nome."));
         }
     }
 

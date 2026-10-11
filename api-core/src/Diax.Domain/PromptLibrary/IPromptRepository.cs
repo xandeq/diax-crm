@@ -36,4 +36,7 @@ public interface IPromptRepository : IRepository<Prompt>
 public interface IPromptCollectionRepository : IRepository<PromptCollection>
 {
     Task<IReadOnlyList<(PromptCollection Collection, int PromptCount)>> GetAllWithCountsAsync(CancellationToken ct = default);
+
+    /// <inheritdoc cref="IPromptRepository.ResetTracking"/>
+    void ResetTracking();
 }

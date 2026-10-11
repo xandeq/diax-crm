@@ -33,13 +33,16 @@ export interface RenderResult {
 export function renderTemplate(
   content: string,
   values: Record<string, string | undefined> = {},
-  defaults: Record<string, string | null | undefined> = {}
+  defaults: Record<string, string | null | undefined> = {},
+  optional: readonly string[] = []
 ): RenderResult {
   const missing: string[] = [];
   const rendered = (content ?? '').replace(VARIABLE_RE, (full, esc: string | undefined, name: string) => {
     if (esc) return `{{${name}}}`;
     const value = ownValue(values, name) || ownValue(defaults, name) || '';
     if (!value) {
+      if (optional.includes(name)) return ''; // opcional sem valor some do texto
+
       if (!missing.includes(name)) missing.push(name);
       return full;
     }

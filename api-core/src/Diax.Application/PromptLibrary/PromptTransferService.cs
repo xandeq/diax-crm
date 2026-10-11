@@ -62,7 +62,8 @@ public class PromptTransferService : IApplicationService, IPromptTransferService
 
         var targetIds = ids is { Count: > 0 }
             ? ids.Distinct().ToList()
-            : (await _library.ListAsync(new PromptListQuery { Sort = "title" }, ct)).Select(p => p.Id).ToList();
+            // Pede 1 a mais que o teto para detectar biblioteca grande demais em vez de cortar calado.
+            : (await _library.ListAsync(new PromptListQuery { Sort = "title", Limit = MaxExportPrompts + 1 }, ct)).Select(p => p.Id).ToList();
         if (targetIds.Count == 0)
             return Result.Failure<ExportFile>(new Error("Prompt.Validation", "Nenhum prompt para exportar."));
         if (targetIds.Count > MaxExportPrompts)

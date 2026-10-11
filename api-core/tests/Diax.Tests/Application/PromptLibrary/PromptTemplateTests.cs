@@ -43,6 +43,14 @@ public class PromptTemplateTests
     }
 
     [Fact]
+    public void Optional_variable_without_value_becomes_empty_and_is_not_missing()
+    {
+        var result = PromptTemplate.Render("A{{opc}}B {{obr}}", null, null, new[] { "opc" });
+        Assert.Equal("AB {{obr}}", result.Rendered);
+        Assert.Equal(new[] { "obr" }, result.Missing);
+    }
+
+    [Fact]
     public void Render_reports_unused_values()
     {
         var result = PromptTemplate.Render("{{a}}", new Dictionary<string, string?> { ["a"] = "1", ["z"] = "9" });

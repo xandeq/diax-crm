@@ -182,8 +182,15 @@ export default function PromptGeneratorPage() {
   // ── Prompt Studio: salva o resultado na biblioteca (idempotente via histórico) ──
   const openInStudio = (promptId: string) => router.push(`/prompts/?p=${promptId}`);
 
-  const saveHistoryItemToStudio = async (userPromptId: string) => {
-    setSavingToStudio(current => current ?? userPromptId);
+  /**
+   * `lockKey` = quem segura a trava: o card passa o próprio id; o fluxo do resultado passa
+   * 'result' (já travado antes). Só quem travou destrava — um card não libera o botão principal.
+   */
+  const saveHistoryItemToStudio = async (userPromptId: string, lockKey: string = userPromptId) => {
+    if (lockKey === userPromptId) {
+      if (savingToStudio !== null) return;
+      setSavingToStudio(userPromptId);
+    }
     try {
       const saved = await promptStudioService.fromGenerator(userPromptId);
       toast.success('Salvo no Prompt Studio', {
@@ -192,7 +199,7 @@ export default function PromptGeneratorPage() {
     } catch (err) {
       toast.error(err instanceof Error ? `Não foi possível salvar: ${err.message}` : 'Não foi possível salvar no Prompt Studio.');
     } finally {
-      setSavingToStudio(null);
+      setSavingToStudio(current => (current === lockKey ? null : current));
     }
   };
 
@@ -213,7 +220,7 @@ export default function PromptGeneratorPage() {
     if (!generatedPrompt || savingToStudio !== null) return;
     setSavingToStudio('result'); // bloqueia clique duplo antes de qualquer await
     const id = await findHistoryIdForResult();
-    if (id) return saveHistoryItemToStudio(id);
+    if (id) return saveHistoryItemToStudio(id, 'result');
     try {
       const saved = await promptStudioService.create({
         title: rawPrompt.split('\n')[0].slice(0, 120) || 'Prompt do Gerador',
@@ -590,7 +597,7 @@ export default function PromptGeneratorPage() {
                       variant="ghost"
                       className="h-7 w-7 p-0 text-xs"
                       onClick={() => saveHistoryItemToStudio(item.id)}
-                      disabled={savingToStudio === item.id}
+                      disabled={savingToStudio !== null}
                       title="Salvar no Prompt Studio"
                       aria-label="Salvar no Prompt Studio"
                     >

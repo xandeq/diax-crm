@@ -95,6 +95,7 @@ export function VariablesPanel(p: Props) {
           if (s.escaped) return <span key={i}>{`{{${s.name}}}`}</span>;
           const meta = byName.get(s.name);
           const val = own(s.name) || meta?.default || '';
+          if (!val && meta?.required === false) return null; // opcional vazio some do texto copiado
           return val ? <span key={i} className="ok">{val}</span> : <span key={i} className="miss">{s.raw}</span>;
         })}
       </div>

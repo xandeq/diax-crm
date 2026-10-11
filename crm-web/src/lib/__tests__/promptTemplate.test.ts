@@ -29,6 +29,12 @@ describe('renderTemplate (espelho do PromptTemplate.cs)', () => {
     expect(renderTemplate('Linguagem: {{lang}}', { lang: '' }, { lang: 'TypeScript' }).rendered).toBe('Linguagem: TypeScript');
   });
 
+  it('variável opcional sem valor some do texto e não conta como faltando', () => {
+    const r = renderTemplate('A{{opc}}B {{obr}}', {}, {}, ['opc']);
+    expect(r.rendered).toBe('AB {{obr}}');
+    expect(r.missing).toEqual(['obr']);
+  });
+
   it('preenche variável chamada constructor quando o valor é próprio', () => {
     const values: Record<string, string> = {};
     values['constructor'] = 'X';

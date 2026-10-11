@@ -6,7 +6,8 @@ import { normalizeForSearch, ownValue, renderTemplate } from '@/lib/promptTempla
 import { ApiError } from '@/services/api';
 import { promptStudioService as svc } from '@/services/promptStudio';
 import type {
-  CreatePromptInput, ExportFlavor, PromptCollection, PromptDetail, PromptListItem, PromptVariable, UpdatePromptInput,
+  CreatePromptInput, ExportFlavor, PromptCollection, PromptDetail, PromptListItem, PromptVariable, PromptVersion,
+  UpdatePromptInput,
 } from '@/types/promptStudio';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Loader2, Plus } from 'lucide-react';
@@ -182,8 +183,12 @@ export function PromptStudio() {
   const draftsRef = useRef(drafts);
   draftsRef.current = drafts;
 
+  // Só grava rascunho que ESTA aba tem em memória. Apagar o storage é exclusivo de ações
+  // explícitas (salvar/descartar/restaurar/excluir via clearDraft) — senão uma aba "limpa"
+  // apagaria o rascunho salvo por outra aba do mesmo prompt.
   const persistDraft = useCallback((id: string) => {
-    if (recovered.current.has(id)) writeLocal(`ps:draft:${id}`, draftsRef.current[id] ?? null);
+    const d = draftsRef.current[id];
+    if (d && recovered.current.has(id)) writeLocal(`ps:draft:${id}`, d);
   }, []);
 
   useEffect(() => {
@@ -240,7 +245,8 @@ export function PromptStudio() {
   const promptValues = useMemo(() => (selectedId ? values[selectedId] ?? {} : {}), [values, selectedId]);
   const rendered = useMemo(() => {
     const defaults = Object.fromEntries(variables.map(v => [v.name, v.default]));
-    return renderTemplate(content, promptValues, defaults).rendered;
+    const optional = variables.filter(v => v.required === false).map(v => v.name);
+    return renderTemplate(content, promptValues, defaults, optional).rendered;
   }, [content, promptValues, variables]);
 
   const updateDraft = (patch: Partial<Draft>) => {
@@ -307,7 +313,14 @@ export function PromptStudio() {
     }
   };
 
-  const afterVersion = (id: string, base: number, created: { number: number }) => {
+  const afterVersion = (id: string, base: number, created: PromptVersion) => {
+    // Escreve a versão salva no cache ANTES de limpar o rascunho: senão o editor volta a mostrar
+    // a versão antiga até o refetch e qualquer tecla nesse intervalo cria rascunho sobre ela.
+    qc.setQueryData<PromptDetail>(['prompt', id], old => old && ({
+      ...old,
+      current: created,
+      prompt: { ...old.prompt, currentVersionNumber: created.number },
+    }));
     clearDraft(id);
     void qc.invalidateQueries({ queryKey: ['prompt', id] });
     void qc.invalidateQueries({ queryKey: ['prompt-versions', id] });

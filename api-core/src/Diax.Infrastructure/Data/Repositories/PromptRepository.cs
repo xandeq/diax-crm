@@ -89,4 +89,6 @@ public class PromptCollectionRepository : Repository<PromptCollection>, IPromptC
             .ToListAsync(ct);
         return rows.Select(r => (r.Collection, r.Count)).ToList();
     }
+
+    public void ResetTracking() => Context.ChangeTracker.Clear();
 }

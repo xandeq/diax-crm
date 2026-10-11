@@ -99,7 +99,7 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
             _ => q.OrderByDescending(p => p.UpdatedAt ?? p.CreatedAt)
         };
 
-        var limit = Math.Clamp(query.Limit, 1, 2000);
+        var limit = Math.Clamp(query.Limit, 1, 5000); // padrão 2.000 (PromptListQuery); export pede 2.001 para detectar excesso
         var rows = await q.Take(limit).Select(ListProjection).ToListAsync(ct);
         return rows.Select(ToListItem).ToList();
     }
@@ -149,7 +149,8 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
 
         var variables = ResolveVariables(version.Content, DeserializeVariables(version.VariablesJson));
         var defaults = variables.ToDictionary(v => v.Name, v => v.Default, StringComparer.Ordinal);
-        var result = PromptTemplate.Render(version.Content, request.Variables, defaults);
+        var optional = variables.Where(v => !v.Required).Select(v => v.Name).ToList();
+        var result = PromptTemplate.Render(version.Content, request.Variables, defaults, optional);
 
         if (request.Strict && result.Missing.Count > 0)
             return Result.Failure<RenderPromptResult>(new Error(ErrValidation, "Variáveis obrigatórias sem valor: " + string.Join(", ", result.Missing)));
@@ -355,8 +356,9 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
             Title = Truncate(FirstLine(item.OriginalInput), Prompt.MaxTitleLength),
             Description = Truncate(item.GetInputPreview(Prompt.MaxDescriptionLength - 3), Prompt.MaxDescriptionLength),
             Content = item.GeneratedPrompt,
-            Framework = item.PromptType,
-            TargetModel = item.Model,
+            // As colunas do histórico do Gerador são maiores (50/100): ajusta em vez de recusar.
+            Framework = TruncateOrNull(item.PromptType, Prompt.MaxFrameworkLength),
+            TargetModel = TruncateOrNull(item.Model, Prompt.MaxTargetModelLength),
             ChangeNote = $"Gerado com {item.PromptType} via {item.Provider}"
         };
         return await CreateWithSourceAsync(request, userId, PromptSource.Generator, userPromptId, ct);
@@ -557,6 +559,9 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
         var line = (text ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
         return string.IsNullOrWhiteSpace(line) ? "Prompt do Gerador" : line;
     }
+
+    private static string? TruncateOrNull(string? text, int max)
+        => string.IsNullOrWhiteSpace(text) ? null : text.Trim().Length <= max ? text.Trim() : text.Trim()[..max];
 
     private static string Truncate(string text, int max)
         => text.Length <= max ? text : text[..(max - 1)].TrimEnd() + "…";
