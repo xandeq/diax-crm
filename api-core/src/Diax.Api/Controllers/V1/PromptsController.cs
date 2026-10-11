@@ -15,8 +15,52 @@ namespace Diax.Api.Controllers.V1;
 public class PromptsController : BaseApiController
 {
     private readonly IPromptLibraryService _service;
+    private readonly IPromptTransferService _transfer;
 
-    public PromptsController(IPromptLibraryService service) => _service = service;
+    public PromptsController(IPromptLibraryService service, IPromptTransferService transfer)
+    {
+        _service = service;
+        _transfer = transfer;
+    }
+
+    /// <summary>
+    /// Exporta no formato .md canônico. <c>format=md</c> com 1 id → arquivo .md; senão → .zip.
+    /// <c>flavor=claude-command</c> troca {{var}} por $ARGUMENTS/$N (pronto para ~/.claude/commands).
+    /// </summary>
+    [HttpGet("export")]
+    public async Task<IActionResult> Export([FromQuery] string format = "zip", [FromQuery] string flavor = "diax",
+        [FromQuery] List<Guid>? ids = null, CancellationToken ct = default)
+    {
+        var result = await _transfer.ExportAsync(ids, format, flavor, ct);
+        if (result.IsFailure) return HandleResult(result);
+        var f = result.Value!;
+        return File(f.Content, f.ContentType, f.FileName);
+    }
+
+    /// <summary>Importa .md/.txt/.zip. <c>dryRun=true</c> (padrão) só gera o relatório, sem gravar.</summary>
+    [HttpPost("import")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(16 * 1024 * 1024)]
+    public async Task<IActionResult> Import([FromForm] IFormFileCollection files, [FromForm] bool dryRun = true,
+        [FromForm] string strategy = "new-version", CancellationToken ct = default)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized();
+        if (files is null || files.Count == 0) return BadRequest(new { code = "Prompt.Validation", message = "Envie ao menos um arquivo." });
+        if (files.Count > 50) return BadRequest(new { code = "Prompt.Validation", message = "Máximo de 50 arquivos por vez (use um .zip para mais)." });
+
+        var uploads = new List<ImportUpload>();
+        foreach (var file in files)
+        {
+            if (file.Length > PromptTransferService.MaxZipBytes)
+                return StatusCode(StatusCodes.Status413PayloadTooLarge, new { code = "Prompt.Validation", message = $"'{file.FileName}' passa de 5 MB." });
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms, ct);
+            uploads.Add(new ImportUpload(Path.GetFileName(file.FileName), ms.ToArray()));
+        }
+
+        return HandleResult(await _transfer.ImportAsync(uploads, dryRun, strategy, userId.Value, ct));
+    }
 
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] PromptListQuery query, CancellationToken ct)
