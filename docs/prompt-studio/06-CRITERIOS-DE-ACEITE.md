@@ -33,7 +33,7 @@ Formato Dado/Quando/Então. Os critérios marcados **[auto]** viram teste automa
 
 - **AC-30 [auto]** `Ctrl+S` com conteúdo alterado cria `v(n+1)` com a nota informada; sem alteração (mesmo hash) não cria versão e mostra "Nada mudou".
 - **AC-31 [auto]** Restaurar a v3 estando na v7 cria a v8 com conteúdo igual ao da v3; as v1–v7 continuam intactas.
-- **AC-32 [auto]** Salvar com `baseVersionNumber=6` quando a atual é a v7 → 409 com a v7 no corpo; a UI abre o `ConflictDialog` com o diff.
+- **AC-32 [auto]** Salvar com `baseVersionNumber=6` quando a atual é a v7 → 409 com a v7 no corpo; a UI abre o `ConflictDialog` com o diff. *(Parcial: o diálogo oferece "Ver histórico" / "Descartar" / "Salvar como nova versão", sem diff embutido.)*
 - **AC-33** O diff entre 2 versões mostra adições e remoções por palavra, contagem `+x −y` e alterna lado a lado/inline com `D`.
 - **AC-34 [auto]** Editar só metadados (título, tags, favorito) não cria versão.
 

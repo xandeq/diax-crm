@@ -33,7 +33,7 @@ interface PromptVersion {
 }
 
 interface PromptDetail extends PromptListItem {
-  targetModel?: string; source: PromptSource; rowVersion: string; // base64
+  targetModel?: string; source: PromptSource; // (rowVersion não implementado — ver nota em §2)
   current: PromptVersion;
   createdAt: string;
 }
@@ -47,6 +47,8 @@ interface PromptDetail extends PromptListItem {
 > - `PATCH` sem `If-Match`; `clearCollection: true` remove a coleção.
 > - `POST /use` sem corpo. `GET /prompts/tags` e `POST /tags/rename` ok.
 > - **Ainda não implementados:** `/rewrite`, `/from-generator/bulk`, export/import `.json`.
+> - `POST /prompts/export` (body `{ ids, format, flavor }`) é o usado pela UI: muitos GUIDs no GET estouram o `maxQueryString` do IIS. Máx. 2.000 prompts por export; leitura em lote (`GetManyAsync`).
+> - Falha de banco num item (import, create, versão) limpa o ChangeTracker para não contaminar as operações seguintes. Corrida em índice único: mesma origem → devolve o existente; slug → 2ª tentativa; versão → 409.
 >
 > **Import/export implementado (`PromptTransferService`):**
 > - `GET /prompts/export?format=md|zip&flavor=diax|claude-command&ids=<guid>&ids=…` → `format=md` com 1 id devolve `<slug>.md`; o resto devolve `.zip` (pastas por coleção no sabor DIAX; arquivos na raiz no sabor Claude Code). Sem `ids` = todos os não arquivados. CORS expõe `Content-Disposition`.
@@ -99,6 +101,8 @@ Query: `q`, `tag` (repetível, E lógico), `collectionId`, `favorite`, `kind`, `
 → `201 PromptDetail`. Validação: `title` 1–160, `content` 1–100 KB, ≤ 20 tags, variáveis declaradas com nome válido. Variáveis usadas no conteúdo e não declaradas são inferidas como `text` obrigatória. Declaradas e não usadas → aviso (`warnings[]`), não erro.
 
 ### PATCH `/prompts/{id}`
+> ⚠️ Proposta original abaixo; **implementado sem `If-Match`/412** (ver nota no topo de §2).
+
 Header `If-Match: <rowVersion>`. Body parcial: `title, slug, description, tags, collectionId, kind, framework, targetModel, isFavorite, isArchived, exposeToMcp`. `412` se o rowVersion divergir. Favoritar/arquivar não exigem `If-Match` (operações idempotentes, last-write-wins aceitável).
 
 ### POST `/prompts/{id}/versions`
@@ -216,7 +220,7 @@ new Server({ name: "diax-crm", version: "1.1.0" },
 | `save_prompt` | `{ title: string, content: string, tags?: string[], collection?: string, description?: string, slug_or_id?: string, change_note?: string, expose_to_mcp?: boolean }` | Sem `slug_or_id` → cria; com → nova versão usando `baseVersionNumber` = atual buscada na hora (conflito improvável; em caso de 409, devolve a mensagem para o usuário decidir). `source=mcp` |
 
 ### Prompts capability
-- `prompts/list` → `GET /prompts?fields=index` filtrado por `exposeToMcp`, máximo 100, ordenado por `useCount`:
+- `prompts/list` → **`GET /prompts/mcp-catalog`** (implementado: expostos, máx. 100, por uso, com as variáveis da versão atual; argumento é `required` só se a variável for obrigatória **e** sem default). `prompts/get` recusa prompt não exposto:
   ```json
   { "name": "revisor-codigo", "title": "Revisor de código sênior",
     "description": "Revisão P0/P1/P2 com foco em bugs",

@@ -82,6 +82,34 @@ public class PromptLibraryServiceTests
     }
 
     [Fact]
+    public async Task Many_slug_collisions_get_unique_suffixes_including_long_titles()
+    {
+        var s = Create();
+        var uid = s.User.UserId!.Value;
+        var longTitle = new string('a', 79);
+        var slugs = new List<string>();
+        for (var i = 0; i < 12; i++) slugs.Add((await s.Service.CreateAsync(Req(title: longTitle), uid)).Value!.Prompt.Slug);
+
+        Assert.Equal(slugs.Count, slugs.Distinct().Count());
+        Assert.All(slugs, x => Assert.True(x.Length <= 80));
+    }
+
+    [Theory]
+    [InlineData(nameof(UpdatePromptRequest.TargetModel))]
+    [InlineData(nameof(UpdatePromptRequest.Framework))]
+    public async Task Over_long_metadata_is_a_validation_error_not_a_server_error(string field)
+    {
+        var s = Create();
+        var id = (await s.Service.CreateAsync(Req(), s.User.UserId!.Value)).Value!.Prompt.Id;
+        var req = new UpdatePromptRequest();
+        typeof(UpdatePromptRequest).GetProperty(field)!.SetValue(req, new string('x', 200));
+
+        Assert.Equal(PromptLibraryService.ErrValidation, (await s.Service.UpdateAsync(id, req)).Error.Code);
+        // A falha não deixa lixo no ChangeTracker: a próxima operação funciona.
+        Assert.True((await s.Service.UpdateAsync(id, new UpdatePromptRequest { Title = "ok" })).IsSuccess);
+    }
+
+    [Fact]
     public async Task Large_content_round_trips_without_truncation()
     {
         var s = Create();

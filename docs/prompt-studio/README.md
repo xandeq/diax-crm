@@ -27,6 +27,14 @@ Biblioteca central de prompts do DIAX CRM: coleções, tags, favoritos, busca, e
 - **Metadados:** `PATCH` sem `If-Match/rowVersion` (single-user, last-write-wins); conflito de **conteúdo** continua protegido pelo `baseVersionNumber` → 409.
 - **Variáveis persistidas** = as presentes no conteúdo (declaradas e não usadas são descartadas, sem warning).
 - **Copiar** fica no topo do painel de variáveis (o toast global do CRM cobria o botão no rodapé).
+- **Valores digitados nas variáveis** ficam em `sessionStorage` (podem conter dados de cliente); **rascunhos** em `localStorage` (sobrevivem ao fechar a aba) e nunca são descartados em silêncio — rascunho sobre versão antiga é recuperado e o 409 decide.
+- **Busca:** filtro local no índice (título/tags/descrição/preview) + busca no servidor no conteúdo completo a partir de 3 caracteres.
+
+### Riscos conhecidos aceitos (revisão pré-PR)
+- `UpdatedAt` muda em favoritar/arquivar: é o carimbo automático do `AuditableEntity` no `SaveChanges` do CRM (comportamento global).
+- O `AuditSaveChangesInterceptor` global grava o `Content` de cada nova versão e um registro por "Copiar" (`UseCount`). Aceito no volume single-user; rever se a tabela de auditoria crescer.
+- `UseCount` é read-modify-write: dois usos simultâneos podem contar 1. É métrica informativa.
+- Testes .NET usam o provider InMemory (sem SQL Server): índices únicos, max length e tradução SQL são validados no smoke de produção.
 
 ## Documentos
 

@@ -37,6 +37,7 @@ public class PromptTransferService : IApplicationService, IPromptTransferService
     public const long MaxZipBytes = 5 * 1024 * 1024;
     public const int MaxZipEntries = 500;
     public const long MaxUncompressedBytes = 20 * 1024 * 1024;
+    public const int MaxExportPrompts = 2000;
     public static readonly string[] Strategies = { "new-version", "skip", "duplicate" };
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -64,14 +65,13 @@ public class PromptTransferService : IApplicationService, IPromptTransferService
             : (await _library.ListAsync(new PromptListQuery { Sort = "title" }, ct)).Select(p => p.Id).ToList();
         if (targetIds.Count == 0)
             return Result.Failure<ExportFile>(new Error("Prompt.Validation", "Nenhum prompt para exportar."));
+        if (targetIds.Count > MaxExportPrompts)
+            return Result.Failure<ExportFile>(new Error("Prompt.Validation", $"Máximo de {MaxExportPrompts} prompts por export."));
 
-        var details = new List<PromptDetailDto>();
-        foreach (var id in targetIds)
-        {
-            var d = await _library.GetAsync(id, ct);
-            if (d.IsFailure) return Result.Failure<ExportFile>(d.Error);
-            details.Add(d.Value!);
-        }
+        // Lote (2 queries por 500 ids) em vez de N+1.
+        var details = await _library.GetManyAsync(targetIds, ct);
+        if (details.Count == 0)
+            return Result.Failure<ExportFile>(new Error("Prompt.NotFound", "Nenhum dos prompts foi encontrado."));
 
         string? CollectionOf(PromptDetailDto d) =>
             d.Prompt.CollectionId is { } cid && collectionNames.TryGetValue(cid, out var n) ? n : null;
@@ -138,12 +138,15 @@ public class PromptTransferService : IApplicationService, IPromptTransferService
 
         var collectionIds = (await _collections.ListAsync(ct))
             .ToDictionary(c => c.Name, c => (Guid?)c.Id, StringComparer.OrdinalIgnoreCase);
+        // Dry-run: slugs que "seriam criados" neste lote, para a prévia bater com a gravação real
+        // (2º arquivo com o mesmo slug vira nova versão, não outro create).
+        var plannedSlugs = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var entry in entries)
         {
             try
             {
-                items.Add(await ImportOneAsync(entry, dryRun, strategy, userId, collectionIds, ct));
+                items.Add(await ImportOneAsync(entry, dryRun, strategy, userId, collectionIds, plannedSlugs, ct));
             }
             catch (FormatException ex)
             {
@@ -168,7 +171,7 @@ public class PromptTransferService : IApplicationService, IPromptTransferService
 
     private async Task<ImportItemDto> ImportOneAsync(
         ImportUpload file, bool dryRun, string strategy, Guid userId,
-        Dictionary<string, Guid?> collectionIds, CancellationToken ct)
+        Dictionary<string, Guid?> collectionIds, HashSet<string> plannedSlugs, CancellationToken ct)
     {
         var text = DecodeUtf8(file.Content);
         var parsed = PromptMarkdownSerializer.Parse(file.FileName, text);
@@ -191,6 +194,13 @@ public class PromptTransferService : IApplicationService, IPromptTransferService
         {
             var bySlug = await _library.GetBySlugAsync(parsed.Slug, ct);
             if (bySlug.IsSuccess) existing = bySlug.Value;
+        }
+
+        if (dryRun && existing == null && strategy != "duplicate" && !plannedSlugs.Add(parsed.Slug))
+        {
+            var action = strategy == "skip" ? "skip" : "newVersion";
+            return new ImportItemDto(file.FileName, action, parsed.Slug, parsed.Title, null,
+                warnings.Append("Mesmo slug de outro arquivo deste lote.").ToList(), null);
         }
 
         if (existing != null && strategy != "duplicate")
@@ -283,17 +293,33 @@ public class PromptTransferService : IApplicationService, IPromptTransferService
                 if (e.Length > MaxFileBytes) { list.Add(new ImportUpload($"{zipFile.FileName}/{e.FullName}", Array.Empty<byte>())); continue; }
                 total += e.Length;
                 if (total > MaxUncompressedBytes) return (list, "Conteúdo descompactado passa de 20 MB.");
-                using var s = e.Open();
-                using var ms = new MemoryStream();
-                s.CopyTo(ms);
-                list.Add(new ImportUpload(e.FullName, ms.ToArray()));
+                // Não confia no tamanho declarado no diretório central: lê com teto real.
+                var bytes = ReadBounded(e, MaxFileBytes);
+                list.Add(bytes is null
+                    ? new ImportUpload($"{zipFile.FileName}/{e.FullName}", Array.Empty<byte>())
+                    : new ImportUpload(e.FullName, bytes));
             }
             return (list, candidates.Count == 0 ? "Zip sem arquivos .md ou .txt." : null);
         }
-        catch (InvalidDataException)
+        catch (Exception ex) when (ex is InvalidDataException or NotSupportedException)
         {
-            return (list, "Arquivo .zip inválido ou corrompido.");
+            // NotSupportedException: entrada criptografada ou método de compressão não suportado.
+            return (list, "Arquivo .zip inválido, corrompido ou protegido por senha.");
         }
+    }
+
+    private static byte[]? ReadBounded(ZipArchiveEntry entry, long max)
+    {
+        using var s = entry.Open();
+        using var ms = new MemoryStream();
+        var buffer = new byte[81920];
+        int read;
+        while ((read = s.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (ms.Length + read > max) return null;
+            ms.Write(buffer, 0, read);
+        }
+        return ms.ToArray();
     }
 
     private static string DecodeUtf8(byte[] bytes)

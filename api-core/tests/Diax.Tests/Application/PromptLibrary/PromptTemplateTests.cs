@@ -18,6 +18,7 @@ public class PromptTemplateTests
     [InlineData("{{1x}} fica", "", "{{1x}} fica", "")]
     [InlineData("Ação: {{ação}}", "", "Ação: {{ação}}", "")]
     [InlineData("Emoji {{x}} 🚀", "x=✓", "Emoji ✓ 🚀", "")]
+    [InlineData("{{constructor}} {{toString}} {{__proto__}}", "", "{{constructor}} {{toString}} {{__proto__}}", "constructor,toString,__proto__")]
     public void Render_matches_vectors(string content, string values, string expected, string missing)
     {
         var dict = values.Split(';', StringSplitOptions.RemoveEmptyEntries)

@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
-import { normalizeForSearch, renderTemplate } from '@/lib/promptTemplate';
+import { normalizeForSearch, ownValue, renderTemplate } from '@/lib/promptTemplate';
 import { ApiError } from '@/services/api';
 import { promptStudioService as svc } from '@/services/promptStudio';
 import type {
@@ -106,13 +106,30 @@ export function PromptStudio() {
     return [...m.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [active]);
 
+  // O índice local só tem o preview (280 chars); para termos mais adiante no texto,
+  // a busca do servidor (conteúdo completo da versão atual) entra como complemento.
+  const [serverTerm, setServerTerm] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setServerTerm(filter.trim().length >= 3 ? filter.trim() : ''), 350);
+    return () => clearTimeout(t);
+  }, [filter]);
+  const contentSearchQ = useQuery({
+    queryKey: ['prompts', 'search', view === 'archived', serverTerm],
+    queryFn: () => svc.list({ q: serverTerm, archived: view === 'archived' }),
+    enabled: serverTerm.length >= 3,
+    staleTime: 30_000,
+  });
+  const serverHits = useMemo(() => new Set((contentSearchQ.data ?? []).map(p => p.id)), [contentSearchQ.data]);
+
   const items = useMemo(() => {
     const tokens = normalizeForSearch(filter).split(/\s+/).filter(Boolean);
     const base = (view === 'archived' ? archived : active)
       .filter(p => view === 'archived' || matchesView(p, view))
       .filter(p => !collectionId || p.collectionId === collectionId)
       .filter(p => activeTags.every(t => p.tags.includes(t)));
-    const scored = base.map(p => [p, score(p, tokens)] as const).filter(([, s]) => s > 0);
+    const scored = base
+      .map(p => [p, score(p, tokens) || (serverTerm && serverHits.has(p.id) ? 0.5 : 0)] as const)
+      .filter(([, s]) => s > 0);
     const by: Record<StudioSort, (a: PromptListItem, b: PromptListItem) => number> = {
       updated: (a, b) => b.updatedAt.localeCompare(a.updatedAt),
       used: (a, b) => b.useCount - a.useCount || b.updatedAt.localeCompare(a.updatedAt),
@@ -121,7 +138,7 @@ export function PromptStudio() {
     return scored
       .sort((a, b) => (tokens.length ? b[1] - a[1] : 0) || by[sort](a[0], b[0]))
       .map(([p]) => p);
-  }, [active, archived, view, collectionId, activeTags, filter, sort]);
+  }, [active, archived, view, collectionId, activeTags, filter, sort, serverTerm, serverHits]);
 
   const listTitle = collectionId
     ? collections.find(c => c.id === collectionId)?.name ?? 'Coleção'
@@ -159,30 +176,59 @@ export function PromptStudio() {
   // ───────────── Rascunho + valores (persistidos localmente) ─────────────
   const draft = selectedId ? drafts[selectedId] : undefined;
 
+  // Prompts cujo rascunho salvo já foi lido. Até lá NÃO gravamos no storage — senão o
+  // "nada em memória" inicial apagaria o rascunho antes de ele ser recuperado.
+  const recovered = useRef(new Set<string>());
+  const draftsRef = useRef(drafts);
+  draftsRef.current = drafts;
+
+  const persistDraft = useCallback((id: string) => {
+    if (recovered.current.has(id)) writeLocal(`ps:draft:${id}`, draftsRef.current[id] ?? null);
+  }, []);
+
   useEffect(() => {
     if (!detail) return;
     const id = detail.prompt.id;
     if (!values[id]) {
-      const saved = readLocal<Record<string, string>>(`ps:vals:${id}`);
+      // Valores digitados (podem conter dados de cliente) vivem só na sessão.
+      const saved = readLocal<Record<string, string>>(`ps:vals:${id}`, 'session');
       if (saved) setValues(v => ({ ...v, [id]: saved }));
     }
+    if (recovered.current.has(id)) return;
+    recovered.current.add(id);
     if (drafts[id]) return;
     const saved = readLocal<Draft>(`ps:draft:${id}`);
     if (!saved) return;
-    if (saved.base === detail.current.number && saved.content !== detail.current.content) {
-      setDrafts(d => ({ ...d, [id]: saved }));
-      toast.info('Rascunho não salvo recuperado.');
-    } else {
-      writeLocal(`ps:draft:${id}`, null);
-    }
+    const changed = saved.content !== detail.current.content ||
+      !sameVariables(resolveVariables(saved.content, saved.variables), resolveVariables(detail.current.content, detail.current.variables));
+    if (!changed) { writeLocal(`ps:draft:${id}`, null); return; }
+    // Mantém o base antigo: se o prompt avançou em outro lugar, salvar dá 409 e o
+    // diálogo de conflito decide — nunca descartamos texto em silêncio.
+    setDrafts(d => ({ ...d, [id]: saved }));
+    toast.info(saved.base === detail.current.number
+      ? 'Rascunho não salvo recuperado.'
+      : `Rascunho recuperado (feito sobre a v${saved.base}; o prompt já está na v${detail.current.number}).`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail?.prompt.id, detail?.current.number]);
 
+  // Debounce ao digitar + flush imediato ao trocar de prompt.
   useEffect(() => {
     if (!selectedId) return;
-    const t = setTimeout(() => writeLocal(`ps:draft:${selectedId}`, drafts[selectedId] ?? null), 500);
+    const t = setTimeout(() => persistDraft(selectedId), 500);
     return () => clearTimeout(t);
-  }, [drafts, selectedId]);
+  }, [drafts, selectedId, persistDraft]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const id = selectedId;
+    return () => persistDraft(id);
+  }, [selectedId, persistDraft]);
+
+  useEffect(() => {
+    const flush = () => draftsRef.current && Object.keys(draftsRef.current).forEach(persistDraft);
+    window.addEventListener('beforeunload', flush);
+    return () => window.removeEventListener('beforeunload', flush);
+  }, [persistDraft]);
 
   const content = draft?.content ?? detail?.current.content ?? '';
   const declared = draft?.variables ?? detail?.current.variables ?? [];
@@ -216,7 +262,7 @@ export function PromptStudio() {
     setValues(v => {
       const next = { ...(v[selectedId] ?? {}), [name]: value };
       if (!value) delete next[name];
-      writeLocal(`ps:vals:${selectedId}`, Object.keys(next).length ? next : null);
+      writeLocal(`ps:vals:${selectedId}`, Object.keys(next).length ? next : null, 'session');
       return { ...v, [selectedId]: next };
     });
   };
@@ -357,7 +403,7 @@ export function PromptStudio() {
       try {
         await svc.remove(id);
         clearDraft(id);
-        writeLocal(`ps:vals:${id}`, null);
+        writeLocal(`ps:vals:${id}`, null, 'session');
         qc.removeQueries({ queryKey: ['prompt', id] });
         refreshLists();
         navigate(null);
@@ -407,7 +453,7 @@ export function PromptStudio() {
 
   const copyRendered = async () => {
     if (!detail) return;
-    const missing = variables.filter(v => v.required !== false && !(promptValues[v.name] || v.default));
+    const missing = variables.filter(v => v.required !== false && !(ownValue(promptValues, v.name) || v.default));
     if (missing.length) {
       document.getElementById(`ps-var-${missing[0].name}`)?.focus();
       toast.warning(`Preencha: ${missing.map(v => v.label || v.name).join(', ')}`);
@@ -497,7 +543,11 @@ export function PromptStudio() {
               onUpdate={input => void updatePrompt(detail.prompt.id, input)}
               onSave={openSave}
               onDiscard={discardDraft}
-              onRestore={n => restoreMutation.mutate(n)}
+              onRestore={n => {
+                if (!dirty) { restoreMutation.mutate(n); return; }
+                showConfirm(`Você tem um rascunho não salvo. Restaurar a v${n} descarta esse rascunho. Continuar?`,
+                  () => restoreMutation.mutate(n));
+              }}
               onDuplicate={() => void duplicate()}
               onExport={flavor => void exportPrompts([detail.prompt.id], flavor)}
               onDelete={remove}
@@ -507,7 +557,7 @@ export function PromptStudio() {
             <VariablesPanel
               content={content} variables={variables} values={promptValues} copied={copied}
               onValue={setValue}
-              onClear={() => { if (selectedId) { setValues(v => ({ ...v, [selectedId]: {} })); writeLocal(`ps:vals:${selectedId}`, null); } }}
+              onClear={() => { if (selectedId) { setValues(v => ({ ...v, [selectedId]: {} })); writeLocal(`ps:vals:${selectedId}`, null, 'session'); } }}
               onCopy={() => void copyRendered()}
               onVariableMeta={setVariableMeta}
             />

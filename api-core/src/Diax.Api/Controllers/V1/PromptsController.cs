@@ -37,6 +37,19 @@ public class PromptsController : BaseApiController
         return File(f.Content, f.ContentType, f.FileName);
     }
 
+    /// <summary>
+    /// Mesmo que o GET, com os ids no corpo: muitos GUIDs na query string estouram o
+    /// maxQueryString do IIS (~48 ids com o padrão de 2048 bytes).
+    /// </summary>
+    [HttpPost("export")]
+    public async Task<IActionResult> ExportPost([FromBody] ExportPromptsRequest request, CancellationToken ct = default)
+    {
+        var result = await _transfer.ExportAsync(request.Ids, request.Format ?? "zip", request.Flavor ?? "diax", ct);
+        if (result.IsFailure) return HandleResult(result);
+        var f = result.Value!;
+        return File(f.Content, f.ContentType, f.FileName);
+    }
+
     /// <summary>Importa .md/.txt/.zip. <c>dryRun=true</c> (padrão) só gera o relatório, sem gravar.</summary>
     [HttpPost("import")]
     [Consumes("multipart/form-data")]
@@ -65,6 +78,25 @@ public class PromptsController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] PromptListQuery query, CancellationToken ct)
         => Ok(await _service.ListAsync(query, ct));
+
+    /// <summary>
+    /// Catálogo para o MCP (prompts/list): prompts com "Expor no Claude Code", com as variáveis
+    /// da versão atual (para anunciar argumentos opcionais/com default corretamente). Máx. 100.
+    /// </summary>
+    [HttpGet("mcp-catalog")]
+    public async Task<IActionResult> McpCatalog(CancellationToken ct)
+    {
+        var exposed = await _service.ListAsync(new PromptListQuery { ExposeToMcp = true, Sort = "used", Limit = 100 }, ct);
+        var details = (await _service.GetManyAsync(exposed.Select(p => p.Id).ToList(), ct)).ToDictionary(d => d.Prompt.Id);
+        return Ok(exposed.Where(p => details.ContainsKey(p.Id)).Select(p => new
+        {
+            p.Slug,
+            p.Title,
+            p.Description,
+            p.Preview,
+            Variables = details[p.Id].Current.Variables
+        }));
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)

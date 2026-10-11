@@ -40,7 +40,7 @@ prompt_collections 1───* prompts 1───* prompt_versions
 | `use_count` | int | default 0 |
 | `last_used_at` | datetime2 null | |
 | `created_at` / `updated_at` | datetime2 | |
-| `row_version` | rowversion | concorrência otimista (metadados) |
+| ~~`row_version`~~ | — | **não implementado**: metadados são last-write-wins (single-user); conteúdo é protegido por `baseVersionNumber` + índice único `(prompt_id, number)` |
 
 Índices: `UX(user_id, slug)`, `IX(user_id, is_archived, updated_at DESC)`, `IX(user_id, is_favorite)`, `IX(user_id, collection_id)`, `UX(user_id, source, source_ref_id) WHERE source_ref_id IS NOT NULL`.
 

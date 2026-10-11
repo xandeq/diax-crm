@@ -16,6 +16,8 @@ public interface IPromptLibraryService
     Task<IReadOnlyList<PromptListItemDto>> ListAsync(PromptListQuery query, CancellationToken ct = default);
     Task<Result<PromptDetailDto>> GetAsync(Guid id, CancellationToken ct = default);
     Task<Result<PromptDetailDto>> GetBySlugAsync(string slug, CancellationToken ct = default);
+    /// <summary>Detalhes (versão atual) de vários prompts em lote — usado pelo export.</summary>
+    Task<IReadOnlyList<PromptDetailDto>> GetManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default);
     Task<Result<PromptDetailDto>> CreateAsync(CreatePromptRequest request, Guid userId, CancellationToken ct = default);
     Task<Result<PromptDetailDto>> UpdateAsync(Guid id, UpdatePromptRequest request, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid id, CancellationToken ct = default);
@@ -157,21 +159,22 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
 
     // ───────────────────────── Escrita ─────────────────────────
 
-    public async Task<Result<PromptDetailDto>> CreateAsync(CreatePromptRequest request, Guid userId, CancellationToken ct = default)
+    public Task<Result<PromptDetailDto>> CreateAsync(CreatePromptRequest request, Guid userId, CancellationToken ct = default)
+        => CreateWithSourceAsync(request, userId, ParseSource(request.Source), null, ct);
+
+    public async Task<IReadOnlyList<PromptDetailDto>> GetManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default)
     {
-        try
+        var result = new List<PromptDetailDto>(ids.Count);
+        // Lotes de 500: fica longe do limite de 2100 parâmetros do SQL Server.
+        foreach (var chunk in ids.Distinct().Chunk(500))
         {
-            var source = ParseSource(request.Source);
-            var prompt = await NewPromptAsync(userId, request, source, null, ct);
-            await _prompts.AddAsync(prompt, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
-            _logger.LogInformation("prompt.created {PromptId} source={Source}", prompt.Id, source);
-            return await GetAsync(prompt.Id, ct);
+            var rows = await _prompts.Query().Where(p => chunk.Contains(p.Id)).Select(ListProjection).ToListAsync(ct);
+            var versions = await _prompts.GetCurrentVersionsAsync(chunk, ct);
+            result.AddRange(rows
+                .Where(r => versions.ContainsKey(r.Id))
+                .Select(r => new PromptDetailDto(ToListItem(r), r.TargetModel, ToVersionDto(versions[r.Id]))));
         }
-        catch (ArgumentException ex)
-        {
-            return Result.Failure<PromptDetailDto>(new Error(ErrValidation, ex.Message));
-        }
+        return result.OrderBy(d => d.Prompt.Title, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
     public async Task<Result<PromptDetailDto>> UpdateAsync(Guid id, UpdatePromptRequest request, CancellationToken ct = default)
@@ -217,7 +220,14 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
         }
         catch (ArgumentException ex)
         {
+            _prompts.ResetTracking();
             return Result.Failure<PromptDetailDto>(new Error(ErrValidation, ex.Message));
+        }
+        catch (DbUpdateException ex)
+        {
+            _prompts.ResetTracking();
+            _logger.LogWarning(ex, "Falha ao atualizar prompt {PromptId}", id);
+            return Result.Failure<PromptDetailDto>(new Error(ErrConflict, "Não foi possível salvar (o slug pode ter sido usado ao mesmo tempo). Recarregue e tente de novo."));
         }
     }
 
@@ -281,15 +291,19 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
         }
         catch (PromptVersionConflictException ex)
         {
+            _prompts.ResetTracking();
             return Result.Failure<AddPromptVersionResult>(new Error(ErrConflict, ex.Message));
         }
         catch (ArgumentException ex)
         {
+            _prompts.ResetTracking();
             return Result.Failure<AddPromptVersionResult>(new Error(ErrValidation, ex.Message));
         }
         catch (DbUpdateException ex)
         {
-            // Índice único (prompt_id, number): outra gravação venceu a corrida.
+            // Com os tamanhos validados no domínio, a falha restante é o índice único
+            // (prompt_id, number): outra gravação venceu a corrida.
+            _prompts.ResetTracking();
             _logger.LogWarning(ex, "Conflito de versão ao salvar prompt {PromptId}", id);
             return Result.Failure<AddPromptVersionResult>(new Error(ErrConflict, "O prompt foi alterado ao mesmo tempo em outro lugar. Recarregue e tente de novo."));
         }
@@ -319,15 +333,11 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
         if (from is null || to is null) return Result.Failure<int>(new Error(ErrValidation, "Informe a tag de origem e a de destino."));
         if (from == to) return Result.Success(0);
 
-        var ids = await _prompts.Query().Where(p => p.Tags.Any(t => t.Name == from)).Select(p => p.Id).ToListAsync(ct);
-        foreach (var pid in ids)
-        {
-            var p = await _prompts.GetForUpdateAsync(pid, ct);
-            if (p is null) continue;
+        var prompts = await _prompts.GetForUpdateByTagAsync(from, ct);
+        foreach (var p in prompts)
             p.SetTags(p.Tags.Select(t => t.Name == from ? to : t.Name).ToList());
-        }
         await _unitOfWork.SaveChangesAsync(ct);
-        return Result.Success(ids.Count);
+        return Result.Success(prompts.Count);
     }
 
     // ───────────────────── Origens (migração opt-in) ─────────────────────
@@ -373,18 +383,36 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
         return await CreateWithSourceAsync(request, userId, PromptSource.Snippet, snippetId, ct);
     }
 
-    private async Task<Result<PromptDetailDto>> CreateWithSourceAsync(CreatePromptRequest request, Guid userId, PromptSource source, Guid sourceRefId, CancellationToken ct)
+    private async Task<Result<PromptDetailDto>> CreateWithSourceAsync(CreatePromptRequest request, Guid userId, PromptSource source, Guid? sourceRefId, CancellationToken ct)
     {
-        try
+        for (var attempt = 1; ; attempt++)
         {
-            var prompt = await NewPromptAsync(userId, request, source, sourceRefId, ct);
-            await _prompts.AddAsync(prompt, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
-            return await GetAsync(prompt.Id, ct);
-        }
-        catch (ArgumentException ex)
-        {
-            return Result.Failure<PromptDetailDto>(new Error(ErrValidation, ex.Message));
+            try
+            {
+                var prompt = await NewPromptAsync(userId, request, source, sourceRefId, ct);
+                await _prompts.AddAsync(prompt, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                _logger.LogInformation("prompt.created {PromptId} source={Source}", prompt.Id, source);
+                return await GetAsync(prompt.Id, ct);
+            }
+            catch (ArgumentException ex)
+            {
+                _prompts.ResetTracking();
+                return Result.Failure<PromptDetailDto>(new Error(ErrValidation, ex.Message));
+            }
+            catch (DbUpdateException ex)
+            {
+                // Corrida num índice único: mesma origem (ex.: clique duplo no Gerador) → devolve o
+                // existente (idempotência real); slug → tenta de novo com outro sufixo.
+                _prompts.ResetTracking();
+                if (sourceRefId is { } refId && await _prompts.FindBySourceAsync(source, refId, ct) is { } existing)
+                    return await GetAsync(existing.Id, ct);
+                if (attempt >= 2)
+                {
+                    _logger.LogWarning(ex, "Falha ao criar prompt depois de {Attempts} tentativas", attempt);
+                    return Result.Failure<PromptDetailDto>(new Error(ErrConflict, "Não foi possível salvar o prompt agora (conflito de slug). Tente de novo."));
+                }
+            }
         }
     }
 
@@ -416,16 +444,21 @@ public class PromptLibraryService : IApplicationService, IPromptLibraryService
     private async Task<string> UniqueSlugAsync(string text, CancellationToken ct)
     {
         var baseSlug = PromptTemplate.Slugify(text);
-        if (!await _prompts.SlugExistsAsync(baseSlug, null, ct)) return baseSlug;
-        for (var i = 2; i < 500; i++)
+        // 1 query traz base e base-N; o sufixo é escolhido em memória.
+        var taken = new HashSet<string>(await _prompts.GetSlugsLikeAsync(baseSlug, ct), StringComparer.Ordinal);
+        if (!taken.Contains(baseSlug)) return baseSlug;
+        for (var i = 2; i < 10_000; i++)
         {
             var suffix = "-" + i;
-            var candidate = (baseSlug.Length + suffix.Length > PromptTemplate.MaxSlugLength
-                ? baseSlug[..(PromptTemplate.MaxSlugLength - suffix.Length)].TrimEnd('-')
-                : baseSlug) + suffix;
-            if (!await _prompts.SlugExistsAsync(candidate, null, ct)) return candidate;
+            var truncated = baseSlug.Length + suffix.Length > PromptTemplate.MaxSlugLength;
+            var candidate = (truncated ? baseSlug[..(PromptTemplate.MaxSlugLength - suffix.Length)].TrimEnd('-') : baseSlug) + suffix;
+            if (taken.Contains(candidate)) continue;
+            // Slug truncado não tem o prefixo da query: confirma no banco.
+            if (truncated && await _prompts.SlugExistsAsync(candidate, null, ct)) continue;
+            return candidate;
         }
-        return $"{baseSlug[..Math.Min(baseSlug.Length, 60)]}-{Guid.NewGuid():N}"[..PromptTemplate.MaxSlugLength];
+        var fallback = $"{baseSlug[..Math.Min(baseSlug.Length, 40)]}-{Guid.NewGuid():N}";
+        return fallback[..Math.Min(fallback.Length, PromptTemplate.MaxSlugLength)];
     }
 
     /// <summary>

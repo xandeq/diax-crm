@@ -114,9 +114,10 @@ public static class PromptMarkdownSerializer
 
         if (text.StartsWith("---\n"))
         {
-            var end = text.IndexOf("\n---", 4, StringComparison.Ordinal);
+            // Busca a partir do índice 3 para aceitar frontmatter vazio ("---\n---\n").
+            var end = text.IndexOf("\n---", 3, StringComparison.Ordinal);
             if (end < 0) throw new FormatException("Frontmatter aberto com '---' mas não fechado.");
-            var yaml = text[4..end];
+            var yaml = end > 4 ? text[4..end] : string.Empty;
             var afterFence = text.IndexOf('\n', end + 4);
             body = afterFence < 0 ? string.Empty : text[(afterFence + 1)..];
             if (yaml.Length > 20_000) throw new FormatException("Frontmatter grande demais (máx. 20 KB).");

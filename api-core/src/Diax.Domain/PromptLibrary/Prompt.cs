@@ -14,6 +14,8 @@ public class Prompt : AuditableEntity, IUserOwnedEntity
     public const int MaxTags = 20;
     public const int PreviewLength = 280;
     public const int MaxVariableNamesLength = 500;
+    public const int MaxFrameworkLength = 40;
+    public const int MaxTargetModelLength = 80;
 
     public Guid UserId { get; private set; }
     public string Title { get; private set; } = string.Empty;
@@ -137,9 +139,17 @@ public class Prompt : AuditableEntity, IUserOwnedEntity
     public void SetClassification(PromptKind kind, string? framework, string? targetModel)
     {
         Kind = kind;
-        Framework = string.IsNullOrWhiteSpace(framework) ? null : framework.Trim().ToLowerInvariant();
-        TargetModel = string.IsNullOrWhiteSpace(targetModel) ? null : targetModel.Trim();
+        Framework = Limited(string.IsNullOrWhiteSpace(framework) ? null : framework.Trim().ToLowerInvariant(), MaxFrameworkLength, "Framework");
+        TargetModel = Limited(string.IsNullOrWhiteSpace(targetModel) ? null : targetModel.Trim(), MaxTargetModelLength, "Modelo");
         Touch();
+    }
+
+    /// <summary>Valida tamanho (vira 400, não truncamento/500 no SQL).</summary>
+    internal static string? Limited(string? value, int max, string field)
+    {
+        if (value is { Length: > 0 } && value.Length > max)
+            throw new ArgumentException($"{field} deve ter no máximo {max} caracteres.");
+        return value;
     }
 
     public void MoveToCollection(Guid? collectionId)

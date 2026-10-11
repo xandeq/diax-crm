@@ -69,21 +69,25 @@ function norm(v: PromptVariable) {
   };
 }
 
-export function readLocal<T>(key: string): T | null {
+type StorageKind = 'local' | 'session';
+const storageOf = (kind: StorageKind) => (kind === 'session' ? window.sessionStorage : window.localStorage);
+
+/** Rascunhos usam localStorage (sobrevivem ao fechar a aba); valores de variáveis, sessionStorage. */
+export function readLocal<T>(key: string, kind: StorageKind = 'local'): T | null {
   try {
-    const raw = window.localStorage.getItem(key);
+    const raw = storageOf(kind).getItem(key);
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-export function writeLocal(key: string, value: unknown) {
+export function writeLocal(key: string, value: unknown, kind: StorageKind = 'local') {
   try {
-    if (value === null) window.localStorage.removeItem(key);
-    else window.localStorage.setItem(key, JSON.stringify(value));
+    if (value === null) storageOf(kind).removeItem(key);
+    else storageOf(kind).setItem(key, JSON.stringify(value));
   } catch {
-    /* storage indisponível: rascunho fica só em memória */
+    /* storage indisponível: fica só em memória */
   }
 }
 

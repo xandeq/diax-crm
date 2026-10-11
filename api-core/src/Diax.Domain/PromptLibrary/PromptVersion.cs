@@ -28,7 +28,7 @@ public class PromptVersion : Entity
         var note = string.IsNullOrWhiteSpace(changeNote) ? null : changeNote.Trim();
         ChangeNote = note is { Length: > MaxChangeNoteLength } ? note[..MaxChangeNoteLength] : note;
         Source = source;
-        FrameworkApplied = string.IsNullOrWhiteSpace(frameworkApplied) ? null : frameworkApplied.Trim().ToLowerInvariant();
+        FrameworkApplied = Prompt.Limited(string.IsNullOrWhiteSpace(frameworkApplied) ? null : frameworkApplied.Trim().ToLowerInvariant(), Prompt.MaxFrameworkLength, "Framework");
         ContentHash = PromptTemplate.ComputeHash(content, VariablesJson);
         CreatedAt = DateTime.UtcNow;
     }
@@ -76,8 +76,8 @@ public class PromptCollection : AuditableEntity, IUserOwnedEntity
         if (n.Length == 0) throw new ArgumentException("Nome da coleção é obrigatório.", nameof(name));
         if (n.Length > MaxNameLength) throw new ArgumentException($"Nome deve ter no máximo {MaxNameLength} caracteres.", nameof(name));
         Name = n;
-        Icon = string.IsNullOrWhiteSpace(icon) ? null : icon.Trim();
-        Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
+        Icon = Prompt.Limited(string.IsNullOrWhiteSpace(icon) ? null : icon.Trim(), 40, "Ícone");
+        Color = Prompt.Limited(string.IsNullOrWhiteSpace(color) ? null : color.Trim(), 16, "Cor");
         SetUpdated();
     }
 

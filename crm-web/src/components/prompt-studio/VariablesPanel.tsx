@@ -1,6 +1,6 @@
 'use client';
 
-import { segmentTemplate } from '@/lib/promptTemplate';
+import { ownValue, segmentTemplate } from '@/lib/promptTemplate';
 import type { PromptVariable, PromptVariableType } from '@/types/promptStudio';
 import { Check, Copy, Settings2 } from 'lucide-react';
 import { useState } from 'react';
@@ -20,7 +20,8 @@ const TYPE_LABELS: Record<PromptVariableType, string> = { text: 'Texto', textare
 
 export function VariablesPanel(p: Props) {
   const [editing, setEditing] = useState<string | null>(null);
-  const valueOf = (v: PromptVariable) => p.values[v.name] || v.default || '';
+  const own = (name: string) => ownValue(p.values, name);
+  const valueOf = (v: PromptVariable) => own(v.name) || v.default || '';
   const missing = p.variables.filter(v => v.required !== false && !valueOf(v));
   const byName = new Map(p.variables.map(v => [v.name, v]));
 
@@ -55,7 +56,7 @@ export function VariablesPanel(p: Props) {
           const empty = v.required !== false && !valueOf(v);
           const common = {
             id,
-            value: p.values[v.name] ?? '',
+            value: own(v.name) ?? '',
             placeholder: v.default ?? '',
             'aria-invalid': empty || undefined,
           };
@@ -74,7 +75,7 @@ export function VariablesPanel(p: Props) {
               {v.type === 'textarea' ? (
                 <textarea {...common} onChange={e => p.onValue(v.name, e.target.value)} />
               ) : v.type === 'select' && v.options?.length ? (
-                <select {...common} value={p.values[v.name] ?? v.default ?? ''} onChange={e => p.onValue(v.name, e.target.value)}>
+                <select {...common} value={own(v.name) ?? v.default ?? ''} onChange={e => p.onValue(v.name, e.target.value)}>
                   <option value="">Escolha…</option>
                   {v.options.map(o => <option key={o}>{o}</option>)}
                 </select>
@@ -93,7 +94,7 @@ export function VariablesPanel(p: Props) {
           if (s.kind === 'text') return <span key={i}>{s.text}</span>;
           if (s.escaped) return <span key={i}>{`{{${s.name}}}`}</span>;
           const meta = byName.get(s.name);
-          const val = p.values[s.name] || meta?.default || '';
+          const val = own(s.name) || meta?.default || '';
           return val ? <span key={i} className="ok">{val}</span> : <span key={i} className="miss">{s.raw}</span>;
         })}
       </div>

@@ -183,7 +183,7 @@ export default function PromptGeneratorPage() {
   const openInStudio = (promptId: string) => router.push(`/prompts/?p=${promptId}`);
 
   const saveHistoryItemToStudio = async (userPromptId: string) => {
-    setSavingToStudio(userPromptId);
+    setSavingToStudio(current => current ?? userPromptId);
     try {
       const saved = await promptStudioService.fromGenerator(userPromptId);
       toast.success('Salvo no Prompt Studio', {
@@ -196,12 +196,24 @@ export default function PromptGeneratorPage() {
     }
   };
 
+  /** Item do histórico que é exatamente o resultado exibido (outra aba pode ter gerado outro depois). */
+  const findHistoryIdForResult = async (): Promise<string | null> => {
+    if (loadedHistoryId) return loadedHistoryId;
+    try {
+      const latest = (await getPromptHistory(3)) ?? [];
+      for (const item of latest) {
+        const detail = await getPromptById(item.id);
+        if (detail.generatedPrompt === generatedPrompt) return item.id;
+      }
+    } catch { /* sem vínculo com o histórico: salva o conteúdo direto */ }
+    return null;
+  };
+
   const saveResultToStudio = async () => {
-    if (!generatedPrompt) return;
-    // O resultado atual é sempre o item mais recente do histórico (gerado ou carregado).
-    const id = loadedHistoryId ?? (await getPromptHistory(1).catch(() => []))[0]?.id;
+    if (!generatedPrompt || savingToStudio !== null) return;
+    setSavingToStudio('result'); // bloqueia clique duplo antes de qualquer await
+    const id = await findHistoryIdForResult();
     if (id) return saveHistoryItemToStudio(id);
-    setSavingToStudio('result');
     try {
       const saved = await promptStudioService.create({
         title: rawPrompt.split('\n')[0].slice(0, 120) || 'Prompt do Gerador',

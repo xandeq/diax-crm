@@ -15,8 +15,8 @@ public class PromptConfiguration : IEntityTypeConfiguration<Prompt>
         builder.Property(x => x.Slug).IsRequired().HasMaxLength(PromptTemplate.MaxSlugLength);
         builder.Property(x => x.Description).HasMaxLength(Prompt.MaxDescriptionLength);
         builder.Property(x => x.Kind).HasConversion<byte>();
-        builder.Property(x => x.Framework).HasMaxLength(40);
-        builder.Property(x => x.TargetModel).HasMaxLength(80);
+        builder.Property(x => x.Framework).HasMaxLength(Prompt.MaxFrameworkLength);
+        builder.Property(x => x.TargetModel).HasMaxLength(Prompt.MaxTargetModelLength);
         builder.Property(x => x.CurrentContentHash).IsRequired().HasMaxLength(64).IsFixedLength();
         builder.Property(x => x.Preview).IsRequired().HasMaxLength(Prompt.PreviewLength);
         builder.Property(x => x.VariableNames).HasMaxLength(Prompt.MaxVariableNamesLength);

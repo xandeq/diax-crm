@@ -154,7 +154,8 @@ export async function handlePromptTool(fetch: DiaxFetch, name: string, args: Rec
       if (args.query) p.set("q", String(args.query));
       if (args.tag) p.set("tag", String(args.tag));
       if (args.favorite) p.set("favorite", "true");
-      p.set("limit", String(Math.min(Number(args.limit ?? 15), 25)));
+      const limit = Number(args.limit);
+      p.set("limit", String(Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 25) : 15));
       const items = (await fetch(`/api/v1/prompts?${p}`)) as PromptListItem[];
       if (!items.length) return "Nenhum prompt encontrado.";
       return items
@@ -229,23 +230,38 @@ export async function handlePromptTool(fetch: DiaxFetch, name: string, args: Rec
 }
 
 // ── MCP prompts capability: prompts com "Expor no Claude Code" viram slash commands ──
-let listCache: { at: number; items: PromptListItem[] } | null = null;
+interface CatalogItem {
+  slug: string;
+  title: string;
+  description?: string | null;
+  preview: string;
+  variables: PromptVariable[];
+}
+
+let listCache: { at: number; items: CatalogItem[] } | null = null;
 
 export async function listMcpPrompts(fetch: DiaxFetch) {
   if (!listCache || Date.now() - listCache.at > 60_000) {
-    const items = (await fetch("/api/v1/prompts?exposeToMcp=true&sort=used&limit=100")) as PromptListItem[];
+    const items = (await fetch("/api/v1/prompts/mcp-catalog")) as CatalogItem[];
     listCache = { at: Date.now(), items };
   }
   return listCache.items.map(p => ({
     name: p.slug,
     title: p.title,
     description: p.description || p.preview.slice(0, 160),
-    arguments: p.variableNames.map(n => ({ name: n, description: `Valor de {{${n}}}`, required: true })),
+    // Opcional = marcada como não obrigatória OU com valor padrão (o render aplica o default).
+    arguments: p.variables.map(v => ({
+      name: v.name,
+      description: v.label ? `${v.label} ({{${v.name}}})` : `Valor de {{${v.name}}}`,
+      required: v.required !== false && !v.default,
+    })),
   }));
 }
 
 export async function getMcpPrompt(fetch: DiaxFetch, name: string, args: Record<string, string> | undefined) {
   const d = (await fetch(`/api/v1/prompts/by-slug/${enc(name)}`)) as PromptDetail;
+  // Só prompts marcados "Expor no Claude Code" viram slash command (as tools seguem livres).
+  if (!d.prompt.exposeToMcp) throw new Error(`O prompt "${name}" não está exposto no Claude Code.`);
   const r = (await fetch(`/api/v1/prompts/${d.prompt.id}/render`, {
     method: "POST",
     body: JSON.stringify({ variables: args ?? {} }),

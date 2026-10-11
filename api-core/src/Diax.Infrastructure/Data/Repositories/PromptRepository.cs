@@ -43,6 +43,20 @@ public class PromptRepository : Repository<Prompt>, IPromptRepository
     public Task<bool> SlugExistsAsync(string slug, Guid? exceptId, CancellationToken ct = default)
         => DbSet.AnyAsync(p => p.Slug == slug && (exceptId == null || p.Id != exceptId), ct);
 
+    public async Task<IReadOnlyList<string>> GetSlugsLikeAsync(string baseSlug, CancellationToken ct = default)
+    {
+        var prefix = baseSlug + "-";
+        return await DbSet.AsNoTracking()
+            .Where(p => p.Slug == baseSlug || p.Slug.StartsWith(prefix))
+            .Select(p => p.Slug)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Prompt>> GetForUpdateByTagAsync(string tag, CancellationToken ct = default)
+        => await DbSet.Include(p => p.Tags).Where(p => p.Tags.Any(t => t.Name == tag)).ToListAsync(ct);
+
+    public void ResetTracking() => Context.ChangeTracker.Clear();
+
     public Task<Prompt?> FindBySourceAsync(PromptSource source, Guid sourceRefId, CancellationToken ct = default)
         => DbSet.AsNoTracking().FirstOrDefaultAsync(p => p.Source == source && p.SourceRefId == sourceRefId, ct);
 

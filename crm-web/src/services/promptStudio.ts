@@ -81,9 +81,12 @@ export const promptStudioService = {
 
   /** Baixa .md (1 prompt + format=md) ou .zip. Nome do arquivo vem do Content-Disposition. */
   async exportPrompts(opts: { ids?: string[]; format: 'md' | 'zip'; flavor: ExportFlavor }): Promise<string> {
-    const qs = new URLSearchParams({ format: opts.format, flavor: opts.flavor });
-    opts.ids?.forEach(id => qs.append('ids', id));
-    const res = await apiFetchRaw(`/prompts/export?${qs}`);
+    // POST com ids no corpo: muitos GUIDs na query string estouram o maxQueryString do IIS.
+    const res = await apiFetchRaw('/prompts/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: opts.ids ?? [], format: opts.format, flavor: opts.flavor }),
+    });
     if (!res.ok) {
       let message = `Falha ao exportar (HTTP ${res.status})`;
       try { message = (await res.json()).message ?? message; } catch { /* corpo não-JSON */ }

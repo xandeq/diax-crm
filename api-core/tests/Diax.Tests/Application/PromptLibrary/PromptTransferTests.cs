@@ -106,6 +106,13 @@ public class PromptMarkdownSerializerTests
         Assert.Equal("Atue como dev sênior.\nSeja breve.", parsed.Content);
     }
 
+    [Fact]
+    public void Empty_frontmatter_is_accepted()
+    {
+        var parsed = PromptMarkdownSerializer.Parse("vazio.md", "---\n---\ncorpo\n\n---\nnão é frontmatter\n");
+        Assert.Equal("corpo\n\n---\nnão é frontmatter", parsed.Content);
+    }
+
     [Theory]
     [InlineData("---\ndiax: [oops\n---\ncorpo", "linha")]
     [InlineData("---\ndescription: x\nsem fechamento", "não fechado")]
@@ -237,6 +244,44 @@ public class PromptTransferServiceTests
         Assert.Equal(1, report.Value!.Summary.Create);
         Assert.Equal(1, report.Value.Summary.Errors);
         Assert.Contains(report.Value.Items, i => i.Action == "error" && i.Error!.Contains("YAML"));
+    }
+
+    [Fact]
+    public async Task Dry_run_matches_real_import_for_duplicate_slugs_in_same_batch()
+    {
+        var (t, _, _, uid) = Create();
+        var files = new[] { Md("a/cold.md", NewPromptMd), Md("b/cold.md", NewPromptMd.Replace("tudo bem?", "oi")) };
+
+        var preview = await t.ImportAsync(files, true, "new-version", uid);
+        var real = await t.ImportAsync(files, false, "new-version", uid);
+
+        Assert.Equal(new[] { "create", "newVersion" }, preview.Value!.Items.Select(i => i.Action));
+        Assert.Equal(new[] { "create", "newVersion" }, real.Value!.Items.Select(i => i.Action));
+    }
+
+    [Fact]
+    public async Task Invalid_field_in_one_file_does_not_break_the_rest_of_the_batch()
+    {
+        var (t, lib, _, uid) = Create();
+        var bad = "---\ndiax:\n  title: Ruim\n  targetModel: " + new string('m', 120) + "\n---\nconteúdo\n";
+        var report = await t.ImportAsync(new[] { Md("ruim.md", bad), Md("bom.md", "conteúdo bom") }, false, "new-version", uid);
+
+        Assert.Equal(new[] { "error", "create" }, report.Value!.Items.Select(i => i.Action));
+        Assert.Contains("80", report.Value.Items[0].Error);
+        Assert.Single(await lib.ListAsync(new PromptListQuery()));
+    }
+
+    [Fact]
+    public async Task Export_rejects_ids_from_nowhere_and_batches_many()
+    {
+        var (t, lib, _, uid) = Create();
+        for (var i = 0; i < 30; i++) await lib.CreateAsync(new CreatePromptRequest { Title = $"P {i:00}", Content = $"c{i}" }, uid);
+
+        var all = await t.ExportAsync(null, "zip", "diax");
+        using (var archive = new ZipArchive(new MemoryStream(all.Value!.Content)))
+            Assert.Equal(30, archive.Entries.Count);
+
+        Assert.True((await t.ExportAsync(new[] { Guid.NewGuid() }, "md", "diax")).IsFailure);
     }
 
     [Fact]

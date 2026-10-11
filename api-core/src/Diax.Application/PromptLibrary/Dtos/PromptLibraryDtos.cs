@@ -149,3 +149,11 @@ public sealed class ReorderCollectionsRequest
 }
 
 public sealed record UsePromptRequest(string? Channel);
+
+public sealed class ExportPromptsRequest
+{
+    /// <summary>Vazio = todos os não arquivados.</summary>
+    public List<Guid>? Ids { get; set; }
+    public string? Format { get; set; }
+    public string? Flavor { get; set; }
+}
