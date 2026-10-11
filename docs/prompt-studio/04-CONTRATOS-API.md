@@ -46,7 +46,12 @@ interface PromptDetail extends PromptListItem {
 > - Resposta de detalhe = `{ prompt: PromptListItem, targetModel, current: PromptVersion }`.
 > - `PATCH` sem `If-Match`; `clearCollection: true` remove a coleção.
 > - `POST /use` sem corpo. `GET /prompts/tags` e `POST /tags/rename` ok.
-> - **Ainda não implementados:** `/rewrite`, `/prompts/export`, `/prompts/import`, `/from-generator/bulk`.
+> - **Ainda não implementados:** `/rewrite`, `/from-generator/bulk`, export/import `.json`.
+>
+> **Import/export implementado (`PromptTransferService`):**
+> - `GET /prompts/export?format=md|zip&flavor=diax|claude-command&ids=<guid>&ids=…` → `format=md` com 1 id devolve `<slug>.md`; o resto devolve `.zip` (pastas por coleção no sabor DIAX; arquivos na raiz no sabor Claude Code). Sem `ids` = todos os não arquivados. CORS expõe `Content-Disposition`.
+> - `POST /prompts/import` (multipart `files[]`, `dryRun` padrão `true`, `strategy=new-version|skip|duplicate`) aceita `.md/.markdown/.txt/.zip`. Match por `diax.id` (se for do usuário) e depois por slug. Conteúdo e variáveis iguais = `unchanged`. A estratégia `new-version` **só versiona o conteúdo** (não mexe em tags/coleção do existente). Coleções são criadas pelo nome sob demanda. Limites: 50 arquivos por request, 5 MB por arquivo/zip, 512 KB por `.md`, 500 entradas e 20 MB descompactados por zip, UTF-8 obrigatório. Ações por item: `create|newVersion|unchanged|skip|error`.
+> - `$ARGUMENTS/$N` só é convertido em `{{var}}` em commands do Claude Code (sem bloco `diax` ou `diax.flavor: claude-command`). Nomes vêm das variáveis declaradas, depois do `argument-hint`, depois `arguments`/`argN`. Em arquivo DIAX, `$5,00` é texto literal.
 
 | Método | Rota | Descrição |
 |---|---|---|

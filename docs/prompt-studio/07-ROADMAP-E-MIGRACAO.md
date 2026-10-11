@@ -6,10 +6,11 @@ Estimativas em dias ideais de 1 dev com Claude Code. Cada fase termina em PR pr�
 
 - [x] **F0** domínio + migração aditiva + renderer + testes (`00ad6570`)
 - [x] **F1** API: CRUD, versões/409/no-op, restore, render, tags (+rename), coleções, from-generator/from-snippet (`00ad6570`)
-- [ ] **F1** import/export `.md/.zip/.json` com dry-run — **pendente** (próxima prioridade)
+- [x] **F1** import/export `.md/.txt/.zip` com dry-run, estratégias e sabor Claude Code (`c84fdd57` + UI). `.json` adiado.
 - [x] **F2** UI `/prompts` integrada ao AppShell: sidebar, lista, filtro local, editor com destaque, variáveis, preview, histórico+diff+restore, rascunho local, conflito (`13a4aa8e`, `8e567926`)
 - [x] **F3** nav + paleta global, "Salvar no Studio" no Gerador (resultado e histórico), "Virar prompt" nos Snippets
-- [ ] **F3** "Reescrever com framework" (`/rewrite`) e import dos 5 `prompts/*.txt` — pendentes (o import depende do importador)
+- [ ] **F3** "Reescrever com framework" (`/rewrite`) — pendente
+- [ ] Import dos 5 `prompts/*.txt` em produção — importador pronto e testado com esses arquivos; falta rodar depois do deploy
 - [x] **F4** `diax-mcp` 1.1: 4 tools + capability `prompts` (`c8dffd61`)
 - [ ] **Gate MVP**: aplicar migração em produção, smoke real com dados, axe-core, roteiro de teclado em produção
 

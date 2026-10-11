@@ -2,7 +2,10 @@
 
 import { tagColorClass } from '@/lib/promptTemplate';
 import type { PromptListItem } from '@/types/promptStudio';
-import { Menu, Plus, Search, Star } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Code2, Download, Menu, MoreVertical, Plus, Search, Star, Upload } from 'lucide-react';
 import { forwardRef, useEffect, useRef } from 'react';
 import { relativeTime, type StudioSort } from './shared';
 
@@ -22,6 +25,8 @@ interface Props {
   onNew: () => void;
   onClearFilters: () => void;
   onMenu: () => void;
+  onImport: () => void;
+  onExportVisible: (flavor: 'diax' | 'claude-command') => void;
 }
 
 export const PromptList = forwardRef<HTMLInputElement, Props>(function PromptList(p, filterRef) {
@@ -44,6 +49,21 @@ export const PromptList = forwardRef<HTMLInputElement, Props>(function PromptLis
             <option value="used">Mais usado</option>
             <option value="title">A–Z</option>
           </select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="ps-btn ghost icon" aria-label="Importar e exportar" title="Importar / exportar"><MoreVertical size={16} /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#0D1F18] border-white/10 text-slate-200">
+              <DropdownMenuItem onClick={p.onImport}><Upload size={14} className="mr-2" /> Importar .md / .txt / .zip…</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem disabled={!p.items.length} onClick={() => p.onExportVisible('diax')}>
+                <Download size={14} className="mr-2" /> Exportar {p.items.length} visíveis (.zip)
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!p.items.length} onClick={() => p.onExportVisible('claude-command')}>
+                <Code2 size={14} className="mr-2" /> Exportar como commands do Claude Code
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button className="ps-btn primary icon" onClick={p.onNew} aria-label="Novo prompt" title="Novo prompt (N)"><Plus size={16} /></button>
         </div>
         <div className="ps-filter">

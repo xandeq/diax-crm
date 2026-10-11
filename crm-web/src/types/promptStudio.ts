@@ -103,6 +103,27 @@ export interface UpdatePromptInput {
   exposeToMcp?: boolean;
 }
 
+export type ImportAction = 'create' | 'newVersion' | 'unchanged' | 'skip' | 'error';
+export type ImportStrategy = 'new-version' | 'skip' | 'duplicate';
+export type ExportFlavor = 'diax' | 'claude-command';
+
+export interface ImportItem {
+  file: string;
+  action: ImportAction;
+  slug?: string | null;
+  title?: string | null;
+  promptId?: string | null;
+  warnings: string[];
+  error?: string | null;
+}
+
+export interface ImportReport {
+  dryRun: boolean;
+  strategy: ImportStrategy;
+  summary: { create: number; newVersion: number; unchanged: number; skip: number; errors: number };
+  items: ImportItem[];
+}
+
 export interface AddVersionInput {
   content: string;
   variables?: PromptVariable[];

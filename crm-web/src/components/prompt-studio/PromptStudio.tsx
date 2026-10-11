@@ -6,13 +6,14 @@ import { normalizeForSearch, renderTemplate } from '@/lib/promptTemplate';
 import { ApiError } from '@/services/api';
 import { promptStudioService as svc } from '@/services/promptStudio';
 import type {
-  CreatePromptInput, PromptCollection, PromptDetail, PromptListItem, PromptVariable, UpdatePromptInput,
+  CreatePromptInput, ExportFlavor, PromptCollection, PromptDetail, PromptListItem, PromptVariable, UpdatePromptInput,
 } from '@/types/promptStudio';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Loader2, Plus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { ImportDialog } from './ImportDialog';
 import { NewPromptDialog } from './NewPromptDialog';
 import { PromptEditorPane } from './PromptEditorPane';
 import { PromptList } from './PromptList';
@@ -63,6 +64,7 @@ export function PromptStudio() {
   const [sideOpen, setSideOpen] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [values, setValues] = useState<Record<string, Record<string, string>>>({});
   const [saveOpen, setSaveOpen] = useState(false);
@@ -337,6 +339,17 @@ export function PromptStudio() {
     } catch (e) { toast.error(`Não foi possível duplicar: ${errMsg(e)}`); }
   };
 
+  const exportPrompts = async (ids: string[], flavor: ExportFlavor) => {
+    if (!ids.length) return;
+    if (dirty && detail && ids.includes(detail.prompt.id)) toast.info('O rascunho não salvo não entra no export (só a versão atual).');
+    try {
+      const fileName = await svc.exportPrompts({ ids, flavor, format: ids.length === 1 ? 'md' : 'zip' });
+      toast.success(flavor === 'claude-command'
+        ? `${fileName} baixado. Copie para ~/.claude/commands/ para usar como /comando.`
+        : `${fileName} baixado`);
+    } catch (e) { toast.error(`Não foi possível exportar: ${errMsg(e)}`); }
+  };
+
   const remove = () => {
     if (!detail) return;
     const { id, title } = detail.prompt;
@@ -468,6 +481,8 @@ export function PromptStudio() {
           onNew={() => setNewOpen(true)}
           onClearFilters={() => { setFilter(''); setActiveTags([]); setCollectionId(null); setView('all'); }}
           onMenu={() => setSideOpen(o => !o)}
+          onImport={() => setImportOpen(true)}
+          onExportVisible={flavor => void exportPrompts(items.map(i => i.id), flavor)}
         />
 
         {detail && selectedId ? (
@@ -484,6 +499,7 @@ export function PromptStudio() {
               onDiscard={discardDraft}
               onRestore={n => restoreMutation.mutate(n)}
               onDuplicate={() => void duplicate()}
+              onExport={flavor => void exportPrompts([detail.prompt.id], flavor)}
               onDelete={remove}
               onCopySlashCommand={() => void copySlash()}
               onBack={() => setShowDetail(false)}
@@ -516,6 +532,14 @@ export function PromptStudio() {
           </>
         )}
       </div>
+
+      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)}
+        onImported={report => {
+          refreshLists();
+          void qc.invalidateQueries({ queryKey: ['prompt'] });
+          const first = report.items.find(i => i.promptId && (i.action === 'create' || i.action === 'newVersion'));
+          if (first?.promptId) navigate(first.promptId);
+        }} />
 
       <NewPromptDialog open={newOpen} collections={collections} defaultCollectionId={collectionId}
         creating={createMutation.isPending} onClose={() => setNewOpen(false)} onCreate={i => createMutation.mutate(i)} />

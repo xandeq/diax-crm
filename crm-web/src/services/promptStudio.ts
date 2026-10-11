@@ -1,6 +1,9 @@
 import type {
   AddVersionInput,
   CreatePromptInput,
+  ExportFlavor,
+  ImportReport,
+  ImportStrategy,
   PromptCollection,
   PromptDetail,
   PromptListItem,
@@ -9,7 +12,7 @@ import type {
   PromptVersionSummary,
   UpdatePromptInput,
 } from '@/types/promptStudio';
-import { apiFetch } from './api';
+import { ApiError, apiFetch, apiFetchRaw } from './api';
 
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
 
@@ -74,6 +77,38 @@ export const promptStudioService = {
 
   fromSnippet(snippetId: string): Promise<PromptDetail> {
     return apiFetch<PromptDetail>(`/prompts/from-snippet/${snippetId}`, { method: 'POST' });
+  },
+
+  /** Baixa .md (1 prompt + format=md) ou .zip. Nome do arquivo vem do Content-Disposition. */
+  async exportPrompts(opts: { ids?: string[]; format: 'md' | 'zip'; flavor: ExportFlavor }): Promise<string> {
+    const qs = new URLSearchParams({ format: opts.format, flavor: opts.flavor });
+    opts.ids?.forEach(id => qs.append('ids', id));
+    const res = await apiFetchRaw(`/prompts/export?${qs}`);
+    if (!res.ok) {
+      let message = `Falha ao exportar (HTTP ${res.status})`;
+      try { message = (await res.json()).message ?? message; } catch { /* corpo não-JSON */ }
+      throw new ApiError(res.status, message);
+    }
+    const disposition = res.headers.get('Content-Disposition') ?? '';
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    const fileName = match ? decodeURIComponent(match[1]) : opts.format === 'md' ? 'prompt.md' : 'prompt-studio.zip';
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return fileName;
+  },
+
+  importPrompts(files: File[], opts: { dryRun: boolean; strategy: ImportStrategy }): Promise<ImportReport> {
+    const form = new FormData();
+    files.forEach(f => form.append('files', f, f.name));
+    form.append('dryRun', String(opts.dryRun));
+    form.append('strategy', opts.strategy);
+    return apiFetch<ImportReport>('/prompts/import', { method: 'POST', body: form });
   },
 
   collections(): Promise<PromptCollection[]> {

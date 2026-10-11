@@ -13,7 +13,8 @@ Biblioteca central de prompts do DIAX CRM: coleções, tags, favoritos, busca, e
 | F0+F1 backend (domínio, migração aditiva, API) | ✅ | `00ad6570` | 42 testes verdes (`dotnet test --filter PromptLibrary`) |
 | F2+F3 UI `/prompts` + Gerador + Snippets | ✅ | `13a4aa8e`, `8e567926` | `tsc` limpo, `next build` ok, revisão no navegador contra API mock |
 | F4 MCP (`diax-mcp`) | ✅ | `c8dffd61` | smoke e2e com cliente MCP real (tools, prompts/list, prompts/get) |
-| Import/export `.md/.zip/.json` | ⏳ pendente | — | contrato em 04 §5 |
+| Import/export `.md/.txt/.zip` (sabor DIAX e Claude Code) | ✅ | `c84fdd57` + commit da UI | 16 testes (58 no total), incluindo os 5 `prompts/*.txt`; UI validada no navegador (prévia, estratégia, confirmar, download) |
+| Export/import `.json` | ⏳ adiado | — | `.md` cobre backup e Claude Code; `.json` com histórico só se fizer falta |
 | "Reescrever com framework" (`/rewrite`) | ⏳ pendente | — | contrato em 04 §2 |
 | V2 (playground, comparação, testes, avaliações, Git) | ⏳ | — | 07 |
 
@@ -54,4 +55,4 @@ Biblioteca central de prompts do DIAX CRM: coleções, tags, favoritos, busca, e
 10. **Playground (V2) reusa a pilha de providers** extraindo `ITextLlmClient` com testes de caracterização antes (ADR-11).
 
 ## Próxima ação recomendada
-Revisar os 5 commits e abrir PR (fluxo do repo: worktree → PR → squash). Depois: import/export `.md` (fecha o ciclo com os commands do Claude Code) e importar os 5 `prompts/*.txt`.
+Revisar os commits e abrir o PR (fluxo do repo: worktree → PR → squash). Após o deploy: no Studio, **Importar** → selecionar os 5 `prompts/*.txt` → confirmar.

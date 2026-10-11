@@ -7,7 +7,7 @@ import { estimateTokens, normalizeTag, tagColorClass } from '@/lib/promptTemplat
 import { promptTypeOptions } from '@/services/promptGenerator';
 import type { PromptCollection, PromptDetail, PromptKind, UpdatePromptInput } from '@/types/promptStudio';
 import {
-  Archive, ArchiveRestore, ArrowLeft, Code2, Copy, Loader2, MoreHorizontal, Save, Star, Trash2, X,
+  Archive, ArchiveRestore, ArrowLeft, Code2, Copy, Download, Loader2, MoreHorizontal, Save, Star, Trash2, X,
 } from 'lucide-react';
 import { forwardRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -34,6 +34,7 @@ interface Props {
   onDiscard: () => void;
   onRestore: (n: number) => void;
   onDuplicate: () => void;
+  onExport: (flavor: 'diax' | 'claude-command') => void;
   onDelete: () => void;
   onCopySlashCommand: () => void;
   onBack: () => void;
@@ -91,6 +92,8 @@ export const PromptEditorPane = forwardRef<HTMLTextAreaElement, Props>(function 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-[#0D1F18] border-white/10 text-slate-200">
               <DropdownMenuItem onClick={p.onDuplicate}><Copy size={14} className="mr-2" /> Duplicar</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => p.onExport('diax')}><Download size={14} className="mr-2" /> Exportar .md</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => p.onExport('claude-command')}><Code2 size={14} className="mr-2" /> Exportar como command do Claude Code</DropdownMenuItem>
               <DropdownMenuItem onClick={() => p.onUpdate({ isArchived: !prompt.isArchived })}>
                 {prompt.isArchived ? <><ArchiveRestore size={14} className="mr-2" /> Desarquivar</> : <><Archive size={14} className="mr-2" /> Arquivar</>}
               </DropdownMenuItem>
