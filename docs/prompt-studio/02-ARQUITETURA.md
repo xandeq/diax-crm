@@ -65,7 +65,10 @@ O backend é a fonte da verdade. Web, MCP e import/export falam com a mesma API 
 - **Por quê:** mesma convenção do worker de email (`{{FirstName}}`), legível em qualquer LLM e fácil de mapear para argumentos MCP e `$ARGUMENTS` no Claude Code.
 - **Render:** função pura idêntica no cliente (preview ao vivo) e no servidor (`/render`, MCP). Testada com os mesmos vetores nos dois lados (fixture JSON compartilhada).
 
-### ADR-05: editor CodeMirror 6, não Tiptap
+### ADR-05 (revisado na implementação): textarea com overlay de destaque no MVP; CodeMirror 6 depois, nunca Tiptap
+> **Implementado:** `TemplateEditor.tsx`: `<textarea>` transparente sobre um `<pre>` com os mesmos métricas, destacando `{{var}}`. Zero dependência nova, undo/IME/acessibilidade nativos, Tab = 2 espaços, Esc libera o foco. Migrar para CodeMirror quando houver demanda real de autocomplete/busca no editor.
+
+**Proposta original:**
 - **Decisão:** `@uiw/react-codemirror` + `@codemirror/lang-markdown`, com decoração para `{{var}}` e autocomplete ao digitar `{{`. Carregado com `next/dynamic` só na rota do Studio. Preview com `react-markdown` (já instalado) sem `rehype-raw`.
 - **Por quê:** prompt é texto puro em que cada caractere importa. Tiptap (já no projeto, usado no blog) é WYSIWYG e reescreve markdown. CodeMirror tem undo, busca, multi-cursor e boa acessibilidade.
 - **Custo:** cerca de 150 KB gz, só nessa rota.

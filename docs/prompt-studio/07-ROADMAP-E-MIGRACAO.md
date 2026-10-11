@@ -2,6 +2,17 @@
 
 Estimativas em dias ideais de 1 dev com Claude Code. Cada fase termina em PR próprio, deployável e sem quebrar nada (feature visível só quando a fase 2 entra).
 
+## Progresso (2026-10-11)
+
+- [x] **F0** domínio + migração aditiva + renderer + testes (`00ad6570`)
+- [x] **F1** API: CRUD, versões/409/no-op, restore, render, tags (+rename), coleções, from-generator/from-snippet (`00ad6570`)
+- [ ] **F1** import/export `.md/.zip/.json` com dry-run — **pendente** (próxima prioridade)
+- [x] **F2** UI `/prompts` integrada ao AppShell: sidebar, lista, filtro local, editor com destaque, variáveis, preview, histórico+diff+restore, rascunho local, conflito (`13a4aa8e`, `8e567926`)
+- [x] **F3** nav + paleta global, "Salvar no Studio" no Gerador (resultado e histórico), "Virar prompt" nos Snippets
+- [ ] **F3** "Reescrever com framework" (`/rewrite`) e import dos 5 `prompts/*.txt` — pendentes (o import depende do importador)
+- [x] **F4** `diax-mcp` 1.1: 4 tools + capability `prompts` (`c8dffd61`)
+- [ ] **Gate MVP**: aplicar migração em produção, smoke real com dados, axe-core, roteiro de teclado em produção
+
 ## MVP (≈ 9–11 dias): biblioteca útil + Claude Code
 
 | Fase | Entrega | Critérios | Estimativa |

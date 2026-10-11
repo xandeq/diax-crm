@@ -2,8 +2,30 @@
 
 Biblioteca central de prompts do DIAX CRM: coleções, tags, favoritos, busca, editor Markdown com variáveis, versionamento com diff, import/export compatível com Claude Code e integração MCP. V2 traz testes, comparação, avaliações e Git sync.
 
-> **Etapa atual:** especificação, arquitetura, design e roadmap. **Nenhum código do módulo foi implementado.**
-> Branch `feat/prompt-studio` (sem upstream, para evitar push acidental na `main`) · base `origin/main` @ `aa586e54`.
+> **Etapa atual:** MVP implementado (F0–F4) na branch `feat/prompt-studio`, **sem push/merge e com migração NÃO aplicada em produção**.
+> Branch sem upstream (evita push acidental na `main`) · base `origin/main` @ `aa586e54`.
+
+## Status da implementação (2026-10-11)
+
+| Fase | Status | Commit | Evidência |
+|---|---|---|---|
+| Specs + protótipo | ✅ | `c8a935ab` | este diretório |
+| F0+F1 backend (domínio, migração aditiva, API) | ✅ | `00ad6570` | 42 testes verdes (`dotnet test --filter PromptLibrary`) |
+| F2+F3 UI `/prompts` + Gerador + Snippets | ✅ | `13a4aa8e`, `8e567926` | `tsc` limpo, `next build` ok, revisão no navegador contra API mock |
+| F4 MCP (`diax-mcp`) | ✅ | `c8dffd61` | smoke e2e com cliente MCP real (tools, prompts/list, prompts/get) |
+| Import/export `.md/.zip/.json` | ⏳ pendente | — | contrato em 04 §5 |
+| "Reescrever com framework" (`/rewrite`) | ⏳ pendente | — | contrato em 04 §2 |
+| V2 (playground, comparação, testes, avaliações, Git) | ⏳ | — | 07 |
+
+**Antes de ir para produção:** revisar o PR → aplicar `AddPromptLibrary` (só cria 4 tabelas; o `Migrate()` do startup aplica sozinho no deploy) → publicar `diax-mcp` 1.1.
+
+### Desvios das specs decididos na implementação
+- **Editor:** textarea com camada de destaque (zero dependências, undo nativo) em vez de CodeMirror. CodeMirror fica para quando faltar autocomplete de `{{`. (ADR-05 revisado)
+- **Paleta:** o `Ctrl+K` já pertence à paleta global do AppShell → o Studio não cria outra; ganhou entradas na global e atalhos locais (`/`, `J/K`, `F`, `E`, `N`, `Ctrl+S`, `Ctrl+Enter`, `Ctrl+1..3`).
+- **Lista:** `GET /prompts` devolve o índice inteiro (até 2.000, sem paginação) e o filtro fino é local; `q` existe para busca no conteúdo pelo servidor/MCP.
+- **Metadados:** `PATCH` sem `If-Match/rowVersion` (single-user, last-write-wins); conflito de **conteúdo** continua protegido pelo `baseVersionNumber` → 409.
+- **Variáveis persistidas** = as presentes no conteúdo (declaradas e não usadas são descartadas, sem warning).
+- **Copiar** fica no topo do painel de variáveis (o toast global do CRM cobria o botão no rodapé).
 
 ## Documentos
 
@@ -32,4 +54,4 @@ Biblioteca central de prompts do DIAX CRM: coleções, tags, favoritos, busca, e
 10. **Playground (V2) reusa a pilha de providers** extraindo `ITextLlmClient` com testes de caracterização antes (ADR-11).
 
 ## Próxima ação recomendada
-Aprovar o pacote → iniciar a **F0 (fundações: domínio, migração aditiva, renderer com fixture de vetores)** nesta branch.
+Revisar os 5 commits e abrir PR (fluxo do repo: worktree → PR → squash). Depois: import/export `.md` (fecha o ciclo com os commands do Claude Code) e importar os 5 `prompts/*.txt`.

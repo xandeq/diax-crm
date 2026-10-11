@@ -91,6 +91,9 @@ O Studio vive dentro do `AppShell` existente (sidebar global do CRM). Em `/promp
 - Ações: Restaurar esta versão (cria v8), Copiar, Abrir em modo leitura.
 
 ### 4.6 Command palette (Raycast-like)
+> **Implementado diferente:** o `Ctrl/⌘+K` já é da paleta global do AppShell. O Studio registra entradas nela ("Ir para Prompt Studio", "Ir para Gerador de Prompts") e usa o filtro da lista como busca rápida (`/` foca, `Enter`/`↓` abre o 1º, `J/K` navega, `Ctrl+Enter` copia). Busca de prompts dentro da paleta global fica para V2.
+
+**Especificação original:**
 - `Ctrl/⌘+K` em qualquer lugar do Studio; também registrada na palette global do `AppShell` ("Prompts: …").
 - Seções: Prompts (fuzzy no índice local) · Ações (Novo, Importar, Exportar…) · Coleções · Tags.
 - Item de prompt: `Enter` abre · `Ctrl+Enter` copia renderizado (pede variáveis faltantes num passo inline) · `Ctrl+Shift+C` copia bruto · `Tab` mostra preview à direita.

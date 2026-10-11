@@ -41,6 +41,13 @@ interface PromptDetail extends PromptListItem {
 
 ## 2. Prompts (MVP)
 
+> **Implementado (`PromptsController`)** — diferenças do contrato abaixo:
+> - `GET /prompts` aceita `q, tag, collectionId, favorite, kind, archived, exposeToMcp, sort (updated|used|title|created), limit (≤2000)` e devolve **array** (sem `PagedResult`/`ETag`).
+> - Resposta de detalhe = `{ prompt: PromptListItem, targetModel, current: PromptVersion }`.
+> - `PATCH` sem `If-Match`; `clearCollection: true` remove a coleção.
+> - `POST /use` sem corpo. `GET /prompts/tags` e `POST /tags/rename` ok.
+> - **Ainda não implementados:** `/rewrite`, `/prompts/export`, `/prompts/import`, `/from-generator/bulk`.
+
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/prompts` | Lista paginada / índice |
