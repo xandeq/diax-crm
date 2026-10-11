@@ -353,6 +353,24 @@ public class ExtractorIntegrationServiceTests
             It.Is<RawLeadData>(d => d.WhatsApp == "27999001122")), Times.Once);
     }
 
+    [Fact]
+    public async Task ImportLeads_FixedLinePhone_DoesNotFallBackToWhatsApp()
+    {
+        // 10/10/2026: telefone FIXO (sem o "9" celular) virava WhatsApp por fallback cego —
+        // 277 leads no CRM com fixo marcado como WhatsApp num único dia. O bot não enviava pra
+        // eles (export filtra celular), mas o campo mentia. Só celular BR (DDD+9+8 dígitos) cai
+        // no fallback.
+        SetupExtractorPage(1, new List<ExtractorLead>
+        {
+            new() { Id = 1, ContactName = "Test", Email = "t@t.com", Phone = "(27) 3029-4331", WhatsApp = null }
+        }, total: 1);
+
+        await _sut.ImportLeadsAsync();
+
+        _sanitizationMock.Verify(s => s.SanitizeAndClassify(
+            It.Is<RawLeadData>(d => d.WhatsApp == null && d.Phone == "(27) 3029-4331")), Times.Once);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // REGRESSION — endpoints existentes não quebrados
     // ═══════════════════════════════════════════════════════════════════════════
