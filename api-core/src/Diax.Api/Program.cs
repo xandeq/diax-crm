@@ -179,6 +179,8 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials()
+              // Downloads (ex.: export do Prompt Studio) leem o nome do arquivo cross-origin.
+              .WithExposedHeaders("Content-Disposition")
               .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });

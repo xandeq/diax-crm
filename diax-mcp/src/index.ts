@@ -2,8 +2,11 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { getMcpPrompt, handlePromptTool, isPromptTool, listMcpPrompts, PROMPT_TOOLS } from "./promptLibrary.js";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -592,16 +595,33 @@ async function handleTool(name: string, args: Record<string, unknown>): Promise<
 // MCP Server
 // ---------------------------------------------------------------------------
 const server = new Server(
-  { name: "diax-crm", version: "1.0.0" },
-  { capabilities: { tools: {} } }
+  { name: "diax-crm", version: "1.1.0" },
+  { capabilities: { tools: {}, prompts: {} } }
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: [...TOOLS, ...PROMPT_TOOLS] }));
+
+// Prompt Studio: prompts com "Expor no Claude Code" → /mcp__diax-crm__<slug>
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  try {
+    return { prompts: await listMcpPrompts(diaxFetch) };
+  } catch (err) {
+    process.stderr.write(`[diax-mcp] prompts/list falhou: ${err instanceof Error ? err.message : String(err)}\n`);
+    return { prompts: [] };
+  }
+});
+
+server.setRequestHandler(GetPromptRequestSchema, async (req) =>
+  getMcpPrompt(diaxFetch, req.params.name, req.params.arguments as Record<string, string> | undefined)
+);
 
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const { name, arguments: args } = req.params;
   try {
-    const result = await handleTool(name, (args ?? {}) as Record<string, unknown>);
+    const toolArgs = (args ?? {}) as Record<string, unknown>;
+    const result = isPromptTool(name)
+      ? await handlePromptTool(diaxFetch, name, toolArgs)
+      : await handleTool(name, toolArgs);
     return { content: [{ type: "text", text: result }] };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

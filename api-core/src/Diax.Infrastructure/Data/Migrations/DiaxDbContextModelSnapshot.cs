@@ -6024,6 +6024,273 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.ToTable("user_prompts", (string)null);
                 });
 
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.Prompt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CollectionId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("collection_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("CurrentContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .HasColumnName("current_content_hash")
+                        .IsFixedLength();
+
+                    b.Property<int>("CurrentVersionNumber")
+                        .HasColumnType("int")
+                        .HasColumnName("current_version_number");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("ExposeToMcp")
+                        .HasColumnType("bit")
+                        .HasColumnName("expose_to_mcp");
+
+                    b.Property<string>("Framework")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("framework");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_archived");
+
+                    b.Property<bool>("IsFavorite")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_favorite");
+
+                    b.Property<byte>("Kind")
+                        .HasColumnType("tinyint")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<string>("Preview")
+                        .IsRequired()
+                        .HasMaxLength(280)
+                        .HasColumnType("nvarchar(280)")
+                        .HasColumnName("preview");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)")
+                        .HasColumnName("slug");
+
+                    b.Property<byte>("Source")
+                        .HasColumnType("tinyint")
+                        .HasColumnName("source");
+
+                    b.Property<Guid?>("SourceRefId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("source_ref_id");
+
+                    b.Property<string>("TargetModel")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)")
+                        .HasColumnName("target_model");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("UseCount")
+                        .HasColumnType("int")
+                        .HasColumnName("use_count");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("VariableNames")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("variable_names");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CollectionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CollectionId");
+
+                    b.HasIndex("UserId", "Slug")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "IsArchived", "UpdatedAt");
+
+                    b.HasIndex("UserId", "Source", "SourceRefId")
+                        .IsUnique()
+                        .HasFilter("[source_ref_id] IS NOT NULL");
+
+                    b.ToTable("prompts", (string)null);
+                });
+
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.PromptCollection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("icon");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("prompt_collections", (string)null);
+                });
+
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.PromptTag", b =>
+                {
+                    b.Property<Guid>("PromptId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("prompt_id");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("name");
+
+                    b.HasKey("PromptId", "Name");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("prompt_tags", (string)null);
+                });
+
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.PromptVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ChangeNote")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("change_note");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .HasColumnName("content_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FrameworkApplied")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("framework_applied");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int")
+                        .HasColumnName("number");
+
+                    b.Property<Guid>("PromptId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("prompt_id");
+
+                    b.Property<byte>("Source")
+                        .HasColumnType("tinyint")
+                        .HasColumnName("source");
+
+                    b.Property<string>("VariablesJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("variables_json");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PromptId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("prompt_versions", (string)null);
+                });
+
             modelBuilder.Entity("Diax.Domain.Snippets.Snippet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6822,6 +7089,34 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.Navigation("Template");
                 });
 
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.Prompt", b =>
+                {
+                    b.HasOne("Diax.Domain.PromptLibrary.PromptCollection", "Collection")
+                        .WithMany()
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Collection");
+                });
+
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.PromptTag", b =>
+                {
+                    b.HasOne("Diax.Domain.PromptLibrary.Prompt", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("PromptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.PromptVersion", b =>
+                {
+                    b.HasOne("Diax.Domain.PromptLibrary.Prompt", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("PromptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Diax.Domain.Snippets.SnippetAttachment", b =>
                 {
                     b.HasOne("Diax.Domain.Snippets.Snippet", "Snippet")
@@ -6928,6 +7223,13 @@ namespace Diax.Infrastructure.Data.Migrations
             modelBuilder.Entity("Diax.Domain.ImageGeneration.ImageGenerationProject", b =>
                 {
                     b.Navigation("GeneratedImages");
+                });
+
+            modelBuilder.Entity("Diax.Domain.PromptLibrary.Prompt", b =>
+                {
+                    b.Navigation("Tags");
+
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Diax.Domain.Snippets.Snippet", b =>

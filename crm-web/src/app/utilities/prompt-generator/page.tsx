@@ -25,10 +25,12 @@ import {
     promptTypeOptions,
     UserPromptHistory
 } from '@/services/promptGenerator';
+import { promptStudioService } from '@/services/promptStudio';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
     AlertCircle,
+    BookmarkPlus,
     Check,
     Clock,
     Copy,
@@ -57,6 +59,8 @@ export default function PromptGeneratorPage() {
     const [selectedPromptType, setSelectedPromptType] = useState<PromptType>('professional');
     const [copied, setCopied] = useState(false);
     const [history, setHistory] = useState<UserPromptHistory[]>([]);
+  const [loadedHistoryId, setLoadedHistoryId] = useState<string | null>(null);
+  const [savingToStudio, setSavingToStudio] = useState<string | null>(null);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [errorObj, setErrorObj] = useState<{
         message: string;
@@ -104,6 +108,7 @@ export default function PromptGeneratorPage() {
       // Preencher o form com os dados do histórico
       setRawPrompt(detail.originalInput);
       setGeneratedPrompt(detail.generatedPrompt);
+      setLoadedHistoryId(id);
       setSelectedProvider(detail.provider); // Cast removed, handling string
 
       // Se houver tipo de prompt salvo, tenta setar
@@ -135,6 +140,7 @@ export default function PromptGeneratorPage() {
 
     setLoading(true);
     setGeneratedPrompt('');
+    setLoadedHistoryId(null);
     setErrorObj(null);
 
     try {
@@ -170,6 +176,64 @@ export default function PromptGeneratorPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Prompt Studio: salva o resultado na biblioteca (idempotente via histórico) ──
+  const openInStudio = (promptId: string) => router.push(`/prompts/?p=${promptId}`);
+
+  /**
+   * `lockKey` = quem segura a trava: o card passa o próprio id; o fluxo do resultado passa
+   * 'result' (já travado antes). Só quem travou destrava — um card não libera o botão principal.
+   */
+  const saveHistoryItemToStudio = async (userPromptId: string, lockKey: string = userPromptId) => {
+    if (lockKey === userPromptId) {
+      if (savingToStudio !== null) return;
+      setSavingToStudio(userPromptId);
+    }
+    try {
+      const saved = await promptStudioService.fromGenerator(userPromptId);
+      toast.success('Salvo no Prompt Studio', {
+        action: { label: 'Abrir', onClick: () => openInStudio(saved.prompt.id) },
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? `Não foi possível salvar: ${err.message}` : 'Não foi possível salvar no Prompt Studio.');
+    } finally {
+      setSavingToStudio(current => (current === lockKey ? null : current));
+    }
+  };
+
+  /** Item do histórico que é exatamente o resultado exibido (outra aba pode ter gerado outro depois). */
+  const findHistoryIdForResult = async (): Promise<string | null> => {
+    if (loadedHistoryId) return loadedHistoryId;
+    try {
+      const latest = (await getPromptHistory(3)) ?? [];
+      for (const item of latest) {
+        const detail = await getPromptById(item.id);
+        if (detail.generatedPrompt === generatedPrompt) return item.id;
+      }
+    } catch { /* sem vínculo com o histórico: salva o conteúdo direto */ }
+    return null;
+  };
+
+  const saveResultToStudio = async () => {
+    if (!generatedPrompt || savingToStudio !== null) return;
+    setSavingToStudio('result'); // bloqueia clique duplo antes de qualquer await
+    const id = await findHistoryIdForResult();
+    if (id) return saveHistoryItemToStudio(id, 'result');
+    try {
+      const saved = await promptStudioService.create({
+        title: rawPrompt.split('\n')[0].slice(0, 120) || 'Prompt do Gerador',
+        content: generatedPrompt,
+        framework: selectedPromptType,
+        source: 'generator',
+        changeNote: `Gerado com ${selectedPromptType}`,
+      });
+      toast.success('Salvo no Prompt Studio', { action: { label: 'Abrir', onClick: () => openInStudio(saved.prompt.id) } });
+    } catch (err) {
+      toast.error(err instanceof Error ? `Não foi possível salvar: ${err.message}` : 'Não foi possível salvar no Prompt Studio.');
+    } finally {
+      setSavingToStudio(null);
     }
   };
 
@@ -362,6 +426,20 @@ export default function PromptGeneratorPage() {
                       Otimizado para {currentProvider?.name}
                    </Badge>
                 </div>
+                <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={saveResultToStudio}
+                  disabled={savingToStudio !== null}
+                  className="h-9 px-3 hover:bg-muted"
+                  title="Guardar este prompt na biblioteca (Prompt Studio)"
+                >
+                  {savingToStudio !== null
+                    ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    : <BookmarkPlus className="mr-2 h-4 w-4" />}
+                  Salvar no Studio
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -378,6 +456,7 @@ export default function PromptGeneratorPage() {
                     </>
                   )}
                 </Button>
+                </div>
               </div>
               <div className="relative rounded-lg border bg-muted/30 p-1">
                 <Textarea
@@ -512,6 +591,20 @@ export default function PromptGeneratorPage() {
                           {item.provider}
                        </span>
                     </div>
+                    <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0 text-xs"
+                      onClick={() => saveHistoryItemToStudio(item.id)}
+                      disabled={savingToStudio !== null}
+                      title="Salvar no Prompt Studio"
+                      aria-label="Salvar no Prompt Studio"
+                    >
+                      {savingToStudio === item.id
+                        ? <RefreshCw className="h-3 w-3 animate-spin" />
+                        : <BookmarkPlus className="h-3.5 w-3.5" />}
+                    </Button>
                     <Button
                       size="sm"
                       variant="secondary"
@@ -521,6 +614,7 @@ export default function PromptGeneratorPage() {
                       Ver Detalhes
                       <ExternalLink className="w-3 h-3 ml-1.5" />
                     </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
