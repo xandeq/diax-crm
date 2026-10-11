@@ -200,3 +200,52 @@ Sem parâmetros.
 | 2 | Medium |
 | 3 | High |
 | 4 | Urgent |
+
+
+---
+
+## Prompt Studio (biblioteca de prompts)
+
+Cliente fino de `/api/v1/prompts`: render e versionamento acontecem no backend. Implementação em `src/promptLibrary.ts`.
+
+### `search_prompts`
+Busca por texto (título, slug, tags, descrição, conteúdo da versão atual), tag ou favoritos.
+
+| Param | Type | Description |
+|---|---|---|
+| `query` | string | Texto livre |
+| `tag` | string | Filtra por tag |
+| `favorite` | boolean | Só favoritos |
+| `limit` | number | Default 15, max 25 |
+
+### `get_prompt`
+Markdown com frontmatter (título, slug, versão, tags, framework, variáveis) + conteúdo.
+
+| Param | Type | Description |
+|---|---|---|
+| `slug_or_id` | string | **Obrigatório** |
+| `version` | number | Versão específica (default: atual) |
+
+### `render_prompt`
+Preenche `{{variáveis}}` (com defaults). Se faltar obrigatória, devolve a lista do que falta em vez de erro. Registra uso.
+
+| Param | Type | Description |
+|---|---|---|
+| `slug_or_id` | string | **Obrigatório** |
+| `variables` | object | `{ "nome": "valor" }` |
+
+### `save_prompt`
+Sem `slug_or_id` cria um prompt (v1, `source=mcp`); com `slug_or_id` cria nova versão (nunca sobrescreve; conteúdo igual = no-op).
+
+| Param | Type | Description |
+|---|---|---|
+| `content` | string | **Obrigatório** |
+| `title` | string | Obrigatório ao criar |
+| `slug_or_id` | string | Prompt existente → nova versão |
+| `tags` | string[] | Ao criar |
+| `description` | string | Ao criar |
+| `change_note` | string | Nota da versão |
+| `expose_to_mcp` | boolean | Ao criar: vira slash command |
+
+### MCP prompts (slash commands)
+A capability `prompts` lista os prompts com **"Expor no Claude Code"** ligado (máx. 100, por uso). No Claude Code aparecem como `/mcp__diax-crm__<slug>`, com as variáveis como argumentos. A lista é carregada na conexão: prompt recém-exposto aparece após `/mcp` → reconnect (cache interno de 60 s).
