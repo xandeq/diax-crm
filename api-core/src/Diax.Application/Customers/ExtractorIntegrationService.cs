@@ -341,6 +341,16 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
     private static readonly HashSet<string> GenericScrapedNames =
         new(StringComparer.OrdinalIgnoreCase) { "resultados", "resultado", "results", "result" };
 
+    /// <summary>Celular BR (DDD + 9 + 8 dígitos, +55 opcional). Mesma regra do extrator
+    /// (_br_mobile_whatsapp) e do export do outreach WhatsApp — só celular recebe WA.</summary>
+    private static bool IsBrazilianMobile(string? phone)
+    {
+        var digits = new string((phone ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (digits.Length >= 12 && digits.StartsWith("55", StringComparison.Ordinal))
+            digits = digits[2..];
+        return digits.Length == 11 && digits[2] == '9';
+    }
+
     private static bool IsGenericScrapedName(string? name) =>
         !string.IsNullOrWhiteSpace(name) && GenericScrapedNames.Contains(name.Trim());
 
@@ -361,6 +371,8 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
         // "create órfão".
         // IMPT-01: o lead.Id agora viaja em ImportCustomerRow.ExternalId e é a PRIMEIRA chave de
         // dedup tentada pelo CustomerImportService (antes de e-mail e telefone).
+        // Qualquer formato (fixo ou celular) conta como contato usável aqui — o fixo-only
+        // ainda vira lead válido no CRM (#167); só não pode virar WhatsApp (ver abaixo).
         var usablePhone = !string.IsNullOrWhiteSpace(lead.WhatsApp) ? lead.WhatsApp : lead.Phone;
         var hasEmail = !string.IsNullOrWhiteSpace(lead.Email);
         var hasPhone = !string.IsNullOrWhiteSpace(usablePhone);
@@ -388,7 +400,9 @@ public class ExtractorIntegrationService : IExtractorIntegrationService
             Name: name,
             Email: lead.Email ?? string.Empty,
             Phone: lead.Phone,
-            WhatsApp: lead.WhatsApp ?? lead.Phone,
+            // 10/10/2026: fixo (sem o "9" celular) virava WhatsApp por fallback cego — 277 leads
+            // num único dia com o campo errado. Só celular BR cai no fallback; fixo fica só em Phone.
+            WhatsApp: lead.WhatsApp ?? (IsBrazilianMobile(lead.Phone) ? lead.Phone : null),
             CompanyName: lead.CompanyName,
             Notes: noteParts.Count > 0 ? string.Join("\n", noteParts) : null,
             Tags: string.Join(",", tags),
