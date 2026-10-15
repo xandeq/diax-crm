@@ -1,7 +1,10 @@
 using Asp.Versioning;
 using Diax.Api.Auth;
+using Diax.Application.Auth;
 using Diax.Application.SurfAlerts;
 using Diax.Application.SurfAlerts.Dtos;
+using Diax.Domain.Common;
+using Diax.Shared.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +16,20 @@ namespace Diax.Api.Controllers.V1;
 [Produces("application/json")]
 public class SurfAlertsController : BaseApiController
 {
-    private readonly ISurfAlertService _service;
+    private const string ViewPermission = "surf-alerts.view";
 
-    public SurfAlertsController(ISurfAlertService service)
+    private readonly ISurfAlertService _service;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IPermissionService _permissionService;
+
+    public SurfAlertsController(
+        ISurfAlertService service,
+        ICurrentUserService currentUser,
+        IPermissionService permissionService)
     {
         _service = service;
+        _currentUser = currentUser;
+        _permissionService = permissionService;
     }
 
     /// <summary>
@@ -59,15 +71,43 @@ public class SurfAlertsController : BaseApiController
     }
 
     /// <summary>
-    /// Lista os alertas de surf mais recentes. Leitura via sessão logada (JWT).
+    /// Lista os alertas de surf mais recentes. Aceita sessão logada (JWT, painel) OU
+    /// header X-Alert-Api-Key com escopo 'surf-alerts.view' (automações/scripts).
     /// </summary>
     [HttpGet]
-    [Authorize]
-    [RequirePermission("surf-alerts.view")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(IReadOnlyList<SurfAlertResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetRecent([FromQuery] int limit = 10, CancellationToken ct = default)
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetRecent(
+        [FromHeader(Name = "X-Alert-Api-Key")] string? apiKey,
+        [FromQuery] int limit = 10,
+        CancellationToken ct = default)
     {
-        var result = await _service.GetRecentAsync(limit, ct);
+        Result<IReadOnlyList<SurfAlertResponse>> result;
+
+        if (_currentUser.IsAuthenticated && _currentUser.UserId.HasValue)
+        {
+            if (!await _permissionService.HasPermissionAsync(_currentUser.UserId.Value, ViewPermission, ct))
+                return Forbid();
+
+            result = await _service.GetRecentAsync(null, limit, ct);
+        }
+        else if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            result = await _service.GetRecentAsync(apiKey, limit, ct);
+        }
+        else
+        {
+            return Unauthorized(new { code = "SurfAlert.Unauthorized", message = "Sessão logada (JWT) ou header X-Alert-Api-Key obrigatórios." });
+        }
+
+        if (!result.IsSuccess)
+        {
+            if (result.Error.Code.Contains("Unauthorized")) return Unauthorized(new { result.Error.Code, result.Error.Message });
+            if (result.Error.Code.Contains("Forbidden")) return Forbid();
+        }
+
         return HandleResult(result);
     }
 }

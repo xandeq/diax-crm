@@ -158,6 +158,7 @@ export function Header() {
                 <Link href="/agenda" className={menuItemClass} role="menuitem">Agenda</Link>
                 <Link href="/tasks" className={menuItemClass} role="menuitem">Tarefas</Link>
                 <Link href="/household/checklists" className={menuItemClass} role="menuitem">Listas e Compras</Link>
+                <Link href="/surf-alerts" className={menuItemClass} role="menuitem">Alertas de Surf</Link>
                 <div className={separatorClass}></div>
                 <Link href="/utilities/snippets" className={menuItemClass} role="menuitem">Snippets</Link>
                 <Link href="/tools/html-extractor" className={menuItemClass} role="menuitem">Extrator HTML → Texto</Link>
@@ -271,6 +272,7 @@ export function Header() {
               <Link href="/agenda" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Agenda</Link>
               <Link href="/tasks" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Tarefas</Link>
               <Link href="/household/checklists" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Listas e Compras</Link>
+              <Link href="/surf-alerts" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Alertas de Surf</Link>
               <Link href="/utilities/snippets" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Snippets</Link>
               <Link href="/tools/html-extractor" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Extrator HTML → Texto</Link>
               <Link href="/tools/apps-inventory" className="block px-6 py-2.5 text-sm text-slate-600 hover:bg-slate-100" onClick={() => setMobileOpen(false)}>Inventário de Apps</Link>

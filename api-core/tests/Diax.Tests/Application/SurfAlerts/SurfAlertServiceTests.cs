@@ -195,6 +195,47 @@ public class SurfAlertServiceTests
     }
 
     [Fact]
+    public async Task GetRecentAsync_WithNullApiKey_SkipsAuthAndReturnsItems()
+    {
+        var svc = BuildService(out var repoMock, out _, out _);
+        repoMock.Setup(r => r.GetRecentAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<SurfAlert>)new List<SurfAlert>());
+
+        var result = await svc.GetRecentAsync(null, 10);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task GetRecentAsync_WithApiKeyMissingViewScope_ReturnsForbidden()
+    {
+        var svc = BuildService(out _, out var keyRepoMock, out _);
+        var (key, plain) = CreateKeyWithScope("surf-alerts.ingest"); // sem 'view'
+        keyRepoMock.Setup(r => r.GetByKeyHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(key);
+
+        var result = await svc.GetRecentAsync(plain, 10);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Forbidden", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task GetRecentAsync_WithValidViewScopeApiKey_ReturnsItems()
+    {
+        var svc = BuildService(out var repoMock, out var keyRepoMock, out _);
+        var (key, plain) = CreateKeyWithScope("surf-alerts.view");
+        keyRepoMock.Setup(r => r.GetByKeyHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(key);
+        repoMock.Setup(r => r.GetRecentAsync(5, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<SurfAlert>)new List<SurfAlert>());
+
+        var result = await svc.GetRecentAsync(plain, 5);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
     public async Task IngestAsync_ExceedingRateLimit_ReturnsRateLimited()
     {
         var cache = BuildCache();
