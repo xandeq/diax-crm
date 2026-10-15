@@ -6388,6 +6388,95 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.ToTable("snippet_attachments", (string)null);
                 });
 
+            modelBuilder.Entity("Diax.Domain.SurfAlerts.SurfAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AlternativesJson")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("alternatives_json");
+
+                    b.Property<string>("BestWindowJson")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("best_window_json");
+
+                    b.Property<string>("CalendarConflictsJson")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("calendar_conflicts_json");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("generated_at");
+
+                    b.Property<bool>("HasGoodWindow")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_good_window");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<string>("RawPayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("raw_payload_json");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("SourcesJson")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("sources_json");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("type");
+
+                    b.Property<DateOnly>("WeekendSaturday")
+                        .HasColumnType("date")
+                        .HasColumnName("weekend_saturday");
+
+                    b.Property<DateOnly>("WeekendSunday")
+                        .HasColumnType("date")
+                        .HasColumnName("weekend_sunday");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_surf_alerts_created_at");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_surf_alerts_idempotency_key")
+                        .HasFilter("[idempotency_key] IS NOT NULL");
+
+                    b.ToTable("surf_alerts", (string)null);
+                });
+
             modelBuilder.Entity("Diax.Domain.Tasks.TaskItem", b =>
                 {
                     b.Property<Guid>("Id")

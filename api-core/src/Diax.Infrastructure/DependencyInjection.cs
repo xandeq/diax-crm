@@ -237,6 +237,7 @@ public static class DependencyInjection
         services.AddScoped<IImportedTransactionRepository, ImportedTransactionRepository>();
         services.AddScoped<IAppLogRepository, AppLogRepository>();
         services.AddScoped<Diax.Domain.ErrorLogs.IErrorLogRepository, Diax.Infrastructure.Data.Repositories.ErrorLogRepository>();
+        services.AddScoped<Diax.Domain.SurfAlerts.ISurfAlertRepository, Diax.Infrastructure.Data.Repositories.SurfAlertRepository>();
         services.AddScoped<ISnippetRepository, SnippetRepository>();
         services.AddScoped<ISnippetAttachmentRepository, SnippetAttachmentRepository>();
         services.AddScoped<Diax.Domain.PromptLibrary.IPromptRepository, PromptRepository>();

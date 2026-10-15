@@ -1,5 +1,6 @@
 using Diax.Application.Audit;
 using Diax.Application.ErrorLogs;
+using Diax.Application.SurfAlerts;
 using Diax.Application.Auth;
 using Diax.Application.Customers;
 using Diax.Application.Finance;
@@ -49,6 +50,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IErrorLogService, ErrorLogService>();
+        services.AddScoped<ISurfAlertService, SurfAlertService>();
 
         // Registra os serviços de aplicação
         services.AddScoped<IUserManagementService, UserManagementService>();
