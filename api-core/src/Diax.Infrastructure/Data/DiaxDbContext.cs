@@ -25,6 +25,7 @@ using Diax.Domain.Blog;
 using Diax.Domain.EmailMarketing;
 using Diax.Domain.ImageGeneration;
 using Diax.Domain.Outreach;
+using Diax.Domain.SurfAlerts;
 using Diax.Domain.TaxDocuments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -89,6 +90,7 @@ public class DiaxDbContext : DbContext
     public DbSet<ImportedTransaction> ImportedTransactions => Set<ImportedTransaction>();
     public DbSet<AppLog> AppLogs => Set<AppLog>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<SurfAlert> SurfAlerts => Set<SurfAlert>();
     public DbSet<UserPrompt> UserPrompts => Set<UserPrompt>();
     public DbSet<Snippet> Snippets => Set<Snippet>();
     public DbSet<SnippetAttachment> SnippetAttachments => Set<SnippetAttachment>();
