@@ -11,7 +11,8 @@ namespace Diax.Application.SurfAlerts;
 
 public class SurfAlertService : ISurfAlertService
 {
-    private const string RequiredScope = "surf-alerts.ingest";
+    private const string IngestScope = "surf-alerts.ingest";
+    private const string ViewScope = "surf-alerts.view";
     private const int RateLimitPerHour = 30;
     private const int MaxRecentLimit = 100;
 
@@ -38,7 +39,7 @@ public class SurfAlertService : ISurfAlertService
     public async Task<Result<IngestSurfAlertResponse>> IngestAsync(
         string apiKeyPlain, string? idempotencyKey, IngestSurfAlertRequest request, CancellationToken ct = default)
     {
-        var authResult = await ValidateApiKeyAsync(apiKeyPlain, ct);
+        var authResult = await ValidateApiKeyAsync(apiKeyPlain, IngestScope, ct);
         if (!authResult.IsSuccess) return Result.Failure<IngestSurfAlertResponse>(authResult.Error);
 
         var keyHash = ApiKey.HashKey(apiKeyPlain);
@@ -100,14 +101,21 @@ public class SurfAlertService : ISurfAlertService
         return Result.Success(new IngestSurfAlertResponse { Id = alert.Id, Status = "created" });
     }
 
-    public async Task<Result<IReadOnlyList<SurfAlertResponse>>> GetRecentAsync(int limit, CancellationToken ct = default)
+    public async Task<Result<IReadOnlyList<SurfAlertResponse>>> GetRecentAsync(
+        string? apiKeyPlain, int limit, CancellationToken ct = default)
     {
+        if (apiKeyPlain is not null)
+        {
+            var authResult = await ValidateApiKeyAsync(apiKeyPlain, ViewScope, ct);
+            if (!authResult.IsSuccess) return Result.Failure<IReadOnlyList<SurfAlertResponse>>(authResult.Error);
+        }
+
         var items = await _repo.GetRecentAsync(Math.Clamp(limit, 1, MaxRecentLimit), ct);
         return Result.Success<IReadOnlyList<SurfAlertResponse>>(
             items.Select(SurfAlertResponse.FromEntity).ToList());
     }
 
-    private async Task<Result<ApiKey>> ValidateApiKeyAsync(string apiKeyPlain, CancellationToken ct)
+    private async Task<Result<ApiKey>> ValidateApiKeyAsync(string apiKeyPlain, string requiredScope, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(apiKeyPlain))
             return Result.Failure<ApiKey>(new Error("SurfAlert.Unauthorized", "API Key ausente."));
@@ -117,7 +125,7 @@ public class SurfAlertService : ISurfAlertService
 
         if (apiKey is null || !apiKey.IsEnabled)
         {
-            _logger.LogWarning("Ingest de surf alert recusado: API Key inválida ou desabilitada (hash prefix: {P})", keyHash[..8]);
+            _logger.LogWarning("Acesso a surf alert recusado: API Key inválida ou desabilitada (hash prefix: {P})", keyHash[..8]);
             return Result.Failure<ApiKey>(new Error("SurfAlert.Unauthorized", "API Key inválida ou desabilitada."));
         }
 
@@ -125,8 +133,8 @@ public class SurfAlertService : ISurfAlertService
             return Result.Failure<ApiKey>(new Error("SurfAlert.Unauthorized", "API Key expirada."));
 
         var scopes = apiKey.Scope.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (!scopes.Any(s => s.Equals(RequiredScope, StringComparison.OrdinalIgnoreCase)))
-            return Result.Failure<ApiKey>(new Error("SurfAlert.Forbidden", $"API Key não tem escopo '{RequiredScope}'."));
+        if (!scopes.Any(s => s.Equals(requiredScope, StringComparison.OrdinalIgnoreCase)))
+            return Result.Failure<ApiKey>(new Error("SurfAlert.Forbidden", $"API Key não tem escopo '{requiredScope}'."));
 
         _ = _apiKeyRepo.RecordUsageAsync(apiKey.Id, ct);
 
