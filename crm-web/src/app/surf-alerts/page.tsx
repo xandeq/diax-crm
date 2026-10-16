@@ -68,6 +68,12 @@ function AlertCard({ alert }: { alert: SurfAlertResponse }) {
                 {bw.wind?.speed_kmh ?? '?'} km/h {bw.wind?.direction ?? ''}
               </div>
             </div>
+            {bw.tide && (
+              <div className="col-span-2 sm:col-span-4">
+                <div className="text-zinc-500">Maré</div>
+                <div className="text-zinc-200">{bw.tide}</div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

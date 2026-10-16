@@ -75,12 +75,19 @@ inundam o canal.
 
 ## GET /api/v1/surf-alerts?limit=10
 
-Lista os alertas mais recentes. Autenticação por sessão logada (JWT), não pela API Key
-— é a mesma convenção do resto do CRM (toda leitura autenticada do painel usa JWT).
+Lista os alertas mais recentes. Aceita **duas** formas de auth:
+
+- Sessão logada (JWT) — convenção do painel.
+- Header `X-Alert-Api-Key` com escopo `surf-alerts.view` — para automações/scripts que
+  não têm sessão (ex: script local que manda WhatsApp via WAHA).
 
 ```bash
 curl https://api.alexandrequeiroz.com.br/api/v1/surf-alerts?limit=10 \
   -H "Authorization: Bearer <seu JWT>"
+
+# ou, via automação sem JWT:
+curl https://api.alexandrequeiroz.com.br/api/v1/surf-alerts?limit=10 \
+  -H "X-Alert-Api-Key: dk_live_... (escopo surf-alerts.view)"
 ```
 
 ## Exemplo de automação (o caso de uso original)

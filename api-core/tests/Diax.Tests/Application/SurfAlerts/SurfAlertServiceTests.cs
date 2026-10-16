@@ -105,6 +105,23 @@ public class SurfAlertServiceTests
     }
 
     [Fact]
+    public async Task IngestAsync_WithExpiredKey_ReturnsUnauthorized()
+    {
+        var svc = BuildService(out _, out var keyRepoMock, out _);
+        var (key, plain) = CreateKeyWithScope("surf-alerts.ingest");
+        // ExpiresAt tem setter privado — Create() só aceita validityDays > 0, então forçamos
+        // expiração via reflection pra exercitar o branch que hoje não tem nenhum teste.
+        typeof(ApiKey).GetProperty(nameof(ApiKey.ExpiresAt))!.SetValue(key, DateTime.UtcNow.AddDays(-1));
+        keyRepoMock.Setup(r => r.GetByKeyHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(key);
+
+        var result = await svc.IngestAsync(plain, null, BasicRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Unauthorized", result.Error.Code);
+    }
+
+    [Fact]
     public async Task IngestAsync_WithValidKeyAndNewAlert_CreatesAndReturnsCreated()
     {
         var svc = BuildService(out var repoMock, out var keyRepoMock, out _);
@@ -174,6 +191,35 @@ public class SurfAlertServiceTests
     }
 
     [Fact]
+    public async Task IngestAsync_ConcurrentSameIdempotencyKey_RaceLoserReturnsExistingRecord()
+    {
+        var svc = BuildService(out var repoMock, out var keyRepoMock, out _);
+        var (key, plain) = CreateKeyWithScope("surf-alerts.ingest");
+        keyRepoMock.Setup(r => r.GetByKeyHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(key);
+
+        var existing = SurfAlert.Create(
+            "perplexity-computer", "surf_forecast_weekend", DateTime.UtcNow,
+            new DateOnly(2026, 10, 17), new DateOnly(2026, 10, 18), true, "janela boa",
+            null, null, null, null, "{}", "surf-2026-10-17");
+
+        // 1ª checagem (antes do insert) não encontra nada; a 2ª (dentro do catch, após
+        // perder a corrida pro unique index) encontra o registro que a outra requisição criou.
+        var callCount = 0;
+        repoMock.Setup(r => r.GetByIdempotencyKeyAsync("surf-2026-10-17", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => callCount++ == 0 ? null : existing);
+
+        repoMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Violation of UNIQUE KEY constraint"));
+
+        var result = await svc.IngestAsync(plain, "surf-2026-10-17", BasicRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("duplicate", result.Value.Status);
+        Assert.Equal(existing.Id, result.Value.Id);
+    }
+
+    [Fact]
     public async Task IngestAsync_WithSundayBeforeSaturday_ReturnsValidationError()
     {
         var svc = BuildService(out _, out var keyRepoMock, out _);
@@ -233,6 +279,35 @@ public class SurfAlertServiceTests
         var result = await svc.GetRecentAsync(plain, 5);
 
         Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task GetRecentAsync_WithInvalidApiKeyString_ReturnsUnauthorized()
+    {
+        var svc = BuildService(out _, out var keyRepoMock, out _);
+        keyRepoMock.Setup(r => r.GetByKeyHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ApiKey?)null);
+
+        var result = await svc.GetRecentAsync("dk_live_garbage", 10);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Unauthorized", result.Error.Code);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(-5, 1)]
+    [InlineData(500, 100)]
+    public async Task GetRecentAsync_WithLimitOutOfRange_ClampsToValidRange(int requested, int expectedClamped)
+    {
+        var svc = BuildService(out var repoMock, out _, out _);
+        repoMock.Setup(r => r.GetRecentAsync(expectedClamped, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<SurfAlert>)new List<SurfAlert>());
+
+        var result = await svc.GetRecentAsync(null, requested);
+
+        Assert.True(result.IsSuccess);
+        repoMock.Verify(r => r.GetRecentAsync(expectedClamped, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
