@@ -7,7 +7,7 @@ import {
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, Menu, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
-  Wallet, Zap, Cpu, Newspaper, Home, Layers, BookOpen
+  Wallet, Zap, Cpu, Newspaper, Home, Layers, BookOpen, Waves
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -115,6 +115,7 @@ const navGroups: NavGroup[] = [
       { icon: Calendar, label: 'Agenda', href: '/agenda' },
       { icon: ListChecks, label: 'Tarefas', href: '/tasks' },
       { icon: Package, label: 'Listas e Compras', href: '/household/checklists' },
+      { icon: Waves, label: 'Alertas de Surf', href: '/surf-alerts' },
       { icon: Tag, label: 'Snippets', href: '/utilities/snippets' },
       { icon: Link2, label: 'Extratores', children: [
         { label: 'HTML → Texto', href: '/tools/html-extractor' },
@@ -412,6 +413,7 @@ const ROUTE_LABELS: Record<string, string> = {
   tasks: 'Tarefas',
   household: 'Pessoal',
   checklists: 'Listas e Compras',
+  'surf-alerts': 'Alertas de Surf',
   snippets: 'Snippets',
   'html-extractor': 'HTML → Texto',
   'html-url-extractor': 'HTML → Links',
