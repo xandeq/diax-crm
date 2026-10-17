@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DIAX CRM is a monorepo with a Next.js 14 frontend (`crm-web/`), a .NET 10 Clean Architecture backend (`api-core/`), and automation workflows. It is a private CRM for Alexandre Queiroz Marketing Digital — single user, not a SaaS product.
+DIAX CRM is a monorepo with a Next.js 16 frontend (`crm-web/`), a .NET 10 Clean Architecture backend (`api-core/`), and automation workflows. It is a private CRM for Alexandre Queiroz Marketing Digital — single user, not a SaaS product.
 
 **Default ports:**
 - Frontend: http://localhost:3000
@@ -46,7 +46,7 @@ dotnet test --filter "FullyQualifiedName~LeadSanitizationServiceTests.SanitizeAn
 dotnet test --filter "FullyQualifiedName~LeadSanitizationServiceTests"
 ```
 
-**Test libraries:** xUnit, Moq, FluentAssertions. Tests are in `api-core/tests/` — `Diax.UnitTests/` and `Diax.IntegrationTests/`.
+**Test libraries:** xUnit, Moq, FluentAssertions. All tests live in a single project, `api-core/tests/Diax.Tests/` (references Api, Application, Domain, Infrastructure, Shared).
 
 ### Database Migrations (PowerShell scripts in `api-core/scripts/`)
 
@@ -77,7 +77,7 @@ Monitor CI/CD: `gh run watch` or `gh run list` to verify deployment.
 - Server: `sql1002.site4now.net` | DB: `db_aaf0a8_diaxcrm`
 - Never run `dotnet ef database update` without `ASPNETCORE_ENVIRONMENT=Production`
 - The `update-db.ps1` script handles this correctly — always use it
-- The API auto-runs `db.Database.Migrate()` on startup (with 45s timeout)
+- The API auto-runs `db.Database.Migrate()` on startup in a background task (`WaitAsync(180s)` in `Program.cs`; on timeout the app starts anyway while the migration keeps running)
 
 ### Frontend Service Layer
 
@@ -148,7 +148,7 @@ crm-web/src/
 
 **Static export:** `next.config.js` sets `output: 'export'` with `trailingSlash: true` and `images: { unoptimized: true }`. Deployed as static HTML to Hostgator/Hostinger.
 
-Navigation is header-only (`components/Header.tsx`) — no sidebar. Dropdown groups: Financeiro, Clientes, Ferramentas, etc.
+Navigation is a sidebar in `components/AppShell.tsx` (wired in `app/layout.tsx`), with finance sub-navigation in `components/finance/FinanceNav.tsx`. New pages must be linked there. `components/Header.tsx` is not imported anywhere — do not use it as the source of truth for the menu.
 
 **Authentication flow:**
 - Token stored in `sessionStorage` (cleared on browser close)
