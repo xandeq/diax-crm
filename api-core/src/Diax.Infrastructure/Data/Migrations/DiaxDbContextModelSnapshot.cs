@@ -1845,11 +1845,19 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasDatabaseName("IX_Customers_NormalizedName")
                         .HasFilter("[normalized_name] IS NOT NULL");
 
+                    b.HasIndex("Phone")
+                        .HasDatabaseName("IX_Customers_Phone")
+                        .HasFilter("[phone] IS NOT NULL");
+
                     b.HasIndex("Source")
                         .HasDatabaseName("IX_Customers_Source");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_Customers_Status");
+
+                    b.HasIndex("WhatsApp")
+                        .HasDatabaseName("IX_Customers_WhatsApp")
+                        .HasFilter("[whats_app] IS NOT NULL");
 
                     b.HasIndex("Status", "CreatedAt")
                         .HasDatabaseName("IX_Customers_Status_CreatedAt");
