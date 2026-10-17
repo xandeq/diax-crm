@@ -522,27 +522,28 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Health Check endpoint
-app.MapHealthChecks("/health");
+// Públicos de propósito: a FallbackPolicy fecha todo endpoint sem atributo.
+app.MapHealthChecks("/health").AllowAnonymous();
 app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("live")
-});
+}).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("ready")
-});
+}).AllowAnonymous();
 
 // Redirects para Swagger — apenas em não-produção
 if (!app.Environment.IsProduction())
 {
-    app.MapGet("/v1/swagger", () => Results.Redirect("/swagger/index.html"));
-    app.MapGet("/v1/swagger/index.html", () => Results.Redirect("/swagger/index.html"));
-    app.MapGet("/v1/swagger/v1/swagger.json", () => Results.Redirect("/swagger/v1/swagger.json"));
-    app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
+    app.MapGet("/v1/swagger", () => Results.Redirect("/swagger/index.html")).AllowAnonymous();
+    app.MapGet("/v1/swagger/index.html", () => Results.Redirect("/swagger/index.html")).AllowAnonymous();
+    app.MapGet("/v1/swagger/v1/swagger.json", () => Results.Redirect("/swagger/v1/swagger.json")).AllowAnonymous();
+    app.MapGet("/", () => Results.Redirect("/swagger/index.html")).AllowAnonymous();
 }
 else
 {
-    app.MapGet("/", () => Results.Ok(new { status = "ok", version = "1.0" }));
+    app.MapGet("/", () => Results.Ok(new { status = "ok", version = "1.0" })).AllowAnonymous();
 }
 
 // ===== RUN =====

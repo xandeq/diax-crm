@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Diax.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,7 @@ public class HealthController : ControllerBase
     /// Verifica se a API está online e funcionando.
     /// </summary>
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(HealthResponse), StatusCodes.Status200OK)]
     public IActionResult Get()
     {
@@ -44,6 +46,7 @@ public class HealthController : ControllerBase
     /// Verifica e corrige colunas ausentes no schema (patch idempotente).
     /// </summary>
     [HttpPost("schema-patch")]
+    [Authorize] // roda ALTER TABLE em prod: nunca anônimo
     public async Task<IActionResult> SchemaPatch()
     {
         var results = new List<string>();
