@@ -104,6 +104,11 @@ public class EmailQueueItemConfiguration : IEntityTypeConfiguration<EmailQueueIt
         // cliente). O filtro por status=0 (Queued) evita que duplicatas HISTÓRICAS já
         // enviadas quebrem a criação do índice em produção; o INSERT concorrente (sempre
         // Queued) continua bloqueado.
+        // Timeline do lead (CustomerService.GetActivitiesAsync): WHERE customer_id = X ORDER BY created_at DESC.
+        // O índice (CampaignId, CustomerId) acima não serve — coluna líder é campaign_id.
+        builder.HasIndex(item => new { item.CustomerId, item.CreatedAt })
+            .HasDatabaseName("IX_EmailQueueItem_CustomerId_CreatedAt");
+
         builder.HasIndex(item => new { item.CampaignId, item.CustomerId })
             .IsUnique()
             .HasFilter("[campaign_id] IS NOT NULL AND [customer_id] IS NOT NULL AND [status] = 0")

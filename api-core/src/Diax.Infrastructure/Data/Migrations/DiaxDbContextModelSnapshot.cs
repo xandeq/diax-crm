@@ -2523,6 +2523,9 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasDatabaseName("UX_EmailQueueItem_Campaign_Customer")
                         .HasFilter("[campaign_id] IS NOT NULL AND [customer_id] IS NOT NULL AND [status] = 0");
 
+                    b.HasIndex("CustomerId", "CreatedAt")
+                        .HasDatabaseName("IX_EmailQueueItem_CustomerId_CreatedAt");
+
                     b.HasIndex("Status", "ScheduledAt")
                         .HasDatabaseName("IX_EmailQueueItem_Status_ScheduledAt");
 
