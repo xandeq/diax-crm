@@ -96,7 +96,9 @@ public class AppointmentsController : ControllerBase
             return StatusCode(StatusCodes.Status503ServiceUnavailable, "Cron security key is not configured.");
         }
 
-        if (string.IsNullOrWhiteSpace(cronKey) || cronKey != expectedKey)
+        if (string.IsNullOrWhiteSpace(cronKey) ||
+            !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(cronKey), System.Text.Encoding.UTF8.GetBytes(expectedKey)))
         {
             return Unauthorized("Invalid cron key.");
         }

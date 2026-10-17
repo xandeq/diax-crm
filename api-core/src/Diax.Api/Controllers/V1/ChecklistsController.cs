@@ -2,11 +2,13 @@ using Asp.Versioning;
 using Diax.Application.Household;
 using Diax.Application.Household.Dtos;
 using Diax.Shared.Results;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Diax.Api.Controllers.V1;
 
 [ApiController]
+[Authorize]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
 [Produces("application/json")]

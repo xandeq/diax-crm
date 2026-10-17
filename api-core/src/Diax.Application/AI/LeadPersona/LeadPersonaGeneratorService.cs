@@ -147,7 +147,6 @@ Return valid JSON array only, no markdown or extra text.";
 
         var completionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
 
-        // Fire-and-forget usage tracking
         var modelId = Guid.Empty;
         if (!string.IsNullOrWhiteSpace(request.Model))
         {
@@ -156,7 +155,7 @@ Return valid JSON array only, no markdown or extra text.";
                 modelId = model.Id;
         }
 
-        _ = _usageTracker.LogUsageAsync(
+        await _usageTracker.LogUsageAsync(
             userId: userId,
             providerId: provider.Id,
             modelId: modelId,
