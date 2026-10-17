@@ -547,6 +547,7 @@ public static class DependencyInjection
 
         // ===== LEAD SCORING (diário) =====
         services.AddHostedService<Diax.Infrastructure.Workers.LeadScoringWorker>();
+        services.AddHostedService<Diax.Infrastructure.Workers.LogRetentionWorker>();
 
         // ===== EXTRATOR PULL (diário, opt-in via ExtractorPull:Enabled) =====
         services.Configure<Diax.Application.Customers.ExtractorPullOptions>(

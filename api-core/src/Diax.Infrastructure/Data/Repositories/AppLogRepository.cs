@@ -87,9 +87,24 @@ public class AppLogRepository : Repository<AppLog>, IAppLogRepository
 
     public async Task<int> DeleteOlderThanAsync(DateTime cutoffDate, CancellationToken cancellationToken = default)
     {
-        return await DbSet
-            .Where(x => x.TimestampUtc < cutoffDate)
-            .ExecuteDeleteAsync(cancellationToken);
+        // Em lotes: um DELETE único no primeiro cleanup (meses acumulados) estoura o
+        // command timeout de 60s no SQL compartilhado do SmarterASP e segura lock na tabela.
+        const int batchSize = 2000;
+        var total = 0;
+        while (true)
+        {
+            var ids = await DbSet
+                .Where(x => x.TimestampUtc < cutoffDate)
+                .OrderBy(x => x.TimestampUtc)
+                .Select(x => x.Id)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+
+            if (ids.Count == 0) break;
+            total += await DbSet.Where(x => ids.Contains(x.Id)).ExecuteDeleteAsync(cancellationToken);
+            if (ids.Count < batchSize) break;
+        }
+        return total;
     }
 
     public async Task<int> DeleteAllAsync(CancellationToken cancellationToken = default)
