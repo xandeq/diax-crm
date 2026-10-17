@@ -148,7 +148,7 @@ crm-web/src/
 
 **Static export:** `next.config.js` sets `output: 'export'` with `trailingSlash: true` and `images: { unoptimized: true }`. Deployed as static HTML to Hostgator/Hostinger.
 
-Navigation is a sidebar in `components/AppShell.tsx` (wired in `app/layout.tsx`), with finance sub-navigation in `components/finance/FinanceNav.tsx`. New pages must be linked there. `components/Header.tsx` is not imported anywhere — do not use it as the source of truth for the menu.
+Navigation is a sidebar in `components/AppShell.tsx` (wired in `app/layout.tsx`), with finance sub-navigation in `components/finance/FinanceNav.tsx`. New pages must be linked there (and in AppShell's breadcrumb label map). The old `components/Header.tsx` was dead code and has been removed.
 
 **Authentication flow:**
 - Token stored in `sessionStorage` (cleared on browser close)
