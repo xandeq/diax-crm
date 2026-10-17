@@ -21,6 +21,11 @@ public static class AuthorizationPolicies
             .RequireAssertion(ctx => !ctx.User.IsInRole(ApiKeyAuthenticationOptions.ProxyOnlyRole))
             .Build();
 
+        // Endpoint sem [Authorize] nem [AllowAnonymous] cai aqui: fechado por padrão. Sem isso, um
+        // controller novo que esquecesse o atributo ficava aberto (foi o caso do ChecklistsController).
+        // Tudo que é público de propósito precisa declarar [AllowAnonymous] / .AllowAnonymous().
+        options.FallbackPolicy = options.DefaultPolicy;
+
         // Os controllers dos proxies de IA declaram esta policy, que aceita qualquer identidade
         // autenticada — inclusive a de proxy. É o único lugar do sistema onde ela passa.
         options.AddPolicy(ApiKeyAuthenticationOptions.ProxyPolicy, policy => policy
