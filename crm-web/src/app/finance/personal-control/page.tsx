@@ -79,6 +79,7 @@ import { useState, useTransition } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '@/services/api';
+import { QueryErrorAlert } from '@/components/QueryErrorAlert';
 
 type EditingState<T> = T & { editingId: string | null };
 
@@ -918,7 +919,13 @@ function Page() {
   const [pdfImporting, setPdfImporting] = useState(false);
 
   const qc = useQueryClient();
-  const { data: monthView = null, isLoading: loading } = usePersonalControlMonth(period.year, period.month);
+  const {
+    data: monthView = null,
+    isLoading: loading,
+    error: monthError,
+    refetch: refetchMonth,
+    isFetching: fetchingMonth,
+  } = usePersonalControlMonth(period.year, period.month);
   const { data: creditCards = [] } = useCreditCards();
   const { data: accounts = [] } = useFinancialAccounts();
   const { data: investiq = null, isLoading: investiqLoading } = useInvestiqSummary();
@@ -1450,6 +1457,14 @@ function Page() {
 
   return (
     <div className="p-8 max-w-[1700px] mx-auto space-y-8">
+      {monthError && (
+        <QueryErrorAlert
+          error={monthError}
+          title="Não foi possível carregar o mês"
+          onRetry={() => void refetchMonth()}
+          retrying={fetchingMonth}
+        />
+      )}
       <div className="rounded-3xl border bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-8 text-white shadow-xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">

@@ -70,6 +70,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { QueryErrorAlert } from '@/components/QueryErrorAlert';
 
 // ── Status Chips Config ──────────────────────────────────────────────────────
 
@@ -137,7 +138,13 @@ export default function CustomersPage() {
     segment: segmentFilter,
   };
 
-  const { data: customersData, isLoading: loading } = useQuery({
+  const {
+    data: customersData,
+    isLoading: loading,
+    error: customersError,
+    refetch: refetchCustomers,
+    isFetching: fetchingCustomers,
+  } = useQuery({
     queryKey: ['customers', queryParams],
     queryFn: () => getCustomers(queryParams),
   });
@@ -727,6 +734,15 @@ export default function CustomersPage() {
           </>
         }
       />
+
+      {customersError && (
+        <QueryErrorAlert
+          error={customersError}
+          title="Não foi possível carregar os clientes"
+          onRetry={() => refetchCustomers()}
+          retrying={fetchingCustomers}
+        />
+      )}
 
       {/* Grid */}
       <PerfectGrid
