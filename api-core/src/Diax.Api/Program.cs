@@ -252,13 +252,17 @@ builder.Services.AddAuthorization(AuthorizationPolicies.Configure);
 // Rate Limiting — proteção contra brute force no login + throttling do /ai-chat
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("login", limiterOptions =>
-    {
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.PermitLimit = 10;
-        limiterOptions.QueueLimit = 0;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
+    // Particionado por IP: um limiter global deixava qualquer um travar o login do dono com 10 req/min.
+    options.AddPolicy("login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"login:{httpContext.Connection.RemoteIpAddress}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 10,
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
 
     // /ai-chat: 60 req/min por usuário (CRUD + listagem)
     options.AddPolicy("ai-chat", httpContext =>
