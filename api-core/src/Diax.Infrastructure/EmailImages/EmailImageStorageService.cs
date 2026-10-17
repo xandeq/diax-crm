@@ -142,6 +142,12 @@ public class EmailImageStorageService : IEmailImageStorageService
                 return Task.FromResult(Result.Failure(Error.Validation("ImageId", "ID da imagem é obrigatório.")));
             }
 
+            // imageId vira nome de arquivo: só aceita o formato gerado no upload (Guid "N"), bloqueando "..\".
+            if (!Guid.TryParseExact(imageId, "N", out _))
+            {
+                return Task.FromResult(Result.Failure(Error.Validation("ImageId", "ID da imagem inválido.")));
+            }
+
             var imagesPath = Path.Combine(_environment.WebRootPath ?? _environment.ContentRootPath, EmailImagesFolder);
 
             // Buscar arquivo com este ID (qualquer extensão permitida)

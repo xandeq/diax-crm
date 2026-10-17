@@ -278,7 +278,8 @@ public partial class ErrorLogService : IErrorLogService
             return Result.Failure<ApiKey>(new Error("ErrorLog.Forbidden", $"API Key não tem escopo '{RequiredScope}'."));
 
         // Persiste LastUsedAt via UPDATE atômico — sem carregar nem rastrear a entidade completa
-        _ = _apiKeyRepo.RecordUsageAsync(apiKey.Id, ct);
+        // await obrigatório: o repo compartilha o DbContext do request, e o service segue usando-o.
+        await _apiKeyRepo.RecordUsageAsync(apiKey.Id, ct);
 
         return Result.Success(apiKey);
     }

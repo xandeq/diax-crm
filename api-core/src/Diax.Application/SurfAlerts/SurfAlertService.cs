@@ -136,7 +136,7 @@ public class SurfAlertService : ISurfAlertService
         if (!scopes.Any(s => s.Equals(requiredScope, StringComparison.OrdinalIgnoreCase)))
             return Result.Failure<ApiKey>(new Error("SurfAlert.Forbidden", $"API Key não tem escopo '{requiredScope}'."));
 
-        _ = _apiKeyRepo.RecordUsageAsync(apiKey.Id, ct);
+        await _apiKeyRepo.RecordUsageAsync(apiKey.Id, ct);
 
         return Result.Success(apiKey);
     }
