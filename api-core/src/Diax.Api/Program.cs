@@ -451,6 +451,10 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseMiddleware<Diax.Api.Middleware.SecurityHeadersMiddleware>();
+if (app.Environment.IsProduction())
+    app.UseHsts();
+
 // CORS - middleware .NET cuida em todos os ambientes (web.config não tem headers estáticos)
 app.UseCors("Frontend");
 
