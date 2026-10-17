@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { QueryErrorAlert } from '@/components/QueryErrorAlert';
 import type { BlogFilters } from '@/types/blog';
 
 export default function BlogListPage() {
@@ -24,7 +25,7 @@ export default function BlogListPage() {
     category: '',
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['blog-posts', filters],
     queryFn: () => blogService.getAll(filters),
   });
@@ -77,6 +78,14 @@ export default function BlogListPage() {
           </Button>
         </CardHeader>
         <CardContent>
+          {error && (
+            <QueryErrorAlert
+              error={error}
+              title="Não foi possível carregar os posts"
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
+          )}
           <BlogPostFilters
             search={filters.search || ''}
             status={filters.status}

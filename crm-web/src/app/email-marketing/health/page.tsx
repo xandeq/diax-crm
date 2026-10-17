@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Activity, AlertTriangle, RefreshCw, RotateCcw, Skull } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { QueryErrorAlert } from '@/components/QueryErrorAlert';
 
 // ─── Stats Cards (mesmo padrão da Central de Erros) ─────────────────────────
 
@@ -42,7 +43,7 @@ export default function EmailHealthPage() {
   const qc = useQueryClient();
   const [dlqPage, setDlqPage] = useState(1);
 
-  const { data: summary, isLoading, isFetching, refetch } = useQuery({
+  const { data: summary, isLoading, isFetching, refetch, error: summaryError } = useQuery({
     queryKey: ['email-ops-summary'],
     queryFn: () => emailOpsService.getOpsSummary(),
     staleTime: 15_000,
@@ -99,6 +100,16 @@ export default function EmailHealthPage() {
               <p className="text-sm text-red-200/80">{summary.pilot.reason ?? 'Sem motivo registrado.'} Reset em Email Marketing PRO → Pilot.</p>
             </div>
           </div>
+        )}
+
+        {/* placeholderData mantém o último sucesso: sem este alerta, um erro mostraria números velhos como se fossem atuais. */}
+        {summaryError && (
+          <QueryErrorAlert
+            error={summaryError}
+            title="Não foi possível atualizar a saúde da fila"
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
         )}
 
         {/* Stats da fila */}

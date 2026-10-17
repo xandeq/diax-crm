@@ -28,6 +28,7 @@ import {
     sendTestEmail,
 } from '@/services/emailMarketing';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryErrorAlert } from '@/components/QueryErrorAlert';
 import {
     AlertCircle,
     ArrowLeft,
@@ -153,6 +154,8 @@ export default function EmailMarketingPage() {
     data: contactsData,
     isLoading: loading,
     refetch: refetchContacts,
+    error: contactsError,
+    isFetching: fetchingContacts,
   } = useQuery({
     queryKey: ['email-marketing-contacts', page, pageSize, search, segment, contactType, neverEmailed, excludeOptOut],
     queryFn: () =>
@@ -701,6 +704,15 @@ export default function EmailMarketingPage() {
                   </Badge>
                 )}
               </div>
+            )}
+
+            {contactsError && (
+              <QueryErrorAlert
+                error={contactsError}
+                title="Não foi possível carregar os contatos"
+                onRetry={() => void refetchContacts()}
+                retrying={fetchingContacts}
+              />
             )}
 
             {/* List */}
