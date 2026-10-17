@@ -63,3 +63,8 @@ docs/email-marketing/quarantine-*.json
 
 # VS Code MCP config: contem N8N_API_KEY real (usar .vscode/mcp.json.example como modelo)
 .vscode/mcp.json
+
+# Build artifacts - o deploy gera do zero (rm -rf ./publish + dotnet publish)
+api-core/publish/
+api-core/publish_tmp/
+build_log.txt
