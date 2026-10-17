@@ -137,6 +137,16 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasDatabaseName("IX_Customers_Document")
             .HasFilter("[document] IS NOT NULL"); // Índice parcial
 
+        // Dedup por telefone no import (CustomerRepository.GetByPhoneAsync: phone = x OR whatsapp = x),
+        // chamado 1x por linha importada — sem índice eram 2 table scans por lead.
+        builder.HasIndex(c => c.Phone)
+            .HasDatabaseName("IX_Customers_Phone")
+            .HasFilter("[phone] IS NOT NULL");
+
+        builder.HasIndex(c => c.WhatsApp)
+            .HasDatabaseName("IX_Customers_WhatsApp")
+            .HasFilter("[whats_app] IS NOT NULL");
+
         // Dedup cross-pull por ID do Extrator (D-07; consumido pela Phase 8 / IMPT-01).
         // Índice FILTRADO: no SQL Server um índice único trata múltiplos NULL como duplicados,
         // e a esmagadora maioria dos customers legados tem external_id NULL.
