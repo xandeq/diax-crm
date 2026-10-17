@@ -105,8 +105,22 @@ public class AuditLogRepository : Repository<AuditLogEntry>, IAuditLogRepository
 
     public async Task<int> DeleteOlderThanAsync(DateTime cutoffDate, CancellationToken cancellationToken = default)
     {
-        return await DbSet
-            .Where(e => e.TimestampUtc < cutoffDate)
-            .ExecuteDeleteAsync(cancellationToken);
+        // Em lotes pelo mesmo motivo do AppLogRepository: DELETE único estoura o timeout de 60s.
+        const int batchSize = 2000;
+        var total = 0;
+        while (true)
+        {
+            var ids = await DbSet
+                .Where(e => e.TimestampUtc < cutoffDate)
+                .OrderBy(e => e.TimestampUtc)
+                .Select(e => e.Id)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+
+            if (ids.Count == 0) break;
+            total += await DbSet.Where(e => ids.Contains(e.Id)).ExecuteDeleteAsync(cancellationToken);
+            if (ids.Count < batchSize) break;
+        }
+        return total;
     }
 }
