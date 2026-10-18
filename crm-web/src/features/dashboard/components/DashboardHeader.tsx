@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { formatRelativeTime } from '@/lib/date-utils';
 
 interface DashboardHeaderProps {
   lastSync: Date;
@@ -20,10 +21,17 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ lastSync, isSyncing, onSync }: DashboardHeaderProps) {
   const [timeStr, setTimeStr] = useState<string>('');
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     setTimeStr(new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }));
+    // Re-render a cada 30s para o "há X min" andar sozinho.
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
   }, []);
+
+  const relative = formatRelativeTime(lastSync.toISOString());
+  const syncLabel = relative === 'Agora' ? 'Sincronizado agora' : `Sincronizado ${relative}`;
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-zinc-800/40">
@@ -44,8 +52,11 @@ export function DashboardHeader({ lastSync, isSyncing, onSync }: DashboardHeader
             {timeStr}
           </span>
           <span className="text-zinc-600">•</span>
-          <span className="text-xs text-zinc-500 font-medium">
-            Sincronizado há: {lastSync.toLocaleTimeString('pt-BR')}
+          <span
+            className="text-xs text-zinc-500 font-medium"
+            title={`Última sincronização: ${lastSync.toLocaleTimeString('pt-BR')}`}
+          >
+            {syncLabel}
           </span>
         </div>
       </div>
