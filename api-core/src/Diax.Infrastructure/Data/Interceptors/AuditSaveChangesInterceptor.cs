@@ -60,7 +60,10 @@ public class AuditSaveChangesInterceptor : SaveChangesInterceptor
             .Entries()
             .Where(e =>
                 e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
-                && e.Entity is not AuditLogEntry) // evita loop infinito
+                && e.Entity is not AuditLogEntry // evita loop infinito
+                // Tabelas de log já são o registro; auditá-las só duplicava (~6k linhas/semana).
+                && e.Entity is not Diax.Domain.Logs.AppLog
+                && e.Entity is not Diax.Domain.ErrorLogs.ErrorLog)
             .ToList();
 
         foreach (var entry in entries)

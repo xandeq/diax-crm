@@ -34,6 +34,10 @@ internal static class AuditChangeCapture
         "Timestamp"
     };
 
+    // Corpos de e-mail (HTML de ~40 KB) iam inteiros pro audit a cada troca de status da fila e
+    // levaram audit_logs a ~55% da quota de 500 MB do banco. O diff útil cabe folgado nisso.
+    internal const int MaxValueLength = 2000;
+
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = false,
@@ -85,9 +89,11 @@ internal static class AuditChangeCapture
             foreach (var prop in entry.Properties)
             {
                 if (ShouldIgnore(prop)) continue;
+                // Update: só o que mudou. O snapshot inteiro repetia campos enormes a cada alteração.
+                if (entry.State == EntityState.Modified && !prop.IsModified) continue;
 
                 var value = entry.OriginalValues[prop.Metadata.Name];
-                dict[prop.Metadata.Name] = value == DBNull.Value ? null : value;
+                dict[prop.Metadata.Name] = Cap(value == DBNull.Value ? null : value);
             }
 
             return dict.Count > 0 ? JsonSerializer.Serialize(dict, SerializerOptions) : null;
@@ -114,9 +120,10 @@ internal static class AuditChangeCapture
             foreach (var prop in entry.Properties)
             {
                 if (ShouldIgnore(prop)) continue;
+                if (entry.State == EntityState.Modified && !prop.IsModified) continue;
 
                 var value = entry.CurrentValues[prop.Metadata.Name];
-                dict[prop.Metadata.Name] = value == DBNull.Value ? null : value;
+                dict[prop.Metadata.Name] = Cap(value == DBNull.Value ? null : value);
             }
 
             return dict.Count > 0 ? JsonSerializer.Serialize(dict, SerializerOptions) : null;
@@ -150,6 +157,11 @@ internal static class AuditChangeCapture
             return null;
         }
     }
+
+    private static object? Cap(object? value)
+        => value is string s && s.Length > MaxValueLength
+            ? s[..MaxValueLength] + $"…[+{s.Length - MaxValueLength} chars]"
+            : value;
 
     private static bool ShouldIgnore(PropertyEntry prop)
     {
