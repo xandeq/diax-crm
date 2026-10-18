@@ -24,3 +24,16 @@ describe('QueryErrorAlert', () => {
     expect(html).toContain('Erro desconhecido');
   });
 });
+
+describe('QueryErrorAlert pontuação', () => {
+  it('separa a mensagem da API da frase fixa com ponto', () => {
+    const html = renderToStaticMarkup(createElement(QueryErrorAlert, { error: new Error('Erro interno') }));
+    expect(html).toContain('Erro interno. Os dados');
+  });
+
+  it('não duplica pontuação quando a mensagem já termina com ponto', () => {
+    const html = renderToStaticMarkup(createElement(QueryErrorAlert, { error: new Error('Falhou.') }));
+    expect(html).toContain('Falhou. Os dados');
+    expect(html).not.toContain('Falhou..');
+  });
+});

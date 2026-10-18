@@ -76,6 +76,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { QueryErrorAlert } from '@/components/QueryErrorAlert';
 
 // ── Status Chips Config ──────────────────────────────────────────────────────
 
@@ -139,11 +140,13 @@ export default function LeadsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [kanbanLeads, setKanbanLeads] = useState<Lead[]>([]);
   const [kanbanLoading, setKanbanLoading] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   // ── Data Fetching ────────────────────────────────────────────────────────
 
   const fetchLeads = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const status =
         statusFilter === 'all' ? undefined : (Number(statusFilter) as CustomerStatus);
@@ -162,11 +165,13 @@ export default function LeadsPage() {
         neverEmailed: neverEmailedFilter || undefined,
         createdAfter: createdAfterFilter || undefined,
       });
-      setLeads(data.items);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.totalCount);
-    } catch {
+      setLeads(data.items ?? []);
+      setTotalPages(data.totalPages ?? 1);
+      setTotalCount(data.totalCount ?? 0);
+    } catch (err) {
+      // Antes o erro era engolido e a tela mostrava "nenhum lead" — indistinguível de lista vazia.
       setLeads([]);
+      setLoadError(err);
     } finally {
       setLoading(false);
     }
@@ -188,7 +193,7 @@ export default function LeadsPage() {
       setKanbanLoading(true);
       try {
         const data = await getLeads({ page: 1, pageSize: 500, sortBy: 'createdAt', sortDescending: true });
-        setKanbanLeads(data.items);
+        setKanbanLeads(data.items ?? []);
       } catch {
         toast.error('Erro ao carregar leads para o Kanban');
       } finally {
@@ -416,7 +421,7 @@ export default function LeadsPage() {
         createdAfter: createdAfterFilter || undefined,
       });
       toast.success('Leads carregados!', { id: 'export-all' });
-      return data.items;
+      return data.items ?? [];
     } catch {
       toast.error('Erro ao buscar todos os leads.', { id: 'export-all' });
       return [];
@@ -678,7 +683,7 @@ export default function LeadsPage() {
           </h1>
           <p className="text-zinc-400">Gerencie seus potenciais clientes.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {/* View toggle */}
           <div className="flex rounded-lg border border-white/10 overflow-hidden bg-white/5">
             <button
@@ -987,6 +992,15 @@ export default function LeadsPage() {
         ) : (
           <LeadKanban leads={kanbanLeads} onStatusChange={handleKanbanStatusChange} />
         )
+      )}
+
+      {viewMode === 'table' && loadError != null && (
+        <QueryErrorAlert
+          error={loadError}
+          title="Não foi possível carregar os leads"
+          onRetry={() => void fetchLeads()}
+          retrying={loading}
+        />
       )}
 
       {/* Table View */}
