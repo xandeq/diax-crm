@@ -8,7 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-r from-accent to-accent-secondary text-accent-foreground shadow-sm hover:-translate-y-0.5 hover:shadow-accent-lg hover:brightness-110",
+        // Era gradiente from-accent→to-accent-secondary com text-accent-foreground: accent-secondary
+        // não é cor registrada no Tailwind (gradiente terminava em transparente) e globals.css força
+        // .text-accent-foreground verde → texto verde sobre verde. Mesmo CTA sólido usado no resto do app.
+        default: "bg-[#00D4AA] text-[#0A130F] font-semibold shadow-sm hover:bg-[#00B894] hover:-translate-y-0.5",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
