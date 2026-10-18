@@ -8,3 +8,6 @@
   Header always set Content-Security-Policy "frame-ancestors 'self'"
   Header always set Strict-Transport-Security "max-age=31536000"
 </IfModule>
+
+# Rota inexistente: usa a 404 do próprio app (exportada pelo Next) em vez da página padrão do Apache.
+ErrorDocument 404 /404.html
