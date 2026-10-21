@@ -7,5 +7,7 @@ namespace Diax.Application.EmailMarketing;
 public interface IUnsubscribeLinkBuilder
 {
     string BuildUnsubscribeUrl(Guid userId, string email);
+    /// <summary>Confere o token de um link gerado por <see cref="BuildUnsubscribeUrl"/> (tempo constante).</summary>
+    bool IsValidToken(string userId, string email, string token);
     string DefaultCtaUrl { get; }
 }
