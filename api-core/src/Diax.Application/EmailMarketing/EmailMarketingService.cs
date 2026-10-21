@@ -100,7 +100,7 @@ public class EmailMarketingService : IApplicationService
             request.MockData.LeadStatus);
 
         var renderedSubject = _emailTemplateEngine.Render(subjectTemplate, variables);
-        var renderedBody = _emailTemplateEngine.Render(templateResult.Value.TemplateBody, variables);
+        var renderedBody = _emailTemplateEngine.RenderHtml(templateResult.Value.TemplateBody, variables);
 
         return new PreviewCampaignResponse
         {
@@ -166,7 +166,7 @@ public class EmailMarketingService : IApplicationService
         variables["unsubscribe_url"] = _linkBuilder.BuildUnsubscribeUrl(_currentUserService.UserId!.Value, userEmail);
 
         var renderedSubject = "[TESTE] " + _emailTemplateEngine.Render(subjectTemplate, variables);
-        var renderedBody = _emailTemplateEngine.Render(templateResult.Value.TemplateBody, variables);
+        var renderedBody = _emailTemplateEngine.RenderHtml(templateResult.Value.TemplateBody, variables);
 
         var message = new EmailSendMessage
         {

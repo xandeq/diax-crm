@@ -54,6 +54,7 @@ import {
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { escapeHtml } from '@/lib/utils';
 const SEGMENT_LABELS: Record<number, string> = { 0: 'Cold', 1: 'Warm', 2: 'Hot' };
 const SEGMENT_COLORS: Record<number, string> = {
   0: 'bg-sky-100 text-sky-700',
@@ -371,11 +372,14 @@ export default function EmailMarketingPage() {
       leadStatus: firstContact ? STATUS_LABELS[firstContact.status] || 'Lead' : 'Lead',
     };
 
-    // Substitui variáveis (case-insensitive)
+    // Substitui variáveis (case-insensitive). Valores do lead vêm de terceiros (Google Maps/
+    // Extrator) e o resultado vai para dangerouslySetInnerHTML: escapar sempre. Função no
+    // replace para "$&" etc. no valor não virar padrão de substituição.
     let rendered = template;
     Object.entries(variables).forEach(([key, value]) => {
       const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi');
-      rendered = rendered.replace(regex, value);
+      const safe = escapeHtml(value);
+      rendered = rendered.replace(regex, () => safe);
     });
 
     return rendered;
