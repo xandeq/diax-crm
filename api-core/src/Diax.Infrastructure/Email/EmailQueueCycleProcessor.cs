@@ -307,7 +307,7 @@ public class EmailQueueCycleProcessor
             customer, item, unsubscribeUrl, _linkBuilder.DefaultCtaUrl);
 
         var renderedSubject = _templateEngine.Render(item.Subject, variables);
-        var renderedHtmlBody = _templateEngine.Render(item.HtmlBody, variables);
+        var renderedHtmlBody = _templateEngine.RenderHtml(item.HtmlBody, variables);
 
         var recipientEmail = item.RecipientEmail;
         var recipientName = item.RecipientName;

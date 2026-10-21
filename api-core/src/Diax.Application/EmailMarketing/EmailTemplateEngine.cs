@@ -25,6 +25,18 @@ public partial class EmailTemplateEngine : IEmailTemplateEngine
     };
 
     public string Render(string template, IReadOnlyDictionary<string, string?> variables)
+        => RenderCore(template, variables, v => v);
+
+    // Valores vêm de terceiros (Google Maps/Extrator): nunca entram crus no HTML.
+    // Escape mínimo (sem virar acento em &#233;) — vale dentro de texto e de atributo.
+    public string RenderHtml(string template, IReadOnlyDictionary<string, string?> variables)
+        => RenderCore(template, variables, EscapeHtml);
+
+    private static string EscapeHtml(string value) => value
+        .Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;")
+        .Replace("\"", "&quot;").Replace("'", "&#39;");
+
+    private static string RenderCore(string template, IReadOnlyDictionary<string, string?> variables, Func<string, string> encode)
     {
         if (string.IsNullOrWhiteSpace(template))
         {
@@ -44,7 +56,7 @@ public partial class EmailTemplateEngine : IEmailTemplateEngine
             // Tenta buscar o valor fornecido
             if (lookup.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
             {
-                return value;
+                return encode(value);
             }
 
             // Se vazio ou não existe, tenta usar fallback
