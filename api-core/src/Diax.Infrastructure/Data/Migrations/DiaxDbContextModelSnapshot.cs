@@ -22,6 +22,26 @@ namespace Diax.Infrastructure.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Diax.Infrastructure.Data.JobRun", b =>
+                {
+                    b.Property<string>("Job")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("job");
+
+                    b.Property<DateOnly>("RunDate")
+                        .HasColumnType("date")
+                        .HasColumnName("run_date");
+
+                    b.Property<DateTime>("CompletedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at_utc");
+
+                    b.HasKey("Job", "RunDate");
+
+                    b.ToTable("job_runs", (string)null);
+                });
+
             modelBuilder.Entity("Diax.Domain.AI.AiModel", b =>
                 {
                     b.Property<Guid>("Id")

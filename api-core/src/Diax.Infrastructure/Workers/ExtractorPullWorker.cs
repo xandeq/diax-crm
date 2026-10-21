@@ -1,3 +1,4 @@
+using Diax.Infrastructure.Data;
 using Diax.Application.Customers;
 using Diax.Application.Customers.Dtos;
 using Diax.Application.Notifications;
@@ -26,6 +27,7 @@ public class ExtractorPullWorker : BackgroundService
     private readonly ExtractorPullOptions _options;
     private readonly ILogger<ExtractorPullWorker> _logger;
 
+    private const string JobName = "extractor-pull";
     private DateOnly? _lastRunDate;
     private DateOnly? _attemptsDate;
     private int _attemptsToday;
@@ -80,6 +82,13 @@ public class ExtractorPullWorker : BackgroundService
 
                 using (var scope = _scopeFactory.CreateScope())
                 {
+                    var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
+                    if (await DailyJobLedger.HasRunAsync(db, JobName, today, stoppingToken))
+                    {
+                        _lastRunDate = today; // já puxado hoje (antes de um recycle/deploy)
+                        continue;
+                    }
+
                     var integration = scope.ServiceProvider.GetRequiredService<IExtractorIntegrationService>();
                     var result = await integration.ImportLeadsAsync(
                         maxPages: _options.MaxPages,
@@ -91,6 +100,7 @@ public class ExtractorPullWorker : BackgroundService
                         _logger.LogInformation(
                             "[ExtractorPull] Pull diário concluído: {Success} sucesso, {Skipped} ignorados, {Failed} falhas (total {Total})",
                             r.SuccessCount, r.SkippedCount, r.FailedCount, r.TotalRecords);
+                        await DailyJobLedger.MarkRunAsync(db, JobName, today, stoppingToken);
                         _lastRunDate = today;
 
                         var alert = BuildZeroImportAlert(r);
@@ -106,6 +116,7 @@ public class ExtractorPullWorker : BackgroundService
                     {
                         // Extrator sem lead novo/válido não é falha operacional — considera o dia cumprido.
                         _logger.LogInformation("[ExtractorPull] Nenhum lead válido no Extrator hoje — nada a importar.");
+                        await DailyJobLedger.MarkRunAsync(db, JobName, today, stoppingToken);
                         _lastRunDate = today;
                     }
                     else

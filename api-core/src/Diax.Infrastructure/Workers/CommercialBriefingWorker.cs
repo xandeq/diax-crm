@@ -1,3 +1,4 @@
+using Diax.Infrastructure.Data;
 using Diax.Application.Customers;
 using Diax.Domain.Auth;
 using Microsoft.Extensions.Configuration;
@@ -21,6 +22,7 @@ public class CommercialBriefingWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
     private readonly ILogger<CommercialBriefingWorker> _logger;
+    private const string JobName = "commercial-briefing";
     private DateOnly? _lastRunDate;
     private DateOnly? _lastFailureAlertDate;
 
@@ -57,6 +59,13 @@ public class CommercialBriefingWorker : BackgroundService
                 }
 
                 using var scope = _serviceProvider.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
+                if (await DailyJobLedger.HasRunAsync(db, JobName, today, stoppingToken))
+                {
+                    _lastRunDate = today; // já enviado hoje (antes de um recycle/deploy)
+                    continue;
+                }
+
                 var ownerId = await ResolveOwnerAsync(scope.ServiceProvider, stoppingToken);
                 if (ownerId == null)
                 {
@@ -69,6 +78,7 @@ public class CommercialBriefingWorker : BackgroundService
                 var result = await service.SendAsync(ownerId.Value, stoppingToken);
                 _logger.LogInformation("[Briefing] Envio diário: {Status}", result.IsSuccess ? "OK" : result.Error.Message);
 
+                await DailyJobLedger.MarkRunAsync(db, JobName, today, stoppingToken);
                 _lastRunDate = today;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
