@@ -26,27 +26,16 @@ public class PersonalFinanceController : BaseApiController
     private readonly IFinancialAccountRepository _financialAccountRepository;
     private readonly ICreditCardRepository _creditCardRepository;
     private readonly PdfFileParser _pdfParser;
-    private readonly IGoogleSheetsService _sheetsService;
-    private readonly string _sheetsSpreadsheetId;
 
-    private static readonly string[] PortugueseMonths =
-    [
-        "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
-        "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
-    ];
-
-    private static string GetSheetTabName(int year, int month) =>
-        $"{PortugueseMonths[month - 1]} {year}";
-
+    // A planilha Google "MINHAS CONTAS" é a fonte da verdade: o CRM só a LÊ (espelho), nunca escreve.
+    // Marcar pago/pendente aqui altera apenas o CRM.
     public PersonalFinanceController(
         PersonalFinanceControlService monthService,
         TransactionService transactionService,
         RecurringTransactionService recurringService,
         IFinancialAccountRepository financialAccountRepository,
         ICreditCardRepository creditCardRepository,
-        PdfFileParser pdfParser,
-        IGoogleSheetsService sheetsService,
-        IConfiguration configuration)
+        PdfFileParser pdfParser)
     {
         _monthService = monthService;
         _transactionService = transactionService;
@@ -54,22 +43,6 @@ public class PersonalFinanceController : BaseApiController
         _financialAccountRepository = financialAccountRepository;
         _creditCardRepository = creditCardRepository;
         _pdfParser = pdfParser;
-        _sheetsService = sheetsService;
-        _sheetsSpreadsheetId = configuration["GoogleSheets:SpreadsheetId"] ?? string.Empty;
-    }
-
-    private void SyncSheetsAsync(Guid id, Guid userId, int year, int month, bool isPaid, DateOnly? paymentDate)
-    {
-        if (string.IsNullOrEmpty(_sheetsSpreadsheetId)) return;
-        var tabName = GetSheetTabName(year, month);
-        _ = Task.Run(async () =>
-        {
-            var txResult = await _transactionService.GetByIdAsync(id, userId);
-            if (!txResult.IsSuccess) return;
-            await _sheetsService.UpdatePaymentStatusAsync(
-                _sheetsSpreadsheetId, tabName, txResult.Value!.Description,
-                isPaid, paymentDate);
-        });
     }
 
     [HttpGet("months/{year:int}/{month:int}")]
@@ -261,12 +234,6 @@ public class PersonalFinanceController : BaseApiController
             ? await _transactionService.MarkAsPaidAsync(id, userId.Value, request.PaymentDate, cancellationToken)
             : await _transactionService.MarkAsPendingAsync(id, userId.Value, cancellationToken);
 
-        if (result.IsSuccess && request.Year.HasValue && request.Month.HasValue)
-        {
-            var pd = request.PaymentDate.HasValue ? DateOnly.FromDateTime(request.PaymentDate.Value) : (DateOnly?)null;
-            SyncSheetsAsync(id, userId.Value, request.Year.Value, request.Month.Value, request.IsPaid, pd);
-        }
-
         return HandleResult(result);
     }
 
@@ -415,12 +382,6 @@ public class PersonalFinanceController : BaseApiController
         var result = request.IsPaid
             ? await _transactionService.MarkAsPaidAsync(id, userId.Value, request.PaymentDate, cancellationToken)
             : await _transactionService.MarkAsPendingAsync(id, userId.Value, cancellationToken);
-
-        if (result.IsSuccess && request.Year.HasValue && request.Month.HasValue)
-        {
-            var pd = request.PaymentDate.HasValue ? DateOnly.FromDateTime(request.PaymentDate.Value) : (DateOnly?)null;
-            SyncSheetsAsync(id, userId.Value, request.Year.Value, request.Month.Value, request.IsPaid, pd);
-        }
 
         return HandleResult(result);
     }
@@ -600,26 +561,12 @@ public class PersonalFinanceController : BaseApiController
             if (!createResult.IsSuccess)
                 return BadRequest(createResult.Error);
 
-            if (string.IsNullOrEmpty(_sheetsSpreadsheetId) is false)
-            {
-                var pd = request.PaymentDate.HasValue ? DateOnly.FromDateTime(request.PaymentDate.Value) : (DateOnly?)null;
-                var tabName = GetSheetTabName(request.Year, request.Month);
-                _ = _sheetsService.UpdatePaymentStatusAsync(_sheetsSpreadsheetId, tabName, occurrence.Description, request.IsPaid, pd);
-            }
-
             return Ok();
         }
 
         var toggleResult = request.IsPaid
             ? await _transactionService.MarkAsPaidAsync(transaction.Id, userId.Value, request.PaymentDate, cancellationToken)
             : await _transactionService.MarkAsPendingAsync(transaction.Id, userId.Value, cancellationToken);
-
-        if (toggleResult.IsSuccess)
-        {
-            var pd = request.PaymentDate.HasValue ? DateOnly.FromDateTime(request.PaymentDate.Value) : (DateOnly?)null;
-            var tabName = GetSheetTabName(request.Year, request.Month);
-            _ = _sheetsService.UpdatePaymentStatusAsync(_sheetsSpreadsheetId, tabName, occurrence.Description, request.IsPaid, pd);
-        }
 
         return HandleResult(toggleResult);
     }
