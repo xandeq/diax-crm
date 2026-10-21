@@ -149,6 +149,7 @@ public class DiaxDbContext : DbContext
 
     // Audit
     public DbSet<AuditLogEntry> AuditLogs => Set<AuditLogEntry>();
+    public DbSet<JobRun> JobRuns => Set<JobRun>();
 
     // Outreach
     public DbSet<OutreachConfig> OutreachConfigs => Set<OutreachConfig>();
