@@ -35,8 +35,9 @@ public class EmailCampaignRepository : Repository<EmailCampaign>, IEmailCampaign
             return;
         }
 
+        // Entidade rastreada: grava só SentCount/Status. DbSet.Update gravava a linha
+        // inteira e sobrescrevia contadores de webhook (Delivered/Open) de outro contexto.
         campaign.IncrementSent();
-        DbSet.Update(campaign);
     }
 
     public async Task IncrementFailedAsync(Guid campaignId, CancellationToken cancellationToken = default)
@@ -48,7 +49,6 @@ public class EmailCampaignRepository : Repository<EmailCampaign>, IEmailCampaign
         }
 
         campaign.IncrementFailed();
-        DbSet.Update(campaign);
     }
 
     public async Task DecrementFailedAsync(Guid campaignId, CancellationToken cancellationToken = default)
@@ -60,6 +60,5 @@ public class EmailCampaignRepository : Repository<EmailCampaign>, IEmailCampaign
         }
 
         campaign.DecrementFailed();
-        DbSet.Update(campaign);
     }
 }
