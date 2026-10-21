@@ -951,4 +951,18 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # A task roda com console oculto (run-exe-hidden.vbs): sem isto, uma exceção derruba o
+    # script sem traceback em lugar nenhum (19/10: parou logo após o WARMUP, sem envio nem purge).
+    try:
+        main()
+    except Exception:
+        import traceback
+        tb = traceback.format_exc()
+        try:
+            log_line('FATAL: ' + tb.replace('\n', ' | '))
+        except Exception:
+            pass
+        tg_send('🚨 <b>Email waves FALHARAM</b> (exceção fatal) — ver logs/daily-waves-'
+                + datetime.date.today().isoformat() + '.log\n<code>'
+                + _html.escape(tb.strip().splitlines()[-1][:300]) + '</code>')
+        sys.exit(1)
