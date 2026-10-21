@@ -73,7 +73,13 @@ public class Repository<T> : IRepository<T> where T : Entity
 
     public virtual Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
     {
-        DbSet.Update(entity);
+        // Entidade já rastreada: o change tracker detecta só o que mudou. DbSet.Update aqui
+        // marcava TODAS as colunas como Modified → UPDATE reescrevia tudo (ex.: HtmlBody de
+        // ~100KB a cada troca de status) e a auditoria gravava o corpo inteiro.
+        if (Context.Entry(entity).State == EntityState.Detached)
+        {
+            DbSet.Update(entity);
+        }
         return Task.CompletedTask;
     }
 
