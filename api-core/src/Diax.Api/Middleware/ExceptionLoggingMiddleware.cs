@@ -12,11 +12,6 @@ public class ExceptionLoggingMiddleware
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWebHostEnvironment _environment;
 
-    private static readonly HashSet<string> SensitiveHeaders = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Authorization", "Cookie", "X-Api-Key", "X-Auth-Token"
-    };
-
     public ExceptionLoggingMiddleware(
         RequestDelegate next,
         IServiceScopeFactory scopeFactory,
@@ -59,7 +54,7 @@ public class ExceptionLoggingMiddleware
                 clientIp: context.Connection.RemoteIpAddress?.ToString(),
                 userAgent: context.Request.Headers.UserAgent.ToString(),
                 headersJson: SerializeHeaders(context.Request.Headers),
-                queryString: context.Request.QueryString.ToString(),
+                queryString: LogRedaction.SafeQuery(context.Request.QueryString.ToString()),
                 environment: _environment.EnvironmentName);
 
             await logService.CreateAsync(appLog);
@@ -88,11 +83,7 @@ public class ExceptionLoggingMiddleware
 
     private static string SerializeHeaders(IHeaderDictionary headers)
     {
-        var filtered = headers
-            .Where(h => !SensitiveHeaders.Contains(h.Key))
-            .ToDictionary(h => h.Key, h => h.Value.ToString());
-
-        return JsonSerializer.Serialize(filtered);
+        return JsonSerializer.Serialize(LogRedaction.SafeHeaders(headers));
     }
 }
 
