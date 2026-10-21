@@ -233,19 +233,19 @@ public class UnsubscribeLinkBuilderTests
     }
 
     [Fact]
-    public void GeneratedToken_MatchesControllerValidation()
+    public void GeneratedLink_CarriesUidAndEmail_AndTokenValidates()
     {
+        var builder = EmailTestDefaults.LinkBuilder();
         var userId = Guid.NewGuid();
         const string email = "lead@example.com";
 
-        var fromBuilder = UnsubscribeLinkBuilder.ComputeToken(EmailTestDefaults.SigningKey, userId.ToString(), email);
-        var fromController = Diax.Api.Controllers.V1.EmailUnsubscribeController.ComputeToken(
-            EmailTestDefaults.SigningKey, userId.ToString(), email);
+        var url = builder.BuildUnsubscribeUrl(userId, email);
+        var token = UnsubscribeLinkBuilder.ComputeToken(EmailTestDefaults.SigningKey, userId.ToString(), email);
 
-        Assert.Equal(fromBuilder, fromController);
-
-        var url = EmailTestDefaults.LinkBuilder().BuildUnsubscribeUrl(userId, email);
-        Assert.Contains(Uri.EscapeDataString(fromBuilder), url);
+        Assert.Contains($"&uid={userId}", url);
+        Assert.Contains($"&email={Uri.EscapeDataString(email)}", url);
+        Assert.True(builder.IsValidToken(userId.ToString(), email, token));
+        Assert.False(builder.IsValidToken(userId.ToString(), "outro@example.com", token));
     }
 
     [Fact]

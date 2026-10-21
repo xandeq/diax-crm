@@ -1,6 +1,5 @@
-using System.Security.Cryptography;
-using System.Text;
 using Asp.Versioning;
+using Diax.Application.EmailMarketing;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.EmailMarketing;
@@ -11,8 +10,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Diax.Api.Controllers.V1;
 
 /// <summary>
-/// Anonymous endpoint: GET /unsubscribe?token=&lt;hmac_token&gt;
-/// Token = Base64Url(HMAC-SHA256(jwtKey, "unsub:{userId}:{email}"))
+/// Anonymous endpoint: GET /unsubscribe?token=&lt;hmac&gt;&amp;uid=&lt;userId&gt;&amp;email=&lt;email&gt;
+/// Token = Base64Url(HMAC-SHA256(EmailLinks:SigningKey, "unsub:{userId}:{email}")) — gerado e
+/// validado pelo IUnsubscribeLinkBuilder (fonte única de chave e algoritmo).
 /// </summary>
 [ApiController]
 [ApiVersion("1.0")]
@@ -22,20 +22,20 @@ public class EmailUnsubscribeController : BaseApiController
     private readonly ICustomerRepository _customerRepository;
     private readonly IEmailSuppressionRepository _suppressionRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IConfiguration _configuration;
+    private readonly IUnsubscribeLinkBuilder _linkBuilder;
     private readonly ILogger<EmailUnsubscribeController> _logger;
 
     public EmailUnsubscribeController(
         ICustomerRepository customerRepository,
         IEmailSuppressionRepository suppressionRepository,
         IUnitOfWork unitOfWork,
-        IConfiguration configuration,
+        IUnsubscribeLinkBuilder linkBuilder,
         ILogger<EmailUnsubscribeController> logger)
     {
         _customerRepository = customerRepository;
         _suppressionRepository = suppressionRepository;
         _unitOfWork = unitOfWork;
-        _configuration = configuration;
+        _linkBuilder = linkBuilder;
         _logger = logger;
     }
 
@@ -44,40 +44,18 @@ public class EmailUnsubscribeController : BaseApiController
     [ApiVersionNeutral]
     public async Task<IActionResult> Unsubscribe(
         [FromQuery] string token,
+        [FromQuery] string uid,
+        [FromQuery] string email,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(token))
-            return BadRequest("Token invalido.");
+        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(uid) || string.IsNullOrWhiteSpace(email))
+            return BadRequest("Link de descadastro invalido.");
 
-        string? userId = null;
-        string? email = null;
-
-        try
+        var userId = uid;
+        if (!_linkBuilder.IsValidToken(userId, email, token))
         {
-            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(
-                token.Replace('-', '+').Replace('_', '/')));
-
-            var parts = decoded.Split(':');
-            if (parts.Length < 3 || parts[0] != "unsub")
-                return BadRequest("Token invalido.");
-
-            userId = parts[1];
-            email = string.Join(":", parts[2..]);
-
-            var jwtKey = _configuration["Jwt:Key"] ?? string.Empty;
-            var expected = ComputeToken(jwtKey, userId, email);
-
-            if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(expected),
-                Encoding.UTF8.GetBytes(token)))
-            {
-                _logger.LogWarning("Invalid unsubscribe token for email={Email}", email);
-                return Unauthorized();
-            }
-        }
-        catch
-        {
-            return BadRequest("Token invalido.");
+            _logger.LogWarning("Invalid unsubscribe token for email={Email}", email);
+            return Unauthorized();
         }
 
         var customer = await _customerRepository.GetByEmailAsync(email, cancellationToken);
@@ -109,9 +87,4 @@ public class EmailUnsubscribeController : BaseApiController
             "</body></html>",
             "text/html");
     }
-
-    // Delegado ao UnsubscribeLinkBuilder — fonte única do algoritmo, compartilhada com a
-    // geração dos links dentro dos emails. Divergência aqui = links de unsubscribe mortos.
-    public static string ComputeToken(string key, string userId, string email)
-        => Diax.Application.EmailMarketing.UnsubscribeLinkBuilder.ComputeToken(key, userId, email);
 }

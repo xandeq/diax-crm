@@ -19,7 +19,16 @@ public class UnsubscribeLinkBuilder : IUnsubscribeLinkBuilder
     {
         var opts = _options.CurrentValue;
         var token = ComputeToken(opts.SigningKey, userId.ToString(), email);
-        return $"{opts.PublicBaseUrl.TrimEnd('/')}/unsubscribe?token={Uri.EscapeDataString(token)}";
+        // uid/email vão no link: o token é só a assinatura (HMAC não se decodifica).
+        return $"{opts.PublicBaseUrl.TrimEnd('/')}/unsubscribe?token={Uri.EscapeDataString(token)}"
+             + $"&uid={userId}&email={Uri.EscapeDataString(email)}";
+    }
+
+    public bool IsValidToken(string userId, string email, string token)
+    {
+        var expected = ComputeToken(_options.CurrentValue.SigningKey, userId, email);
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(token));
     }
 
     /// <summary>
