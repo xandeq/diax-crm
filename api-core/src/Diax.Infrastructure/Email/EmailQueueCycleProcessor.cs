@@ -429,9 +429,15 @@ public class EmailQueueCycleProcessor
         {
             await _campaignRepository.IncrementFailedAsync(item.CampaignId.Value, cancellationToken);
 
-            var wasClosed = !_pilotBreaker.IsOpen;
-            _pilotBreaker.RecordFailure(error);
-            pilotOpened = wasClosed && _pilotBreaker.IsOpen;
+            // Breaker global = saúde da CAMPANHA (destinatário ruim). Falha do provider (conta
+            // bloqueada, credencial, sandbox, quota, 5xx) é do breaker do provider: um provider
+            // quebrado não pode pausar os que funcionam (21/10: Mailjet bloqueado parou todos).
+            if (EmailErrorClassifier.IsRecipientError(error))
+            {
+                var wasClosed = !_pilotBreaker.IsOpen;
+                _pilotBreaker.RecordFailure(error);
+                pilotOpened = wasClosed && _pilotBreaker.IsOpen;
+            }
 
             if (pilotOpened)
             {
