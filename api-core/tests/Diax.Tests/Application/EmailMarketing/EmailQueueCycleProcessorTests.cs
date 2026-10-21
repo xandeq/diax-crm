@@ -289,12 +289,48 @@ public class EmailQueueCycleProcessorTests
         h.CampaignRepo.Verify(r => r.DecrementFailedAsync(campaignId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // ───── 21/10: provider quebrado não pausa os que funcionam ─────
+
+    [Fact]
+    public async Task ProviderAccountError_DoesNotOpenGlobalBreaker()
+    {
+        // Mailjet "account temporarily blocked" (401) abria o breaker GLOBAL e parava
+        // Brevo/Resend também — até o próximo restart do app.
+        var sender = new QueueFakeSender(_ => EmailSendResult.Fail(
+            "Mailjet API error 401: {\"ErrorMessage\":\"Your account has been temporarily blocked.\"}"));
+        var h = new Harness(sender: sender);
+        var campaignId = Guid.NewGuid();
+        var item = NewItem(EmailProvider.Mailjet, campaignId, "lead@a.com");
+        h.SetupPending(EmailProvider.Mailjet, item);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.Equal(EmailQueueStatus.Failed, item.Status);   // item volta para retry
+        Assert.False(h.PilotBreaker.IsOpen);                   // demais providers seguem
+        Assert.DoesNotContain(h.Alerter.Alerts, a => a.Key == "breaker:pilot");
+    }
+
+    [Fact]
+    public async Task RepeatedProvider5xx_DoesNotOpenGlobalBreaker()
+    {
+        var sender = new QueueFakeSender(_ => EmailSendResult.Fail("ElasticEmail API error 400: For testing purposes you can only send emails to x"));
+        var h = new Harness(sender: sender);
+        var campaignId = Guid.NewGuid();
+        var items = Enumerable.Range(0, 5).Select(i => NewItem(EmailProvider.ElasticEmail, campaignId, $"l{i}@a.com")).ToArray();
+        h.SetupPending(EmailProvider.ElasticEmail, items);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        Assert.False(h.PilotBreaker.IsOpen);
+    }
+
     // ───── P1-8: breaker global abre no meio do lote → ciclo PARA ─────
 
     [Fact]
     public async Task PilotBreakerOpensMidBatch_CycleStopsImmediately()
     {
-        var failingSender = new QueueFakeSender(_ => EmailSendResult.Fail("erro 500 catastrófico"));
+        // Gatilho do global = erro de DESTINATÁRIO (saúde da campanha); erro de provider não conta.
+        var failingSender = new QueueFakeSender(_ => EmailSendResult.Fail("550 invalid recipient"));
         var h = new Harness(sender: failingSender);
 
         // Janela do pilot já com 2 falhas: a próxima abre o breaker (3/3 ≥ 30%).
