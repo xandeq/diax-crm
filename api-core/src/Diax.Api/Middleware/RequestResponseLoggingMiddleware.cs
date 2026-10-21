@@ -116,10 +116,8 @@ public class RequestResponseLoggingMiddleware
             // Extrai informações do erro da resposta
             var errorMessage = ExtractErrorMessage(responseContent, statusCode);
 
-            // Extrai headers relevantes (sem dados sensíveis)
-            var headers = context.Request.Headers
-                .Where(h => !IsSensitiveHeader(h.Key))
-                .ToDictionary(h => h.Key, h => h.Value.ToString());
+            // Só headers da lista de permitidos — chaves de integração nunca vão para o log
+            var headers = LogRedaction.SafeHeaders(context.Request.Headers);
 
             var headersJson = System.Text.Json.JsonSerializer.Serialize(headers);
 
@@ -145,7 +143,7 @@ public class RequestResponseLoggingMiddleware
                 userId: context.User?.FindFirst("sub")?.Value
                     ?? context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
                 requestPath: context.Request.Path,
-                queryString: context.Request.QueryString.ToString(),
+                queryString: LogRedaction.SafeQuery(context.Request.QueryString.ToString()),
                 httpMethod: context.Request.Method,
                 statusCode: statusCode,
                 headersJson: headersJson,
@@ -255,20 +253,6 @@ public class RequestResponseLoggingMiddleware
             504 => "Gateway Timeout",
             _ => "Error"
         };
-    }
-
-    private static bool IsSensitiveHeader(string headerName)
-    {
-        var sensitiveHeaders = new[]
-        {
-            "Authorization",
-            "Cookie",
-            "Set-Cookie",
-            "X-Api-Key",
-            "X-Auth-Token"
-        };
-
-        return sensitiveHeaders.Contains(headerName, StringComparer.OrdinalIgnoreCase);
     }
 
     public static string ResolveModule(string path)
