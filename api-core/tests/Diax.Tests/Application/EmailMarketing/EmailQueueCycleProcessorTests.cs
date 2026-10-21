@@ -56,6 +56,7 @@ public class EmailQueueCycleProcessorTests
         public Mock<IEmailCampaignRepository> CampaignRepo { get; } = new();
         public Mock<ICustomerRepository> CustomerRepo { get; } = new();
         public Mock<IEmailSuppressionRepository> SuppressionRepo { get; } = new();
+        public Mock<IUnitOfWork> UnitOfWork { get; } = new();
         public PilotCircuitBreaker PilotBreaker { get; } = new();
         public EmailProviderCircuitBreaker ProviderBreaker { get; } = new(TimeSpan.FromMinutes(5));
         public QueueFakeSender Sender { get; }
@@ -134,7 +135,7 @@ public class EmailQueueCycleProcessorTests
                 CustomerRepo.Object,
                 SuppressionRepo.Object,
                 new EmailTemplateEngine(),
-                new Mock<IUnitOfWork>().Object,
+                UnitOfWork.Object,
                 PilotBreaker,
                 ProviderBreaker,
                 EmailTestDefaults.ProviderPolicy(disabledProviders ?? []),
@@ -177,6 +178,37 @@ public class EmailQueueCycleProcessorTests
     private static void SetProcessingStartedAt(EmailQueueItem item, DateTime value)
         => typeof(EmailQueueItem).GetProperty(nameof(EmailQueueItem.ProcessingStartedAt))!
             .SetValue(item, value);
+
+    // ───── Envio aceito + shutdown: gravar o Sent mesmo assim ─────
+
+    [Fact]
+    public async Task ShutdownDuringSend_AcceptedEmail_IsStillPersistedAsSent()
+    {
+        // Deploy/recycle cancela o stoppingToken enquanto o provider aceita o email.
+        // Antes: o SaveChanges recebia o token cancelado, o item ficava em Processing e
+        // o recovery reenviava 30 min depois (email duplicado).
+        using var cts = new CancellationTokenSource();
+        var sender = new QueueFakeSender(_ => { cts.Cancel(); return EmailSendResult.Ok("q-msg"); });
+        var h = new Harness(sender);
+        var item = NewItem(campaignId: Guid.NewGuid());
+        h.SetupPending(EmailProvider.Brevo, item);
+        var savedWithLiveToken = false;
+        h.UnitOfWork
+            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback<CancellationToken>(ct =>
+            {
+                ct.ThrowIfCancellationRequested(); // como o EF faz
+                if (sender.Sent.Count > 0) savedWithLiveToken = true; // save DEPOIS do envio
+            })
+            .ReturnsAsync(1);
+
+        try { await h.Processor.ProcessOnceAsync(cts.Token); }
+        catch (OperationCanceledException) { /* o ciclo pode parar depois — o que importa é o Sent gravado */ }
+
+        Assert.Single(sender.Sent);
+        Assert.Equal(EmailQueueStatus.Sent, item.Status);
+        Assert.True(savedWithLiveToken, "Sent não foi persistido: o save usou o token de shutdown");
+    }
 
     // ───── P0-3: recovery de Processing órfão ─────
 

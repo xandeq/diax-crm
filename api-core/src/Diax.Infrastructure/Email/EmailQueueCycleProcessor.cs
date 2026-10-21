@@ -337,20 +337,23 @@ public class EmailQueueCycleProcessor
 
         if (sendResult.Success)
         {
+            // Provider já aceitou: gravar o Sent NÃO pode ser cancelado pelo shutdown
+            // (deploy/recycle). Senão o item fica em Processing e o recovery reenvia.
+            var persistCt = CancellationToken.None;
             item.MarkSent(sendResult.ProviderMessageId);
             _providerBreaker.RecordSuccess(serviceKey);
             if (item.CampaignId.HasValue)
             {
-                await _campaignRepository.IncrementSentAsync(item.CampaignId.Value, cancellationToken);
+                await _campaignRepository.IncrementSentAsync(item.CampaignId.Value, persistCt);
                 _pilotBreaker.RecordSuccess();
             }
 
-            await _repository.UpdateAsync(item, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _repository.UpdateAsync(item, persistCt);
+            await _unitOfWork.SaveChangesAsync(persistCt);
 
             // Só depois do Sent persistido: falha aqui não pode reabrir o item
             // (o provider já entregou — retry = email duplicado).
-            await RegisterCustomerContactAsync(item, cancellationToken);
+            await RegisterCustomerContactAsync(item, persistCt);
             return ItemOutcome.Sent;
         }
 
@@ -382,18 +385,19 @@ public class EmailQueueCycleProcessor
 
             if (fallback.Sent)
             {
+                var persistCt = CancellationToken.None; // idem: já aceito pelo provider
                 item.ReassignProvider(fallback.Provider!.Value);
                 item.MarkSent(fallback.ProviderMessageId);
                 if (item.CampaignId.HasValue)
                 {
-                    await _campaignRepository.IncrementSentAsync(item.CampaignId.Value, cancellationToken);
+                    await _campaignRepository.IncrementSentAsync(item.CampaignId.Value, persistCt);
                     _pilotBreaker.RecordSuccess();
                 }
 
-                await _repository.UpdateAsync(item, cancellationToken);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _repository.UpdateAsync(item, persistCt);
+                await _unitOfWork.SaveChangesAsync(persistCt);
 
-                await RegisterCustomerContactAsync(item, cancellationToken);
+                await RegisterCustomerContactAsync(item, persistCt);
 
                 _logger.LogInformation(
                     "Item {ItemId}: fallback in-cycle {From} → {To} após falha ({Error}).",
