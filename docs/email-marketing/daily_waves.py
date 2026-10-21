@@ -953,8 +953,22 @@ def main():
 if __name__ == '__main__':
     # A task roda com console oculto (run-exe-hidden.vbs): sem isto, uma exceção derruba o
     # script sem traceback em lugar nenhum (19/10: parou logo após o WARMUP, sem envio nem purge).
+    # Exceção cai no except abaixo; crash nativo (pyodbc) vai pro log via faulthandler; travamento
+    # (query sem timeout) é cortado pelo watchdog — execução normal leva 7-15 min.
+    import faulthandler, threading
+    os.makedirs(LOG_DIR, exist_ok=True)
+    _fh = open(LOG_DIR + 'daily-waves-' + datetime.date.today().isoformat() + '.log', 'a', encoding='utf-8')
+    faulthandler.enable(file=_fh)
+    def _watchdog():
+        log_line('FATAL: watchdog — execução passou de 60 min, encerrando (provável travamento)')
+        faulthandler.dump_traceback(file=_fh, all_threads=True)
+        tg_send('🚨 <b>Email waves TRAVARAM</b> (>60 min) — processo encerrado; ver logs/daily-waves-'
+                + datetime.date.today().isoformat() + '.log')
+        os._exit(3)
+    _wd = threading.Timer(60 * 60, _watchdog); _wd.daemon = True; _wd.start()
     try:
         main()
+        _wd.cancel()
     except Exception:
         import traceback
         tb = traceback.format_exc()
