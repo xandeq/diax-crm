@@ -11,6 +11,12 @@ public enum ProposalStatus
     Cancelled = 4,
 }
 
+public enum ProposalOrigin
+{
+    Manual = 0,
+    Bot = 1,
+}
+
 /// <summary>
 /// Proposta comercial vinculada a um lead/cliente do pipeline.
 /// Tem um link público (token) onde o cliente lê, aceita e paga via PIX.
@@ -52,6 +58,32 @@ public class Proposal : AuditableEntity, IUserOwnedEntity
     {
         if (!string.IsNullOrWhiteSpace(url))
             CoverImageUrl = url.Length <= 500 ? url : url[..500];
+    }
+
+    /// <summary>Pacote do catálogo que originou a proposta (opcional).</summary>
+    public Guid? PackageId { get; private set; }
+
+    public ProposalOrigin Origin { get; private set; } = ProposalOrigin.Manual;
+
+    /// <summary>Maior etapa de follow-up já gerada (0 = nenhuma). Ver ProposalFollowUpService.</summary>
+    public int LastFollowUpStage { get; private set; }
+
+    public bool IsOpen => Status is ProposalStatus.Draft or ProposalStatus.Sent or ProposalStatus.Accepted;
+
+    public void LinkPackage(Guid packageId, ProposalOrigin origin)
+    {
+        PackageId = packageId;
+        Origin = origin;
+    }
+
+    public void SetOrigin(ProposalOrigin origin) => Origin = origin;
+
+    /// <summary>Retorna true se a etapa é nova (avança); false se já foi gerada.</summary>
+    public bool RegisterFollowUpStage(int stage)
+    {
+        if (stage <= LastFollowUpStage) return false;
+        LastFollowUpStage = stage;
+        return true;
     }
 
     protected Proposal() { } // EF Core

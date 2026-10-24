@@ -22,26 +22,6 @@ namespace Diax.Infrastructure.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Diax.Infrastructure.Data.JobRun", b =>
-                {
-                    b.Property<string>("Job")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("job");
-
-                    b.Property<DateOnly>("RunDate")
-                        .HasColumnType("date")
-                        .HasColumnName("run_date");
-
-                    b.Property<DateTime>("CompletedAtUtc")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("completed_at_utc");
-
-                    b.HasKey("Job", "RunDate");
-
-                    b.ToTable("job_runs", (string)null);
-                });
-
             modelBuilder.Entity("Diax.Domain.AI.AiModel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2156,6 +2136,22 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(256)")
                         .HasColumnName("description");
 
+                    b.Property<int>("LastFollowUpStage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("last_follow_up_stage");
+
+                    b.Property<int>("Origin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("origin");
+
+                    b.Property<Guid?>("PackageId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("package_id");
+
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("paid_at");
@@ -2215,9 +2211,83 @@ namespace Diax.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("Status", "SentAt");
+
                     b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("proposals", (string)null);
+                });
+
+            modelBuilder.Entity("Diax.Domain.Customers.ServicePackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("DeliveryDays")
+                        .HasColumnType("int")
+                        .HasColumnName("delivery_days");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("price");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnName("scope");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("short_description");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "IsActive", "SortOrder");
+
+                    b.ToTable("service_packages", (string)null);
                 });
 
             modelBuilder.Entity("Diax.Domain.EmailMarketing.EmailCampaign", b =>
@@ -6737,6 +6807,26 @@ namespace Diax.Infrastructure.Data.Migrations
                     b.HasIndex("UserGroupId");
 
                     b.ToTable("user_group_members", (string)null);
+                });
+
+            modelBuilder.Entity("Diax.Infrastructure.Data.JobRun", b =>
+                {
+                    b.Property<string>("Job")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("job");
+
+                    b.Property<DateOnly>("RunDate")
+                        .HasColumnType("date")
+                        .HasColumnName("run_date");
+
+                    b.Property<DateTime>("CompletedAtUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at_utc");
+
+                    b.HasKey("Job", "RunDate");
+
+                    b.ToTable("job_runs", (string)null);
                 });
 
             modelBuilder.Entity("Diax.Domain.AI.AiModel", b =>

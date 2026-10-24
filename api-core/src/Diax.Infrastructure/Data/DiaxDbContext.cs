@@ -73,6 +73,7 @@ public class DiaxDbContext : DbContext
     public DbSet<CustomerImport> CustomerImports => Set<CustomerImport>();
     public DbSet<MxCacheEntry> MxCacheEntries => Set<MxCacheEntry>();
     public DbSet<Proposal> Proposals => Set<Proposal>();
+    public DbSet<ServicePackage> ServicePackages => Set<ServicePackage>();
     public DbSet<Meeting> Meetings => Set<Meeting>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Income> Incomes => Set<Income>();
