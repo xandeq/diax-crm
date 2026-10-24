@@ -347,7 +347,7 @@ Em `DependencyInjection.cs`, ao lado da linha 274:
 
 **Step 3: Generate migration**
 
-Run (PowerShell, de `api-core`): `.\scriptsdd-migration.ps1 -Name "AddServicePackages"` (padrão do `CLAUDE.md`; só gera código). **Não** rodar `update-db.ps1`: a migration vai pra produção sozinha no startup depois do merge.
+Run (PowerShell, de `api-core`): `.\scripts\add-migration.ps1 -Name "AddServicePackages"` (padrão do `CLAUDE.md`; só gera código). **Não** rodar `update-db.ps1`: a migration vai pra produção sozinha no startup depois do merge.
 Expected: arquivo novo com `CreateTable("service_packages")` e 3 `AddColumn` em `proposals` (`package_id` nullable, `origin` default 0, `last_follow_up_stage` default 0) + índice. **Ler o arquivo**: não pode ter `DropTable`, `DropColumn` nem `AlterColumn` de outras tabelas. Se tiver, o snapshot está defasado — parar e investigar antes de seguir.
 
 **Step 4: Build + testes**
