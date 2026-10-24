@@ -148,3 +148,45 @@ public class ProposalEntityTests
         Assert.Throws<ArgumentException>(() => Make(amount));
     }
 }
+
+public class ProposalPackageAndFollowUpTests
+{
+    private static Proposal New() => new(Guid.NewGuid(), Guid.NewGuid(), "Site", "desc", 1800m, null, DateTime.UtcNow.AddDays(7));
+
+    [Fact]
+    public void LinkPackage_SetsPackageAndOrigin()
+    {
+        var p = New();
+        var pkg = Guid.NewGuid();
+        p.LinkPackage(pkg, ProposalOrigin.Bot);
+        Assert.Equal(pkg, p.PackageId);
+        Assert.Equal(ProposalOrigin.Bot, p.Origin);
+    }
+
+    [Fact]
+    public void DefaultOrigin_IsManual_AndStageZero()
+    {
+        var p = New();
+        Assert.Equal(ProposalOrigin.Manual, p.Origin);
+        Assert.Equal(0, p.LastFollowUpStage);
+    }
+
+    [Fact]
+    public void RegisterFollowUpStage_OnlyMovesForward()
+    {
+        var p = New();
+        Assert.True(p.RegisterFollowUpStage(2));
+        Assert.False(p.RegisterFollowUpStage(1));
+        Assert.False(p.RegisterFollowUpStage(2));
+        Assert.Equal(2, p.LastFollowUpStage);
+    }
+
+    [Fact]
+    public void IsOpen_TrueForDraftSentAccepted()
+    {
+        var p = New();
+        Assert.True(p.IsOpen);
+        p.MarkSent(); Assert.True(p.IsOpen);
+        p.Cancel(); Assert.False(p.IsOpen);
+    }
+}
