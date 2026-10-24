@@ -32,6 +32,11 @@ public class ProposalConfiguration : IEntityTypeConfiguration<Proposal>
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
         builder.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(256);
 
+        builder.Property(x => x.PackageId).HasColumnName("package_id");
+        builder.Property(x => x.Origin).HasColumnName("origin").IsRequired().HasDefaultValue(ProposalOrigin.Manual);
+        builder.Property(x => x.LastFollowUpStage).HasColumnName("last_follow_up_stage").IsRequired().HasDefaultValue(0);
+        builder.HasIndex(x => new { x.Status, x.SentAt });
+
         builder.HasIndex(x => x.PublicToken).IsUnique();
         builder.HasIndex(x => x.CustomerId);
         builder.HasIndex(x => new { x.UserId, x.CreatedAt });

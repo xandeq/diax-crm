@@ -272,6 +272,7 @@ public static class DependencyInjection
         services.AddScoped<IGeneratedImageRepository, GeneratedImageRepository>();
         services.AddScoped<IVideoGenerationJobRepository, VideoGenerationJobRepository>();
         services.AddScoped<IProposalRepository, ProposalRepository>();
+        services.AddScoped<IServicePackageRepository, ServicePackageRepository>();
         services.AddScoped<IMeetingRepository, MeetingRepository>();
         services.AddSingleton<Diax.Application.Customers.IProposalCoverImageGenerator, Diax.Infrastructure.Ai.ProposalCoverImageGenerator>();
 
