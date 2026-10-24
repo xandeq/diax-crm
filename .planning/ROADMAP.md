@@ -311,7 +311,7 @@ tempo. Toda migration desta milestone deve ser lida linha a linha (só `CreateTa
 
 ### Phases
 
-- [~] **Phase 15: Catálogo de Pacotes** — entidade `ServicePackage`, campos novos em `Proposal`, schema+migration, CRUD via API (PKG-01, PKG-02) — **em execução por superpowers-dev** (worktree `_worktrees/diax-pr-a`, branch `feat/service-packages`, plano Tasks 1-4 = PR-a)
+- [~] **Phase 15: Catálogo de Pacotes** — entidade `ServicePackage`, campos novos em `Proposal`, schema+migration, CRUD via API (PKG-01, PKG-02) — **código completo, PR #213 aberto, CI 6/6, verificado 7/7 (`15-VERIFICATION.md`), aguardando ok do usuário para merge** (worktree `_worktrees/diax-pr-a`, branch `feat/service-packages`, plano Tasks 1-4 = PR-a)
 - [ ] **Phase 16: Proposta a Partir de Pacote** — API de proposta usando pacote, tela de pacotes em crm-web, seletor de pacote no pipeline (PKG-03, PKG-04, PKG-05) — plano Tasks 5-7 = PR-b
 - [ ] **Phase 17: Follow-up de Proposta** — regra de etapas (não vista/vista sem aceite/vencida) + worker diário idempotente (FUP-01, FUP-02) — plano Tasks 8-9 = PR-c
 - [ ] **Phase 18: Painel de Receita** — valor em proposta aberta no dashboard comercial (REV-01) — plano Task 10 = PR-d
@@ -488,8 +488,8 @@ PLAN.md GSD, sem commit — mapeado neste ROADMAP só para rastreabilidade do mi
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PKG-01 | Phase 15 | Pending |
-| PKG-02 | Phase 15 | Pending |
+| PKG-01 | Phase 15 | Verificado (PR #213, CI 6/6, aguardando merge) |
+| PKG-02 | Phase 15 | Verificado (PR #213, CI 6/6, aguardando merge) |
 | PKG-03 | Phase 16 | Pending |
 | PKG-04 | Phase 16 | Pending |
 | PKG-05 | Phase 16 | Pending |

@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Fechar Venda
 status: in_progress
-stopped_at: Phase 15 (Catálogo de Pacotes) em execução por superpowers-dev — PR-a (plano Tasks 1-4), ainda sem SUMMARY
+stopped_at: Phase 15 (Catálogo de Pacotes) — PR #213 (feat/service-packages) CI 6/6, verificado 7/7 goal-backward (15-VERIFICATION.md), aguardando ok do usuário para merge
 last_updated: "2026-10-24T00:00:00.000Z"
 progress:
   total_phases: 6
@@ -19,7 +19,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-24)
 
 **Core value:** Centralizar todas as operações de negócio em um único sistema pessoal, eliminando ferramentas externas pagas
-**Current focus:** Milestone v1.5 "Fechar Venda" — Phase 15 (catálogo de pacotes) em execução por superpowers-dev
+**Current focus:** Milestone v1.5 "Fechar Venda" — Phase 15 (catálogo de pacotes) verificada 7/7, PR #213 aguardando ok do usuário para merge
 
 ## Current Position
 
