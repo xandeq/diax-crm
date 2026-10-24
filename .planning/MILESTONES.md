@@ -1,5 +1,55 @@
 # Milestones — DIAX CRM
 
+## v1.5 — Fechar Venda (current)
+
+**Status:** 🟢 Iniciado 2026-10-23 — requisitos definidos, roadmap criado 2026-10-24. Design e plano
+de implementação task-by-task já aprovados pelo usuário antes do roadmap GSD existir (fluxo
+inverso ao usual para este milestone).
+
+**Escopo:** proposta a partir de pacote de serviço (preço fixo), follow-up automático de proposta
+esquecida, painel de receita (R$ em proposta aberta), e bot vendedor de WhatsApp em modo sombra
+(decide mas nunca envia, até revisão humana autorizar a ativação real).
+
+**Goal:** o CRM passa a acompanhar a venda depois do primeiro contato — hoje 0 propostas desde
+03/07, pipeline com R$0, apesar de 738 e-mails + 553 WhatsApps em 45 dias.
+
+**Plano de origem:** `docs/plans/2026-10-23-fechar-venda-design.md` (design) e
+`docs/plans/2026-10-23-fechar-venda.md` (plano de implementação, Tasks 1-13). Fases 15-20 mapeiam
+esse plano — ver `ROADMAP.md`.
+
+**Fases:** Phase 15 (catálogo de pacotes) em execução por superpowers-dev no momento da criação
+deste registro; Phases 16-20 definidas no roadmap, não iniciadas.
+
+---
+
+## v1.4 Funil de Outreach — Cadência e Qualidade (Shipped: 2026-09-20)
+
+**Phases completed:** 6 phases (9-14), 19 plans, 14 requisitos (11 Complete, 3 Partial por decisão
+deliberada)
+
+**Entregue:** backlog pré-v1.3 recalculado com o motor oficial de score (`LeadScoringService`);
+os 79+ scripts `fire_*.py` consolidados num motor único (`waves_core.py`) e o pipeline de outreach
+tirado da dependência de um único notebook (watchdogs Telegram + Scheduled Tasks); critério objetivo
+e automático de avanço Contacted→Qualified (`reply_watch.py`); ferramentas de escala de email
+(DMARC/warmup/A-B de subject/leads webmail) e WhatsApp (handoff confirmado, bot de desvio pra
+humano, relatório semanal, escalonamento wa_es→wa_br); dashboard de conversão do funil verificado
+em produção (já existia desde PR #61, esta fase só verificou e documentou).
+
+**Escopo:** Phases 9-14 · requisitos BFIL-01, SCRP-01, OBSV-01, QUAL-01/02, EMAL-01..04,
+WHAT-01..04, DASH-01 · 2026-09-17 a 2026-09-20.
+
+**Estado:** executado e documentado inteiramente na branch `chore/email-automation-versioned`
+(pushada para `origin`), **ainda não mergeada em `main`/`origin/main`** no momento em que o v1.5
+começou a ser planejado (`main` ficou 209 commits atrás). Trabalho completo e verificado, mas não
+em produção — deploy só dispara em push para `main` (`CLAUDE.md`). EMAL-01/02/04 fecharam `Partial`
+por decisão deliberada do usuário (bounce rate acima do limiar de reversão travado por ele mesmo;
+confirmação de execução real agendada para 2026-09-21), não por falha de implementação.
+
+Detalhes completos: [`milestones/v1.4-ROADMAP.md`](milestones/v1.4-ROADMAP.md) ·
+requisitos: [`milestones/v1.4-REQUIREMENTS.md`](milestones/v1.4-REQUIREMENTS.md)
+
+---
+
 ## v1.3 Pipeline de Aquisição (Shipped: 2026-09-08)
 
 **Phases completed:** 2 phases, 11 plans, 24 tasks
@@ -68,10 +118,14 @@ pelo início do v1.3).
 
 ---
 
-## v1.3 — Pipeline de Aquisição (current)
+## v1.3 — Pipeline de Aquisição (histórico — nota de início, superado pela seção "Shipped" acima)
 
-**Status:** 🟢 Iniciado (2026-09-05) — requisitos definidos, roadmap em criação. Roda em paralelo ao
-v1.2 sem depender dele (arquivos/dados diferentes: extração de leads, import CRM).
+**Status:** ✅ Shipped 2026-09-08 — ver seção "v1.3 Pipeline de Aquisição (Shipped: 2026-09-08)" no
+topo deste arquivo. Bloco abaixo preservado como registro histórico do momento em que o milestone
+foi iniciado (2026-09-05); não editar, só referência.
+
+**Status original (2026-09-05):** 🟢 Iniciado — requisitos definidos, roadmap em criação. Roda em
+paralelo ao v1.2 sem depender dele (arquivos/dados diferentes: extração de leads, import CRM).
 
 **Escopo (confirmado com o usuário):** Extração (A) + Import CRM (B) do backlog original.
 Email e WhatsApp (C, D) ficaram em v2 — adiados, não descartados.

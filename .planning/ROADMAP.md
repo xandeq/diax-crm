@@ -6,6 +6,8 @@
 - ⚠️ **v1.1 Produtividade Pessoal** — Superado (planejado 2026-04-03, nunca executado pelo GSD; código evoluiu via sprints)
 - ⏸️ **v1.2 Agentes de IA** — Pausado em paralelo desde 2026-05-29 (Phase 02, 2/4 plans); Phases 3-6 definidas, não iniciadas. Não abandonado — retomar com `/gsd:execute-phase 2`.
 - ✅ **v1.3 Pipeline de Aquisição** — Phases 7-8 (shipped 2026-09-08) — [arquivo](milestones/v1.3-ROADMAP.md)
+- ✅ **v1.4 Funil de Outreach — Cadência e Qualidade** — Phases 9-14, 6/6 concluídas (shipped 2026-09-20) — [arquivo](milestones/v1.4-ROADMAP.md)
+- 🟢 **v1.5 Fechar Venda** — Phases 15-20 (current) — catálogo de pacotes com preço fixo, proposta gerada a partir de pacote, follow-up automático, painel de receita e bot vendedor em modo sombra
 
 ---
 
@@ -29,6 +31,42 @@ requisitos: [`milestones/v1.3-REQUIREMENTS.md`](milestones/v1.3-REQUIREMENTS.md)
 **Débito técnico conhecido:** o dry-run de `/customers/import` deduplica em memória só por e-mail e
 telefone, então uma prévia com o mesmo `ExternalId` repetido reporta sucesso onde o import real
 pularia a linha. A dedup real está correta; é divergência entre prévia e execução.
+
+</details>
+
+---
+
+<details>
+<summary>✅ v1.4 — Funil de Outreach — Cadência e Qualidade (Phases 9-14) — SHIPPED 2026-09-20</summary>
+
+**Entregue:** backlog pré-v1.3 recalculado com o motor oficial de score, consolidação dos 79+
+scripts `fire_*.py` num motor único (`waves_core.py`) com o pipeline tirado da dependência do
+notebook (watchdogs + Scheduled Tasks), critério objetivo e automático de avanço Contacted→Qualified
+(`reply_watch.py`), ferramentas de escala para email (DMARC/warmup/A-B/webmail) e WhatsApp
+(handoff/bot de desvio/relatório semanal/escalonamento wa_es→wa_br), e dashboard de conversão do
+funil verificado em produção.
+
+- [x] **Phase 9: Backfill de Score do Backlog** (2/2 planos) — concluída 2026-09-19
+- [x] **Phase 10: Motor de Cadência Único + Pipeline Fora do Notebook** (5/5 planos) — concluída 2026-09-19
+- [x] **Phase 11: Qualified Objetivo e Automático** (1/1 plano) — concluída 2026-09-20
+- [x] **Phase 12: Escala de Email** (6/6 planos) — concluída 2026-09-20
+- [x] **Phase 13: Escala de WhatsApp** (4/4 planos) — concluída 2026-09-20
+- [x] **Phase 14: Dashboard de Conversão do Funil** (1/1 plano) — concluída 2026-09-20
+
+Requisitos BFIL-01, SCRP-01, OBSV-01, QUAL-01/02, WHAT-01..04, DASH-01 — 11/14 `Complete`.
+EMAL-01/02/04 — 3/14 `Partial` por decisão deliberada de segurança/calendário (bounce rate acima do
+limiar de reversão travado pelo próprio usuário; execução real pendente de confirmação agendada),
+não por falha de implementação — ver Traceability no arquivo.
+
+Detalhes completos: [`milestones/v1.4-ROADMAP.md`](milestones/v1.4-ROADMAP.md) ·
+requisitos: [`milestones/v1.4-REQUIREMENTS.md`](milestones/v1.4-REQUIREMENTS.md)
+
+**Observação de workflow (não é débito técnico do produto):** este milestone foi executado e
+documentado inteiramente na branch `chore/email-automation-versioned` (pushada para `origin`), que
+ainda não foi mergeada em `main`/`origin/main` no momento em que o v1.5 começou a ser planejado —
+`main` segue 209 commits atrás. O trabalho está pronto e com GSD completo, mas **não está em
+produção** (deploy dispara só em push para `main`, por `CLAUDE.md`). Confirmar com o usuário a ordem
+de merge antes de tratar v1.4 como "em produção".
 
 </details>
 
@@ -66,7 +104,7 @@ Detalhes preservados abaixo para referência histórica.
 com `/gsd:execute-phase 2` quando decidido. Motivo: sessão concorrente no mesmo repo. Commits locais
 em `main`, **não pushados**; migration `20260529134701_AddAgentFoundation` já aplicada em produção —
 coordenar ordem antes de gerar novas migrations. Detalhe completo em `STATE.md` seção "v1.2 —
-Pausado". v1.3 não toca nos arquivos de `src/Diax.Domain/Agents/*` nem correlatos enquanto v1.2
+Pausado". v1.3/v1.4 não tocam nos arquivos de `src/Diax.Domain/Agents/*` nem correlatos enquanto v1.2
 estiver pausado.
 
 **Milestone Goal:** Transformar o CRM de repositório de dados em parceiro de execução por IA — três agentes (Comercial, Suporte, Pessoal) que conversam usando os dados reais do CRM e executam ações sob confirmação, reaproveitando a infra de IA existente sem quebrar nada.
@@ -228,3 +266,246 @@ estiver pausado.
 *v1.2 roadmap last updated: 2026-05-28 — Agentes de IA (5 phases, 24 requirements). Phase 2 planned: 4 plans, 3 waves. Paused 2026-05-29 (see STATE.md "v1.2 — Pausado").*
 
 ---
+
+
+## v1.5 — Fechar Venda (current)
+
+**Status:** 🟢 Iniciado 2026-10-23. Design e plano de implementação já aprovados pelo usuário antes
+do roadmap (fluxo diferente das milestones anteriores — ver nota abaixo). Numeração de fases continua
+de v1.4 (Phase 14) — v1.5 começa em **Phase 15**.
+
+**Origem:** `docs/plans/2026-10-23-fechar-venda-design.md` (design aprovado 23/10/2026) e
+`docs/plans/2026-10-23-fechar-venda.md` (plano de implementação, task-by-task, TDD). Este roadmap
+**mapeia** esse plano em fases GSD — não duplica o conteúdo. Cada fase abaixo aponta para os números
+de Task do plano em vez de copiar código/instruções.
+
+**Milestone Goal:** O CRM passa a acompanhar a venda depois do primeiro contato — lead que respondeu
+ganha uma proposta de pacote com preço fixo (Rascunho → revisão do dono → envio), follow-up
+automático quando a proposta é esquecida, visibilidade de receita em proposta aberta, e o bot do
+WhatsApp passa a conduzir a conversa até esse rascunho (primeiro em modo sombra, nunca enviando nada
+até aprovação humana).
+
+**Contexto de origem:** 45 dias de outreach (738 e-mails, ~0,1% resposta humana; 553 WhatsApps, ~34%
+resposta incluindo autoresposta) não geraram nenhuma proposta desde 03/07 — pipeline com R$0. O bot
+do WhatsApp (`n8n-local/workflows/waha-bot-atendente.json`) responde sem histórico, sem saber quem é
+o lead e sem objetivo; em pergunta de preço/prazo diz "o Alexandre responde em seguida" e nada
+acontece no CRM. Decisões do usuário: gargalo = fechar venda; passo que fecha = proposta direto (sem
+call); preço por pacotes fixos; abordagem em 2 fatias (CRM primeiro, bot depois, sempre com revisão
+humana antes de qualquer envio).
+
+**Reaproveitado (sem reescrever):** `Proposal` (Draft→Sent→Accepted→Paid/Cancelled, link público,
+aceite público, `mark-paid`, `pix_key`, `view_count`); pipeline Kanban (`Customer.Status` é a própria
+oportunidade); padrão de worker diário idempotente com `job_runs` (`CommercialBriefingWorker`);
+evento de integração `POST /api/v1/integrations/whatsapp-event` com `X-Integration-Key`. As tabelas
+legadas `Opportunities`/`Sales`/`Products`/`Leads` (sem código, nunca usadas) ficam como estão.
+
+**Fora do v1.5:** gateway de pagamento, contrato/assinatura, itens adicionais por proposta,
+ativação real do bot (fica para plano separado, só depois da revisão humana da sombra).
+
+**Nota de risco de produção (vale para as Phases 15-19):** `Program.cs` chama
+`db.Database.Migrate()` no startup — merge na `main` é deploy **e** migration em produção ao mesmo
+tempo. Toda migration desta milestone deve ser lida linha a linha (só `CreateTable`/`AddColumn`/
+`CreateIndex`) antes do merge, e merge só acontece com ok explícito do usuário.
+
+**Requirements:** PKG-01, PKG-02, PKG-03, PKG-04, PKG-05, FUP-01, FUP-02, REV-01, BOT-01, BOT-02, BOT-03
+
+### Phases
+
+- [~] **Phase 15: Catálogo de Pacotes** — entidade `ServicePackage`, campos novos em `Proposal`, schema+migration, CRUD via API (PKG-01, PKG-02) — **em execução por superpowers-dev** (worktree `_worktrees/diax-pr-a`, branch `feat/service-packages`, plano Tasks 1-4 = PR-a)
+- [ ] **Phase 16: Proposta a Partir de Pacote** — API de proposta usando pacote, tela de pacotes em crm-web, seletor de pacote no pipeline (PKG-03, PKG-04, PKG-05) — plano Tasks 5-7 = PR-b
+- [ ] **Phase 17: Follow-up de Proposta** — regra de etapas (não vista/vista sem aceite/vencida) + worker diário idempotente (FUP-01, FUP-02) — plano Tasks 8-9 = PR-c
+- [ ] **Phase 18: Painel de Receita** — valor em proposta aberta no dashboard comercial (REV-01) — plano Task 10 = PR-d
+- [ ] **Phase 19: Evento do Bot + Catálogo** — `proposal_draft` cria rascunho a partir da decisão do bot; endpoint de catálogo somente leitura para o bot (BOT-01) — plano Task 11 = PR-e
+- [ ] **Phase 20: Bot Vendedor em Modo Sombra** — decide resposta/pacote/resumo sem nunca enviar nada; conectado ao `outreach-watch` sem alterar o comportamento atual (BOT-02, BOT-03) — plano Tasks 12-13, **fora do repo** (`n8n-local`, sem git), fora do ciclo normal de PR
+
+### Phase Details
+
+### Phase 15: Catálogo de Pacotes
+
+**Goal:** O catálogo de pacotes de serviço (preço fixo) existe, é gerenciável via API, e `Proposal`
+está pronta para linkar a um pacote e rastrear follow-up — fundação sem qualquer impacto visível
+ainda no app em produção.
+
+**Depends on:** Nothing (reaproveita `Proposal`/pipeline existentes; não altera comportamento atual)
+
+**Requirements:** PKG-01, PKG-02
+
+**Success Criteria** (what must be TRUE):
+  1. `POST/PUT/GET /api/v1/service-packages` cria, atualiza e lista pacotes do usuário autenticado
+     (nome, descrição curta, escopo, preço, prazo, ativo, ordem), rejeitando nome vazio/preço ≤0/prazo
+     negativo
+  2. `ServicePackage.ToProposalDescription()` gera texto com o escopo em bullets e o prazo por
+     extenso, pronto para popular uma proposta sem transformação adicional
+  3. `Proposal` ganha `PackageId` (opcional), `Origin` (`Manual`/`Bot`) e `LastFollowUpStage`, com
+     `RegisterFollowUpStage` só avançando (nunca retrocede, nunca repete a mesma etapa)
+  4. Migration única (`service_packages` + 3 colunas em `proposals`) sem `DropTable`/`DropColumn`/
+     `AlterColumn` de nenhuma outra tabela — lida linha a linha antes do commit
+  5. Suíte .NET cobre entidade/serviço/repositório; `dotnet build -c Release` 0 erros; nenhum teste
+     pré-existente quebra
+  6. PR-a aberto com CI 6/6; merge pendente de ok explícito do usuário (migration só roda em
+     produção depois do merge, via auto-migrate do startup)
+
+**Plans:** plano externo `docs/plans/2026-10-23-fechar-venda.md` Tasks 1-4 (não há PLAN.md GSD —
+ver `15-CONTEXT.md` nesta pasta). Verificação: `15-VERIFICATION.md`.
+
+---
+
+### Phase 16: Proposta a Partir de Pacote
+
+**Goal:** O usuário gera uma proposta a partir de um pacote direto do pipeline, sem digitar
+preço/escopo à mão — nasce Rascunho, revisável antes de enviar.
+
+**Depends on:** Phase 15 (catálogo de pacotes e campos novos de `Proposal`)
+
+**Requirements:** PKG-03, PKG-04, PKG-05
+
+**Success Criteria** (what must be TRUE):
+  1. `POST /proposals` com `packageId` preenche título/descrição/valor a partir do pacote quando os
+     campos manuais vêm vazios/zero; valor manual informado sobrescreve o do pacote
+  2. `packageId` de outro usuário ou inexistente retorna falha (`NotFound`/`Validation`) e nada é
+     salvo
+  3. Tela `/propostas/pacotes` lista, cria e edita pacotes com o mesmo padrão visual de `/propostas`
+  4. Modal "Gerar proposta" do pipeline tem seletor de pacote; ao escolher, preenche título/
+     descrição/valor automaticamente e usa validade de **7 dias** (não mais 15)
+  5. `npx vitest run` e `npm run build` passam; nenhuma proposta real é criada em produção como parte
+     do teste manual
+
+**Plans:** plano externo Tasks 5-7 (PR-b). Sem PLAN.md GSD — mapeado neste ROADMAP.
+
+---
+
+### Phase 17: Follow-up de Proposta
+
+**Goal:** Proposta enviada e esquecida gera automaticamente uma tarefa de follow-up, uma vez por
+etapa, sem duplicar em restart do worker.
+
+**Depends on:** Phase 16 (precisa de propostas reais passando por `Sent`)
+
+**Requirements:** FUP-01, FUP-02
+
+**Success Criteria** (what must be TRUE):
+  1. `ProposalFollowUpService.StageFor` classifica: Draft/Accepted/Paid/Cancelled → 0; Sent há <48h
+     → 0; Sent há ≥48h sem visualização → 1 (não vista); Sent há ≥48h visualizada → 2 (vista sem
+     aceite); vencida → 3
+  2. Rodar a regra duas vezes sobre a mesma proposta no mesmo estágio cria exatamente **1** tarefa
+     (idempotência via `RegisterFollowUpStage`)
+  3. Worker diário (`ProposalFollowUpWorker`) segue o padrão `job_runs`/`DailyJobLedger` de
+     `CommercialBriefingWorker`, registrado como hosted service em `DependencyInjection.cs`
+  4. Suíte .NET completa passa; PR-c com CI 6/6; merge só com ok explícito do usuário
+
+**Plans:** plano externo Tasks 8-9 (PR-c). Sem PLAN.md GSD — mapeado neste ROADMAP.
+
+---
+
+### Phase 18: Painel de Receita
+
+**Goal:** O dono vê, sem somar nada manualmente, quanto R$ está em proposta aberta no dashboard
+comercial.
+
+**Depends on:** Phase 16 (proposta com valor e status reais fluindo)
+
+**Requirements:** REV-01
+
+**Success Criteria** (what must be TRUE):
+  1. `SalesDashboardService.OpenValue` soma `Amount` de propostas `Sent` + `Accepted` (exclui
+     `Draft`/`Paid`/`Cancelled`) — cobrado por teste unitário com os 4 status misturados
+  2. Card "Em proposta aberta" aparece em `/dashboard-comercial` ao lado dos cards existentes, mesmo
+     componente visual
+  3. `dotnet test` + `npm run build` passam; PR-d com CI 6/6; merge só com ok do usuário
+
+**Plans:** plano externo Task 10 (PR-d). Sem PLAN.md GSD — mapeado neste ROADMAP.
+
+---
+
+### Phase 19: Evento do Bot + Catálogo
+
+**Goal:** O CRM sabe receber a decisão de um bot externo e transformá-la em proposta Rascunho
+revisável, e expõe o catálogo somente leitura para quem vai tomar essa decisão — preparando o
+terreno para a Phase 20 sem ativar nada ainda.
+
+**Depends on:** Phase 15 (pacotes) e Phase 16 (`CreateAsync` de proposta reutilizável)
+
+**Requirements:** BOT-01
+
+**Success Criteria** (what must be TRUE):
+  1. `whatsapp-event {event:'proposal_draft', customerId, packageId, resumo}` cria proposta Rascunho
+     (`Origin=Bot`), move o cliente para `Negotiating` e cria tarefa urgente com o resumo truncado em
+     256 caracteres (`TaskItem.Description` é `nvarchar(256)`)
+  2. Chamar de novo para o mesmo cliente com proposta aberta **não** cria uma segunda — no máximo 1
+     rascunho aberto por lead
+  3. `packageId` inexistente/inativo/de outro usuário falha sem salvar nada
+  4. `GET /integrations/service-packages` com `X-Integration-Key` válido retorna só pacotes ativos
+     (id/nome/descrição/preço/prazo); chave inválida/ausente nega acesso, reaproveitando a mesma
+     checagem de `whatsapp-event` (extraída para um método privado comum, não duplicada)
+  5. Suíte .NET completa passa; PR-e com CI 6/6; merge só com ok explícito do usuário
+
+**Plans:** plano externo Task 11 (PR-e). Sem PLAN.md GSD — mapeado neste ROADMAP.
+
+---
+
+### Phase 20: Bot Vendedor em Modo Sombra
+
+**Goal:** Existe uma prova registrada de como o bot decidiria a conversa até o rascunho — sem nunca
+enviar nada nem tocar o CRM — pronta para o dono revisar antes de qualquer ativação real.
+
+**Depends on:** Phase 19 (catálogo exposto + evento `proposal_draft` prontos, mesmo que a sombra
+ainda não os chame)
+
+**Requirements:** BOT-02, BOT-03
+
+**Success Criteria** (what must be TRUE):
+  1. `validar()` bloqueia qualquer preço no `reply` que não seja o `price` de um item do catálogo
+  2. Pacote inexistente nunca fecha `pronto_para_proposta=True`
+  3. Mensagem manual do dono no chat nas últimas 24h silencia o bot naquele chat (`dono_assumiu`);
+     depois de 24h, volta a decidir
+  4. 6 ou mais respostas do bot no histórico aciona `estourou_limite`
+  5. Ligar a sombra no laço do `outreach-watch.py` (dentro de `try/except` que só loga) não altera o
+     comportamento de produção atual — reinjeção no bot atual intacta, `outreach-audit.log` igual
+  6. `bot_vendas.py --sombra` nunca chama `sendText` nem qualquer endpoint do CRM — só grava
+     `logs/bot-sombra.jsonl`
+  7. Backup (`*.bak-<data>`) feito antes de editar qualquer script já existente (`outreach-watch.py`)
+
+  **Ativação real (enviar resposta + disparar `proposal_draft`) é um plano separado, fora desta
+  fase — só depois do dono revisar 10-20 linhas do `.jsonl`.**
+
+**Plans:** plano externo Tasks 12-13, **fora do repo git** (`D:\claude-code\n8n-local\`). Sem
+PLAN.md GSD, sem commit — mapeado neste ROADMAP só para rastreabilidade do milestone.
+
+---
+
+### Progress (v1.5)
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 15. Catálogo de Pacotes | 0/4 tasks | In Progress (superpowers-dev) | — |
+| 16. Proposta a Partir de Pacote | 0/3 tasks | Not started | — |
+| 17. Follow-up de Proposta | 0/2 tasks | Not started | — |
+| 18. Painel de Receita | 0/1 task | Not started | — |
+| 19. Evento do Bot + Catálogo | 0/1 task | Not started | — |
+| 20. Bot Vendedor em Modo Sombra | 0/2 tasks | Not started | — |
+
+### Coverage Map (v1.5)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| PKG-01 | Phase 15 | Pending |
+| PKG-02 | Phase 15 | Pending |
+| PKG-03 | Phase 16 | Pending |
+| PKG-04 | Phase 16 | Pending |
+| PKG-05 | Phase 16 | Pending |
+| FUP-01 | Phase 17 | Pending |
+| FUP-02 | Phase 17 | Pending |
+| REV-01 | Phase 18 | Pending |
+| BOT-01 | Phase 19 | Pending |
+| BOT-02 | Phase 20 | Pending |
+| BOT-03 | Phase 20 | Pending |
+
+**Total mapped: 11/11**
+
+---
+*Roadmap criado 2026-10-24 — v1.5 Fechar Venda (6 fases, 11 requisitos, Phases 15-20). Numeração de
+fases continua de v1.4 (Phase 14) → v1.5 começa em Phase 15. Mapeado a partir de
+`docs/plans/2026-10-23-fechar-venda-design.md` e `docs/plans/2026-10-23-fechar-venda.md` (já
+aprovados pelo usuário antes deste roadmap existir) — fases apontam para as Tasks do plano em vez de
+duplicar código. Phase 15 em execução por superpowers-dev no worktree `_worktrees/diax-pr-a`
+(branch `feat/service-packages`) no momento da criação deste roadmap.*

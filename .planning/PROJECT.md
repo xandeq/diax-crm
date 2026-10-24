@@ -10,15 +10,93 @@ Centralizar todas as operações de negócio (leads, finanças, comunicação, I
 
 ## Current State
 
-**v1.3 Pipeline de Aquisição — SHIPPED 2026-09-08.** Phases 7 e 8 executadas, verificadas e
-deployadas (PRs #99 e #111). O pipeline extração→CRM→email→WhatsApp agora filtra lead ruim na
-entrada (MX, domínio-lixo, geografia), registra o motivo de cada rejeição por rodada, deduplica por
-`Customer.ExternalId` com fallback e-mail/telefone, e entrega o lead já pontuado e segmentado.
-Suíte de testes: 891.
+**v1.4 Funil de Outreach — Cadência e Qualidade — CONCLUÍDO 2026-09-20 (6/6 fases), ainda NÃO
+mergeado em `main`.** Backlog pré-v1.3 recalculado com o motor oficial de score; 79+ scripts
+`fire_*.py` consolidados num motor único (`waves_core.py`) e pipeline tirado da dependência do
+notebook; Qualified passou a avançar automaticamente; ferramentas de escala de email e WhatsApp
+entregues e provadas (3 dos 14 requisitos — EMAL-01/02/04 — fecharam `Partial` por decisão
+deliberada de segurança/calendário, não por falha); dashboard de conversão do funil verificado em
+produção. Todo o trabalho está na branch `chore/email-automation-versioned` (pushada, 209 commits
+na frente de `main`) — avisar o usuário sobre a ordem de merge antes de tratar como "em produção".
 
-**Nenhum milestone ativo.** O próximo trabalho planejado é o v1.2 (Agentes de IA), pausado desde
-2026-05-29 na Phase 2 (2/4 planos) — ver nota abaixo. Alternativamente, `/gsd:new-milestone` para
-abrir um escopo novo; os requisitos v2 deferidos estão em `milestones/v1.3-REQUIREMENTS.md`.
+## Current Milestone: v1.5 Fechar Venda
+
+**Goal:** O CRM passa a acompanhar a venda depois do primeiro contato — lead que respondeu ganha
+uma proposta de pacote com preço fixo (Rascunho → revisão do dono → envio), com follow-up
+automático e painel de receita, e o bot do WhatsApp passa a conduzir a conversa até esse rascunho
+(primeiro em modo sombra, nunca enviando nada até aprovação humana).
+
+**Contexto de origem:** 45 dias de outreach (738 e-mails, ~0,1% resposta humana; 553 WhatsApps,
+~34% resposta incluindo autoresposta) não geraram nenhuma proposta desde 03/07 — pipeline com R$0.
+O bot do WhatsApp (`n8n-local/workflows/waha-bot-atendente.json`) responde sem histórico, sem saber
+quem é o lead e sem objetivo. Decisões do usuário: gargalo = fechar venda; passo que fecha = proposta
+direto (sem call); preço por pacotes fixos; abordagem em 2 fatias (CRM primeiro, bot depois, sempre
+com revisão humana antes de qualquer envio).
+
+**Target features:**
+- Catálogo `service_packages` com preço fixo + CRUD via API e tela em crm-web
+- "Gerar proposta" a partir de um pacote no card do lead e no pipeline (preenche título/descrição/
+  valor automaticamente, validade 7 dias)
+- Worker diário de follow-up de proposta (não vista 48h / vista sem aceite 48h / vencida)
+- Painel de receita: R$ em proposta aberta no dashboard comercial
+- Evento `proposal_draft` + endpoint de catálogo para o bot
+- Bot vendedor de WhatsApp em modo sombra (decide mas nunca envia, até revisão humana)
+
+**Fora do v1.5:** gateway de pagamento, contrato/assinatura, itens adicionais por proposta,
+ativação real do bot (plano separado, só após revisão humana da sombra).
+
+**Plano de origem:** `docs/plans/2026-10-23-fechar-venda-design.md` (design) e
+`docs/plans/2026-10-23-fechar-venda.md` (plano task-by-task, Tasks 1-13). Fases 15-20 no
+`ROADMAP.md`. Fase 15 (catálogo de pacotes, Tasks 1-4, PR-a) em execução por superpowers-dev no
+momento em que este milestone foi registrado no GSD (2026-10-24).
+
+**Nota — v1.2 (Agentes de IA) segue PAUSADO em paralelo**, não abandonado: Phase 02 parou após
+Wave 1 (2026-05-29) por sessão concorrente no mesmo repo; commits locais em `main`, **não
+pushados**; migration `20260529134701_AddAgentFoundation` já aplicada em produção — cuidado com
+ordem de migrations se retomado. Detalhe completo preservado em `STATE.md`. Retomar com
+`/gsd:execute-phase 2` quando decidido — v1.5 não toca nos arquivos de `src/Diax.Domain/Agents/*`
+nem correlatos.
+
+### Milestone entregue: v1.4 Funil de Outreach — Cadência e Qualidade
+
+**Goal:** Profissionalizar o funil de outreach de ponta a ponta — limpar/pontuar o backlog que
+antecede o v1.3, dar cadência real ao follow-up (email+WhatsApp), tornar "Qualified" um critério
+objetivo e automático, consolidar o script sprawl de disparo, e tirar o pipeline da dependência de
+um único notebook.
+
+**Contexto de origem:** sessão de 2026-09-17/19 auditou o backlog de 5.266 leads pré-v1.3 (nunca
+tinham passado pelo `LeadScoringService`/filtro MX novos) e achou ~20% de lixo confirmado (contaminação
+internacional de busca BR, telefone-fantasma capturando range de ano do rodapé, multiplicação
+1-lead-por-email-na-página). 1.065 já marcados `Inactive` via script ad-hoc
+(`diax-crm/scripts/mark_junk_inactive.py`) e 1.728 válidos priorizados por fit score
+(`outreach_priority_valid_leads.csv`) — esse fit score era um script Python improvisado, substituído
+pelo backfill oficial da Phase 9.
+
+**Phase 9 concluída (2026-09-19):** backlog de 7.242 leads abertos recalculado via
+`LeadScoringService.RecomputeAllAsync` oficial — 18 Hot, 1.118 Warm, 6.106 Cold, `unsegmentedOpenLeads=0`,
+idempotência provada (2 disparos idênticos). Achado durante o checkpoint: 3 das 13 tarefas de
+follow-up geradas eram contaminação (página de review chinesa, contato do Ministério Público-ES,
+email genérico) — mesmo padrão de ruído da auditoria de 17/09, mas em leads *novos* (pós-limpeza).
+Confirma que o `LeadScoringService` oficial não filtra esse tipo de ruído — é upstream, fica
+sinalizado para as Phases 10/12. Evidência completa: `docs/lead-quality/BACKFILL-EVIDENCE.md`.
+
+**Target features:**
+- Backfill: recalcular `LeadScore`/`Segment` do backlog pré-v1.3 usando `LeadScoringService` real (não o script python), reaproveitando a classificação junk/suspect/valid já feita como sinal de entrada
+- EMAL-01..04: DMARC pct=25→100, volume 87→300/dia com warmup, medição real do A/B de subject, leads "webmail" (560) testados com cap+tag própria
+- WHAT-01..04: handoff n8n→WAHA confirmado, bot IA desvia pra humano em vez de responder, relatório semanal do canal, escalar wa_es→wa_br
+- Qualified objetivo: critério explícito de avanço Contacted→Qualified + automação via `reply_watch.py`
+- Consolidar os 79+ scripts `fire_*.py` (`docs/email-marketing/`) num motor único parametrizado
+- OBSV-01: pipeline (waves, vigia de respostas, n8n, WAHA) para de depender só do notebook via Task Scheduler
+- Dashboard de conversão por etapa do funil (Lead→Contacted→Qualified→Customer, com %)
+
+**Fora do v1.4:** EXTR-04 (Google Places API) — exploratório, fica no backlog de v2.
+
+**Nota — v1.2 (Agentes de IA) segue PAUSADO em paralelo**, não abandonado: Phase 02 parou após
+Wave 1 (2026-05-29) por sessão concorrente no mesmo repo; commits locais em `main`, **não
+pushados**; migration `20260529134701_AddAgentFoundation` já aplicada em produção — cuidado com
+ordem de migrations se retomado. Detalhe completo preservado em `STATE.md`. Retomar com
+`/gsd:execute-phase 2` quando decidido — v1.4 não toca nos arquivos de `src/Diax.Domain/Agents/*`
+nem correlatos.
 
 ### Milestone entregue: v1.3 Pipeline de Aquisição
 
@@ -74,12 +152,30 @@ nem correlatos.
 - ✓ IMPT-01: dedup do import por `Customer.ExternalId` (ID do Extrator), com fallback para email e telefone — v1.3 Phase 8
 - ✓ IMPT-02: dedup real em `/customers/import` para `source=Scraping`, com paridade ao comportamento de `source=Import` — v1.3 Phase 8
 - ✓ IMPT-03: `lead_score` e segmento calculados no momento do import (ramo CREATE), com o bloco de fit recalibrado para que um lead forte nasça Warm — v1.3 Phase 8
+- ✓ BFIL-01: Backlog pré-v1.3 recalculado via `LeadScoringService` real (LeadScore/Segment) — v1.4 Phase 9
+- ✓ SCRP-01: Motor único parametrizado (`waves_core.py`) substitui os 79+ scripts `fire_*.py` — v1.4 Phase 10
+- ✓ OBSV-01: Pipeline não depende só do notebook — watchdogs com alerta Telegram + Scheduled Tasks — v1.4 Phase 10
+- ✓ QUAL-01/QUAL-02: Critério objetivo de avanço Contacted→Qualified documentado e automático via `reply_watch.py` — v1.4 Phase 11
+- ✓ EMAL-03: A/B de subject medido por taxa de clique real (`ab_report.py`) — v1.4 Phase 12
+- ✓ WHAT-01..04: handoff confirmado (equivalência funcional), bot de desvio, relatório semanal, escalonamento wa_es→wa_br — v1.4 Phase 13
+- ✓ DASH-01: Dashboard de conversão por etapa do funil verificado em produção — v1.4 Phase 14
+- ⚠ EMAL-01/EMAL-02/EMAL-04: mecanismo entregue e provado (DMARC drill, curva de warmup, cap webmail), degrau real segurado por decisão deliberada do usuário (bounce rate acima do próprio limiar de reversão) — v1.4 Phase 12, `Partial` — ver `milestones/v1.4-REQUIREMENTS.md`
 
 ### Active
 
-<!-- Milestone v1.3 — Pipeline de Aquisição · COMPLETO (Phases 7 e 8) -->
+<!-- Milestone v1.5 — Fechar Venda -->
 
-<!-- Nenhum requisito de v1.3 em aberto. -->
+- [ ] PKG-01: Catálogo `service_packages` (preço fixo) com CRUD via API
+- [ ] PKG-02: `Proposal` ganha `PackageId`/`Origin`/`LastFollowUpStage`
+- [ ] PKG-03: Gerar proposta a partir de um pacote preenche título/descrição/valor automaticamente
+- [ ] PKG-04: Tela `/propostas/pacotes` em crm-web
+- [ ] PKG-05: Seletor de pacote no modal "Gerar proposta" do pipeline (validade 7 dias)
+- [ ] FUP-01: Critério objetivo e idempotente de follow-up de proposta por etapa
+- [ ] FUP-02: Worker diário de follow-up (`job_runs`)
+- [ ] REV-01: Painel de receita — R$ em proposta aberta
+- [ ] BOT-01: Evento `proposal_draft` + endpoint de catálogo para o bot
+- [ ] BOT-02: Bot vendedor em modo sombra (decide, nunca envia)
+- [ ] BOT-03: Modo sombra conectado ao `outreach-watch.py` sem alterar comportamento atual
 
 <!-- Milestone v1.2 — Agentes de IA (PAUSADO em paralelo, ver nota em Current Milestone acima) -->
 
@@ -160,4 +256,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-09-08 — v1.3 Pipeline de Aquisição arquivado e deployado. Nenhum milestone ativo; v1.2 (Agentes de IA) segue pausado na Phase 2 (2/4 planos). Débito técnico conhecido: o dry-run de `/customers/import` não replica a guarda in-batch de `ExternalId`, então a prévia diverge do import real nesse caso.*
+*Last updated: 2026-10-24 — v1.4 Funil de Outreach arquivado (concluído 6/6 fases 2026-09-20, ainda não mergeado em `main`); milestone v1.5 Fechar Venda iniciado, Phase 15 (catálogo de pacotes) em execução por superpowers-dev. v1.2 (Agentes de IA) segue pausado na Phase 2 (2/4 planos). Débito técnico conhecido: o dry-run de `/customers/import` não replica a guarda in-batch de `ExternalId`, então a prévia diverge do import real nesse caso.*
