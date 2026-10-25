@@ -13,7 +13,7 @@ public sealed class WhatsAppEventIntegrationRequest
     /// <summary>Telefone em qualquer formato (E.164, JID do WAHA "5511999998888@c.us", com máscara, etc.).</summary>
     public string? Phone { get; init; }
 
-    /// <summary>"sent" | "reply" | "optout" | "failed".</summary>
+    /// <summary>"sent" | "reply" | "optout" | "failed" | "proposal_draft".</summary>
     public string? Event { get; init; }
 
     /// <summary>Texto da mensagem enviada ou da resposta recebida (opcional).</summary>
@@ -24,4 +24,10 @@ public sealed class WhatsAppEventIntegrationRequest
 
     /// <summary>Id da mensagem no provider (opcional, para correlação/log).</summary>
     public string? MessageId { get; init; }
+
+    /// <summary>proposal_draft: pacote do catálogo escolhido pelo bot (obrigatório nesse evento).</summary>
+    public Guid? PackageId { get; init; }
+
+    /// <summary>proposal_draft: resumo da conversa para o dono revisar (vira a descrição da tarefa).</summary>
+    public string? Summary { get; init; }
 }

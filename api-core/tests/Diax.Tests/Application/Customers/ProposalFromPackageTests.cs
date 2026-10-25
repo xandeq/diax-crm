@@ -3,6 +3,7 @@ using Diax.Application.EmailMarketing.Dispatch;
 using Diax.Application.Notifications;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
+using Diax.Domain.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -26,7 +27,7 @@ public class ProposalFromPackageTests
     }
 
     private ProposalService Svc() => new(
-        _proposalRepo.Object, _customerRepo.Object, _packageRepo.Object, _uow.Object,
+        _proposalRepo.Object, _customerRepo.Object, _packageRepo.Object, Mock.Of<ITaskRepository>(), _uow.Object,
         Mock.Of<ITelegramSender>(), Mock.Of<IEmailDispatchService>(),
         Mock.Of<IProposalCoverImageGenerator>(), NullLogger<ProposalService>.Instance);
 

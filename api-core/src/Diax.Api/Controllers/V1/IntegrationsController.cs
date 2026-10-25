@@ -3,6 +3,7 @@ using System.Text;
 using Asp.Versioning;
 using Diax.Application.Briefings;
 using Diax.Application.Briefings.Dtos;
+using Diax.Application.Customers;
 using Diax.Application.EmailMarketing;
 using Diax.Application.EmailMarketing.Dispatch;
 using Diax.Application.Integrations;
@@ -35,6 +36,8 @@ public class IntegrationsController : BaseApiController
     private readonly ICustomerRepository _customerRepository;
     private readonly ITaskRepository _taskRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ProposalService _proposalService;
+    private readonly ServicePackageService _servicePackageService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<IntegrationsController> _logger;
 
@@ -47,6 +50,8 @@ public class IntegrationsController : BaseApiController
         ICustomerRepository customerRepository,
         ITaskRepository taskRepository,
         IUnitOfWork unitOfWork,
+        ProposalService proposalService,
+        ServicePackageService servicePackageService,
         IConfiguration configuration,
         ILogger<IntegrationsController> logger)
     {
@@ -58,6 +63,8 @@ public class IntegrationsController : BaseApiController
         _customerRepository = customerRepository;
         _taskRepository = taskRepository;
         _unitOfWork = unitOfWork;
+        _proposalService = proposalService;
+        _servicePackageService = servicePackageService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -298,22 +305,8 @@ public class IntegrationsController : BaseApiController
         [FromBody] WhatsAppEventIntegrationRequest? request,
         CancellationToken ct)
     {
-        // Chave dedicada se existir; senão a mesma do send-email (é o que o deploy de prod baked).
-        var configuredKey = _configuration["Integrations:WhatsAppEventKey"];
-        if (string.IsNullOrWhiteSpace(configuredKey))
-            configuredKey = _configuration["Integrations:SendEmailKey"];
-
-        if (string.IsNullOrWhiteSpace(configuredKey))
-        {
-            _logger.LogError("Integrations:WhatsAppEventKey/SendEmailKey não configurada");
-            return StatusCode(503, new { error = "Integrations.NotConfigured", message = "whatsapp-event integration not configured" });
-        }
-
-        if (string.IsNullOrWhiteSpace(integrationKey) || !TimingSafeEquals(integrationKey, configuredKey))
-        {
-            _logger.LogWarning("whatsapp-event: X-Integration-Key inválida ou ausente");
-            return Unauthorized(new { error = "Integrations.Unauthorized", message = "Invalid integration key" });
-        }
+        if (CheckWhatsAppKey(integrationKey, "whatsapp-event") is { } denied)
+            return denied;
 
         if (request is null)
             return BadRequest(new { error = "Integrations.Validation", message = "Body é obrigatório" });
@@ -322,8 +315,11 @@ public class IntegrationsController : BaseApiController
             return BadRequest(new { error = "Integrations.Validation", message = "customerId ou phone é obrigatório" });
 
         var normalizedEvent = request.Event?.Trim().ToLowerInvariant();
-        if (normalizedEvent is not ("sent" or "reply" or "optout" or "failed"))
-            return BadRequest(new { error = "Integrations.Validation", message = "event inválido — use sent, reply, optout ou failed" });
+        if (normalizedEvent is not ("sent" or "reply" or "optout" or "failed" or "proposal_draft"))
+            return BadRequest(new { error = "Integrations.Validation", message = "event inválido — use sent, reply, optout, failed ou proposal_draft" });
+
+        if (normalizedEvent == "proposal_draft" && request.PackageId is null)
+            return BadRequest(new { error = "Integrations.Validation", message = "packageId é obrigatório em proposal_draft" });
 
         var customer = request.CustomerId is { } customerId
             ? await _customerRepository.GetByIdAsync(customerId, ct)
@@ -388,6 +384,27 @@ public class IntegrationsController : BaseApiController
             case "failed":
                 _logger.LogWarning("whatsapp-event failed: customer {CustomerId}", customer.Id);
                 break;
+
+            case "proposal_draft":
+                // O bot só pede rascunho; quem revisa e envia ao cliente é o dono.
+                var draftOwner = await ResolveOwnerUserIdAsync(ct);
+                if (draftOwner is null)
+                    return StatusCode(503, new { error = "Integrations.NotConfigured", message = "Integrations:DefaultUserId/Auth:AdminEmail não configurado" });
+
+                var draft = await _proposalService.CreateBotDraftAsync(
+                    customer.Id, request.PackageId!.Value, request.Summary, draftOwner.Value, ct);
+                if (!draft.IsSuccess)
+                    return BadRequest(new { error = "Integrations.Validation", message = draft.Error.Message });
+
+                _logger.LogInformation("whatsapp-event proposal_draft: customer {CustomerId} proposal {ProposalId} created={Created}",
+                    customer.Id, draft.Value.Proposal.Id, draft.Value.Created);
+                return Ok(new
+                {
+                    customerId = customer.Id,
+                    @event = normalizedEvent,
+                    proposalId = draft.Value.Proposal.Id,
+                    created = draft.Value.Created
+                });
         }
 
         _logger.LogInformation("whatsapp-event processed: customer {CustomerId} event {Event}", customer.Id, normalizedEvent);
@@ -401,6 +418,51 @@ public class IntegrationsController : BaseApiController
             taskCreated,
             taskSkippedReason
         });
+    }
+
+    /// <summary>
+    /// Catálogo de pacotes ativos para o bot de WhatsApp (só o necessário para conversar: sem escopo interno).
+    /// Mesma chave do whatsapp-event.
+    /// </summary>
+    [HttpGet("service-packages")]
+    public async Task<IActionResult> ServicePackagesForBot(
+        [FromHeader(Name = "X-Integration-Key")] string? integrationKey,
+        CancellationToken ct)
+    {
+        if (CheckWhatsAppKey(integrationKey, "service-packages") is { } denied)
+            return denied;
+
+        var owner = await ResolveOwnerUserIdAsync(ct);
+        if (owner is null)
+            return StatusCode(503, new { error = "Integrations.NotConfigured", message = "Integrations:DefaultUserId/Auth:AdminEmail não configurado" });
+
+        var packages = await _servicePackageService.ListAsync(owner.Value, onlyActive: true, ct);
+        return Ok(packages.Select(p => new { p.Id, p.Name, p.ShortDescription, p.Price, p.DeliveryDays }).ToList());
+    }
+
+    /// <summary>
+    /// Chave do sender de WhatsApp: dedicada (Integrations:WhatsAppEventKey) se existir; senão a mesma
+    /// do send-email (é o que o deploy de prod baked). Null = autorizado; senão a resposta de erro.
+    /// </summary>
+    private IActionResult? CheckWhatsAppKey(string? integrationKey, string endpoint)
+    {
+        var configuredKey = _configuration["Integrations:WhatsAppEventKey"];
+        if (string.IsNullOrWhiteSpace(configuredKey))
+            configuredKey = _configuration["Integrations:SendEmailKey"];
+
+        if (string.IsNullOrWhiteSpace(configuredKey))
+        {
+            _logger.LogError("Integrations:WhatsAppEventKey/SendEmailKey não configurada");
+            return StatusCode(503, new { error = "Integrations.NotConfigured", message = $"{endpoint} integration not configured" });
+        }
+
+        if (string.IsNullOrWhiteSpace(integrationKey) || !TimingSafeEquals(integrationKey, configuredKey))
+        {
+            _logger.LogWarning("{Endpoint}: X-Integration-Key inválida ou ausente", endpoint);
+            return Unauthorized(new { error = "Integrations.Unauthorized", message = "Invalid integration key" });
+        }
+
+        return null;
     }
 
     /// <summary>
