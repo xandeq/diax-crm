@@ -24,6 +24,9 @@ export interface Proposal {
   paidAt?: string | null;
   viewCount: number;
   createdAt: string;
+  packageId?: string | null;
+  /** 0 = Manual, 1 = Bot */
+  origin?: number;
 }
 
 export interface PublicProposal {
@@ -46,6 +49,8 @@ export interface CreateProposalRequest {
   amount: number;
   pixKey?: string | null;
   validUntil?: string | null;
+  /** Pacote do catálogo; campos vazios são preenchidos pelo backend a partir dele. */
+  packageId?: string | null;
 }
 
 export async function createProposal(data: CreateProposalRequest): Promise<Proposal> {
