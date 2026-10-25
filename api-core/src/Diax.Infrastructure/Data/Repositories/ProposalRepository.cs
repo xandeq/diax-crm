@@ -50,4 +50,13 @@ public class ProposalRepository : Repository<Proposal>, IProposalRepository
                 && p.PaidAt >= sinceUtc)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<List<Proposal>> GetOpenSentAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(p => p.UserId == userId && p.Status == ProposalStatus.Sent)
+            .OrderBy(p => p.SentAt)
+            .Take(200)
+            .ToListAsync(cancellationToken);
+    }
 }

@@ -14,4 +14,7 @@ public interface IProposalRepository : IRepository<Proposal>
 
     /// <summary>Propostas pagas desde a data — receita mensal do dashboard.</summary>
     Task<List<Proposal>> GetPaidSinceAsync(Guid userId, DateTime sinceUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>Propostas enviadas e ainda sem aceite (mais antigas primeiro, até 200) — follow-up diário.</summary>
+    Task<List<Proposal>> GetOpenSentAsync(Guid userId, CancellationToken cancellationToken = default);
 }
