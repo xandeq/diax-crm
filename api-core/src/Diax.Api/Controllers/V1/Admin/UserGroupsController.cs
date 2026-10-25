@@ -1,3 +1,4 @@
+using Diax.Api.Auth;
 using Asp.Versioning;
 using Diax.Application.Auth;
 using Diax.Application.Auth.Dtos;
@@ -11,6 +12,7 @@ namespace Diax.Api.Controllers.V1.Admin;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/admin/groups")]
 [Authorize(Roles = "Admin")]
+[RequireAdmin] // checagem ao vivo: claim Role do JWT é foto do login
 public class UserGroupsController : ControllerBase
 {
     private readonly IUserGroupService _userGroupService;
