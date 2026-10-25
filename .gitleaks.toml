@@ -36,7 +36,11 @@ regexes = [
   '''(?i)password\s*=\s*(?:data|body|req|request|form|input|user|dto|model)\.''',
   # Placeholders explícitos (inclui YOUR_DB_PASSWORD, SUA_SENHA, SERVICE_API_KEY…)
   '''(?i)(?:your_?[a-z_]*|senha_?aqui|sua_senha|changeme|placeholder|redacted|xxx+|\*{3,}|<[^>]+>)''',
-  '''\b[A-Z][A-Z0-9_]{4,}\b''',
+  # Referência a variável em sintaxe de shell/compose/cmd/msbuild: ${DB_PASSWORD}, $DB_PASSWORD, %DB_PASSWORD%, $(DB_PASSWORD).
+  # (Antes era qualquer palavra MAIÚSCULA na linha, o que liberava `Password=s3nh4;` só por ter "SQLSERVER" ao lado.)
+  '''\$\{?[A-Z][A-Z0-9_]{4,}\}?''',
+  '''%[A-Z][A-Z0-9_]{4,}%''',
+  '''\$\([A-Z][A-Z0-9_]{4,}\)''',
 ]
 
 [allowlist]
