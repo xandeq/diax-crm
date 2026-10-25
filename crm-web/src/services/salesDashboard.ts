@@ -34,6 +34,8 @@ export interface SalesDashboard {
   weightedForecast: number;
   wonLast30DaysValue: number;
   wonLast30DaysCount: number;
+  /** Enviadas + aceitas, ainda não pagas. */
+  openProposalsValue: number;
 }
 
 export async function getSalesDashboard(): Promise<SalesDashboard> {

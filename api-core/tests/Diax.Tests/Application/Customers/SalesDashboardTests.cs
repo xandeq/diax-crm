@@ -76,6 +76,24 @@ public class SalesDashboardTests
         Assert.Equal(0m, SalesDashboardService.AcceptanceRate(new List<(ProposalStatus, int, decimal)>()));
     }
 
+    [Fact]
+    public void OpenValue_SumsSentAndAccepted()
+    {
+        var summary = new List<(ProposalStatus Status, int Count, decimal Total)>
+        {
+            (ProposalStatus.Draft, 1, 900m), (ProposalStatus.Sent, 2, 5000m),
+            (ProposalStatus.Accepted, 1, 1800m), (ProposalStatus.Paid, 1, 2500m),
+            (ProposalStatus.Cancelled, 1, 700m),
+        };
+        Assert.Equal(6800m, SalesDashboardService.OpenValue(summary));
+    }
+
+    [Fact]
+    public void OpenValue_NoProposals_IsZero()
+    {
+        Assert.Equal(0m, SalesDashboardService.OpenValue(new List<(ProposalStatus, int, decimal)>()));
+    }
+
     private static Proposal PaidProposal(decimal amount, DateTime paidAt)
     {
         var p = new Proposal(Guid.NewGuid(), Guid.NewGuid(), "T", "D", amount, null, null);
