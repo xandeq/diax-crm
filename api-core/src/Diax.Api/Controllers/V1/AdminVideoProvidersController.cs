@@ -1,3 +1,4 @@
+using Diax.Api.Auth;
 using Diax.Application.AI.QuotaManagement;
 using Diax.Infrastructure.Data;
 using Diax.Shared;
@@ -14,6 +15,7 @@ namespace Diax.Api.Controllers.V1;
 [ApiController]
 [Route("api/v1/admin/video-providers")]
 [Authorize(Roles = "Admin")]
+[RequireAdmin] // checagem ao vivo: claim Role do JWT é foto do login
 public class AdminVideoProvidersController : BaseApiController
 {
     private readonly DiaxDbContext _db;

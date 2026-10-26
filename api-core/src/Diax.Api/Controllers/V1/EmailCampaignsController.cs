@@ -179,6 +179,7 @@ public class EmailCampaignsController : BaseApiController
     /// </summary>
     [HttpPost("pilot/reset")]
     [Authorize(Roles = "Admin")]
+    [RequireAdmin] // checagem ao vivo: claim Role do JWT é foto do login
     public async Task<IActionResult> ResetPilotCircuitBreaker(CancellationToken cancellationToken)
     {
         var result = await _emailMarketingService.ResetCircuitBreakerAsync(cancellationToken);
