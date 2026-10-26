@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Diax.Application.Customers;
 
 /// <summary>
-/// Cria 1 tarefa por proposta por etapa (não vista / vista sem aceite / vencida).
+/// Cria 1 tarefa por proposta por etapa (não vista / vista sem aceite / vencida / aceita sem pagamento).
 /// Idempotente via Proposal.LastFollowUpStage: a mesma etapa nunca gera tarefa duas vezes.
 /// </summary>
 public class ProposalFollowUpService : IApplicationService
@@ -36,9 +36,15 @@ public class ProposalFollowUpService : IApplicationService
         _logger = logger;
     }
 
-    /// <summary>0 = nada a fazer; 1 = não aberta após 48h; 2 = vista sem aceite após 48h; 3 = vencida.</summary>
-    public static int StageFor(ProposalStatus status, DateTime? sentAt, int viewCount, bool isExpired, DateTime now)
+    /// <summary>
+    /// 0 = nada a fazer; 1 = não aberta após 48h; 2 = vista sem aceite após 48h; 3 = vencida;
+    /// 4 = aceita há 48h e ainda sem pagamento (dinheiro na mesa: reenviar o PIX).
+    /// </summary>
+    public static int StageFor(ProposalStatus status, DateTime? sentAt, int viewCount, bool isExpired, DateTime now,
+        DateTime? acceptedAt = null)
     {
+        if (status == ProposalStatus.Accepted)
+            return acceptedAt != null && now - acceptedAt.Value >= Wait ? 4 : 0;
         if (status != ProposalStatus.Sent || sentAt == null) return 0;
         if (isExpired) return 3;
         if (now - sentAt.Value < Wait) return 0;
@@ -50,6 +56,7 @@ public class ProposalFollowUpService : IApplicationService
         1 => $"Proposta não aberta: {customerName}",
         2 => $"Proposta vista sem aceite: {customerName}",
         3 => $"Proposta vencida: {customerName}",
+        4 => $"Proposta aceita sem pagamento: {customerName}",
         _ => $"Proposta: {customerName}",
     };
 
@@ -58,15 +65,16 @@ public class ProposalFollowUpService : IApplicationService
         1 => "Reenviar o link ou chamar no WhatsApp.",
         2 => "Cliente abriu a proposta. Fazer follow-up e tirar dúvidas.",
         3 => "Renovar a proposta (nova validade) ou encerrar o negócio.",
+        4 => "Cliente aceitou e não pagou. Reenviar o código PIX e combinar a forma de pagamento.",
         _ => "",
     };
 
     public async Task<int> RunAsync(Guid ownerUserId, DateTime now, CancellationToken ct = default)
     {
         var created = 0;
-        foreach (var p in await _proposals.GetOpenSentAsync(ownerUserId, ct))
+        foreach (var p in await _proposals.GetAwaitingClientAsync(ownerUserId, ct))
         {
-            var stage = StageFor(p.Status, p.SentAt, p.ViewCount, p.IsExpired, now);
+            var stage = StageFor(p.Status, p.SentAt, p.ViewCount, p.IsExpired, now, p.AcceptedAt);
             if (stage == 0 || !p.RegisterFollowUpStage(stage)) continue;
 
             var customer = await _customers.GetByIdAsync(p.CustomerId, ct);
@@ -76,7 +84,7 @@ public class ProposalFollowUpService : IApplicationService
             {
                 Title = TaskTitle(stage, name),
                 Description = desc.Length > 256 ? desc[..256] : desc,
-                Priority = stage == 2 ? TaskItemPriority.Urgent : TaskItemPriority.High,
+                Priority = stage is 2 or 4 ? TaskItemPriority.Urgent : TaskItemPriority.High,
                 DueDate = now.Date.AddDays(1),
                 UserId = ownerUserId,
                 CustomerId = p.CustomerId,

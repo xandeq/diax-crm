@@ -29,6 +29,15 @@ public class ProposalFollowUpTests
     [Fact] public void Accepted_NoStage() =>
         Assert.Equal(0, ProposalFollowUpService.StageFor(ProposalStatus.Accepted, Now.AddDays(-9), 1, true, Now));
 
+    [Fact] public void Accepted48hUnpaid_Stage4() =>
+        Assert.Equal(4, ProposalFollowUpService.StageFor(ProposalStatus.Accepted, Now.AddDays(-5), 2, false, Now, Now.AddHours(-49)));
+
+    [Fact] public void AcceptedRecent_NoStage() =>
+        Assert.Equal(0, ProposalFollowUpService.StageFor(ProposalStatus.Accepted, Now.AddDays(-5), 2, false, Now, Now.AddHours(-47)));
+
+    [Fact] public void Paid_NoStage() =>
+        Assert.Equal(0, ProposalFollowUpService.StageFor(ProposalStatus.Paid, Now.AddDays(-5), 2, false, Now, Now.AddDays(-4)));
+
     [Fact] public void SentWithoutSentAt_NoStage() =>
         Assert.Equal(0, ProposalFollowUpService.StageFor(ProposalStatus.Sent, null, 0, false, Now));
 
@@ -36,6 +45,7 @@ public class ProposalFollowUpTests
     [InlineData(1, "Proposta não aberta")]
     [InlineData(2, "Proposta vista sem aceite")]
     [InlineData(3, "Proposta vencida")]
+    [InlineData(4, "Proposta aceita sem pagamento")]
     public void TaskTitle_PerStage(int stage, string prefix) =>
         Assert.StartsWith(prefix, ProposalFollowUpService.TaskTitle(stage, "Padaria X"));
 
@@ -48,7 +58,7 @@ public class ProposalFollowUpTests
         proposal.MarkSent();
 
         var proposals = new Mock<IProposalRepository>();
-        proposals.Setup(x => x.GetOpenSentAsync(owner, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Proposal> { proposal });
+        proposals.Setup(x => x.GetAwaitingClientAsync(owner, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Proposal> { proposal });
         var customers = new Mock<ICustomerRepository>();
         customers.Setup(x => x.GetByIdAsync(customer.Id, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
         var tasks = new Mock<ITaskRepository>();

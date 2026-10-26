@@ -51,10 +51,10 @@ public class ProposalRepository : Repository<Proposal>, IProposalRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<List<Proposal>> GetOpenSentAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<List<Proposal>> GetAwaitingClientAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Where(p => p.UserId == userId && p.Status == ProposalStatus.Sent)
+            .Where(p => p.UserId == userId && (p.Status == ProposalStatus.Sent || p.Status == ProposalStatus.Accepted))
             .OrderBy(p => p.SentAt)
             .Take(200)
             .ToListAsync(cancellationToken);
