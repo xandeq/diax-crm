@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Banknote,
   CalendarClock,
+  FileText,
   Flame,
   Loader2,
   Phone,
@@ -109,11 +110,13 @@ export default function SalesDashboardPage() {
       {data && (
         <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
           {/* KPI cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <Kpi icon={<Target className="h-4 w-4 text-violet-300" />} label="Previsão ponderada"
               value={BRL.format(data.weightedForecast)} />
             <Kpi icon={<Trophy className="h-4 w-4 text-emerald-300" />} label="Fechado (30 dias)"
               value={BRL.format(data.wonLast30DaysValue)} sub={`${data.wonLast30DaysCount} negócio${data.wonLast30DaysCount === 1 ? '' : 's'}`} />
+            <Kpi icon={<FileText className="h-4 w-4 text-amber-300" />} label="Em proposta aberta"
+              value={BRL.format(data.openProposalsValue ?? 0)} sub="enviadas e aceitas, sem pagamento" />
             <Kpi icon={<Banknote className="h-4 w-4 text-sky-300" />} label="Taxa de aceite (propostas)"
               value={`${Math.round(data.proposalAcceptanceRate * 100)}%`} />
             <Kpi icon={<Flame className="h-4 w-4 text-red-300" />} label="Leads quentes"

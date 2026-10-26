@@ -23,7 +23,8 @@ public record SalesDashboardDto(
     int OpenFollowUps,
     decimal WeightedForecast,
     decimal WonLast30DaysValue,
-    int WonLast30DaysCount);
+    int WonLast30DaysCount,
+    decimal OpenProposalsValue = 0m);  // enviadas + aceitas (ainda não pagas)
 
 /// <summary>
 /// Dashboard comercial: funil com conversões, receita mensal (propostas pagas),
@@ -88,7 +89,8 @@ public class SalesDashboardService : IApplicationService
                 t.Status is TaskItemStatus.Todo or TaskItemStatus.InProgress && t.CustomerId != null),
             WeightedForecast: board.WeightedForecast,
             WonLast30DaysValue: board.WonLast30DaysValue,
-            WonLast30DaysCount: board.WonLast30DaysCount);
+            WonLast30DaysCount: board.WonLast30DaysCount,
+            OpenProposalsValue: OpenValue(proposalSummary));
     }
 
     /// <summary>Funil com taxa de conversão para o próximo estágio — função pura testável.</summary>
@@ -134,6 +136,10 @@ public class SalesDashboardService : IApplicationService
         }
         return result;
     }
+
+    /// <summary>Valor em proposta aberta: enviadas + aceitas (rascunho, paga e cancelada ficam fora) — pura.</summary>
+    public static decimal OpenValue(List<(ProposalStatus Status, int Count, decimal Total)> summary) =>
+        summary.Where(x => x.Status is ProposalStatus.Sent or ProposalStatus.Accepted).Sum(x => x.Total);
 
     /// <summary>Taxa de aceite: (aceitas + pagas) / (enviadas + aceitas + pagas) — pura.</summary>
     public static decimal AcceptanceRate(List<(ProposalStatus Status, int Count, decimal Total)> summary)
