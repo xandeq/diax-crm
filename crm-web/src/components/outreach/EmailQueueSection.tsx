@@ -270,9 +270,9 @@ export function EmailQueueSection() {
                     : sortedItems.map(item => {
                         const cfg = EMAIL_QUEUE_STATUS_CFG[item.status] ?? EMAIL_QUEUE_STATUS_CFG[EmailQueueStatus.Queued];
                         return (
-                          <TableRow key={item.id} className={`hover:bg-slate-50/60 transition-colors ${loading ? 'opacity-60' : ''}`}>
+                          <TableRow key={item.id} className={`hover:bg-white/5 transition-colors ${loading ? 'opacity-60' : ''}`}>
                             <TableCell className="pl-5">
-                              <div className="font-medium text-slate-900 truncate max-w-[180px] text-sm" title={item.recipientName}>
+                              <div className="font-medium text-zinc-100 truncate max-w-[180px] text-sm" title={item.recipientName}>
                                 {item.recipientName}
                               </div>
                               <div className="text-xs text-slate-400 truncate max-w-[180px]" title={item.recipientEmail}>
