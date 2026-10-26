@@ -614,7 +614,11 @@ export default function PipelinePage() {
                           <select
                             value={col.status}
                             disabled={isUpdating}
-                            onChange={e => moveCard(card.id, e.target.value as PipelineStage)}
+                            onChange={e => {
+                              // <select> devolve string; a API manda o status como número (enum) e só aceita número
+                              const target = board.columns.find(c => String(c.status) === e.target.value);
+                              if (target) moveCard(card.id, target.status);
+                            }}
                             className="flex-1 min-w-0 rounded-md bg-black/40 border border-white/10 px-1.5 py-1 text-[11px] text-white/70 outline-none focus:border-violet-500/50 disabled:opacity-50"
                           >
                             {board.columns.map(c => (
