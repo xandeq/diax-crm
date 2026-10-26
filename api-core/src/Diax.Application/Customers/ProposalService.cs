@@ -334,6 +334,7 @@ public class ProposalService : IApplicationService
         if (proposal == null || proposal.UserId != userId)
             return Result.Failure<ProposalDto>(Error.NotFound("Proposal", proposalId.ToString()));
 
+        var wasPaid = proposal.Status == ProposalStatus.Paid;
         try
         {
             proposal.MarkPaid();
@@ -350,6 +351,23 @@ public class ProposalService : IApplicationService
             if (customer.EstimatedValue == null)
                 customer.UpdateDealInfo(proposal.Amount, null);
             await _customerRepository.UpdateAsync(customer, ct);
+        }
+
+        // Pago = começa o trabalho: tarefa de kickoff para o dono não deixar o cliente esperando.
+        // Só na transição (marcar paga de novo não duplica).
+        if (!wasPaid)
+        {
+            var desc = $"{proposal.Title} pago ({proposal.Amount.ToString("C", PtBr)}). " +
+                       "Combinar o início: briefing, acessos, materiais e prazo.";
+            await _taskRepository.AddAsync(new TaskItem
+            {
+                Title = $"Iniciar projeto: {customer?.Name ?? proposal.Title}",
+                Description = desc.Length > 256 ? desc[..256] : desc,
+                Priority = TaskItemPriority.High,
+                DueDate = DateTime.UtcNow.Date.AddDays(1),
+                UserId = userId,
+                CustomerId = proposal.CustomerId,
+            }, ct);
         }
 
         await _proposalRepository.UpdateAsync(proposal, ct);
