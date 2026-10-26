@@ -1,3 +1,4 @@
+using Diax.Api.Auth;
 using Asp.Versioning;
 using Diax.Application.AI;
 using Diax.Application.AI.Dtos;
@@ -10,6 +11,7 @@ namespace Diax.Api.Controllers.V1.Admin;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/admin/ai/models")]
 [Authorize(Roles = "Admin")]
+[RequireAdmin] // checagem ao vivo: claim Role do JWT é foto do login
 public class AiModelsAdminController : ControllerBase
 {
     private readonly IAiProviderAdminService _providerService;

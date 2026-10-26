@@ -137,6 +137,7 @@ public class EmailProvidersController : BaseApiController
     /// </summary>
     [HttpPost("breaker/reset")]
     [Authorize(Roles = "Admin")]
+    [RequireAdmin] // checagem ao vivo: claim Role do JWT é foto do login
     public IActionResult ResetProviderBreaker([FromQuery] string provider)
     {
         if (string.IsNullOrWhiteSpace(provider))
