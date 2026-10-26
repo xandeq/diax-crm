@@ -48,7 +48,9 @@ public record PublicProposalDto(
     /// <summary>PIX copia-e-cola (BR Code) — presente quando há chave PIX configurada.</summary>
     string? PixCopiaECola,
     /// <summary>Capa gerada por IA (URL relativa /generated-media — absolutizada no controller).</summary>
-    string? CoverImageUrl = null);
+    string? CoverImageUrl = null,
+    /// <summary>wa.me do dono com mensagem pronta (null se Proposals:ContactWhatsApp não estiver configurado).</summary>
+    string? ContactWhatsAppUrl = null);
 
 public class ProposalService : IApplicationService
 {

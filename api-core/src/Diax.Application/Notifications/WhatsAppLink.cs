@@ -29,6 +29,13 @@ public static class WhatsAppLink
     }
 
     /// <summary>Telefone como link HTML clicável (Telegram) — ou o texto puro escapado se inválido.</summary>
+    /// <summary>wa.me com mensagem pré-preenchida, ou null se o telefone não for válido.</summary>
+    public static string? WithText(string? phone, string text)
+    {
+        var url = From(phone);
+        return url == null ? null : $"{url}?text={Uri.EscapeDataString(text)}";
+    }
+
     public static string AsHtml(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone)) return "";

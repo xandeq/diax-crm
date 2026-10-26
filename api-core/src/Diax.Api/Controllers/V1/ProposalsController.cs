@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Diax.Application.Customers;
+using Diax.Application.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,10 +18,12 @@ namespace Diax.Api.Controllers.V1;
 public class ProposalsController : BaseApiController
 {
     private readonly ProposalService _proposalService;
+    private readonly IConfiguration _configuration;
 
-    public ProposalsController(ProposalService proposalService)
+    public ProposalsController(ProposalService proposalService, IConfiguration configuration)
     {
         _proposalService = proposalService;
+        _configuration = configuration;
     }
 
     [HttpPost]
@@ -75,7 +78,7 @@ public class ProposalsController : BaseApiController
     public async Task<IActionResult> GetPublic(string token, CancellationToken ct)
     {
         var result = await _proposalService.GetPublicAsync(token, ct);
-        return result.IsSuccess ? Ok(AbsolutizeCover(result.Value)) : HandleResult(result);
+        return result.IsSuccess ? Ok(ForPublic(result.Value)) : HandleResult(result);
     }
 
     /// <summary>Aceite da proposta pelo cliente (link público).</summary>
@@ -85,15 +88,19 @@ public class ProposalsController : BaseApiController
     public async Task<IActionResult> AcceptPublic(string token, CancellationToken ct)
     {
         var result = await _proposalService.AcceptPublicAsync(token, ct);
-        return result.IsSuccess ? Ok(AbsolutizeCover(result.Value)) : HandleResult(result);
+        return result.IsSuccess ? Ok(ForPublic(result.Value)) : HandleResult(result);
     }
 
     // Capa é salva com URL relativa (/generated-media/...) — o config de base URL não
     // chega em prod via FTP, então absolutizamos pelo request (padrão do módulo de mídia).
-    private PublicProposalDto AbsolutizeCover(PublicProposalDto dto)
+    // WhatsApp do dono vem de Proposals:ContactWhatsApp (variável de ambiente no servidor, nunca no
+    // appsettings versionado): o cliente com dúvida antes de pagar fala direto, com a proposta citada.
+    private PublicProposalDto ForPublic(PublicProposalDto dto)
     {
         if (dto.CoverImageUrl != null && dto.CoverImageUrl.StartsWith('/'))
             dto = dto with { CoverImageUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}{dto.CoverImageUrl}" };
-        return dto;
+        var whatsApp = WhatsAppLink.WithText(
+            _configuration["Proposals:ContactWhatsApp"], $"Olá! Tenho uma dúvida sobre a proposta \"{dto.Title}\".");
+        return whatsApp == null ? dto : dto with { ContactWhatsAppUrl = whatsApp };
     }
 }

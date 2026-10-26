@@ -116,6 +116,7 @@ export default function PipelinePage() {
   };
 
   const openProposalModal = (card: PipelineCard) => {
+    setError(null); // erro antigo da página não deve aparecer dentro do modal
     setProposalCard(card);
     setPTitle(`Proposta — ${card.companyName || card.name}`);
     setPDesc(
@@ -369,6 +370,12 @@ export default function PipelinePage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {error && (
+              <div role="alert" className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/25 px-4 py-3 text-sm text-red-300">
+                <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+              </div>
+            )}
 
             {pLink ? (
               <div className="space-y-3">
