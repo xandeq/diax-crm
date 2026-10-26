@@ -320,7 +320,8 @@ static string ResolveAiChatPartitionKey(HttpContext ctx)
 
 // Health Checks
 builder.Services.AddHealthChecks()
-    .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"), tags: new[] { "live", "ready" });
+    .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"), tags: new[] { "live", "ready" })
+    .AddCheck<Diax.Api.Configuration.DatabaseReadyHealthCheck>("database", tags: new[] { "ready" });
 
 var app = builder.Build();
 
@@ -523,7 +524,12 @@ app.MapControllers();
 
 // Health Check endpoint
 // Públicos de propósito: a FallbackPolicy fecha todo endpoint sem atributo.
-app.MapHealthChecks("/health").AllowAnonymous();
+// /health continua só "o processo está de pé" (watchdogs externos dependem disso); banco e
+// migrations pendentes ficam em /health/ready.
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("live")
+}).AllowAnonymous();
 app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("live")
