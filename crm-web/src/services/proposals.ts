@@ -40,6 +40,8 @@ export interface PublicProposal {
   acceptedAt?: string | null;
   pixCopiaECola?: string | null;
   coverImageUrl?: string | null;
+  /** wa.me do dono com mensagem pronta; ausente quando o servidor não tem o número configurado. */
+  contactWhatsAppUrl?: string | null;
 }
 
 export interface CreateProposalRequest {

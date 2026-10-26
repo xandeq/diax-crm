@@ -5,7 +5,7 @@ import {
   getPublicProposal,
   type PublicProposal,
 } from '@/services/proposals';
-import { AlertCircle, Check, CheckCircle2, Copy, FileText, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Copy, FileText, Loader2, Mail, MessageCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
@@ -158,7 +158,7 @@ function ProposalContent() {
               <p className="text-[11px] uppercase tracking-wider text-white/40">Investimento total</p>
               <p className="text-3xl font-bold text-emerald-300">{BRL.format(proposal.amount)}</p>
               {proposal.validUntil && !proposal.isExpired && (
-                <p className="text-[11px] text-white/35 mt-1">
+                <p className="text-[12px] text-white/60 mt-1">
                   Válida até {new Date(proposal.validUntil).toLocaleDateString('pt-BR')}
                 </p>
               )}
@@ -169,11 +169,33 @@ function ProposalContent() {
                 type="button"
                 onClick={accept}
                 disabled={isAccepting}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-all disabled:opacity-60"
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-all disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0f]"
               >
                 {isAccepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 Aceitar proposta
               </button>
+            )}
+          </div>
+
+          {/* Dúvida antes de pagar = venda perdida se não houver para onde perguntar */}
+          <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl bg-white/[0.03] border border-white/10 px-4 py-3">
+            <p className="text-[13px] text-white/70">Ficou com alguma dúvida?</p>
+            {proposal.contactWhatsAppUrl ? (
+              <a
+                href={proposal.contactWhatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+              >
+                <MessageCircle className="h-4 w-4" /> Falar no WhatsApp
+              </a>
+            ) : (
+              <a
+                href={`mailto:contato@alexandrequeiroz.com.br?subject=${encodeURIComponent(`Dúvida sobre a proposta: ${proposal.title}`)}`}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
+              >
+                <Mail className="h-4 w-4" /> Enviar dúvida por email
+              </a>
             )}
           </div>
           </div>
@@ -183,7 +205,7 @@ function ProposalContent() {
         {canInteract && proposal.pixCopiaECola && (
           <div className="mt-6 rounded-2xl bg-white/[0.03] border border-white/10 p-6">
             <h2 className="text-sm font-semibold text-white/80 mb-1">💳 Pagamento via PIX</h2>
-            <p className="text-[12px] text-white/40 mb-4">
+            <p className="text-[13px] text-white/70 mb-4">
               Abra o app do seu banco, escolha <strong>PIX → Copia e Cola</strong>, e cole o código abaixo.
             </p>
             <div className="rounded-xl bg-black/40 border border-white/10 p-3 font-mono text-[11px] text-white/60 break-all select-all">
@@ -197,13 +219,13 @@ function ProposalContent() {
             >
               {copied ? <><Check className="h-4 w-4" /> Copiado!</> : <><Copy className="h-4 w-4" /> Copiar código PIX</>}
             </button>
-            <p className="text-[11px] text-white/30 mt-3">
+            <p className="text-[12px] text-white/60 mt-3">
               Após o pagamento, confirmaremos por email/WhatsApp e daremos início ao projeto.
             </p>
           </div>
         )}
 
-        <p className="text-center text-[11px] text-white/25 mt-10">
+        <p className="text-center text-[11px] text-white/45 mt-10">
           Alexandre Queiroz · Marketing Digital &amp; Desenvolvimento — alexandrequeiroz.com.br
         </p>
       </div>

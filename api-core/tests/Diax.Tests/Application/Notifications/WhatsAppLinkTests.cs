@@ -41,4 +41,20 @@ public class WhatsAppLinkTests
     {
         Assert.Equal("0800 &amp; cia", WhatsAppLink.AsHtml("0800 & cia"));
     }
+
+    [Fact]
+    public void WithText_EncodesMessage_WhenValid()
+    {
+        var url = WhatsAppLink.WithText("(27) 99924-3877", "Dúvida sobre \"Site & SEO\"?");
+        Assert.Equal("https://wa.me/5527999243877?text=D%C3%BAvida%20sobre%20%22Site%20%26%20SEO%22%3F", url);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("0800 & cia")]
+    public void WithText_Null_WhenPhoneMissingOrInvalid(string? phone)
+    {
+        Assert.Null(WhatsAppLink.WithText(phone, "oi"));
+    }
 }
