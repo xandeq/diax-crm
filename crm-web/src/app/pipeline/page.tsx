@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   getPipelineBoard,
   movePipelineStage,
+  PIPELINE_STAGE,
   recomputeLeadScores,
   updatePipelineDeal,
   type PipelineBoard,
@@ -46,12 +47,12 @@ function daysSince(iso?: string | null): number | null {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
 
-const COLUMN_STYLE: Record<string, { border: string; header: string; dot: string }> = {
-  Lead:        { border: 'border-slate-500/25', header: 'bg-slate-500/10',  dot: 'bg-slate-400' },
-  Contacted:   { border: 'border-sky-500/25',   header: 'bg-sky-500/10',    dot: 'bg-sky-400' },
-  Qualified:   { border: 'border-violet-500/25',header: 'bg-violet-500/10', dot: 'bg-violet-400' },
-  Negotiating: { border: 'border-amber-500/25', header: 'bg-amber-500/10',  dot: 'bg-amber-400' },
-  Customer:    { border: 'border-emerald-500/25', header: 'bg-emerald-500/10', dot: 'bg-emerald-400' },
+const COLUMN_STYLE: Record<number, { border: string; header: string; dot: string }> = {
+  [PIPELINE_STAGE.Lead]:        { border: 'border-slate-500/25', header: 'bg-slate-500/10',  dot: 'bg-slate-400' },
+  [PIPELINE_STAGE.Contacted]:   { border: 'border-sky-500/25',   header: 'bg-sky-500/10',    dot: 'bg-sky-400' },
+  [PIPELINE_STAGE.Qualified]:   { border: 'border-violet-500/25',header: 'bg-violet-500/10', dot: 'bg-violet-400' },
+  [PIPELINE_STAGE.Negotiating]: { border: 'border-amber-500/25', header: 'bg-amber-500/10',  dot: 'bg-amber-400' },
+  [PIPELINE_STAGE.Customer]:    { border: 'border-emerald-500/25', header: 'bg-emerald-500/10', dot: 'bg-emerald-400' },
 };
 
 const SEGMENT_BADGE: Record<string, string> = {
@@ -500,7 +501,7 @@ export default function PipelinePage() {
       <div className="max-w-screen-2xl mx-auto px-6 py-6">
         <div className="flex gap-4 overflow-x-auto pb-6 min-h-[65vh]">
           {board?.columns.map(col => {
-            const style = COLUMN_STYLE[col.status] ?? COLUMN_STYLE.Lead;
+            const style = COLUMN_STYLE[col.status] ?? COLUMN_STYLE[PIPELINE_STAGE.Lead];
             const isOver = dragOverStatus === col.status;
             return (
               <div
@@ -519,7 +520,7 @@ export default function PipelinePage() {
                       <span className="text-sm font-semibold text-white/80">{col.label}</span>
                       <span className="text-[11px] text-white/35">({col.count})</span>
                     </div>
-                    {col.status !== 'Customer' && (
+                    {col.status !== PIPELINE_STAGE.Customer && (
                       <span className="text-[10px] text-white/30" title="Probabilidade de fechamento deste estágio">
                         {Math.round(col.probability * 100)}%
                       </span>
@@ -594,10 +595,10 @@ export default function PipelinePage() {
                         <div className="flex items-center gap-2 mt-2 text-[10px] text-white/30">
                           {card.leadScore != null && <span title="Lead score">⭐ {card.leadScore}</span>}
                           {card.phone && <span className="flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{card.phone}</span>}
-                          {idle != null && idle > 7 && col.status !== 'Customer' && (
+                          {idle != null && idle > 7 && col.status !== PIPELINE_STAGE.Customer && (
                             <span className="text-amber-400/70" title={`${idle} dias sem contato`}>⏰ {idle}d parado</span>
                           )}
-                          {col.status !== 'Customer' && (
+                          {col.status !== PIPELINE_STAGE.Customer && (
                             <button
                               type="button"
                               onClick={() => openProposalModal(card)}

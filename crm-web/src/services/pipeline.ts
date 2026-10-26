@@ -2,7 +2,17 @@ import { apiFetch } from './api';
 
 // ── Pipeline de vendas (Kanban) ──────────────────────────────────────────────
 
-export type PipelineStage = 'Lead' | 'Contacted' | 'Qualified' | 'Negotiating' | 'Customer' | 'Inactive';
+// A API manda o CustomerStatus como número (enum sem conversor de string) e só aceita número.
+export const PIPELINE_STAGE = {
+  Lead: 0,
+  Contacted: 1,
+  Qualified: 2,
+  Negotiating: 3,
+  Customer: 4,
+  Inactive: 5,
+} as const;
+
+export type PipelineStage = (typeof PIPELINE_STAGE)[keyof typeof PIPELINE_STAGE];
 
 export interface PipelineCard {
   id: string;
