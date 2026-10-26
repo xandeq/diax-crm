@@ -206,13 +206,17 @@ export default function PipelinePage() {
 
   const handleDrop = async (targetStatus: PipelineStage) => {
     setDragOverStatus(null);
-    if (!draggedId || !board) return;
-
-    const sourceColumn = board.columns.find(c => c.cards.some(card => card.id === draggedId));
-    if (!sourceColumn || sourceColumn.status === targetStatus) { setDraggedId(null); return; }
-
     const id = draggedId;
     setDraggedId(null);
+    if (id) await moveCard(id, targetStatus);
+  };
+
+  // Usado pelo arrastar (desktop) e pelo seletor "Mover para" (celular não tem drag HTML5)
+  const moveCard = async (id: string, targetStatus: PipelineStage) => {
+    if (!board) return;
+    const sourceColumn = board.columns.find(c => c.cards.some(card => card.id === id));
+    if (!sourceColumn || sourceColumn.status === targetStatus) return;
+
     setUpdatingId(id);
     try {
       await movePipelineStage(id, targetStatus);
@@ -604,6 +608,20 @@ export default function PipelinePage() {
                             </button>
                           )}
                         </div>
+
+                        <label className="flex items-center gap-1.5 mt-2 text-[10px] text-white/35">
+                          Mover para
+                          <select
+                            value={col.status}
+                            disabled={isUpdating}
+                            onChange={e => moveCard(card.id, e.target.value as PipelineStage)}
+                            className="flex-1 min-w-0 rounded-md bg-black/40 border border-white/10 px-1.5 py-1 text-[11px] text-white/70 outline-none focus:border-violet-500/50 disabled:opacity-50"
+                          >
+                            {board.columns.map(c => (
+                              <option key={c.status} value={c.status}>{c.label}</option>
+                            ))}
+                          </select>
+                        </label>
                       </div>
                     );
                   })}
