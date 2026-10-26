@@ -5,6 +5,7 @@ using Diax.Application.EmailMarketing.Dispatch;
 using Diax.Application.Notifications;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
+using Diax.Domain.Tasks;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
 
@@ -38,6 +39,9 @@ public record ProposalDto(
     Guid? PackageId = null,
     ProposalOrigin Origin = ProposalOrigin.Manual);
 
+/// <summary>Resultado do rascunho pedido pelo bot: Created=false quando o lead já tinha proposta aberta.</summary>
+public record BotDraftResult(ProposalDto Proposal, bool Created);
+
 /// <summary>Visão pública da proposta (sem dados internos do CRM).</summary>
 public record PublicProposalDto(
     string Title,
@@ -67,6 +71,7 @@ public class ProposalService : IApplicationService
     private readonly IProposalRepository _proposalRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IServicePackageRepository _servicePackageRepository;
+    private readonly ITaskRepository _taskRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ITelegramSender _telegramSender;
     private readonly IEmailDispatchService _emailDispatchService;
@@ -77,6 +82,7 @@ public class ProposalService : IApplicationService
         IProposalRepository proposalRepository,
         ICustomerRepository customerRepository,
         IServicePackageRepository servicePackageRepository,
+        ITaskRepository taskRepository,
         IUnitOfWork unitOfWork,
         ITelegramSender telegramSender,
         IEmailDispatchService emailDispatchService,
@@ -86,6 +92,7 @@ public class ProposalService : IApplicationService
         _proposalRepository = proposalRepository;
         _customerRepository = customerRepository;
         _servicePackageRepository = servicePackageRepository;
+        _taskRepository = taskRepository;
         _unitOfWork = unitOfWork;
         _telegramSender = telegramSender;
         _emailDispatchService = emailDispatchService;
@@ -109,8 +116,51 @@ public class ProposalService : IApplicationService
     private static string Esc(string s) => s
         .Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 
-    public async Task<Result<ProposalDto>> CreateAsync(
+    public Task<Result<ProposalDto>> CreateAsync(
         CreateProposalRequest request, Guid userId, CancellationToken ct = default)
+        => CreateCoreAsync(request, userId, ProposalOrigin.Manual, null, ct);
+
+    /// <summary>
+    /// Rascunho pedido pelo bot de WhatsApp: nunca envia nada ao cliente. Cria a proposta em
+    /// Rascunho (Origin = Bot) a partir de um pacote ativo do dono e uma tarefa urgente para o
+    /// dono revisar e enviar. Idempotente: se o lead já tem proposta aberta, devolve essa.
+    /// </summary>
+    public async Task<Result<BotDraftResult>> CreateBotDraftAsync(
+        Guid customerId, Guid packageId, string? summary, Guid ownerUserId, CancellationToken ct = default)
+    {
+        var customer = await _customerRepository.GetByIdAsync(customerId, ct);
+        if (customer == null)
+            return Result.Failure<BotDraftResult>(Error.NotFound("Customer", customerId.ToString()));
+
+        var open = (await _proposalRepository.GetByCustomerAsync(customerId, ct)).FirstOrDefault(p => p.IsOpen);
+        if (open != null)
+            return new BotDraftResult(ToDto(open, customer.Name), false);
+
+        var package = await _servicePackageRepository.GetByIdAsync(packageId, ct);
+        if (package == null || !package.IsActive || package.UserId != ownerUserId)
+            return Result.Failure<BotDraftResult>(Error.Validation("ServicePackage", "Pacote inexistente ou inativo."));
+
+        var desc = string.IsNullOrWhiteSpace(summary) ? $"Pacote {package.Name}" : summary.Trim();
+        var task = new TaskItem
+        {
+            Title = $"Revisar e enviar proposta: {customer.Name}",
+            Description = desc.Length > 256 ? desc[..256] : desc, // coluna description é nvarchar(256)
+            Priority = TaskItemPriority.Urgent,
+            DueDate = DateTime.UtcNow.Date.AddHours(21),
+            UserId = ownerUserId,
+            CustomerId = customerId,
+        };
+
+        var created = await CreateCoreAsync(
+            new CreateProposalRequest(customerId, "", "", 0m, null, DateTime.UtcNow.AddDays(7), package.Id),
+            ownerUserId, ProposalOrigin.Bot, task, ct);
+        return created.IsSuccess
+            ? new BotDraftResult(created.Value, true)
+            : Result.Failure<BotDraftResult>(created.Error);
+    }
+
+    private async Task<Result<ProposalDto>> CreateCoreAsync(
+        CreateProposalRequest request, Guid userId, ProposalOrigin origin, TaskItem? followUpTask, CancellationToken ct)
     {
         var customer = await _customerRepository.GetByIdAsync(request.CustomerId, ct);
         if (customer == null)
@@ -142,7 +192,9 @@ public class ProposalService : IApplicationService
         }
 
         if (package != null)
-            proposal.LinkPackage(package.Id, ProposalOrigin.Manual);
+            proposal.LinkPackage(package.Id, origin);
+        else
+            proposal.SetOrigin(origin);
 
         await _proposalRepository.AddAsync(proposal, ct);
 
@@ -153,6 +205,9 @@ public class ProposalService : IApplicationService
         if (customer.EstimatedValue == null)
             customer.UpdateDealInfo(amount, request.ValidUntil);
         await _customerRepository.UpdateAsync(customer, ct);
+
+        if (followUpTask != null)
+            await _taskRepository.AddAsync(followUpTask, ct); // mesma transação da proposta
 
         await _unitOfWork.SaveChangesAsync(ct);
 

@@ -29,6 +29,7 @@ public class AnonymousEndpointsTests
         "IntegrationsController.GetEmailQuota",
         "IntegrationsController.IngestDailyBriefing",
         "IntegrationsController.SendEmail",
+        "IntegrationsController.ServicePackagesForBot",
         "IntegrationsController.WhatsAppEvent",
         "MailjetWebhookController.HandleWebhook",
         "MailjetWebhookController.Ping",

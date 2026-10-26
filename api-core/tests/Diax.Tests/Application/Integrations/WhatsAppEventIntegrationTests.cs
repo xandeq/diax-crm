@@ -1,6 +1,8 @@
 using System.Linq.Expressions;
 using Diax.Api.Controllers.V1;
 using Diax.Application.Briefings;
+using Diax.Application.Customers;
+using Diax.Application.Notifications;
 using Diax.Application.EmailMarketing.Dispatch;
 using Diax.Application.Integrations;
 using Diax.Application.Integrations.Dtos;
@@ -12,6 +14,7 @@ using Diax.Domain.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Diax.Tests.Application.Integrations;
@@ -31,6 +34,8 @@ public class WhatsAppEventIntegrationTests
     private readonly Mock<ICustomerRepository> _customerRepository = new();
     private readonly Mock<ITaskRepository> _taskRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<IProposalRepository> _proposalRepository = new();
+    private readonly Mock<IServicePackageRepository> _packageRepository = new();
     private readonly Mock<ILogger<IntegrationsController>> _logger = new();
 
     private const string ValidKey = "test-whatsapp-key";
@@ -58,6 +63,10 @@ public class WhatsAppEventIntegrationTests
             _customerRepository.Object,
             _taskRepository.Object,
             _unitOfWork.Object,
+            new ProposalService(_proposalRepository.Object, _customerRepository.Object, _packageRepository.Object,
+                _taskRepository.Object, _unitOfWork.Object, Mock.Of<ITelegramSender>(), _emailDispatch.Object,
+                Mock.Of<IProposalCoverImageGenerator>(), NullLogger<ProposalService>.Instance),
+            new ServicePackageService(_packageRepository.Object, _unitOfWork.Object),
             configuration,
             _logger.Object);
     }
@@ -215,5 +224,93 @@ public class WhatsAppEventIntegrationTests
         var result = await sut.WhatsAppEvent(ValidKey, Request(customerId: null, phone: null), CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    // ===== proposal_draft (bot pede rascunho; dono revisa e envia) =====
+
+    [Fact]
+    public async Task ProposalDraft_WithoutPackageId_ReturnsBadRequest()
+    {
+        var sut = BuildController();
+        var customer = new Customer("Lead", "lead@example.com");
+        _customerRepository.Setup(r => r.GetByIdAsync(customer.Id, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+
+        var result = await sut.WhatsAppEvent(ValidKey, Request(customerId: customer.Id, @event: "proposal_draft"), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _proposalRepository.Verify(r => r.AddAsync(It.IsAny<Proposal>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProposalDraft_CreatesBotDraftForOwner()
+    {
+        var sut = BuildController();
+        var customer = new Customer("Lead", "lead@example.com");
+        _customerRepository.Setup(r => r.GetByIdAsync(customer.Id, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+        _proposalRepository.Setup(r => r.GetByCustomerAsync(customer.Id, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Proposal>());
+        var pkg = new ServicePackage(OwnerUserId, "Site Essencial", "", "Página única", 1800m, 15, 0);
+        _packageRepository.Setup(r => r.GetByIdAsync(pkg.Id, It.IsAny<CancellationToken>())).ReturnsAsync(pkg);
+        Proposal? saved = null;
+        _proposalRepository.Setup(r => r.AddAsync(It.IsAny<Proposal>(), It.IsAny<CancellationToken>()))
+            .Callback<Proposal, CancellationToken>((p, _) => saved = p);
+
+        var request = new WhatsAppEventIntegrationRequest
+        {
+            CustomerId = customer.Id, Event = "proposal_draft", PackageId = pkg.Id, Summary = "Quer site para a padaria",
+        };
+        var result = await sut.WhatsAppEvent(ValidKey, request, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(saved);
+        Assert.Equal(ProposalOrigin.Bot, saved!.Origin);
+        Assert.Equal(ProposalStatus.Draft, saved.Status);
+        Assert.Equal(OwnerUserId, saved.UserId);
+        _taskRepository.Verify(r => r.AddAsync(
+            It.Is<TaskItem>(t => t.Description == "Quer site para a padaria" && t.UserId == OwnerUserId),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProposalDraft_WrongKey_ReturnsUnauthorized()
+    {
+        var sut = BuildController();
+        var request = new WhatsAppEventIntegrationRequest { CustomerId = Guid.NewGuid(), Event = "proposal_draft", PackageId = Guid.NewGuid() };
+
+        var result = await sut.WhatsAppEvent("wrong-key", request, CancellationToken.None);
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    // ===== GET integrations/service-packages (catálogo do bot) =====
+
+    [Fact]
+    public async Task ServicePackagesForBot_WrongKey_ReturnsUnauthorized()
+    {
+        var result = await BuildController().ServicePackagesForBot("wrong-key", CancellationToken.None);
+        Assert.IsType<UnauthorizedObjectResult>(result);
+        _packageRepository.Verify(r => r.GetByUserAsync(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ServicePackagesForBot_NotConfigured_Returns503()
+    {
+        var result = await BuildController(configured: false).ServicePackagesForBot(ValidKey, CancellationToken.None);
+        Assert.Equal(503, Assert.IsType<ObjectResult>(result).StatusCode);
+    }
+
+    [Fact]
+    public async Task ServicePackagesForBot_ReturnsOwnersActivePackagesWithoutScope()
+    {
+        var pkg = new ServicePackage(OwnerUserId, "Site Essencial", "Site de 1 página", "Escopo interno", 1800m, 15, 0);
+        _packageRepository.Setup(r => r.GetByUserAsync(OwnerUserId, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ServicePackage> { pkg });
+
+        var result = await BuildController().ServicePackagesForBot(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        Assert.Contains("Site Essencial", json);
+        Assert.Contains("1800", json);
+        Assert.DoesNotContain("Escopo interno", json);
     }
 }
