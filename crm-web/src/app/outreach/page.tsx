@@ -61,17 +61,17 @@ const TABS: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
 
 function TabBar({ active, onChange }: TabBarProps) {
   return (
-    <div className="flex gap-1 border-b border-slate-200 mb-6">
+    <div className="flex gap-1 border-b border-white/10 mb-6 overflow-x-auto">
       {TABS.map((tab) => (
         <button
           key={tab.id}
           type="button"
           onClick={() => onChange(tab.id)}
           className={[
-            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
+            'flex shrink-0 items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
             active === tab.id
-              ? 'border-slate-900 text-slate-900'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300',
+              ? 'border-emerald-400 text-zinc-100'
+              : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-white/20',
           ].join(' ')}
         >
           {tab.icon}
@@ -107,7 +107,7 @@ function EmailMarketingSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-zinc-400">
           Envie um email personalizado com imagens para todos os contatos com email válido.
           Suporta variáveis como {'{{nome}}'}, {'{{empresa}}'}, {'{{email}}'}, {'{{website}}'}.
         </p>
@@ -371,10 +371,10 @@ export default function OutreachPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-display text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight font-display text-zinc-100">
             Outreach
           </h1>
-          <p className="text-slate-500">
+          <p className="text-zinc-400">
             Gerencie a captação, segmentação e envio de emails para seus leads.
           </p>
         </div>
@@ -385,7 +385,7 @@ export default function OutreachPage() {
         <span>O painel de Outreach foi integrado ao <strong>Email Marketing PRO</strong> com 3 providers, smart preselection e suppression list.</span>
         <a
           href="/email-marketing/pro?tab=outreach"
-          className="ml-4 shrink-0 rounded-md bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+          className="ml-4 shrink-0 rounded-md bg-[#ffffff] px-3 py-1 text-xs font-semibold text-[#1d4ed8] hover:bg-[#eff6ff]"
         >
           Ir para PRO →
         </a>
