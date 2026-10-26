@@ -1,3 +1,4 @@
+using Diax.Api.Auth;
 using Asp.Versioning;
 using Diax.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -47,6 +48,7 @@ public class HealthController : ControllerBase
     /// </summary>
     [HttpPost("schema-patch")]
     [Authorize] // roda ALTER TABLE em prod: nunca anônimo
+    [RequireAdmin] // e só admin (checado no banco a cada request)
     public async Task<IActionResult> SchemaPatch()
     {
         var results = new List<string>();

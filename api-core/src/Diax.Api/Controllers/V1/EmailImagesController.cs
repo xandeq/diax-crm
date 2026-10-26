@@ -1,3 +1,4 @@
+using Diax.Api.Auth;
 using Asp.Versioning;
 using Diax.Application.EmailMarketing;
 using Diax.Application.EmailMarketing.Dtos;
@@ -42,6 +43,7 @@ public class EmailImagesController : BaseApiController
     /// <param name="imageId">ID único da imagem</param>
     /// <param name="cancellationToken">Token de cancelamento</param>
     [HttpDelete("{imageId}")]
+    [RequireAdmin] // imagens são compartilhadas e não guardam dono: só admin apaga
     public async Task<IActionResult> DeleteImage(
         [FromRoute] string imageId,
         CancellationToken cancellationToken)

@@ -1,3 +1,4 @@
+using Diax.Api.Auth;
 using Asp.Versioning;
 using Diax.Application.AI;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +10,7 @@ namespace Diax.Api.Controllers.V1.Admin;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/admin/groups/{groupId:guid}/ai-access")]
 [Authorize(Roles = "Admin")]
+[RequireAdmin] // checagem ao vivo: claim Role do JWT é foto do login
 public class GroupAiAccessController : ControllerBase
 {
     private readonly IGroupAiAccessService _service;
