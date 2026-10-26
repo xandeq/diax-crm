@@ -479,8 +479,31 @@ public class IntegrationsController : BaseApiController
         var candidates = await _customerRepository.FindAsync(
             c => c.Phone != null || c.WhatsApp != null, ct);
 
-        return candidates.FirstOrDefault(c =>
-            PhoneDigitsMatch(c.WhatsApp, inputDigits) || PhoneDigitsMatch(c.Phone, inputDigits));
+        return PickByPhone(candidates, inputDigits);
+    }
+
+    /// <summary>
+    /// Entre os leads com o mesmo telefone (duplicata de import, fixo/celular com o mesmo final),
+    /// escolhe quem de fato recebeu WhatsApp por último; depois quem casou no campo WhatsApp;
+    /// só então a ordem do banco. Antes era o primeiro da lista: a resposta e a task urgente
+    /// podiam cair num lead que nunca foi contatado.
+    /// </summary>
+    public static Customer? PickByPhone(IEnumerable<Customer> candidates, string phone)
+    {
+        var inputDigits = DigitsOnly(phone);
+        if (inputDigits.Length < 10) return null;
+
+        var matches = candidates
+            .Select((c, i) => (Customer: c, Index: i, OnWhatsApp: PhoneDigitsMatch(c.WhatsApp, inputDigits)))
+            .Where(m => m.OnWhatsApp || PhoneDigitsMatch(m.Customer.Phone, inputDigits))
+            .ToList();
+
+        return matches
+            .OrderByDescending(m => m.Customer.LastWhatsAppSentAt ?? DateTime.MinValue)
+            .ThenByDescending(m => m.OnWhatsApp)
+            .ThenBy(m => m.Index)
+            .Select(m => m.Customer)
+            .FirstOrDefault();
     }
 
     private static string DigitsOnly(string? value) =>
