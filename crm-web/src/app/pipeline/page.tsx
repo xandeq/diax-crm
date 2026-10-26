@@ -12,6 +12,8 @@ import {
 } from '@/services/pipeline';
 import { getBookingLinkUserId, publicBookingUrl } from '@/services/meetings';
 import { createProposal, publicProposalUrl, sendProposalEmail } from '@/services/proposals';
+import { listServicePackages, type ServicePackage } from '@/services/servicePackages';
+import { packageToDraft, parseBRL } from '@/lib/packageDraft';
 import {
   AlertCircle,
   Banknote,
@@ -95,6 +97,8 @@ export default function PipelinePage() {
   const [pDesc, setPDesc] = useState('');
   const [pAmount, setPAmount] = useState('');
   const [pPixKey, setPPixKey] = useState('');
+  const [packages, setPackages] = useState<ServicePackage[]>([]);
+  const [pPackageId, setPPackageId] = useState('');
   const [pCreating, setPCreating] = useState(false);
   const [pLink, setPLink] = useState<string | null>(null);
   const [pLinkCopied, setPLinkCopied] = useState(false);
@@ -131,11 +135,25 @@ export default function PipelinePage() {
     setPPixKey(localStorage.getItem('diax.pixKey') ?? '');
     setPLink(null);
     setPLinkCopied(false);
+    setPPackageId('');
+    if (packages.length === 0) {
+      listServicePackages(true).then(setPackages).catch(() => { /* sem pacotes: segue texto livre */ });
+    }
+  };
+
+  const choosePackage = (id: string) => {
+    setPPackageId(id);
+    const pkg = packages.find(p => p.id === id);
+    if (!pkg) return;
+    const d = packageToDraft(pkg);
+    setPTitle(d.title);
+    setPDesc(d.description);
+    setPAmount(d.amount);
   };
 
   const submitProposal = async () => {
     if (!proposalCard) return;
-    const amount = Number(pAmount.replace(/\./g, '').replace(',', '.'));
+    const amount = parseBRL(pAmount);
     if (!pTitle.trim() || Number.isNaN(amount) || amount <= 0) {
       setError('Preencha título e um valor válido para a proposta.');
       return;
@@ -144,7 +162,7 @@ export default function PipelinePage() {
     try {
       if (pPixKey.trim()) localStorage.setItem('diax.pixKey', pPixKey.trim());
       const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + 15);
+      validUntil.setDate(validUntil.getDate() + 7);
       const proposal = await createProposal({
         customerId: proposalCard.id,
         title: pTitle.trim(),
@@ -152,6 +170,7 @@ export default function PipelinePage() {
         amount,
         pixKey: pPixKey.trim() || null,
         validUntil: validUntil.toISOString(),
+        packageId: pPackageId || null,
       });
       setPLink(publicProposalUrl(proposal.publicToken));
       setPProposalId(proposal.id);
@@ -414,6 +433,18 @@ export default function PipelinePage() {
               </div>
             ) : (
               <>
+                {packages.length > 0 && (
+                  <div>
+                    <label className="text-[11px] text-white/40 uppercase tracking-wider">Pacote</label>
+                    <select value={pPackageId} onChange={e => choosePackage(e.target.value)}
+                      className="mt-1 w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50">
+                      <option value="">Sem pacote (texto livre)</option>
+                      {packages.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} — {BRL.format(p.price)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="text-[11px] text-white/40 uppercase tracking-wider">Título</label>
                   <input value={pTitle} onChange={e => setPTitle(e.target.value)}
@@ -437,7 +468,7 @@ export default function PipelinePage() {
                   </div>
                 </div>
                 <p className="text-[11px] text-white/30">
-                  Validade: 15 dias. Com a chave PIX preenchida, o link já traz o código copia-e-cola do valor exato.
+                  Validade: 7 dias. Com a chave PIX preenchida, o link já traz o código copia-e-cola do valor exato.
                 </p>
                 <button
                   type="button"

@@ -19,9 +19,11 @@ import {
   FileText,
   Loader2,
   Mail,
+  Package,
   RefreshCw,
   XCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -157,6 +159,12 @@ export default function ProposalsPage() {
                 {f.label}
               </button>
             ))}
+            <Link
+              href="/propostas/pacotes"
+              className="px-3 h-8 rounded-lg text-xs font-medium border bg-white/5 border-white/10 text-white/50 hover:text-white flex items-center gap-1.5"
+            >
+              <Package className="h-3.5 w-3.5" /> Pacotes
+            </Link>
             <button
               type="button"
               onClick={load}

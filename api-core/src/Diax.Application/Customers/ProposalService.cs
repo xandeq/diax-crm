@@ -16,7 +16,8 @@ public record CreateProposalRequest(
     string Description,
     decimal Amount,
     string? PixKey,
-    DateTime? ValidUntil);
+    DateTime? ValidUntil,
+    Guid? PackageId = null);
 
 public record ProposalDto(
     Guid Id,
@@ -33,7 +34,9 @@ public record ProposalDto(
     DateTime? AcceptedAt,
     DateTime? PaidAt,
     int ViewCount,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    Guid? PackageId = null,
+    ProposalOrigin Origin = ProposalOrigin.Manual);
 
 /// <summary>Visão pública da proposta (sem dados internos do CRM).</summary>
 public record PublicProposalDto(
@@ -63,6 +66,7 @@ public class ProposalService : IApplicationService
 
     private readonly IProposalRepository _proposalRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IServicePackageRepository _servicePackageRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ITelegramSender _telegramSender;
     private readonly IEmailDispatchService _emailDispatchService;
@@ -72,6 +76,7 @@ public class ProposalService : IApplicationService
     public ProposalService(
         IProposalRepository proposalRepository,
         ICustomerRepository customerRepository,
+        IServicePackageRepository servicePackageRepository,
         IUnitOfWork unitOfWork,
         ITelegramSender telegramSender,
         IEmailDispatchService emailDispatchService,
@@ -80,6 +85,7 @@ public class ProposalService : IApplicationService
     {
         _proposalRepository = proposalRepository;
         _customerRepository = customerRepository;
+        _servicePackageRepository = servicePackageRepository;
         _unitOfWork = unitOfWork;
         _telegramSender = telegramSender;
         _emailDispatchService = emailDispatchService;
@@ -110,17 +116,33 @@ public class ProposalService : IApplicationService
         if (customer == null)
             return Result.Failure<ProposalDto>(Error.NotFound("Customer", request.CustomerId.ToString()));
 
+        // Pacote do catálogo: preenche só o que o dono deixou vazio (ajuste manual prevalece).
+        ServicePackage? package = null;
+        if (request.PackageId is { } packageId)
+        {
+            package = await _servicePackageRepository.GetByIdAsync(packageId, ct);
+            if (package == null || package.UserId != userId)
+                return Result.Failure<ProposalDto>(Error.NotFound("ServicePackage", packageId.ToString()));
+        }
+
+        var title = string.IsNullOrWhiteSpace(request.Title) && package != null ? package.Name : request.Title;
+        var description = string.IsNullOrWhiteSpace(request.Description) && package != null ? package.ToProposalDescription() : request.Description;
+        var amount = request.Amount <= 0 && package != null ? package.Price : request.Amount;
+
         Proposal proposal;
         try
         {
             proposal = new Proposal(
-                customer.Id, userId, request.Title, request.Description,
-                request.Amount, request.PixKey, request.ValidUntil);
+                customer.Id, userId, title, description,
+                amount, request.PixKey, request.ValidUntil);
         }
         catch (ArgumentException ex)
         {
             return Result.Failure<ProposalDto>(Error.Validation("Proposal", ex.Message));
         }
+
+        if (package != null)
+            proposal.LinkPackage(package.Id, ProposalOrigin.Manual);
 
         await _proposalRepository.AddAsync(proposal, ct);
 
@@ -129,7 +151,7 @@ public class ProposalService : IApplicationService
             customer.UpdateStatus(Domain.Customers.Enums.CustomerStatus.Negotiating);
         // Sincroniza o valor do negócio no pipeline se ainda não definido
         if (customer.EstimatedValue == null)
-            customer.UpdateDealInfo(request.Amount, request.ValidUntil);
+            customer.UpdateDealInfo(amount, request.ValidUntil);
         await _customerRepository.UpdateAsync(customer, ct);
 
         await _unitOfWork.SaveChangesAsync(ct);
@@ -139,7 +161,7 @@ public class ProposalService : IApplicationService
 
         _logger.LogInformation(
             "Proposal criada: {ProposalId} para {CustomerId} (R$ {Amount})",
-            proposal.Id, customer.Id, request.Amount);
+            proposal.Id, customer.Id, amount);
 
         return ToDto(proposal, customer.Name);
     }
@@ -426,5 +448,5 @@ public class ProposalService : IApplicationService
     private static ProposalDto ToDto(Proposal p, string customerName) => new(
         p.Id, p.CustomerId, customerName, p.Title, p.Description, p.Amount,
         p.Status, p.PublicToken, p.PixKey, p.ValidUntil, p.SentAt, p.AcceptedAt,
-        p.PaidAt, p.ViewCount, p.CreatedAt);
+        p.PaidAt, p.ViewCount, p.CreatedAt, p.PackageId, p.Origin);
 }
