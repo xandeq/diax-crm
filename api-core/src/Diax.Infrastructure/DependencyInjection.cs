@@ -558,6 +558,7 @@ public static class DependencyInjection
         // ===== TELEGRAM + BRIEFING COMERCIAL (diário) =====
         services.AddHttpClient<Diax.Application.Notifications.ITelegramSender, Diax.Infrastructure.Notifications.TelegramSender>();
         services.AddHostedService<Diax.Infrastructure.Workers.CommercialBriefingWorker>();
+        services.AddHostedService<Diax.Infrastructure.Workers.ProposalFollowUpWorker>();
 
         return services;
     }

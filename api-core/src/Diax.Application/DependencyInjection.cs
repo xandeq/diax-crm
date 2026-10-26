@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<PipelineService>();
         services.AddScoped<LeadScoringService>();
         services.AddScoped<ProposalService>();
+        services.AddScoped<ProposalFollowUpService>();
         services.AddScoped<ServicePackageService>();
         services.AddScoped<MeetingService>();
         services.AddScoped<CommercialBriefingService>();
