@@ -180,6 +180,48 @@ public class WhatsAppEventIntegrationTests
     }
 
     [Fact]
+    public async Task PhoneLookup_MesmoTelefoneEmDoisLeads_ReplyVaiParaQuemRecebeuWhatsApp()
+    {
+        var sut = BuildController();
+        // Ordem da lista do banco não define o dono: o lead duplicado vem primeiro.
+        var duplicado = new Customer("Lead duplicado (import)", "dup@example.com");
+        duplicado.UpdateContactInfo(phone: "(27) 99999-0000");
+        var contatado = new Customer("Lead contatado", "lead@example.com");
+        contatado.UpdateContactInfo(whatsApp: "5527999990000");
+        contatado.RegisterWhatsAppSent();
+        _customerRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<Customer, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([duplicado, contatado]);
+
+        var result = await sut.WhatsAppEvent(
+            ValidKey, Request(phone: "5527999990000@c.us", @event: "reply", text: "tenho interesse"), CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        _taskRepository.Verify(r => r.AddAsync(
+            It.Is<TaskItem>(t => t.CustomerId == contatado.Id), It.IsAny<CancellationToken>()), Times.Once);
+        _taskRepository.Verify(r => r.AddAsync(
+            It.Is<TaskItem>(t => t.CustomerId == duplicado.Id), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void EscolherPorTelefone_PrefereQuemRecebeuWhatsAppMaisRecente_DepoisCampoWhatsApp()
+    {
+        var soPhone = new Customer("A", "a@example.com");
+        soPhone.UpdateContactInfo(phone: "27 99999-0000");
+        var campoWa = new Customer("B", "b@example.com");
+        campoWa.UpdateContactInfo(whatsApp: "27999990000");
+
+        // Ninguém recebeu WhatsApp: o match no campo WhatsApp ganha do match no Phone.
+        Assert.Same(campoWa, IntegrationsController.PickByPhone([soPhone, campoWa], "5527999990000"));
+
+        soPhone.RegisterWhatsAppSent();
+        // Quem recebeu o WhatsApp ganha de tudo.
+        Assert.Same(soPhone, IntegrationsController.PickByPhone([campoWa, soPhone], "5527999990000"));
+
+        Assert.Null(IntegrationsController.PickByPhone([soPhone], "5521888887777"));
+    }
+
+    [Fact]
     public async Task UnknownCustomer_ReturnsNotFound()
     {
         var sut = BuildController();
