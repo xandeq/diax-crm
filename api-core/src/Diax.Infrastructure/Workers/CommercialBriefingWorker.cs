@@ -25,6 +25,18 @@ public class CommercialBriefingWorker : BackgroundService
     private const string JobName = "commercial-briefing";
     private DateOnly? _lastRunDate;
     private DateOnly? _lastFailureAlertDate;
+    private DateOnly? _attemptsDate;
+    private int _attemptsToday;
+
+    /// <summary>Tentativas de envio por dia (1 por ciclo de 10 min) antes de desistir até amanhã.</summary>
+    public const int MaxAttemptsPerDay = 3;
+
+    /// <summary>
+    /// Só marca o dia como feito quando o briefing saiu, ou quando as tentativas do dia acabaram.
+    /// Falha de envio (ex.: Telegram fora) tenta de novo no próximo ciclo.
+    /// </summary>
+    public static bool ShouldMarkRun(bool sent, int attemptsToday) =>
+        sent || attemptsToday >= MaxAttemptsPerDay;
 
     public CommercialBriefingWorker(
         IServiceProvider serviceProvider,
@@ -74,9 +86,27 @@ public class CommercialBriefingWorker : BackgroundService
                     continue;
                 }
 
+                if (_attemptsDate != today)
+                {
+                    _attemptsDate = today;
+                    _attemptsToday = 0;
+                }
+                _attemptsToday++;
+
                 var service = scope.ServiceProvider.GetRequiredService<CommercialBriefingService>();
                 var result = await service.SendAsync(ownerId.Value, stoppingToken);
-                _logger.LogInformation("[Briefing] Envio diário: {Status}", result.IsSuccess ? "OK" : result.Error.Message);
+                if (!ShouldMarkRun(result.IsSuccess, _attemptsToday))
+                {
+                    _logger.LogWarning("[Briefing] Envio falhou (tentativa {Attempt}/{Max}): {Error} — tenta de novo no próximo ciclo",
+                        _attemptsToday, MaxAttemptsPerDay, result.Error.Message);
+                    continue;
+                }
+
+                if (result.IsSuccess)
+                    _logger.LogInformation("[Briefing] Envio diário: OK (tentativa {Attempt})", _attemptsToday);
+                else
+                    _logger.LogError("[Briefing] Envio falhou {Max}x hoje: {Error} — desistindo até amanhã",
+                        MaxAttemptsPerDay, result.Error.Message);
 
                 await DailyJobLedger.MarkRunAsync(db, JobName, today, stoppingToken);
                 _lastRunDate = today;
