@@ -20,6 +20,7 @@ using Diax.Application.AI.SocialMediaBatch;
 using Diax.Application.AI.CustomerInsights;
 using Diax.Application.AI.ImageGeneration;
 using Diax.Application.AI.VideoGeneration;
+using Diax.Application.AI.FreeGateway;
 using Diax.Application.AI.Services;
 using Diax.Application.ApiKeys;
 using Diax.Application.Blog;
@@ -136,6 +137,10 @@ public static class DependencyInjection
 
         // AI Video Job Queue (geração assíncrona)
         services.AddScoped<IVideoJobService, VideoJobService>();
+
+        // ===== FREE AI GATEWAY (proxy /free-ai/v1 para apps externas) =====
+        services.AddSingleton<IFreeAiCooldownStore, FreeAiCooldownStore>();
+        services.AddScoped<IFreeAiGatewayService, FreeAiGatewayService>();
 
         // Memory Cache para AiModelValidator
         services.AddMemoryCache();
