@@ -134,7 +134,8 @@ public class ProposalService : IApplicationService
         if (customer == null)
             return Result.Failure<BotDraftResult>(Error.NotFound("Customer", customerId.ToString()));
 
-        var open = (await _proposalRepository.GetByCustomerAsync(customerId, ct)).FirstOrDefault(p => p.IsOpen);
+        // Vencida não conta como aberta: senão o lead que volta a falar depois da validade fica sem rascunho novo
+        var open = (await _proposalRepository.GetByCustomerAsync(customerId, ct)).FirstOrDefault(p => p.IsOpen && !p.IsExpired);
         if (open != null)
             return new BotDraftResult(ToDto(open, customer.Name), false);
 
