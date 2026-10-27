@@ -6,6 +6,7 @@ import {
   listProposals,
   markProposalPaid,
   publicProposalUrl,
+  renewProposal,
   sendProposalEmail,
   PROPOSAL_STATUS_LABEL,
   type Proposal,
@@ -21,6 +22,7 @@ import {
   Mail,
   Package,
   RefreshCw,
+  RotateCcw,
   XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -98,6 +100,20 @@ export default function ProposalsPage() {
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       setError('Não foi possível copiar o link.');
+    }
+  };
+
+  const renew = async (p: Proposal) => {
+    setBusyId(p.id);
+    setError(null);
+    try {
+      const updated = await renewProposal(p.id);
+      setProposals(prev => prev.map(x => (x.id === updated.id ? updated : x)));
+      setSentMsg(`Validade renovada até ${new Date(updated.validUntil!).toLocaleDateString('pt-BR')} — o mesmo link volta a funcionar.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível renovar.');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -278,6 +294,18 @@ export default function ProposalsPage() {
                     >
                       {sendingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
                       Email
+                    </button>
+                  )}
+                  {p.status <= 2 && p.validUntil && new Date(p.validUntil) < new Date() && (
+                    <button
+                      type="button"
+                      onClick={() => renew(p)}
+                      disabled={busyId === p.id}
+                      className="h-8 px-2.5 rounded-lg text-[11px] font-medium bg-amber-600/15 border border-amber-500/25 text-amber-300 hover:bg-amber-600/25 flex items-center gap-1 transition-all disabled:opacity-50"
+                      title="Proposta vencida: dá mais 7 dias no mesmo link (com PIX)"
+                    >
+                      {busyId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                      Renovar
                     </button>
                   )}
                   {(p.status === 1 || p.status === 2) && (

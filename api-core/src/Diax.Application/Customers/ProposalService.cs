@@ -404,6 +404,28 @@ public class ProposalService : IApplicationService
         return ToDto(proposal, customer?.Name ?? "—");
     }
 
+    /// <summary>Renova a validade (+7 dias a partir de agora) mantendo o mesmo link público.</summary>
+    public async Task<Result<ProposalDto>> RenewAsync(Guid proposalId, Guid userId, CancellationToken ct = default)
+    {
+        var proposal = await _proposalRepository.GetByIdAsync(proposalId, ct);
+        if (proposal == null || proposal.UserId != userId)
+            return Result.Failure<ProposalDto>(Error.NotFound("Proposal", proposalId.ToString()));
+
+        try
+        {
+            proposal.Renew(DateTime.UtcNow.AddDays(7));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Result.Failure<ProposalDto>(Error.Validation("Proposal", ex.Message));
+        }
+
+        await _proposalRepository.UpdateAsync(proposal, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+        var customer = await _customerRepository.GetByIdAsync(proposal.CustomerId, ct);
+        return ToDto(proposal, customer?.Name ?? "—");
+    }
+
     /// <summary>
     /// Envia a proposta por email ao cliente (pipeline com fallback multi-provider).
     /// Idempotente por dia (reenvio no mesmo dia é replay, não duplica).

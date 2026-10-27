@@ -71,6 +71,11 @@ export async function cancelProposal(id: string): Promise<Proposal> {
   return apiFetch<Proposal>(`/proposals/${id}/cancel`, { method: 'POST' });
 }
 
+/** Nova validade (+7 dias) na mesma proposta: o link que o cliente já tem volta a valer. */
+export async function renewProposal(id: string): Promise<Proposal> {
+  return apiFetch<Proposal>(`/proposals/${id}/renew`, { method: 'POST' });
+}
+
 /** Envia a proposta por email ao cliente (fallback multi-provider; idempotente por dia). */
 export async function sendProposalEmail(id: string): Promise<string> {
   const r = await apiFetch<{ message: string }>(`/proposals/${id}/send-email`, {
