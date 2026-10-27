@@ -282,6 +282,9 @@ public class SendGridWebhookControllerTests
         var result = await sut.HandleWebhook(CancellationToken.None);
 
         Assert.IsType<OkResult>(result);
+        Assert.True(customer.EmailOptOut);
+        _customerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWork.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _suppressionRepo.Verify(
             r => r.AddAsync(It.Is<EmailSuppression>(s => s.Reason == SuppressionReason.SpamComplaint), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -316,6 +319,9 @@ public class SendGridWebhookControllerTests
         var result = await sut.HandleWebhook(CancellationToken.None);
 
         Assert.IsType<OkResult>(result);
+        Assert.True(customer.EmailOptOut);
+        _customerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWork.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _suppressionRepo.Verify(
             r => r.AddAsync(It.Is<EmailSuppression>(s => s.Reason == SuppressionReason.ManualOptOut), It.IsAny<CancellationToken>()),
             Times.Once);
@@ -350,6 +356,9 @@ public class SendGridWebhookControllerTests
         var result = await sut.HandleWebhook(CancellationToken.None);
 
         Assert.IsType<OkResult>(result);
+        Assert.True(customer.EmailOptOut);
+        _customerRepo.Verify(r => r.UpdateAsync(customer, It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWork.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _suppressionRepo.Verify(
             r => r.AddAsync(It.Is<EmailSuppression>(s => s.Reason == SuppressionReason.ManualOptOut), It.IsAny<CancellationToken>()),
             Times.Once);
