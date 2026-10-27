@@ -135,8 +135,8 @@ public class FreeAiGatewayService : IApplicationService, IFreeAiGatewayService
                 continue;
             }
 
-            var apiKey = await TryResolveApiKeyAsync(entry.Provider, cancellationToken);
-            if (string.IsNullOrWhiteSpace(apiKey))
+            var apiKeys = await ResolveApiKeyCandidatesAsync(entry.Provider, cancellationToken);
+            if (apiKeys.Count == 0)
             {
                 attempts.Add(new FreeAiAttempt { Provider = entry.Provider, Model = entry.Model, Status = "no_api_key" });
                 continue;
@@ -146,7 +146,7 @@ public class FreeAiGatewayService : IApplicationService, IFreeAiGatewayService
             try
             {
                 var (content, finishReason, promptTokens, completionTokens, statusCode) =
-                    await CallProviderAsync(entry, apiKey, request, cancellationToken);
+                    await CallWithKeyFallbackAsync(entry, apiKeys, request, cancellationToken);
 
                 stopwatch.Stop();
 
@@ -287,9 +287,9 @@ public class FreeAiGatewayService : IApplicationService, IFreeAiGatewayService
     {
         // Chaves resolvidas em sequência ANTES do paralelo: os repositórios usam o DbContext do
         // request, que não aceita duas operações ao mesmo tempo. Só a chamada HTTP roda em paralelo.
-        var keys = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        var keys = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var provider in _effectiveChain.Select(e => e.Provider).Distinct(StringComparer.OrdinalIgnoreCase))
-            keys[provider] = await TryResolveApiKeyAsync(provider, cancellationToken);
+            keys[provider] = await ResolveApiKeyCandidatesAsync(provider, cancellationToken);
 
         var semaphore = new SemaphoreSlim(MaxHealthConcurrency);
         var tasks = _effectiveChain.Select(async entry =>
@@ -309,10 +309,10 @@ public class FreeAiGatewayService : IApplicationService, IFreeAiGatewayService
         return new FreeAiHealthResult { Items = items.ToList() };
     }
 
-    private async Task<FreeAiHealthItem> CheckOneHealthAsync(FreeAiChainEntry entry, string? apiKey, CancellationToken cancellationToken)
+    private async Task<FreeAiHealthItem> CheckOneHealthAsync(FreeAiChainEntry entry, IReadOnlyList<string> apiKeys, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        if (string.IsNullOrWhiteSpace(apiKey))
+        if (apiKeys.Count == 0)
         {
             stopwatch.Stop();
             return new FreeAiHealthItem { Provider = entry.Provider, Model = entry.Model, Ok = false, Error = "no_api_key", ElapsedMs = stopwatch.ElapsedMilliseconds };
@@ -326,7 +326,7 @@ public class FreeAiGatewayService : IApplicationService, IFreeAiGatewayService
 
         try
         {
-            var (content, _, _, _, statusCode) = await CallProviderAsync(entry, apiKey, pingRequest, cancellationToken);
+            var (content, _, _, _, statusCode) = await CallWithKeyFallbackAsync(entry, apiKeys, pingRequest, cancellationToken);
             stopwatch.Stop();
 
             if (statusCode is >= 200 and < 300 && !string.IsNullOrWhiteSpace(content))
@@ -414,8 +414,18 @@ public class FreeAiGatewayService : IApplicationService, IFreeAiGatewayService
             throw new ArgumentException($"temperature precisa estar entre {MinTemperature} e {MaxTemperature}.");
     }
 
-    private async Task<string?> TryResolveApiKeyAsync(string providerKey, CancellationToken cancellationToken)
+    /// <summary>
+    /// Chaves possíveis de um provedor, sem repetição: credencial do banco, PromptGenerator:{Provider}:ApiKey e as
+    /// chaves do servidor (FreeAiOptions.ServerKeys). A que funcionou por último vem primeiro.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> ResolveApiKeyCandidatesAsync(string providerKey, CancellationToken cancellationToken)
     {
+        var keys = new List<string>();
+        void Add(string? k)
+        {
+            if (!string.IsNullOrWhiteSpace(k) && !keys.Contains(k.Trim())) keys.Add(k.Trim());
+        }
+
         var provider = await _providerRepository.GetByKeyAsync(providerKey, cancellationToken);
         if (provider != null)
         {
@@ -424,17 +434,45 @@ public class FreeAiGatewayService : IApplicationService, IFreeAiGatewayService
             {
                 try
                 {
-                    return _encryptionService.Decrypt(credential.ApiKeyEncrypted);
+                    Add(_encryptionService.Decrypt(credential.ApiKeyEncrypted));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "FreeAiGateway: falha ao descriptografar credencial de '{Provider}', tentando appsettings.", providerKey);
+                    _logger.LogWarning(ex, "FreeAiGateway: falha ao descriptografar credencial de '{Provider}', tentando as chaves do servidor.", providerKey);
                 }
             }
         }
 
-        var providerConfig = _promptSettings.GetProviderConfig(providerKey);
-        return string.IsNullOrWhiteSpace(providerConfig?.ApiKey) ? null : providerConfig.ApiKey;
+        Add(_promptSettings.GetProviderConfig(providerKey)?.ApiKey);
+        if (_options.ServerKeys.TryGetValue(providerKey, out var serverKeys))
+            foreach (var k in serverKeys) Add(k);
+
+        // A que funcionou por último vem primeiro, para não repetir o 401 da chave inválida a cada pedido.
+        if (_cooldownStore.GetWorkingKey(providerKey) is { } working && keys.Remove(working))
+            keys.Insert(0, working);
+        return keys;
+    }
+
+    /// <summary>
+    /// Chama o provedor com a 1ª chave; se der 401/403 e houver outra, tenta a próxima e guarda a que funcionou.
+    /// 429, 5xx e timeout não trocam de chave: o problema não é a credencial.
+    /// </summary>
+    private async Task<(string? Content, string? FinishReason, int? PromptTokens, int? CompletionTokens, int StatusCode)> CallWithKeyFallbackAsync(
+        FreeAiChainEntry entry, IReadOnlyList<string> apiKeys, FreeAiChatRequest request, CancellationToken cancellationToken)
+    {
+        for (var i = 0; ; i++)
+        {
+            var result = await CallProviderAsync(entry, apiKeys[i], request, cancellationToken);
+            if (result.StatusCode is 401 or 403 && i < apiKeys.Count - 1)
+            {
+                _logger.LogWarning("FreeAiGateway: chave {Index}/{Total} de '{Provider}' recusada ({Status}); tentando a próxima.",
+                    i + 1, apiKeys.Count, entry.Provider, result.StatusCode);
+                continue;
+            }
+            if (result.StatusCode is >= 200 and < 300)
+                _cooldownStore.SetWorkingKey(entry.Provider, apiKeys[i]);
+            return result;
+        }
     }
 
     private async Task<(string? Content, string? FinishReason, int? PromptTokens, int? CompletionTokens, int StatusCode)> CallProviderAsync(

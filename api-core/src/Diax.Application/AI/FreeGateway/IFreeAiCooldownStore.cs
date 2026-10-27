@@ -9,4 +9,8 @@ public interface IFreeAiCooldownStore
 {
     bool IsInCooldown(string providerKey);
     void SetCooldown(string providerKey, TimeSpan duration);
+
+    /// <summary>Última chave que funcionou para o provedor (null se nenhuma ainda).</summary>
+    string? GetWorkingKey(string providerKey);
+    void SetWorkingKey(string providerKey, string apiKey);
 }

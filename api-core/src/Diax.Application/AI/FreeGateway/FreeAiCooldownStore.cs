@@ -15,4 +15,10 @@ public class FreeAiCooldownStore : IFreeAiCooldownStore
     {
         _cooldownUntil[providerKey] = DateTimeOffset.UtcNow.Add(duration);
     }
+
+    private readonly ConcurrentDictionary<string, string> _workingKey = new(StringComparer.OrdinalIgnoreCase);
+
+    public string? GetWorkingKey(string providerKey) => _workingKey.TryGetValue(providerKey, out var k) ? k : null;
+
+    public void SetWorkingKey(string providerKey, string apiKey) => _workingKey[providerKey] = apiKey;
 }

@@ -409,6 +409,43 @@ public class FreeAiGatewayServiceTests
         Assert.Equal(2, requests.Count); // um por item da cadeia — a 2ª chamada não gerou novas
     }
 
+    // ─── Chave inválida no banco: tenta a chave do servidor ─────────────────────
+
+    [Fact]
+    public async Task ChaveRecusada401_TentaAChaveDoServidor_EAProximaChamadaJaComecaPorEla()
+    {
+        // 27/10 em produção: Groq/OpenRouter davam 401 com a credencial do banco e a chave do servidor era válida.
+        var options = BuildOptions(("groq", "model-a"));
+        options.ServerKeys["groq"] = new List<string> { "chave-do-servidor" };
+        var (factory, requests) = BuildTrackedHttpClientFactory(
+            ErrorResponse(HttpStatusCode.Unauthorized), SuccessResponse(), SuccessResponse());
+        var service = BuildService(options, BuildSettings(groqKey: "chave-velha"), factory, new FreeAiCooldownStore());
+
+        var first = await service.CompleteAsync(BuildRequest());
+        var second = await service.CompleteAsync(BuildRequest());
+
+        Assert.True(first.Success);
+        Assert.True(second.Success);
+        Assert.Equal(
+            new[] { "Bearer chave-velha", "Bearer chave-do-servidor", "Bearer chave-do-servidor" },
+            requests.Select(r => r.Headers.Authorization!.ToString()).ToArray());
+    }
+
+    [Fact]
+    public async Task RateLimit429_NaoTrocaDeChave()
+    {
+        // 429 é cota do provedor, não credencial: trocar de chave só gastaria outra cota.
+        var options = BuildOptions(("groq", "model-a"));
+        options.ServerKeys["groq"] = new List<string> { "chave-do-servidor" };
+        var (factory, requests) = BuildTrackedHttpClientFactory(ErrorResponse(HttpStatusCode.TooManyRequests));
+        var service = BuildService(options, BuildSettings(groqKey: "chave-velha"), factory, new FreeAiCooldownStore());
+
+        var result = await service.CompleteAsync(BuildRequest());
+
+        Assert.False(result.Success);
+        Assert.Single(requests);
+    }
+
     [Fact]
     public async Task CheckHealthAsync_NuncaUsaORepositorioEmParalelo()
     {

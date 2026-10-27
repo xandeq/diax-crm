@@ -17,6 +17,12 @@ public class FreeAiOptions
     /// pelos modelos validados ao vivo.
     /// </summary>
     public List<FreeAiChainEntry> Chain { get; set; } = new();
+
+    /// <summary>
+    /// Chaves extras por provedor vindas da configuração do servidor (ex.: OPENROUTER_API_KEY), montadas
+    /// no Program.cs. São tentadas depois da credencial do banco quando ela dá 401/403.
+    /// </summary>
+    public Dictionary<string, List<string>> ServerKeys { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>Um item da cadeia de fallback: provedor + modelo.</summary>
