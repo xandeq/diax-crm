@@ -9,16 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.SecretsManager" Version="4.0.100.14" />
+    <PackageReference Include="AWSSDK.SecretsManager" Version="4.0.100.21" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.20" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.20" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.20">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.21" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.21" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.21" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.21">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
-    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3604" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3624" />
   </ItemGroup>
 
   <ItemGroup>
