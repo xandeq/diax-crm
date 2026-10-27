@@ -261,6 +261,14 @@ export function AgendaClient() {
         return fallback[appt.type];
     };
 
+    // Cores sólidas (sem o +'20' do chip claro) pro dot mobile — contraste contra o fundo escuro.
+    const DOT_FALLBACK_BG: Record<AppointmentType, string> = {
+        Medical: 'bg-blue-400',
+        HomeService: 'bg-orange-400',
+        Payment: 'bg-red-400',
+        Other: 'bg-slate-300',
+    };
+
     const [weekCopied, setWeekCopied] = useState(false);
 
     const handleCopyWeek = () => {
@@ -321,7 +329,7 @@ export function AgendaClient() {
         <div className="space-y-4">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                     <h1 className="text-2xl font-bold" style={{ color: '#F9FAFB' }}>Minha Agenda</h1>
                     <div className="flex p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>
                         <Button variant={view === 'month' ? 'secondary' : 'ghost'} size="sm" onClick={() => setView('month')} className="h-8 px-3">
@@ -480,7 +488,48 @@ export function AgendaClient() {
                                             </span>
                                         </div>
 
-                                        <div className="space-y-1 overflow-y-auto max-h-[85px] no-scrollbar">
+                                        {/* Mobile: indicador compacto (dots + contador) — chip com hora+título não cabe na coluna estreita.
+                                            Botão 24x24 (alvo de toque mínimo) com dot visual de 10px dentro, pra não cair no onClick da célula (novo compromisso). */}
+                                        <div className="flex sm:hidden flex-wrap items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                                            {dayAppointments.slice(0, 3).map(appt => {
+                                                const labelColor = appt.label?.color;
+                                                const isDraggingThis = monthDraggingAppt?.id === appt.id;
+                                                return (
+                                                    <button
+                                                        key={appt.id}
+                                                        type="button"
+                                                        draggable
+                                                        onDragStart={(e) => {
+                                                            setMonthDraggingAppt(appt);
+                                                            e.dataTransfer.effectAllowed = 'move';
+                                                        }}
+                                                        onDragEnd={() => {
+                                                            setMonthDraggingAppt(null);
+                                                            setMonthDropTarget(null);
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenForm(undefined, appt);
+                                                        }}
+                                                        className={`w-6 h-6 shrink-0 flex items-center justify-center transition-opacity
+                                                            ${isDraggingThis ? 'opacity-40' : ''}`}
+                                                        title={`${format(parseISO(appt.date), 'HH:mm')} - ${appt.title}`}
+                                                        aria-label={`${format(parseISO(appt.date), 'HH:mm')} - ${appt.title}`}
+                                                    >
+                                                        <span
+                                                            className={`w-2.5 h-2.5 rounded-full border border-transparent ${!labelColor ? DOT_FALLBACK_BG[appt.type] : ''}`}
+                                                            style={labelColor ? { backgroundColor: labelColor, borderColor: labelColor } : {}}
+                                                        />
+                                                    </button>
+                                                );
+                                            })}
+                                            {dayAppointments.length > 0 && (
+                                                <span className="text-xs font-medium" style={{ color: '#9CA3AF' }}>{dayAppointments.length}</span>
+                                            )}
+                                        </div>
+
+                                        {/* sm+: lista de chips com hora e título */}
+                                        <div className="hidden sm:block space-y-1 overflow-y-auto max-h-[85px] no-scrollbar">
                                             {dayAppointments.map(appt => {
                                                 const labelColor = appt.label?.color;
                                                 const isDraggingThis = monthDraggingAppt?.id === appt.id;
