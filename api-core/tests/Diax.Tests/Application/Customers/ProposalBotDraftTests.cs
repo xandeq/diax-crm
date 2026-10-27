@@ -91,6 +91,23 @@ public class ProposalBotDraftTests
     }
 
     [Fact]
+    public async Task PropostaAnteriorVencida_NaoBloqueia_CriaRascunhoNovo()
+    {
+        var pkg = Pacote();
+        var vencida = new Proposal(_customer.Id, _owner, "Proposta antiga", "Escopo", 900m, null, DateTime.UtcNow.AddDays(-1));
+        vencida.MarkSent();
+        _proposalRepo.Setup(x => x.GetByCustomerAsync(_customer.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Proposal> { vencida });
+
+        var r = await Svc().CreateBotDraftAsync(_customer.Id, pkg.Id, "quer site", _owner);
+
+        Assert.True(r.IsSuccess);
+        Assert.True(r.Value.Created);
+        Assert.NotEqual(vencida.Id, r.Value.Proposal.Id);
+        _proposalRepo.Verify(x => x.AddAsync(It.IsAny<Proposal>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task PacoteInativoAlheioOuInexistente_FalhaENadaSalvo()
     {
         var ids = new[] { Pacote(ativo: false).Id, Pacote(dono: Guid.NewGuid()).Id, Guid.NewGuid() };

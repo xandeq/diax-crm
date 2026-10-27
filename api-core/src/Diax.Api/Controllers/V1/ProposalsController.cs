@@ -58,6 +58,14 @@ public class ProposalsController : BaseApiController
         return HandleResult(await _proposalService.CancelAsync(id, userId.Value, ct));
     }
 
+    [HttpPost("{id:guid}/renew")]
+    public async Task<IActionResult> Renew(Guid id, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null) return Unauthorized(new { Message = "Usuário não autenticado." });
+        return HandleResult(await _proposalService.RenewAsync(id, userId.Value, ct));
+    }
+
     public record SendProposalEmailRequest(string? PublicBaseUrl);
 
     /// <summary>Envia a proposta por email ao cliente (fallback multi-provider, idempotente por dia).</summary>

@@ -134,7 +134,8 @@ public class ProposalService : IApplicationService
         if (customer == null)
             return Result.Failure<BotDraftResult>(Error.NotFound("Customer", customerId.ToString()));
 
-        var open = (await _proposalRepository.GetByCustomerAsync(customerId, ct)).FirstOrDefault(p => p.IsOpen);
+        // Vencida não conta como aberta: senão o lead que volta a falar depois da validade fica sem rascunho novo
+        var open = (await _proposalRepository.GetByCustomerAsync(customerId, ct)).FirstOrDefault(p => p.IsOpen && !p.IsExpired);
         if (open != null)
             return new BotDraftResult(ToDto(open, customer.Name), false);
 
@@ -391,6 +392,28 @@ public class ProposalService : IApplicationService
         try
         {
             proposal.Cancel();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Result.Failure<ProposalDto>(Error.Validation("Proposal", ex.Message));
+        }
+
+        await _proposalRepository.UpdateAsync(proposal, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+        var customer = await _customerRepository.GetByIdAsync(proposal.CustomerId, ct);
+        return ToDto(proposal, customer?.Name ?? "—");
+    }
+
+    /// <summary>Renova a validade (+7 dias a partir de agora) mantendo o mesmo link público.</summary>
+    public async Task<Result<ProposalDto>> RenewAsync(Guid proposalId, Guid userId, CancellationToken ct = default)
+    {
+        var proposal = await _proposalRepository.GetByIdAsync(proposalId, ct);
+        if (proposal == null || proposal.UserId != userId)
+            return Result.Failure<ProposalDto>(Error.NotFound("Proposal", proposalId.ToString()));
+
+        try
+        {
+            proposal.Renew(DateTime.UtcNow.AddDays(7));
         }
         catch (InvalidOperationException ex)
         {

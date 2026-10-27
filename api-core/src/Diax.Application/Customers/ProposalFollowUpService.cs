@@ -64,7 +64,7 @@ public class ProposalFollowUpService : IApplicationService
     {
         1 => "Reenviar o link ou chamar no WhatsApp.",
         2 => "Cliente abriu a proposta. Fazer follow-up e tirar dúvidas.",
-        3 => "Renovar a proposta (nova validade) ou encerrar o negócio.",
+        3 => "Renovar em /propostas (botão Renovar: +7 dias no mesmo link) ou encerrar o negócio.",
         4 => "Cliente aceitou e não pagou. Reenviar o código PIX e combinar a forma de pagamento.",
         _ => "",
     };

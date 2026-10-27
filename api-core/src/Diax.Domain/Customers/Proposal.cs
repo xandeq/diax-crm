@@ -166,4 +166,18 @@ public class Proposal : AuditableEntity, IUserOwnedEntity
             throw new InvalidOperationException("Proposta paga não pode ser cancelada.");
         Status = ProposalStatus.Cancelled;
     }
+
+    /// <summary>
+    /// Nova validade na MESMA proposta (o link que o cliente já recebeu volta a valer, com PIX).
+    /// Se o aviso de "vencida" (etapa 3) já saiu, volta para a etapa 2 para avisar de novo no próximo vencimento.
+    /// </summary>
+    public void Renew(DateTime validUntil)
+    {
+        if (Status is ProposalStatus.Paid or ProposalStatus.Cancelled)
+            throw new InvalidOperationException($"Proposta em status '{Status}' não pode ser renovada.");
+        if (validUntil <= DateTime.UtcNow)
+            throw new InvalidOperationException("A nova validade precisa ser no futuro.");
+        ValidUntil = validUntil;
+        if (LastFollowUpStage == 3) LastFollowUpStage = 2;
+    }
 }
