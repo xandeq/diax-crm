@@ -30,7 +30,7 @@ public class EmailSuppressionRepository : Repository<EmailSuppression>, IEmailSu
             .OrderByDescending(s => s.SuppressedAt)
             .ToListAsync(cancellationToken);
 
-    public async Task AddAsync(EmailSuppression suppression, CancellationToken cancellationToken = default)
+    public new async Task AddAsync(EmailSuppression suppression, CancellationToken cancellationToken = default)
         => await DbSet.AddAsync(suppression, cancellationToken);
 
     public async Task<EmailSuppression?> FindByEmailAsync(Guid userId, string email, CancellationToken cancellationToken = default)

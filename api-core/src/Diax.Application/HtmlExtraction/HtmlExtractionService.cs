@@ -211,7 +211,7 @@ public class HtmlExtractionService : IApplicationService
                     {
                         AddStyleUrls(attr.Value, urls, seen);
                     }
-                    else if (name == "alt" && attr.Value.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    else if (name == "alt" && attr.Value?.StartsWith("http", StringComparison.OrdinalIgnoreCase) == true)
                     {
                         // Some sites put URLs in alt attributes
                         AddIfValidUrl(attr.Value, urls, seen);

@@ -870,7 +870,7 @@ public class CustomerImportServiceTests
             l => l.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("ExternalIdConflict")),
+                It.Is<It.IsAnyType>((v, t) => v != null && v.ToString()!.Contains("ExternalIdConflict")),
                 It.IsAny<Exception?>(),
                 (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()),
             Times.Once);

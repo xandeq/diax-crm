@@ -56,10 +56,10 @@ public class ExtractorAuthService : IExtractorAuthService
     public async Task<Result<string>> GetValidTokenAsync()
     {
         // ✅ Check cache first
-        if (_cache.TryGetValue(TOKEN_CACHE_KEY, out var cachedToken))
+        if (_cache.TryGetValue(TOKEN_CACHE_KEY, out string? cachedToken) && cachedToken != null)
         {
             _logger.LogDebug("✓ Extrator token loaded from cache");
-            return Result.Success<string>((string)cachedToken);
+            return Result.Success(cachedToken);
         }
 
         _logger.LogInformation("🔑 Token expirado ou não encontrado, fazendo login automático no Extrator...");

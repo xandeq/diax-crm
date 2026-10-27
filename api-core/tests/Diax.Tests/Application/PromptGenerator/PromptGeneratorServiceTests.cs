@@ -346,7 +346,7 @@ public class PromptGeneratorServiceTests
 
         // Assert: succeeded via anthropic fallback, not stopped by Gemini error
         Assert.Equal("fallback worked", result);
-        Assert.True(capturedRequests.Any(r => r.RequestUri!.Host.Contains("anthropic.com")));
+        Assert.Contains(capturedRequests, r => r.RequestUri!.Host.Contains("anthropic.com"));
     }
 
     // ─── Anthropic Request Format ────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Mail;
 using System.Text.Json;
 using Diax.Application.Common;
@@ -933,8 +934,9 @@ public class EmailMarketingService : IApplicationService
 
     private sealed record ResolvedCampaignTemplateSnapshot(string TemplateBody, string Source);
 
-    private static bool IsValidEmail(string email)
+    private static bool IsValidEmail([NotNullWhen(true)] string? email)
     {
+        if (string.IsNullOrWhiteSpace(email)) return false; // lead só com telefone
         try
         {
             _ = new MailAddress(email);
