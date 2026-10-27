@@ -19,7 +19,6 @@ using Moq;
 using Xunit;
 
 using Diax.Domain.Audit;
-using Diax.Domain.Auth;
 
 namespace Diax.Tests.Application.EmailMarketing;
 

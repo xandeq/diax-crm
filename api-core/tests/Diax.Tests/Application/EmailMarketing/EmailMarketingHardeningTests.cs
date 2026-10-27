@@ -70,7 +70,7 @@ public class EmailMarketingHardeningTests
         Assert.Contains("Circuit Breaker", result.Error.Message);
         
         // Verifica se o log PilotRealSendBlocked foi gerado
-        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues.Contains("PilotRealSendBlocked")), It.IsAny<CancellationToken>()), Times.Once);
+        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues != null && e.NewValues.Contains("PilotRealSendBlocked")), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class EmailMarketingHardeningTests
         Assert.Contains("Rascunho (Draft)", result.Error.Message);
         
         // Verifica se registrou o motivo do bloqueio na trilha de auditoria
-        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues.Contains("PilotReadinessBlocked")), It.IsAny<CancellationToken>()), Times.Once);
+        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues != null && e.NewValues.Contains("PilotReadinessBlocked")), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class EmailMarketingHardeningTests
         Assert.Equal(0, campaign.DeliveredCount);
         
         // Evento de auditoria de SendTest requisitado e completado deve existir
-        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues.Contains("PilotSendTestRequested")), It.IsAny<CancellationToken>()), Times.Once);
-        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues.Contains("PilotSendTestCompleted")), It.IsAny<CancellationToken>()), Times.Once);
+        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues != null && e.NewValues.Contains("PilotSendTestRequested")), It.IsAny<CancellationToken>()), Times.Once);
+        mockAuditRepo.Verify(a => a.AddAsync(It.Is<AuditLogEntry>(e => e.NewValues != null && e.NewValues.Contains("PilotSendTestCompleted")), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

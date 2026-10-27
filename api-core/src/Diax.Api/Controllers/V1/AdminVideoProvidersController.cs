@@ -248,7 +248,7 @@ public class VideoProviderAdminDto
 /// </summary>
 public class VideoProviderDetailDto : VideoProviderAdminDto
 {
-    public QuotaStatusDto QuotaStatus { get; set; }
+    public QuotaStatusDto? QuotaStatus { get; set; }
 }
 
 /// <summary>
