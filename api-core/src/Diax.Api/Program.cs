@@ -115,6 +115,13 @@ promptGeneratorSettings.Shotstack.ApiKey ??= builder.Configuration["SHOTSTACK_AP
 
 builder.Services.AddSingleton(promptGeneratorSettings);
 
+// Free AI Gateway (/free-ai/v1) — cadeia de fallback entre provedores gratuitos.
+var freeAiOptions = new Diax.Application.AI.FreeGateway.FreeAiOptions();
+builder.Configuration.GetSection("FreeAi").Bind(freeAiOptions);
+builder.Services.AddSingleton(freeAiOptions);
+
+builder.Services.AddHttpClient("FreeAiGateway");
+
 // Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -302,6 +309,19 @@ builder.Services.AddRateLimiter(options =>
             {
                 Window = TimeSpan.FromMinutes(1),
                 PermitLimit = 30,
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
+
+    // /free-ai/v1: 60 req/min por IP — mesmo espírito do "public", mais generoso porque é
+    // consumido por uma aplicação externa confiável (gerador de prompts), não por anônimos.
+    options.AddPolicy("free-ai", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            $"free-ai:{httpContext.Connection.RemoteIpAddress}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 60,
                 QueueLimit = 0,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
             }));
