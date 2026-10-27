@@ -73,11 +73,42 @@ def load_env():
             k, v = line.split('=', 1); os.environ[k] = v
 
 def login():
-    r = requests.post(base + '/api/v1/auth/login',
-                      json={'email': os.environ['DIAX_ADMIN_EMAIL'], 'password': os.environ['DIAX_ADMIN_PASSWORD']},
-                      timeout=20).json()
-    tok = r.get('accessToken') or r.get('token')
-    return {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json'}
+    max_retries = 4
+    retry_delays = [15, 30, 60]
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            r = requests.post(base + '/api/v1/auth/login',
+                              json={'email': os.environ['DIAX_ADMIN_EMAIL'], 'password': os.environ['DIAX_ADMIN_PASSWORD']},
+                              timeout=20)
+
+            # Erros 4xx (exceto 429) falham na hora, sem retry
+            if 400 <= r.status_code < 500 and r.status_code != 429:
+                r.raise_for_status()
+
+            # 5xx ou 429 — retry se não é última tentativa
+            if r.status_code >= 500 or r.status_code == 429:
+                if attempt < max_retries:
+                    delay = retry_delays[attempt - 1]
+                    print(f'[{ts()}] login falhou (tentativa {attempt}/{max_retries}): HTTP {r.status_code}')
+                    time.sleep(delay)
+                    continue
+                r.raise_for_status()
+
+            # Sucesso: extrai e retorna token
+            j = r.json()
+            tok = j.get('accessToken') or j.get('token')
+            if not tok:
+                raise ValueError('login sem token na resposta')
+            return {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json'}
+
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            if attempt < max_retries:
+                delay = retry_delays[attempt - 1]
+                print(f'[{ts()}] login falhou (tentativa {attempt}/{max_retries}): {type(e).__name__}')
+                time.sleep(delay)
+            else:
+                raise
 
 def qp(s):
     return urllib.parse.quote(s)
