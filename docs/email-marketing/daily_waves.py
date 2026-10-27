@@ -813,20 +813,32 @@ def db_housekeeping():
     cx = crmdb.connect(autocommit=True); cur = cx.cursor()
     freed = {}
     # audit_logs = 279 MB de 467 em 04/09 (66k linhas; 5k/semana não acompanhava o worker).
-    # Retenção 14d, em lotes de 5k (log de transação pequeno na quota), até 60k por rodada.
+    # Retenção 14d, em lotes de 1k até 60k por rodada. Lote de 5k com linhas grandes (antes do
+    # #199) inchou o log para ~110 MB em 26/10 (DB "530 MB"); em SIMPLE o CHECKPOINT entre
+    # lotes deixa o log ser reaproveitado em vez de crescer.
     freed['audit_logs'] = 0
-    for _ in range(12):
-        cur.execute("DELETE TOP (5000) FROM audit_logs WHERE timestamp_utc < DATEADD(day,-14,SYSUTCDATETIME())")
+    for _ in range(60):
+        cur.execute("DELETE TOP (1000) FROM audit_logs WHERE timestamp_utc < DATEADD(day,-14,SYSUTCDATETIME())")
         freed['audit_logs'] += cur.rowcount
-        if cur.rowcount < 5000: break
+        if cur.rowcount < 1000: break
+        try:
+            cur.execute("CHECKPOINT")
+        except Exception:
+            pass  # sem permissão: o checkpoint automático do SIMPLE segue valendo
     cur.execute("DELETE TOP (5000) FROM app_logs WHERE timestamp_utc < DATEADD(day,-14,SYSUTCDATETIME())")
     freed['app_logs'] = cur.rowcount
     cur.execute("UPDATE email_queue_items SET html_body='[purged]' WHERE status=2 AND sent_at < DATEADD(day,-7,SYSUTCDATETIME()) AND html_body<>'[purged]'")
     freed['html_body'] = cur.rowcount
-    cur.execute("SELECT CAST(SUM(size)*8/1024.0 AS DECIMAL(10,1)) FROM sys.database_files")
-    size = float(cur.fetchone()[0]); cx.close()
-    log_line(f'housekeeping: {freed} | DB {size} MB')
-    return freed, size
+    # Dados (arquivo e usado) separados do log: o log cresce no purge e encolhe depois,
+    # somar os dois dava alarme falso (26/10: "530 MB" com dados em ~420).
+    cur.execute("""SELECT
+        CAST(SUM(CASE WHEN type = 0 THEN size END)*8/1024.0 AS DECIMAL(10,1)),
+        CAST(SUM(CASE WHEN type = 0 THEN FILEPROPERTY(name, 'SpaceUsed') END)*8/1024.0 AS DECIMAL(10,1)),
+        CAST(SUM(CASE WHEN type = 1 THEN size END)*8/1024.0 AS DECIMAL(10,1))
+        FROM sys.database_files""")
+    data_mb, used_mb, log_mb = (float(v or 0) for v in cur.fetchone()); cx.close()
+    log_line(f'housekeeping: {freed} | DB dados {data_mb} MB (usado {used_mb}) + log {log_mb} MB')
+    return freed, data_mb, used_mb, log_mb
 
 
 def weekly_report():
@@ -926,8 +938,9 @@ def main():
     # segunda e sexta: purge (quota 500MB; audit_logs cresce ~15k linhas/semana com o worker)
     if datetime.date.today().weekday() in (0, 4) and not DRY:
         try:
-            freed, dbsize = db_housekeeping()
-            msg += f'\n🧹 DB: {dbsize:.0f} MB (purge: audit {freed["audit_logs"]}, logs {freed["app_logs"]}, bodies {freed["html_body"]})'
+            freed, dbsize, dbused, dblog = db_housekeeping()
+            msg += (f'\n🧹 DB: dados {dbsize:.0f} MB (usado {dbused:.0f}) + log {dblog:.0f} MB'
+                    f' (purge: audit {freed["audit_logs"]}, logs {freed["app_logs"]}, bodies {freed["html_body"]})')
             if dbsize > 450:
                 msg += '\n🚨 <b>DB perto da quota (500MB)!</b>'
         except Exception as e:
