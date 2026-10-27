@@ -7,7 +7,7 @@ import {
   HelpCircle, LayoutDashboard, Link2, ListChecks, LogOut,
   Mail, Megaphone, Menu, MessageSquare, Package, Plus, Search,
   Settings, Shield, Star, Tag, Target, TrendingUp, Users,
-  Wallet, Zap, Cpu, Newspaper, Home, Layers, BookOpen, Waves
+  Wallet, Zap, Cpu, Newspaper, Home, Layers, BookOpen, Waves, Sparkles
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -97,6 +97,7 @@ const navGroups: NavGroup[] = [
       { icon: BookOpen, label: 'Prompt Studio', href: '/prompts/', badge: 'NEW' },
       { icon: Cpu, label: 'Anthropic Proxy', href: '/tools/anthropic-proxy', badge: 'API' },
       { icon: Layers, label: 'OpenRouter Proxy', href: '/tools/openrouter-proxy', badge: 'API' },
+      { icon: Sparkles, label: 'IA Grátis (API)', href: '/tools/free-ai', badge: 'API' },
       { icon: Zap, label: 'Ferramentas IA', children: [
         { label: 'Geração de Imagens', href: '/utilities/image-generation' },
         { label: 'Gerador de Prompts', href: '/utilities/prompt-generator' },
@@ -399,6 +400,7 @@ const ROUTE_LABELS: Record<string, string> = {
   tools: 'Ferramentas',
   'anthropic-proxy': 'Anthropic Proxy',
   'openrouter-proxy': 'OpenRouter Proxy',
+  'free-ai': 'IA Grátis (API)',
   utilities: 'Utilitários',
   'image-generation': 'Geração de Imagens',
   'prompt-generator': 'Gerador de Prompts',
@@ -497,6 +499,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { label: 'Ir para Claude Chat', href: '/ai-chat', category: 'IA' },
     { label: 'Ir para Prompt Studio (biblioteca de prompts)', href: '/prompts/', category: 'IA' },
     { label: 'Ir para Gerador de Prompts', href: '/utilities/prompt-generator', category: 'IA' },
+    { label: 'Ir para IA Grátis (API para apps externos)', href: '/tools/free-ai', category: 'IA' },
     { label: 'Criar Novo Lead', href: '/leads', category: 'Ações' }
   ];
 
