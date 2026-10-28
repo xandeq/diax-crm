@@ -14,6 +14,7 @@ import {
   Mail, Calendar, ArrowRight, Star, AlertCircle 
 } from 'lucide-react';
 import Link from 'next/link';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export function IntelligenceTab() {
   const { data, isLoading, isError, error, refetch } = useBriefingDashboard();
@@ -154,7 +155,7 @@ export function IntelligenceTab() {
               </div>
               <div 
                 className="text-xs text-zinc-300 leading-relaxed space-y-2 prose prose-invert max-w-none prose-xs" 
-                dangerouslySetInnerHTML={{ __html: extracted.tlDr }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(extracted.tlDr) }}
               />
             </div>
 
@@ -166,7 +167,7 @@ export function IntelligenceTab() {
               </div>
               <div 
                 className="text-xs text-zinc-300 leading-relaxed space-y-2 prose prose-invert max-w-none prose-xs" 
-                dangerouslySetInnerHTML={{ __html: extracted.news }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(extracted.news) }}
               />
             </div>
 
@@ -178,7 +179,7 @@ export function IntelligenceTab() {
               </div>
               <div 
                 className="text-xs text-zinc-300 leading-relaxed space-y-2 prose prose-invert max-w-none prose-xs" 
-                dangerouslySetInnerHTML={{ __html: extracted.ideas }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(extracted.ideas) }}
               />
             </div>
           </div>
