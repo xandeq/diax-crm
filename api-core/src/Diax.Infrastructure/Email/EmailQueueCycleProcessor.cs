@@ -673,7 +673,28 @@ public class EmailQueueCycleProcessor
         var enabled = _providerPolicy.EnabledProviders;
         if (enabled.Count == 0) return;
 
+        // Mesmo limite diário POR PROVIDER (EmailChain) que o loop principal respeita
+        // (~165-178) — sem isso a reassinalação round-robin podia empurrar o item para
+        // um provider que já bateu a cota do free tier, arriscando bloqueio da conta.
+        var startOfDay = now.Date;
+        var chainLimits = _chainOptions.CurrentValue.ProviderDailyLimits;
+        var remaining = new Dictionary<EmailProvider, int>();
+        foreach (var provider in enabled)
+        {
+            var key = EmailProviderPolicy.KeyOf(provider);
+            if (chainLimits.TryGetValue(key, out var limit) && limit > 0)
+            {
+                var sentToday = await _repository.CountSentByProviderSinceAsync(provider, startOfDay, cancellationToken);
+                remaining[provider] = Math.Max(0, limit - sentToday);
+            }
+            else
+            {
+                remaining[provider] = int.MaxValue;
+            }
+        }
+
         var reassigned = 0;
+        var cursor = 0;
         foreach (EmailProvider provider in Enum.GetValues<EmailProvider>())
         {
             if (_providerPolicy.IsEnabled(provider)) continue;
@@ -683,8 +704,28 @@ public class EmailQueueCycleProcessor
 
             foreach (var item in orphans)
             {
-                var target = enabled[reassigned % enabled.Count];
-                item.ReassignProvider(target);
+                EmailProvider? target = null;
+                for (var offset = 0; offset < enabled.Count; offset++)
+                {
+                    var candidate = enabled[(cursor + offset) % enabled.Count];
+                    if (remaining[candidate] > 0)
+                    {
+                        target = candidate;
+                        cursor = (cursor + offset + 1) % enabled.Count;
+                        break;
+                    }
+                }
+
+                if (target is null)
+                {
+                    // Nenhum provider habilitado com folga hoje — deixa o item como
+                    // está para o próximo ciclo (mesmo critério do loop principal
+                    // quando o limite diário do provider é atingido).
+                    continue;
+                }
+
+                remaining[target.Value]--;
+                item.ReassignProvider(target.Value);
                 await _repository.UpdateAsync(item, cancellationToken);
                 reassigned++;
             }

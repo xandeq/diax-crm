@@ -269,6 +269,47 @@ public class EmailQueueCycleProcessorTests
     }
 
     [Fact]
+    public async Task ItemsOnDisabledProvider_AreNotReassignedToProviderAtDailyLimit()
+    {
+        // Bug: a reassinalação de orphans era round-robin puro (enabled[reassigned % count]),
+        // ignorando o limite diário por provider que o loop principal respeita — podia
+        // empurrar o item pra conta que já bateu a cota do free tier.
+        var h = new Harness(
+            disabledProviders: ["resend", "elasticemail", "mailersend", "sendgrid", "mailtrap"],
+            providerDailyLimits: new() { ["brevo"] = 1 });
+        h.QueueRepo
+            .Setup(r => r.CountSentByProviderSinceAsync(EmailProvider.Brevo, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1); // Brevo já no limite (1/1) hoje.
+
+        var orphan = NewItem(EmailProvider.MailerSend);
+        h.SetupPending(EmailProvider.MailerSend, orphan);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        // Único provider habilitado com folga é o Mailjet — não pode cair no Brevo.
+        Assert.Equal(EmailProvider.Mailjet, orphan.AssignedProvider);
+    }
+
+    [Fact]
+    public async Task ItemsOnDisabledProvider_StayUnassigned_WhenAllEnabledProvidersAreAtDailyLimit()
+    {
+        var h = new Harness(
+            disabledProviders: ["resend", "elasticemail", "mailersend", "sendgrid", "mailtrap"],
+            providerDailyLimits: new() { ["brevo"] = 1, ["mailjet"] = 1 });
+        h.QueueRepo
+            .Setup(r => r.CountSentByProviderSinceAsync(It.IsAny<EmailProvider>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1); // todos os habilitados já no limite.
+
+        var orphan = NewItem(EmailProvider.MailerSend);
+        h.SetupPending(EmailProvider.MailerSend, orphan);
+
+        await h.Processor.ProcessOnceAsync(CancellationToken.None);
+
+        // Sem folga em nenhum provider habilitado: fica como está para o próximo ciclo.
+        Assert.Equal(EmailProvider.MailerSend, orphan.AssignedProvider);
+    }
+
+    [Fact]
     public async Task Retry_ReassignsProvider_AndDecrementsFailedCount()
     {
         var h = new Harness();
