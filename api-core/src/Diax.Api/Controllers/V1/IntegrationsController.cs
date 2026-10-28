@@ -476,6 +476,16 @@ public class IntegrationsController : BaseApiController
         var inputDigits = DigitsOnly(phone);
         if (inputDigits.Length < 10) return null;
 
+        // Pré-filtro no SQL pelos 4 últimos dígitos (quase sempre contíguos em qualquer formatação):
+        // antes cada evento trazia todos os ~13 mil leads com telefone para a memória. A comparação
+        // exata continua em PickByPhone; se o pré-filtro não achar nada (formato incomum), cai na
+        // varredura completa de antes — mesmo resultado, só mais barato no caso comum.
+        var last4 = inputDigits[^4..];
+        var narrowed = await _customerRepository.FindAsync(
+            c => (c.Phone != null && c.Phone.Contains(last4)) || (c.WhatsApp != null && c.WhatsApp.Contains(last4)), ct);
+        var picked = PickByPhone(narrowed, inputDigits);
+        if (picked is not null) return picked;
+
         var candidates = await _customerRepository.FindAsync(
             c => c.Phone != null || c.WhatsApp != null, ct);
 

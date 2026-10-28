@@ -189,6 +189,39 @@ public class WhatsAppEventIntegrationTests
     }
 
     [Fact]
+    public async Task PhoneLookup_AchaNoPreFiltro_FazUmaConsultaSo()
+    {
+        var sut = BuildController();
+        var lead = new Customer("Lead", "lead@example.com");
+        lead.UpdateContactInfo(phone: "(27) 99999-0000");
+        _customerRepository
+            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<Customer, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([lead]);
+
+        var result = await sut.WhatsAppEvent(ValidKey, Request(phone: "5527999990000", @event: "sent"), CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        _customerRepository.Verify(r => r.FindAsync(It.IsAny<Expression<Func<Customer, bool>>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PhoneLookup_FormatoIncomum_CaiNaVarreduraCompleta()
+    {
+        var sut = BuildController();
+        var lead = new Customer("Lead", "lead@example.com");
+        lead.UpdateContactInfo(phone: "27 9999 900 00"); // últimos 4 dígitos separados
+        _customerRepository
+            .SetupSequence(r => r.FindAsync(It.IsAny<Expression<Func<Customer, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])       // pré-filtro "%0000%" não acha
+            .ReturnsAsync([lead]);  // varredura completa acha
+
+        var result = await sut.WhatsAppEvent(ValidKey, Request(phone: "5527999990000", @event: "sent"), CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(1, lead.WhatsAppSentCount);
+    }
+
+    [Fact]
     public async Task PhoneLookup_MesmoTelefoneEmDoisLeads_ReplyVaiParaQuemRecebeuWhatsApp()
     {
         var sut = BuildController();
