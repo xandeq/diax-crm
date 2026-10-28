@@ -380,6 +380,9 @@ try
             await EnsureAddStatementAmountSchemaAsync(db);
             Log.Information("AddStatementAmount schema patch applied.");
 
+            await EnsureSupportTicketsSchemaAsync(db);
+            Log.Information("SupportTickets schema patch applied.");
+
             // Seed initial admin (idempotent) — usa app.Configuration (após Build)
             UserSeeder.SeedInitialAdmin(db, app.Configuration, seedLogger);
             Log.Information("UserSeeder completed.");
@@ -662,6 +665,57 @@ static async Task EnsureAddStatementAmountSchemaAsync(DiaxDbContext db)
 
         IF COL_LENGTH('ai_models', 'last_success_at') IS NULL
             ALTER TABLE [ai_models] ADD [last_success_at] datetime2 NULL;
+        """;
+
+    await db.Database.ExecuteSqlRawAsync(sql);
+}
+
+static async Task EnsureSupportTicketsSchemaAsync(DiaxDbContext db)
+{
+    // Patch for migration 20260518130000_AddSupportTickets, which has no
+    // [DbContext]/[Migration] attributes nor a .Designer.cs, so EF never
+    // discovered it and the table was never applied in production.
+    const string sql = """
+        IF OBJECT_ID(N'[support_tickets]') IS NULL
+        BEGIN
+            CREATE TABLE [support_tickets] (
+                [id] uniqueidentifier NOT NULL,
+                [subject] nvarchar(512) NOT NULL,
+                [description] nvarchar(max) NULL,
+                [status] int NOT NULL CONSTRAINT [DF_support_tickets_status] DEFAULT(1),
+                [priority] int NOT NULL CONSTRAINT [DF_support_tickets_priority] DEFAULT(2),
+                [category] int NOT NULL CONSTRAINT [DF_support_tickets_category] DEFAULT(5),
+                [customer_id] uniqueidentifier NULL,
+                [customer_name] nvarchar(256) NULL,
+                [resolved_at] datetime2 NULL,
+                [user_id] uniqueidentifier NOT NULL,
+                [created_at] datetime2 NOT NULL,
+                [created_by] nvarchar(256) NULL,
+                [updated_at] datetime2 NULL,
+                [updated_by] nvarchar(256) NULL,
+                CONSTRAINT [PK_support_tickets] PRIMARY KEY ([id])
+            );
+        END;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM sys.indexes
+            WHERE name = 'IX_support_tickets_user_id'
+              AND object_id = OBJECT_ID(N'[support_tickets]'))
+        BEGIN
+            CREATE INDEX [IX_support_tickets_user_id]
+                ON [support_tickets] ([user_id]);
+        END;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM sys.indexes
+            WHERE name = 'IX_support_tickets_customer_id'
+              AND object_id = OBJECT_ID(N'[support_tickets]'))
+        BEGIN
+            CREATE INDEX [IX_support_tickets_customer_id]
+                ON [support_tickets] ([customer_id]);
+        END;
         """;
 
     await db.Database.ExecuteSqlRawAsync(sql);
