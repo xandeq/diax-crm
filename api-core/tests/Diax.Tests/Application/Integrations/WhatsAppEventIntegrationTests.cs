@@ -231,6 +231,43 @@ public class WhatsAppEventIntegrationTests
     }
 
     [Fact]
+    public void EscolherPorTelefone_SemWhatsAppEnviado_NaoDependeDaOrdemDoBanco()
+    {
+        // Antes o último critério era a posição na lista do FindAsync (sem ORDER BY): a mesma
+        // resposta podia cair em leads diferentes conforme o plano de execução do SQL.
+        var frio = new Customer("Frio", "frio@example.com");
+        frio.UpdateContactInfo(phone: "27 99999-0000");
+        var contatado = new Customer("Contatado", "contatado@example.com");
+        contatado.UpdateContactInfo(phone: "(27) 99999-0000");
+        contatado.RegisterContact(); // contato registrado por outro canal (email/ligação)
+
+        Assert.Same(contatado, IntegrationsController.PickByPhone([frio, contatado], "5527999990000"));
+        Assert.Same(contatado, IntegrationsController.PickByPhone([contatado, frio], "5527999990000"));
+
+        // Sem contato em nenhum: o que está mais avançado no funil.
+        var lead = new Customer("Lead", "lead@example.com");
+        lead.UpdateContactInfo(phone: "27999990000");
+        var negociando = new Customer("Negociando", "neg@example.com");
+        negociando.UpdateContactInfo(phone: "27999990000");
+        negociando.UpdateStatus(Diax.Domain.Customers.Enums.CustomerStatus.Negotiating);
+
+        Assert.Same(negociando, IntegrationsController.PickByPhone([lead, negociando], "5527999990000"));
+        Assert.Same(negociando, IntegrationsController.PickByPhone([negociando, lead], "5527999990000"));
+
+        // Inativo não ganha de lead ativo (o enum Inactive=5 vale mais que Negotiating=3).
+        var inativo = new Customer("Inativo", "inativo@example.com");
+        inativo.UpdateContactInfo(phone: "27999990000");
+        inativo.UpdateStatus(Diax.Domain.Customers.Enums.CustomerStatus.Inactive);
+        Assert.Same(negociando, IntegrationsController.PickByPhone([inativo, negociando], "5527999990000"));
+
+        // Empate total: ainda assim o mesmo lead nas duas ordens.
+        var a = new Customer("A", "a2@example.com"); a.UpdateContactInfo(phone: "27999990000");
+        var b = new Customer("B", "b2@example.com"); b.UpdateContactInfo(phone: "27999990000");
+        Assert.Same(IntegrationsController.PickByPhone([a, b], "5527999990000"),
+                    IntegrationsController.PickByPhone([b, a], "5527999990000"));
+    }
+
+    [Fact]
     public async Task UnknownCustomer_ReturnsNotFound()
     {
         var sut = BuildController();

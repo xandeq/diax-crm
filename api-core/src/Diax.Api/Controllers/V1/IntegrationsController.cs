@@ -485,8 +485,9 @@ public class IntegrationsController : BaseApiController
     /// <summary>
     /// Entre os leads com o mesmo telefone (duplicata de import, fixo/celular com o mesmo final),
     /// escolhe quem de fato recebeu WhatsApp por último; depois quem casou no campo WhatsApp;
-    /// só então a ordem do banco. Antes era o primeiro da lista: a resposta e a task urgente
-    /// podiam cair num lead que nunca foi contatado.
+    /// depois quem teve contato mais recente por qualquer canal, quem está mais avançado no funil
+    /// e, no empate total, o menor Id. Nunca a posição na lista: FindAsync não tem ORDER BY e a
+    /// mesma resposta podia cair em leads diferentes conforme o plano do SQL.
     /// </summary>
     public static Customer? PickByPhone(IEnumerable<Customer> candidates, string phone)
     {
@@ -494,17 +495,25 @@ public class IntegrationsController : BaseApiController
         if (inputDigits.Length < 10) return null;
 
         var matches = candidates
-            .Select((c, i) => (Customer: c, Index: i, OnWhatsApp: PhoneDigitsMatch(c.WhatsApp, inputDigits)))
+            .Select(c => (Customer: c, OnWhatsApp: PhoneDigitsMatch(c.WhatsApp, inputDigits)))
             .Where(m => m.OnWhatsApp || PhoneDigitsMatch(m.Customer.Phone, inputDigits))
             .ToList();
 
         return matches
             .OrderByDescending(m => m.Customer.LastWhatsAppSentAt ?? DateTime.MinValue)
             .ThenByDescending(m => m.OnWhatsApp)
-            .ThenBy(m => m.Index)
+            .ThenByDescending(m => m.Customer.LastContactAt ?? DateTime.MinValue)
+            .ThenByDescending(m => FunnelRank(m.Customer.Status))
+            .ThenBy(m => m.Customer.Id)
             .Select(m => m.Customer)
             .FirstOrDefault();
     }
+
+    /// <summary>Inativo/perdido não pode ganhar de lead ativo só porque o enum vale mais.</summary>
+    private static int FunnelRank(Diax.Domain.Customers.Enums.CustomerStatus status) =>
+        status is Diax.Domain.Customers.Enums.CustomerStatus.Inactive or Diax.Domain.Customers.Enums.CustomerStatus.Churned
+            ? -1
+            : (int)status;
 
     private static string DigitsOnly(string? value) =>
         value is null ? string.Empty : new string(value.Where(char.IsDigit).ToArray());
