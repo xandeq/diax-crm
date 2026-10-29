@@ -20,6 +20,18 @@ public interface ICustomerRepository : IRepository<Customer>
     Task<List<Customer>> GetAllByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Leads prontos para outreach por email (Status Lead, segmentado, email válido, sem opt-out,
+    /// fora do cooldown), ordenados por segmento desc e criação asc. Filtro, ordem e Take no SQL.
+    /// </summary>
+    Task<List<Customer>> GetEmailOutreachReadyAsync(DateTime cooldownDate, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Leads prontos para outreach por WhatsApp (status antes de Customer, segmentado, com WhatsApp ou
+    /// telefone, sem opt-out, fora do cooldown), mesma ordenação. Filtro, ordem e Take no SQL.
+    /// </summary>
+    Task<List<Customer>> GetWhatsAppOutreachReadyAsync(DateTime cooldownDate, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Busca cliente por documento (CPF/CNPJ).
     /// </summary>
     Task<Customer?> GetByDocumentAsync(string document, CancellationToken cancellationToken = default);
