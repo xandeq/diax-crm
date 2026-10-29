@@ -27,6 +27,40 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<Customer>> GetEmailOutreachReadyAsync(
+        DateTime cooldownDate, int limit, CancellationToken cancellationToken = default)
+    {
+        if (limit <= 0) return new List<Customer>();
+        return await DbSet
+            .Where(c => c.Status == CustomerStatus.Lead
+                        && c.Segment != null
+                        && c.Email != null
+                        && c.Email != string.Empty
+                        && !c.Email.Contains("@placeholder.local")
+                        && !c.EmailOptOut
+                        && (c.LastEmailSentAt == null || c.LastEmailSentAt < cooldownDate))
+            .OrderByDescending(c => c.Segment)
+            .ThenBy(c => c.CreatedAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<Customer>> GetWhatsAppOutreachReadyAsync(
+        DateTime cooldownDate, int limit, CancellationToken cancellationToken = default)
+    {
+        if (limit <= 0) return new List<Customer>();
+        return await DbSet
+            .Where(c => c.Status < CustomerStatus.Customer // IsLead (propriedade calculada, não mapeada)
+                        && c.Segment != null
+                        && (c.WhatsApp != null || c.Phone != null)
+                        && !c.WhatsAppOptOut
+                        && (c.LastWhatsAppSentAt == null || c.LastWhatsAppSentAt < cooldownDate))
+            .OrderByDescending(c => c.Segment)
+            .ThenBy(c => c.CreatedAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Customer?> GetByDocumentAsync(string document, CancellationToken cancellationToken = default)
     {
         return await DbSet

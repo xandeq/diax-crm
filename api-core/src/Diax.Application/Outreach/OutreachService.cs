@@ -314,21 +314,10 @@ public class OutreachService : IApplicationService
         var cooldownDays = config?.EmailCooldownDays ?? 7;
         var cooldownDate = DateTime.UtcNow.AddDays(-cooldownDays);
 
-        // Buscar leads segmentados com email válido
-        var candidates = await _customerRepository.FindAsync(
-            c => c.Status == CustomerStatus.Lead
-                 && c.Segment != null
-                 && c.Email != null
-                 && c.Email != string.Empty
-                 && !c.Email.Contains("@placeholder.local")
-                 && !c.EmailOptOut
-                 && (c.LastEmailSentAt == null || c.LastEmailSentAt < cooldownDate),
-            cancellationToken);
+        // Filtro, ordenação (segmento desc, criação asc) e Take no SQL: não carrega a base inteira
+        var candidates = await _customerRepository.GetEmailOutreachReadyAsync(cooldownDate, limit, cancellationToken);
 
         var readyLeads = candidates
-            .OrderByDescending(c => (int)(c.Segment ?? LeadSegment.Cold))
-            .ThenBy(c => c.CreatedAt)
-            .Take(limit)
             .Select(ReadyLeadResponse.FromEntity)
             .ToList();
 
@@ -488,18 +477,10 @@ public class OutreachService : IApplicationService
         var cooldownDays = config?.WhatsAppCooldownDays ?? 3;
         var cooldownDate = DateTime.UtcNow.AddDays(-cooldownDays);
 
-        var candidates = await _customerRepository.FindAsync(
-            c => c.IsLead
-                 && c.Segment != null
-                 && (c.WhatsApp != null || c.Phone != null)
-                 && !c.WhatsAppOptOut
-                 && (c.LastWhatsAppSentAt == null || c.LastWhatsAppSentAt < cooldownDate),
-            cancellationToken);
+        // IsLead é propriedade calculada (não mapeada): o EF não traduz. Critério reescrito em SQL no repositório.
+        var candidates = await _customerRepository.GetWhatsAppOutreachReadyAsync(cooldownDate, limit, cancellationToken);
 
         var readyLeads = candidates
-            .OrderByDescending(c => (int)(c.Segment ?? LeadSegment.Cold))
-            .ThenBy(c => c.CreatedAt)
-            .Take(limit)
             .Select(WhatsAppReadyLeadResponse.FromEntity)
             .ToList();
 
