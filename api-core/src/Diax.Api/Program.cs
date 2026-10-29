@@ -118,6 +118,20 @@ builder.Services.AddSingleton(promptGeneratorSettings);
 // Free AI Gateway (/free-ai/v1) — cadeia de fallback entre provedores gratuitos.
 var freeAiOptions = new Diax.Application.AI.FreeGateway.FreeAiOptions();
 builder.Configuration.GetSection("FreeAi").Bind(freeAiOptions);
+// Chaves do servidor (env/AWS SM) como 2ª opção quando a credencial do banco estiver inválida
+// (27/10: OpenRouter e Groq davam 401 com a credencial do banco).
+foreach (var (providerKey, names) in new (string, string[])[]
+{
+    ("openrouter", new[] { "OPENROUTER_API_KEY", "OpenRouter:ApiKey" }),
+    ("groq", new[] { "GROQ_API_KEY", "Groq:ApiKey" }),
+    ("cerebras", new[] { "CEREBRAS_API_KEY", "Cerebras:ApiKey" }),
+    ("gemini", new[] { "GEMINI_API_KEY", "GOOGLE_API_KEY", "Gemini:ApiKey" }),
+    ("huggingface", new[] { "HF_API_KEY", "HUGGINGFACE_API_KEY", "HuggingFace:ApiKey" }),
+})
+{
+    var values = names.Select(n => builder.Configuration[n]).Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v!.Trim()).Distinct().ToList();
+    if (values.Count > 0) freeAiOptions.ServerKeys[providerKey] = values;
+}
 builder.Services.AddSingleton(freeAiOptions);
 
 builder.Services.AddHttpClient("FreeAiGateway");
