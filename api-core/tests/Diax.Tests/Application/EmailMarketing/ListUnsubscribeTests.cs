@@ -53,7 +53,7 @@ public class UnsubscribeOneClickControllerTests
     public async Task Post_OneClickComTokenValido_DescadastraERetorna200()
     {
         var customer = new Customer("Padaria", Email);
-        _customers.Setup(c => c.GetByEmailAsync(Email, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+        _customers.Setup(c => c.GetAllByEmailAsync(Email, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Customer> { customer });
 
         var r = await Ctl().UnsubscribeOneClick(Token(), _uid.ToString(), Email, "One-Click", default);
 
@@ -64,10 +64,24 @@ public class UnsubscribeOneClickControllerTests
     }
 
     [Fact]
+    public async Task Post_OneClick_DescadastraTodosOsCustomersDuplicados()
+    {
+        var a = new Customer("Padaria A", Email);
+        var b = new Customer("Padaria B", Email);
+        _customers.Setup(c => c.GetAllByEmailAsync(Email, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Customer> { a, b });
+
+        var r = await Ctl().UnsubscribeOneClick(Token(), _uid.ToString(), Email, "One-Click", default);
+
+        Assert.IsType<OkResult>(r);
+        Assert.True(a.EmailOptOut);
+        Assert.True(b.EmailOptOut);
+    }
+
+    [Fact]
     public async Task Post_TokenInvalido_Retorna401ENaoAltera()
     {
         var customer = new Customer("Padaria", Email);
-        _customers.Setup(c => c.GetByEmailAsync(Email, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+        _customers.Setup(c => c.GetAllByEmailAsync(Email, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Customer> { customer });
 
         var r = await Ctl().UnsubscribeOneClick("token-falso", _uid.ToString(), Email, "One-Click", default);
 
