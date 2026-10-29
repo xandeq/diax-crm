@@ -68,8 +68,9 @@ public class TaskRepository : Repository<TaskItem>, ITaskRepository
                 });
     }
 
-    public async Task<bool> HasOpenTaskWithTitleAsync(Guid customerId, string title, CancellationToken cancellationToken = default)
-        => await _context.TaskItems.AnyAsync(t => t.CustomerId == customerId
+    public async Task<bool> HasOpenTaskWithTitleAsync(Guid ownerUserId, Guid customerId, string title, CancellationToken cancellationToken = default)
+        => await _context.TaskItems.IgnoreQueryFilters().AnyAsync(t => t.UserId == ownerUserId
+            && t.CustomerId == customerId
             && t.Title == title
             && (t.Status == TaskItemStatus.Todo || t.Status == TaskItemStatus.InProgress)
             && !t.IsArchived, cancellationToken);

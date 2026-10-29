@@ -150,7 +150,7 @@ public class WhatsAppEventIntegrationTests
         var sut = BuildController();
         var customer = new Customer("Maria", "maria@example.com");
         _customerRepository.Setup(r => r.GetByIdAsync(customer.Id, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
-        _taskRepository.Setup(r => r.HasOpenTaskWithTitleAsync(customer.Id, "💬 WhatsApp respondeu: Maria", It.IsAny<CancellationToken>()))
+        _taskRepository.Setup(r => r.HasOpenTaskWithTitleAsync(OwnerUserId, customer.Id, "💬 WhatsApp respondeu: Maria", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var result = await sut.WhatsAppEvent(

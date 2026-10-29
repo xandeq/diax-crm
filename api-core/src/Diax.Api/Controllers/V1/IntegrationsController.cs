@@ -354,7 +354,7 @@ public class IntegrationsController : BaseApiController
                     _logger.LogWarning("whatsapp-event reply: task não criada para customer {CustomerId} — {Reason}", customer.Id, taskSkippedReason);
                 }
                 else if (await _taskRepository.HasOpenTaskWithTitleAsync(
-                             customer.Id, $"💬 WhatsApp respondeu: {customer.Name}", ct))
+                             ownerUserId.Value, customer.Id, $"💬 WhatsApp respondeu: {customer.Name}", ct))
                 {
                     // Cliente mandando várias mensagens seguidas (ou retry do n8n): 1 tarefa aberta basta
                     taskSkippedReason = "já existe tarefa aberta de resposta para este cliente";
