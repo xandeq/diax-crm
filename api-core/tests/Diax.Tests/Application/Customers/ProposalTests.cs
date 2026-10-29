@@ -42,6 +42,28 @@ public class PixBrCodeTests
     }
 
     [Theory]
+    [InlineData("123.456.789-09", "12345678909")]
+    [InlineData(" 123.456.789-09 ", "12345678909")]
+    [InlineData("12.345.678/0001-95", "12345678000195")]
+    [InlineData("(27) 99999-8888", "+5527999998888")]
+    [InlineData("+55 27 99999-8888", "+5527999998888")]
+    [InlineData("27999998888", "27999998888")]
+    [InlineData("Pix@Exemplo.com", "Pix@Exemplo.com")]
+    [InlineData("123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174000")]
+    public void NormalizeKey_ConvertsFormattedKeysToBacenFormat(string input, string expected)
+    {
+        Assert.Equal(expected, PixBrCode.NormalizeKey(input));
+    }
+
+    [Fact]
+    public void Generate_UsesNormalizedKeyInPayload()
+    {
+        var payload = PixBrCode.Generate("123.456.789-09", 50m, "N", "C", "T");
+        Assert.Contains("011112345678909", payload); // campo 01, tamanho 11, só dígitos
+        Assert.DoesNotContain("123.456", payload);
+    }
+
+    [Theory]
     [InlineData("", 10)]
     [InlineData("key", 0)]
     [InlineData("key", -5)]

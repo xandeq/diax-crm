@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Diax.Application.Customers;
 
@@ -29,7 +30,7 @@ public static class PixBrCode
         var tx = SanitizeTxId(txId, 25);
         var amountStr = amount.ToString("0.00", CultureInfo.InvariantCulture);
 
-        var merchantAccount = Field("00", "br.gov.bcb.pix") + Field("01", pixKey.Trim());
+        var merchantAccount = Field("00", "br.gov.bcb.pix") + Field("01", NormalizeKey(pixKey));
         var additionalData = Field("05", tx);
 
         var payload = new StringBuilder()
@@ -46,6 +47,31 @@ public static class PixBrCode
             .ToString();
 
         return payload + Crc16Ccitt(payload);
+    }
+
+    /// <summary>
+    /// Converte a chave digitada pelo dono para o formato aceito pelo BR Code: CPF/CNPJ só dígitos
+    /// (sem máscara) e telefone como +55DDDNÚMERO. E-mail e chave aleatória (UUID) passam intactos.
+    /// Com máscara, o app do banco do cliente rejeita o copia-e-cola como "chave inválida".
+    /// </summary>
+    public static string NormalizeKey(string pixKey)
+    {
+        var key = pixKey.Trim();
+        if (key.Contains('@')) return key;
+
+        // CPF / CNPJ com máscara
+        if (Regex.IsMatch(key, @"^\d{3}\.\d{3}\.\d{3}-\d{2}$") || Regex.IsMatch(key, @"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$"))
+            return new string(key.Where(char.IsDigit).ToArray());
+
+        // Telefone formatado: começa com + ou tem parênteses/espaços e só símbolos de telefone
+        if (Regex.IsMatch(key, @"^\+?[\d\s()\-]+$") && (key.StartsWith('+') || key.Contains('(') || key.Contains(' ')))
+        {
+            var digits = new string(key.Where(char.IsDigit).ToArray());
+            if (!key.StartsWith('+') && digits.Length is 10 or 11) digits = "55" + digits;
+            return "+" + digits;
+        }
+
+        return key;
     }
 
     private static string Field(string id, string value)
