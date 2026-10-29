@@ -90,4 +90,35 @@ public class AnonymousContextRepositoryTests
         Assert.Single(mine);
         Assert.Contains(customer, await repo.GetCustomerIdsWithOpenTasksAsync(new[] { customer }));
     }
+
+    private sealed class AsUser : ICurrentUserService
+    {
+        public AsUser(Guid id) { UserId = id; }
+        public Guid? UserId { get; }
+        public bool IsAuthenticated => true;
+    }
+
+    [Fact]
+    public async Task InvoiceGetById_WithoutUserParameter_StaysProtectedByGlobalFilter()
+    {
+        var name = $"idor-{Guid.NewGuid()}";
+        var options = new DbContextOptionsBuilder<DiaxDbContext>().UseInMemoryDatabase(name).Options;
+        Guid invoiceId;
+        using (var seed = new DiaxDbContext(options, new AsUser(Owner)))
+        {
+            var group = new CreditCardGroup("Grupo", "Banco", 5, 12, 5000m, Owner);
+            seed.CreditCardGroups.Add(group);
+            var invoice = new CreditCardInvoice(group.Id, 11, 2026, new DateTime(2026, 11, 5), new DateTime(2026, 11, 12), Owner);
+            seed.CreditCardInvoices.Add(invoice);
+            await seed.SaveChangesAsync();
+            invoiceId = invoice.Id;
+        }
+
+        using var asOwner = new DiaxDbContext(options, new AsUser(Owner));
+        using var asStranger = new DiaxDbContext(options, new AsUser(Stranger));
+
+        Assert.NotNull(await new CreditCardInvoiceRepository(asOwner).GetByIdAsync(invoiceId));
+        Assert.Null(await new CreditCardInvoiceRepository(asStranger).GetByIdAsync(invoiceId));
+        Assert.Null(await new CreditCardInvoiceRepository(asStranger).GetByIdAndUserAsync(invoiceId, Stranger));
+    }
 }

@@ -15,7 +15,6 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
         // .Expenses (legacy). Loading only one yields a wrong total during the
         // transition window — see commit 6c60317 for the entity-level fix.
         return await DbSet
-            .IgnoreQueryFilters()
             .Include(i => i.CreditCardGroup)
             .ThenInclude(g => g.Cards)
             .Include(i => i.PaidFromAccount)
