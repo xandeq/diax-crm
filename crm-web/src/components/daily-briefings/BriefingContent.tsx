@@ -3,6 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BriefingFormat } from '@/types/dailyBriefings';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 interface Props {
   content: string;
@@ -27,7 +28,7 @@ export function BriefingContent({ content, format }: Props) {
   // HTML de email: largura ~640px, fundo proprio. Centraliza e arredonda.
   return (
     <div className="briefing-html">
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
     </div>
   );
 }

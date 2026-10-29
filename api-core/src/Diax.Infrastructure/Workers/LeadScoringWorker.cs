@@ -1,4 +1,5 @@
 using Diax.Application.Customers;
+using Diax.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -9,10 +10,13 @@ namespace Diax.Infrastructure.Workers;
 /// Recalcula o lead scoring diariamente (~06h BRT = 09h UTC) — segue o padrão do
 /// QuotaResetWorker: poll periódico e decisão idempotente. Não cria follow-ups
 /// (tasks são do usuário — criadas pelo endpoint autenticado do pipeline).
+/// job_runs (DailyJobLedger) sobrevive a recycle/deploy no mesmo dia — antes só o
+/// _lastRunDate em memória controlava isso, e um deploy no mesmo dia rodava de novo.
 /// </summary>
 public class LeadScoringWorker : BackgroundService
 {
     private const int RunAtUtcHour = 9; // 06h America/Sao_Paulo
+    private const string JobName = "lead-scoring";
     private static readonly TimeSpan PollInterval = TimeSpan.FromMinutes(15);
 
     private readonly IServiceProvider _serviceProvider;
@@ -41,14 +45,23 @@ public class LeadScoringWorker : BackgroundService
                 if (now.Hour < RunAtUtcHour || _lastRunDate == today)
                     continue;
 
-                _logger.LogInformation("[LeadScoring] Iniciando recálculo diário de scores");
                 using (var scope = _serviceProvider.CreateScope())
                 {
+                    var db = scope.ServiceProvider.GetRequiredService<DiaxDbContext>();
+                    if (await DailyJobLedger.HasRunAsync(db, JobName, today, stoppingToken))
+                    {
+                        _lastRunDate = today; // já rodou hoje (antes de um recycle/deploy)
+                        continue;
+                    }
+
+                    _logger.LogInformation("[LeadScoring] Iniciando recálculo diário de scores");
                     var scoring = scope.ServiceProvider.GetRequiredService<LeadScoringService>();
                     var summary = await scoring.RecomputeAllAsync(followUpOwnerUserId: null, stoppingToken);
                     _logger.LogInformation(
                         "[LeadScoring] Diário concluído: {Total} leads (Hot {Hot} / Warm {Warm} / Cold {Cold})",
                         summary.LeadsScored, summary.Hot, summary.Warm, summary.Cold);
+
+                    await DailyJobLedger.MarkRunAsync(db, JobName, today, stoppingToken);
                 }
 
                 _lastRunDate = today;

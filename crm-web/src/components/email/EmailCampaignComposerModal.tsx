@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import {
     createEmailCampaign,
     EmailAttachmentRequest,
@@ -416,7 +417,7 @@ export function EmailCampaignComposerModal({
             <div className="rounded-md p-3 min-h-[360px] overflow-auto" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
               <p className="text-xs mb-2" style={{ color: '#6B7280' }}>Corpo</p>
               {previewHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: previewHtml }} style={{ background: '#ffffff', color: '#111', padding: '8px', borderRadius: '4px' }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewHtml) }} style={{ background: '#ffffff', color: '#111', padding: '8px', borderRadius: '4px' }} />
               ) : (
                 <p className="text-sm" style={{ color: '#6B7280' }}>Clique em "Atualizar preview" para renderizar as variáveis.</p>
               )}
