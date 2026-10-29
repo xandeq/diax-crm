@@ -27,6 +27,9 @@ export interface PipelineCard {
   segment?: string | null;
   lastContactAt?: string | null;
   tags?: string | null;
+  /** Título da próxima tarefa aberta do lead; ausente = sem próxima ação. */
+  nextActionTitle?: string | null;
+  nextActionDue?: string | null;
 }
 
 export interface PipelineColumn {

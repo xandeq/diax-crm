@@ -41,6 +41,31 @@ public class TaskRepository : Repository<TaskItem>, ITaskRepository
             .OrderBy(t => t.DueDate)
             .ToListAsync(cancellationToken);
 
+    public async Task<Dictionary<Guid, NextTaskInfo>> GetNextOpenTasksByCustomerAsync(
+        IEnumerable<Guid> customerIds, CancellationToken cancellationToken = default)
+    {
+        var ids = customerIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, NextTaskInfo>();
+
+        var rows = await _context.TaskItems
+            .Where(t => t.CustomerId != null
+                && ids.Contains(t.CustomerId.Value)
+                && (t.Status == TaskItemStatus.Todo || t.Status == TaskItemStatus.InProgress)
+                && !t.IsArchived)
+            .Select(t => new { CustomerId = t.CustomerId!.Value, t.Title, t.DueDate, t.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(r => r.CustomerId)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var next = g.OrderBy(r => r.DueDate ?? DateTime.MaxValue).ThenBy(r => r.CreatedAt).First();
+                    return new NextTaskInfo(next.Title, next.DueDate);
+                });
+    }
+
     public async Task<HashSet<Guid>> GetCustomerIdsWithOpenTasksAsync(
         IEnumerable<Guid> customerIds, CancellationToken cancellationToken = default)
     {
