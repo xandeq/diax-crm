@@ -308,8 +308,8 @@ public class Customer : AuditableEntity
         var previousStatus = Status;
         Status = newStatus;
 
-        // Se converteu para cliente, registra a data
-        if (previousStatus < CustomerStatus.Customer && newStatus == CustomerStatus.Customer)
+        // Se converteu para cliente (inclusive reativação de Inactive/Churned), registra a data
+        if (previousStatus != CustomerStatus.Customer && newStatus == CustomerStatus.Customer)
         {
             ConvertedAt = DateTime.UtcNow;
         }

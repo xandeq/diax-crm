@@ -105,4 +105,33 @@ public class CustomerTests
         Assert.Equal(CustomerStatus.Qualified, customer.Status);
         Assert.NotNull(customer.LastContactAt);
     }
+
+    // ───── UpdateStatus → Customer (ConvertedAt alimenta "Fechado" e Ganho 30d no pipeline) ─────
+
+    [Theory]
+    [InlineData(CustomerStatus.Lead)]
+    [InlineData(CustomerStatus.Negotiating)]
+    [InlineData(CustomerStatus.Inactive)]
+    [InlineData(CustomerStatus.Churned)]
+    public void UpdateStatus_ToCustomer_SetsConvertedAtFromAnyOtherStatus(CustomerStatus from)
+    {
+        var customer = NewCustomerWithStatus(from);
+        Assert.Null(customer.ConvertedAt);
+
+        customer.UpdateStatus(CustomerStatus.Customer);
+
+        Assert.NotNull(customer.ConvertedAt);
+    }
+
+    [Fact]
+    public void UpdateStatus_CustomerToCustomer_KeepsOriginalConvertedAt()
+    {
+        var customer = NewCustomerWithStatus(CustomerStatus.Negotiating);
+        customer.UpdateStatus(CustomerStatus.Customer);
+        var first = customer.ConvertedAt;
+
+        customer.UpdateStatus(CustomerStatus.Customer);
+
+        Assert.Equal(first, customer.ConvertedAt);
+    }
 }
