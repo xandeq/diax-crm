@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Diax.Application.Customers;
 using Diax.Application.Notifications;
+using Diax.Domain.Customers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -50,12 +51,15 @@ public class ProposalsController : BaseApiController
         return HandleResult(await _proposalService.MarkPaidAsync(id, userId.Value, ct));
     }
 
+    /// <summary>Corpo opcional: scripts antigos que chamam sem corpo continuam funcionando.</summary>
+    public record CancelProposalRequest(ProposalLossReason? Reason, string? Note);
+
     [HttpPost("{id:guid}/cancel")]
-    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Cancel(Guid id, [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] CancelProposalRequest? request, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized(new { Message = "Usuário não autenticado." });
-        return HandleResult(await _proposalService.CancelAsync(id, userId.Value, ct));
+        return HandleResult(await _proposalService.CancelAsync(id, userId.Value, request?.Reason, request?.Note, ct));
     }
 
     [HttpPost("{id:guid}/renew")]

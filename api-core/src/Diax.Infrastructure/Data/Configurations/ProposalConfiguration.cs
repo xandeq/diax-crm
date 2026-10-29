@@ -35,6 +35,9 @@ public class ProposalConfiguration : IEntityTypeConfiguration<Proposal>
         builder.Property(x => x.PackageId).HasColumnName("package_id");
         builder.Property(x => x.Origin).HasColumnName("origin").IsRequired().HasDefaultValue(ProposalOrigin.Manual);
         builder.Property(x => x.LastFollowUpStage).HasColumnName("last_follow_up_stage").IsRequired().HasDefaultValue(0);
+        builder.Property(x => x.LossReason).HasColumnName("loss_reason");
+        builder.Property(x => x.LossNote).HasColumnName("loss_note").HasMaxLength(500);
+        builder.Property(x => x.CancelledAt).HasColumnName("cancelled_at");
         builder.HasIndex(x => new { x.Status, x.SentAt });
 
         builder.HasIndex(x => x.PublicToken).IsUnique();

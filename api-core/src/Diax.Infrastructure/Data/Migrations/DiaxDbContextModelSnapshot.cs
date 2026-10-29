@@ -17,7 +17,7 @@ namespace Diax.Infrastructure.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.20")
+                .HasAnnotation("ProductVersion", "9.0.22")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -2112,6 +2112,10 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
 
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("cancelled_at");
+
                     b.Property<string>("CoverImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)")
@@ -2141,6 +2145,15 @@ namespace Diax.Infrastructure.Data.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0)
                         .HasColumnName("last_follow_up_stage");
+
+                    b.Property<string>("LossNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("loss_note");
+
+                    b.Property<int?>("LossReason")
+                        .HasColumnType("int")
+                        .HasColumnName("loss_reason");
 
                     b.Property<int>("Origin")
                         .ValueGeneratedOnAdd()
