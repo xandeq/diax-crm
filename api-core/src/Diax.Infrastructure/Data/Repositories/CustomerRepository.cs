@@ -61,6 +61,32 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<NormalizationCounts> GetNormalizationCountsAsync(CancellationToken cancellationToken = default)
+    {
+        var row = await DbSet
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Normalized = g.Count(c => c.NormalizedName != null),
+                High = g.Count(c => c.NormalizationScore >= 80),
+                Low = g.Count(c => c.NormalizationScore > 0 && c.NormalizationScore < 80),
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        return row is null ? new NormalizationCounts(0, 0, 0, 0) : new NormalizationCounts(row.Total, row.Normalized, row.High, row.Low);
+    }
+
+    public async Task<List<Customer>> GetNormalizationPreviewPageAsync(int skip, int take, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .OrderBy(c => c.NormalizedName == null ? 0 : 1)
+            .ThenBy(c => c.CreatedAt)
+            .ThenBy(c => c.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Customer?> GetByDocumentAsync(string document, CancellationToken cancellationToken = default)
     {
         return await DbSet
