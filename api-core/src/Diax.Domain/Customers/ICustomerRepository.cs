@@ -13,6 +13,15 @@ public interface ICustomerRepository : IRepository<Customer>
     /// </summary>
     Task<Customer?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
+    /// <summary>Contagens da normalização de nomes calculadas no SQL (sem carregar a base).</summary>
+    Task<NormalizationCounts> GetNormalizationCountsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Página da prévia de normalização: pendentes (sem NormalizedName) primeiro, depois CreatedAt asc
+    /// (Id desempata para a paginação ser estável). Skip/Take no SQL.
+    /// </summary>
+    Task<List<Customer>> GetNormalizationPreviewPageAsync(int skip, int take, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Todos os cadastros com o e-mail (trim + case-insensitive). Usado no descadastro:
     /// duplicados não podem continuar recebendo depois do opt-out.
@@ -125,3 +134,9 @@ public interface ICustomerRepository : IRepository<Customer>
         DateTime? createdAfter = null,
         CancellationToken cancellationToken = default);
 }
+
+/// <param name="Total">Todos os cadastros.</param>
+/// <param name="Normalized">Com NormalizedName.</param>
+/// <param name="High">NormalizationScore >= 80.</param>
+/// <param name="Low">NormalizationScore entre 1 e 79.</param>
+public record NormalizationCounts(int Total, int Normalized, int High, int Low);

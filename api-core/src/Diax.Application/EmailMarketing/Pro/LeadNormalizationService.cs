@@ -39,13 +39,13 @@ public class LeadNormalizationService : ILeadNormalizationService
 
     public async Task<NormalizationStatsDto> GetStatsAsync(CancellationToken ct = default)
     {
-        var all = (await _repo.GetAllAsync(ct)).ToList();
+        var counts = await _repo.GetNormalizationCountsAsync(ct);
 
-        var total      = all.Count;
-        var normalized = all.Count(c => c.NormalizedName != null);
+        var total      = counts.Total;
+        var normalized = counts.Normalized;
         var pending    = total - normalized;
-        var highConf   = all.Count(c => c.NormalizationScore >= 80);
-        var lowConf    = all.Count(c => c.NormalizationScore is > 0 and < 80);
+        var highConf   = counts.High;
+        var lowConf    = counts.Low;
         var coverage   = total > 0 ? Math.Round(normalized * 100.0 / total, 1) : 0.0;
 
         return new NormalizationStatsDto
@@ -65,12 +65,7 @@ public class LeadNormalizationService : ILeadNormalizationService
         page     = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var all = (await _repo.GetAllAsync(ct))
-            .OrderBy(c => c.NormalizedName == null ? 0 : 1)
-            .ThenBy(c => c.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
+        var all = await _repo.GetNormalizationPreviewPageAsync((page - 1) * pageSize, pageSize, ct);
 
         return all.Select(c =>
         {
