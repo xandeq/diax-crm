@@ -27,6 +27,10 @@ export interface Proposal {
   packageId?: string | null;
   /** 0 = Manual, 1 = Bot */
   origin?: number;
+  /** Motivo da perda (enum ProposalLossReason, número); só em canceladas com motivo informado. */
+  lossReason?: number | null;
+  lossNote?: string | null;
+  cancelledAt?: string | null;
 }
 
 export interface PublicProposal {
@@ -67,8 +71,11 @@ export async function markProposalPaid(id: string): Promise<Proposal> {
   return apiFetch<Proposal>(`/proposals/${id}/mark-paid`, { method: 'POST' });
 }
 
-export async function cancelProposal(id: string): Promise<Proposal> {
-  return apiFetch<Proposal>(`/proposals/${id}/cancel`, { method: 'POST' });
+export async function cancelProposal(id: string, reason?: number | null, note?: string | null): Promise<Proposal> {
+  return apiFetch<Proposal>(`/proposals/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason ?? null, note: note?.trim() || null }),
+  });
 }
 
 /** Nova validade (+7 dias) na mesma proposta: o link que o cliente já tem volta a valer. */

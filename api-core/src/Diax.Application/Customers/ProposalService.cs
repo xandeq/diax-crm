@@ -37,7 +37,10 @@ public record ProposalDto(
     int ViewCount,
     DateTime CreatedAt,
     Guid? PackageId = null,
-    ProposalOrigin Origin = ProposalOrigin.Manual);
+    ProposalOrigin Origin = ProposalOrigin.Manual,
+    ProposalLossReason? LossReason = null,
+    string? LossNote = null,
+    DateTime? CancelledAt = null);
 
 /// <summary>Resultado do rascunho pedido pelo bot: Created=false quando o lead já tinha proposta aberta.</summary>
 public record BotDraftResult(ProposalDto Proposal, bool Created);
@@ -383,7 +386,8 @@ public class ProposalService : IApplicationService
         return ToDto(proposal, customer?.Name ?? "—");
     }
 
-    public async Task<Result<ProposalDto>> CancelAsync(Guid proposalId, Guid userId, CancellationToken ct = default)
+    public async Task<Result<ProposalDto>> CancelAsync(
+        Guid proposalId, Guid userId, ProposalLossReason? reason = null, string? note = null, CancellationToken ct = default)
     {
         var proposal = await _proposalRepository.GetByIdAsync(proposalId, ct);
         if (proposal == null || proposal.UserId != userId)
@@ -391,7 +395,7 @@ public class ProposalService : IApplicationService
 
         try
         {
-            proposal.Cancel();
+            proposal.Cancel(reason, note);
         }
         catch (InvalidOperationException ex)
         {
@@ -546,5 +550,6 @@ public class ProposalService : IApplicationService
     private static ProposalDto ToDto(Proposal p, string customerName) => new(
         p.Id, p.CustomerId, customerName, p.Title, p.Description, p.Amount,
         p.Status, p.PublicToken, p.PixKey, p.ValidUntil, p.SentAt, p.AcceptedAt,
-        p.PaidAt, p.ViewCount, p.CreatedAt, p.PackageId, p.Origin);
+        p.PaidAt, p.ViewCount, p.CreatedAt, p.PackageId, p.Origin,
+        p.LossReason, p.LossNote, p.CancelledAt);
 }

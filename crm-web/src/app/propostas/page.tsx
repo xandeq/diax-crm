@@ -27,6 +27,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { proposalFunnel } from '@/lib/proposalFunnel';
+import { LOSS_REASON_LABEL, LOSS_REASON_OPTIONS, lossBreakdown } from '@/lib/proposalLoss';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -75,6 +76,8 @@ export default function ProposalsPage() {
       setSendingId(null);
     }
   };
+  const [lossReason, setLossReason] = useState<string>('');
+  const [lossNote, setLossNote] = useState('');
   const [confirmAction, setConfirmAction] = useState<{ id: string; kind: 'pay' | 'cancel'; title: string } | null>(null);
 
   const load = useCallback(() => {
@@ -126,13 +129,15 @@ export default function ProposalsPage() {
     try {
       const updated = confirmAction.kind === 'pay'
         ? await markProposalPaid(confirmAction.id)
-        : await cancelProposal(confirmAction.id);
+        : await cancelProposal(confirmAction.id, lossReason === '' ? null : Number(lossReason), lossNote);
       setProposals(prev => prev.map(p => (p.id === updated.id ? updated : p)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ação falhou.');
     } finally {
       setBusyId(null);
       setConfirmAction(null);
+      setLossReason('');
+      setLossNote('');
     }
   };
 
@@ -141,6 +146,7 @@ export default function ProposalsPage() {
   const openTotal = proposals.filter(p => p.status === 1 || p.status === 2).reduce((s, p) => s + p.amount, 0);
   const paidTotal = proposals.filter(p => p.status === 3).reduce((s, p) => s + p.amount, 0);
   const funnel = proposalFunnel(proposals);
+  const lossSummary = lossBreakdown(proposals);
   const funnelSteps = [
     { label: 'Enviadas', n: funnel.sent, pct: null as number | null, color: 'text-white/80' },
     { label: 'Vistas', n: funnel.viewed, pct: funnel.pct.viewed, color: 'text-sky-300' },
@@ -222,6 +228,19 @@ export default function ProposalsPage() {
         </div>
       )}
 
+      {filter === 'cancelled' && lossSummary.length > 0 && (
+        <div className="max-w-screen-xl mx-auto px-6 pt-4">
+          <div className="flex flex-wrap gap-1.5" aria-label="Motivos de perda">
+            {lossSummary.map(i => (
+              <span key={String(i.reason)} className="rounded-lg bg-white/[0.03] border border-white/10 px-2.5 py-1 text-[11px] text-white/60">
+                {i.label} <span className="text-red-300/80 font-semibold">{i.count}</span>
+                <span className="text-white/35"> · {BRL.format(i.amount)}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="max-w-screen-xl mx-auto px-6 pt-4">
           <div className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/25 px-4 py-3 text-sm text-red-300">
@@ -252,6 +271,19 @@ export default function ProposalsPage() {
                 ? `"${confirmAction.title}" será marcada como PAGA e o lead vira cliente no pipeline.`
                 : `"${confirmAction.title}" será cancelada — o link público deixa de aceitar pagamento.`}
             </p>
+            {confirmAction.kind === 'cancel' && (
+              <div className="space-y-2">
+                <label className="block text-[11px] text-white/50" htmlFor="loss-reason">Por que foi perdida? (opcional)</label>
+                <select id="loss-reason" value={lossReason} onChange={e => setLossReason(e.target.value)}
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white">
+                  <option value="">Não informar</option>
+                  {LOSS_REASON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <textarea value={lossNote} onChange={e => setLossNote(e.target.value)} maxLength={500} rows={2}
+                  placeholder="Observação (opcional)"
+                  className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30" />
+              </div>
+            )}
             <div className="flex gap-2">
               <button type="button" onClick={() => setConfirmAction(null)} disabled={!!busyId}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm hover:text-white transition-all">
@@ -286,6 +318,12 @@ export default function ProposalsPage() {
                     {p.customerName} · criada {new Date(p.createdAt).toLocaleDateString('pt-BR')}
                     {p.validUntil && ` · válida até ${new Date(p.validUntil).toLocaleDateString('pt-BR')}`}
                   </p>
+                  {p.status === 4 && (p.lossReason != null || p.lossNote) && (
+                    <p className="text-[11px] text-red-300/70 mt-0.5">
+                      Perdida{p.lossReason != null && `: ${LOSS_REASON_LABEL[p.lossReason] ?? 'Outro'}`}
+                      {p.lossNote && ` · ${p.lossNote}`}
+                    </p>
+                  )}
                 </div>
 
                 <span className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border ${STATUS_BADGE[p.status]}`}>

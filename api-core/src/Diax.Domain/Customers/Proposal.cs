@@ -11,6 +11,19 @@ public enum ProposalStatus
     Cancelled = 4,
 }
 
+/// <summary>Por que a proposta foi perdida/cancelada (alimenta o relatório de motivos de perda).</summary>
+public enum ProposalLossReason
+{
+    Other = 0,
+    Price = 1,
+    NoResponse = 2,
+    ChoseCompetitor = 3,
+    NoBudget = 4,
+    BadTiming = 5,
+    ScopeMismatch = 6,
+    ClientGaveUp = 7,
+}
+
 public enum ProposalOrigin
 {
     Manual = 0,
@@ -67,6 +80,14 @@ public class Proposal : AuditableEntity, IUserOwnedEntity
 
     /// <summary>Maior etapa de follow-up já gerada (0 = nenhuma). Ver ProposalFollowUpService.</summary>
     public int LastFollowUpStage { get; private set; }
+
+    /// <summary>Motivo da perda (preenchido ao cancelar; null = cancelada sem motivo informado ou não cancelada).</summary>
+    public ProposalLossReason? LossReason { get; private set; }
+
+    /// <summary>Observação livre sobre a perda (até 500 caracteres).</summary>
+    public string? LossNote { get; private set; }
+
+    public DateTime? CancelledAt { get; private set; }
 
     public bool IsOpen => Status is ProposalStatus.Draft or ProposalStatus.Sent or ProposalStatus.Accepted;
 
@@ -160,11 +181,21 @@ public class Proposal : AuditableEntity, IUserOwnedEntity
         }
     }
 
-    public void Cancel()
+    public void Cancel(ProposalLossReason? reason = null, string? note = null)
     {
         if (Status == ProposalStatus.Paid)
             throw new InvalidOperationException("Proposta paga não pode ser cancelada.");
+        if (Status != ProposalStatus.Cancelled)
+            CancelledAt = DateTime.UtcNow;
         Status = ProposalStatus.Cancelled;
+        // Só sobrescreve o motivo se informado (cancelar de novo sem motivo não apaga o anterior).
+        if (reason.HasValue)
+            LossReason = reason;
+        if (!string.IsNullOrWhiteSpace(note))
+        {
+            var n = note.Trim();
+            LossNote = n.Length <= 500 ? n : n[..500];
+        }
     }
 
     /// <summary>
