@@ -1,5 +1,6 @@
 using Diax.Application.EmailMarketing.Pro.Dtos;
 using Diax.Application.PromptGenerator;
+using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
 using Diax.Shared.Ai;
@@ -18,6 +19,7 @@ public class LeadNormalizationService : ILeadNormalizationService
     ];
 
     private readonly ICustomerRepository _repo;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly INameNormalizationService _normalizer;
     private readonly IEnumerable<IAiTextTransformClient> _aiClients;
     private readonly PromptGeneratorSettings _settings;
@@ -25,12 +27,14 @@ public class LeadNormalizationService : ILeadNormalizationService
 
     public LeadNormalizationService(
         ICustomerRepository repo,
+        IUnitOfWork unitOfWork,
         INameNormalizationService normalizer,
         IEnumerable<IAiTextTransformClient> aiClients,
         PromptGeneratorSettings settings,
         ILogger<LeadNormalizationService> logger)
     {
         _repo = repo;
+        _unitOfWork = unitOfWork;
         _normalizer = normalizer;
         _aiClients = aiClients;
         _settings = settings;
@@ -87,11 +91,11 @@ public class LeadNormalizationService : ILeadNormalizationService
     public async Task<RunNormalizationResultDto> RunBatchAsync(
         bool forceReprocess = false, CancellationToken ct = default)
     {
-        var all = (await _repo.GetAllAsync(ct)).ToList();
-
-        var toProcess = forceReprocess
-            ? all
-            : all.Where(c => c.NormalizedName == null).ToList();
+        // Sem reprocesso forçado, só os pendentes saem do banco (prod: ~17k customers, quase todos pendentes
+        // ou já feitos; não faz sentido materializar a tabela inteira para filtrar em memória).
+        var toProcess = (forceReprocess
+            ? await _repo.GetAllAsync(ct)
+            : await _repo.FindAsync(c => c.NormalizedName == null, ct)).ToList();
 
         int updated = 0, skipped = 0;
 
@@ -113,7 +117,14 @@ public class LeadNormalizationService : ILeadNormalizationService
 
             await _repo.UpdateAsync(customer, ct);
             updated++;
+
+            // Lotes: UpdateAsync só marca a entidade; sem SaveChanges nada era gravado
+            if (updated % 500 == 0)
+                await _unitOfWork.SaveChangesAsync(ct);
         }
+
+        if (updated % 500 != 0)
+            await _unitOfWork.SaveChangesAsync(ct);
 
         return new RunNormalizationResultDto
         {
@@ -134,6 +145,7 @@ public class LeadNormalizationService : ILeadNormalizationService
 
         customer.ApplyNormalization(cleanName, "manual", 100, NormalizationSource.Manual);
         await _repo.UpdateAsync(customer, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
     }
 
     public async Task<NameNormalizationResult> NormalizeWithAiAsync(Guid customerId, CancellationToken ct = default)
@@ -149,6 +161,7 @@ public class LeadNormalizationService : ILeadNormalizationService
             if (fallback.Score > 0)
                 customer.ApplyNormalization(fallback.NormalizedName, "system-deterministic", fallback.Score, fallback.Source);
             await _repo.UpdateAsync(customer, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
             return fallback;
         }
 
@@ -171,6 +184,7 @@ public class LeadNormalizationService : ILeadNormalizationService
 
             customer.ApplyNormalization(validName, $"ai:{client.ProviderName}", 80, NormalizationSource.AiFallback);
             await _repo.UpdateAsync(customer, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
 
             _logger.LogInformation("[AI Normalize] Customer {Id} normalized to '{N}' via {P}", customerId, validName, client.ProviderName);
             return new NameNormalizationResult(validName, 80, NormalizationSource.AiFallback);
