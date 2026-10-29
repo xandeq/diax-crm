@@ -14,6 +14,12 @@ public interface ICustomerRepository : IRepository<Customer>
     Task<Customer?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Todos os cadastros com o e-mail (trim + case-insensitive). Usado no descadastro:
+    /// duplicados não podem continuar recebendo depois do opt-out.
+    /// </summary>
+    Task<List<Customer>> GetAllByEmailAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Busca cliente por documento (CPF/CNPJ).
     /// </summary>
     Task<Customer?> GetByDocumentAsync(string document, CancellationToken cancellationToken = default);

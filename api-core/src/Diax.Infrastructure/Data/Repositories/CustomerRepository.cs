@@ -19,6 +19,14 @@ public class CustomerRepository : Repository<Customer>, ICustomerRepository
             .FirstOrDefaultAsync(c => c.Email == email, cancellationToken);
     }
 
+    public async Task<List<Customer>> GetAllByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var normalized = (email ?? string.Empty).Trim().ToLower();
+        return await DbSet
+            .Where(c => c.Email != null && c.Email.ToLower() == normalized)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Customer?> GetByDocumentAsync(string document, CancellationToken cancellationToken = default)
     {
         return await DbSet
