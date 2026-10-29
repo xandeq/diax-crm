@@ -55,7 +55,7 @@ public class ProposalsController : BaseApiController
     public record CancelProposalRequest(ProposalLossReason? Reason, string? Note);
 
     [HttpPost("{id:guid}/cancel")]
-    public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelProposalRequest? request, CancellationToken ct)
+    public async Task<IActionResult> Cancel(Guid id, [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] CancelProposalRequest? request, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
         if (userId == null) return Unauthorized(new { Message = "Usuário não autenticado." });

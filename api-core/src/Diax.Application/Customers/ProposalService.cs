@@ -389,6 +389,9 @@ public class ProposalService : IApplicationService
     public async Task<Result<ProposalDto>> CancelAsync(
         Guid proposalId, Guid userId, ProposalLossReason? reason = null, string? note = null, CancellationToken ct = default)
     {
+        if (reason.HasValue && !Enum.IsDefined(reason.Value))
+            return Result.Failure<ProposalDto>(Error.Validation("Reason", "Motivo de perda inválido."));
+
         var proposal = await _proposalRepository.GetByIdAsync(proposalId, ct);
         if (proposal == null || proposal.UserId != userId)
             return Result.Failure<ProposalDto>(Error.NotFound("Proposal", proposalId.ToString()));

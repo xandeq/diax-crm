@@ -88,6 +88,20 @@ public class ProposalLossReasonTests
     }
 
     [Fact]
+    public async Task MotivoInvalido_RetornaValidacaoENaoCancela()
+    {
+        var p = Enviada();
+
+        var r = await Svc().CancelAsync(p.Id, _owner, (ProposalLossReason)99, null);
+
+        Assert.True(r.IsFailure);
+        Assert.Contains("Validation", r.Error.Code, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(ProposalStatus.Sent, p.Status);
+        Assert.Null(p.LossReason);
+        _uow.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task PropostaPaga_NaoCancelaENaoGravaMotivo()
     {
         var p = Enviada();
