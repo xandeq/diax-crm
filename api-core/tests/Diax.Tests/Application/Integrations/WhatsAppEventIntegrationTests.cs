@@ -145,6 +145,24 @@ public class WhatsAppEventIntegrationTests
     }
 
     [Fact]
+    public async Task Reply_WhenOpenReplyTaskAlreadyExists_DoesNotCreateAnotherOne()
+    {
+        var sut = BuildController();
+        var customer = new Customer("Maria", "maria@example.com");
+        _customerRepository.Setup(r => r.GetByIdAsync(customer.Id, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+        _taskRepository.Setup(r => r.HasOpenTaskWithTitleAsync(OwnerUserId, customer.Id, "💬 WhatsApp respondeu: Maria", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await sut.WhatsAppEvent(
+            ValidKey, Request(customerId: customer.Id, @event: "reply", text: "e aí?"), CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(CustomerStatus.Qualified, customer.Status);
+        _taskRepository.Verify(r => r.AddAsync(It.IsAny<TaskItem>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.Contains("taskCreated = False", ok.Value!.ToString());
+    }
+
+    [Fact]
     public async Task Optout_SetsWhatsAppOptOutTrue()
     {
         var sut = BuildController();

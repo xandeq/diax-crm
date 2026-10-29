@@ -353,6 +353,12 @@ public class IntegrationsController : BaseApiController
                     taskSkippedReason = "Integrations:DefaultUserId/Auth:AdminEmail não configurado";
                     _logger.LogWarning("whatsapp-event reply: task não criada para customer {CustomerId} — {Reason}", customer.Id, taskSkippedReason);
                 }
+                else if (await _taskRepository.HasOpenTaskWithTitleAsync(
+                             ownerUserId.Value, customer.Id, $"💬 WhatsApp respondeu: {customer.Name}", ct))
+                {
+                    // Cliente mandando várias mensagens seguidas (ou retry do n8n): 1 tarefa aberta basta
+                    taskSkippedReason = "já existe tarefa aberta de resposta para este cliente";
+                }
                 else
                 {
                     var text = request.Text?.Trim();

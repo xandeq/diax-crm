@@ -16,6 +16,9 @@ public interface ITaskRepository : IRepository<TaskItem>
     /// IDs de customers (dentre os informados) que JÁ têm task aberta
     /// (Todo/InProgress, não arquivada) — dedup dos follow-ups automáticos.
     /// </summary>
+    /// <summary>Existe tarefa aberta (Todo/InProgress, não arquivada) do dono para o cliente, com exatamente este título? Ignora o filtro global por usuário (chamadas anônimas de integração não têm usuário corrente), por isso escopa por ownerUserId.</summary>
+    Task<bool> HasOpenTaskWithTitleAsync(Guid ownerUserId, Guid customerId, string title, CancellationToken cancellationToken = default);
+
     Task<HashSet<Guid>> GetCustomerIdsWithOpenTasksAsync(
         IEnumerable<Guid> customerIds, CancellationToken cancellationToken = default);
 
