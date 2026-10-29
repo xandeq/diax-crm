@@ -3,6 +3,7 @@ using Diax.Application.Customers.Dtos;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
+using Diax.Domain.Tasks;
 using Diax.Shared.Results;
 using Microsoft.Extensions.Logging;
 
@@ -56,15 +57,18 @@ public class PipelineService : IApplicationService
     };
 
     private readonly ICustomerRepository _customerRepository;
+    private readonly ITaskRepository _taskRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<PipelineService> _logger;
 
     public PipelineService(
         ICustomerRepository customerRepository,
+        ITaskRepository taskRepository,
         IUnitOfWork unitOfWork,
         ILogger<PipelineService> logger)
     {
         _customerRepository = customerRepository;
+        _taskRepository = taskRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -73,13 +77,27 @@ public class PipelineService : IApplicationService
     {
         var wonSince = DateTime.UtcNow.AddDays(-30);
         var customers = (await _customerRepository.GetPipelineAsync(wonSince, ct)).ToList();
-
-        var columns = new List<PipelineColumnDto>();
         var openStages = new[]
         {
             CustomerStatus.Lead, CustomerStatus.Contacted,
             CustomerStatus.Qualified, CustomerStatus.Negotiating,
         };
+
+        List<Customer> OrderedStage(CustomerStatus stage) => customers
+            .Where(c => c.Status == stage)
+            .OrderByDescending(c => c.EstimatedValue ?? 0)
+            .ThenByDescending(c => c.LeadScore ?? 0)
+            .ToList();
+
+        // Próxima ação só dos cards que aparecem (Take por coluna aberta): com milhares de leads,
+        // consultar todos viraria um IN gigante a cada carga do board.
+        var visibleIds = openStages
+            .SelectMany(st => OrderedStage(st).Take(MaxCardsPerColumn))
+            .Select(c => c.Id)
+            .ToList();
+        var nextActions = await _taskRepository.GetNextOpenTasksByCustomerAsync(visibleIds, ct);
+
+        var columns = new List<PipelineColumnDto>();
 
         decimal weightedForecast = 0;
         decimal totalOpenValue = 0;
@@ -87,11 +105,7 @@ public class PipelineService : IApplicationService
 
         foreach (var stage in openStages)
         {
-            var stageCustomers = customers
-                .Where(c => c.Status == stage)
-                .OrderByDescending(c => c.EstimatedValue ?? 0)
-                .ThenByDescending(c => c.LeadScore ?? 0)
-                .ToList();
+            var stageCustomers = OrderedStage(stage);
 
             var stageValue = stageCustomers.Sum(c => c.EstimatedValue ?? 0);
             var probability = StageProbability[stage];
@@ -106,7 +120,7 @@ public class PipelineService : IApplicationService
                 Probability: probability,
                 Count: stageCustomers.Count,
                 TotalValue: stageValue,
-                Cards: stageCustomers.Take(MaxCardsPerColumn).Select(ToCard).ToList()));
+                Cards: stageCustomers.Take(MaxCardsPerColumn).Select(c => ToCard(c, nextActions)).ToList()));
         }
 
         // Coluna de fechados: convertidos nos últimos 30 dias (receita ganha, fora da previsão)
@@ -122,7 +136,7 @@ public class PipelineService : IApplicationService
             Probability: 1m,
             Count: won.Count,
             TotalValue: wonValue,
-            Cards: won.Take(MaxCardsPerColumn).Select(ToCard).ToList()));
+            Cards: won.Take(MaxCardsPerColumn).Select(c => ToCard(c)).ToList()));
 
         return new PipelineBoardDto(
             Columns: columns,
@@ -183,7 +197,7 @@ public class PipelineService : IApplicationService
         return ToCard(customer);
     }
 
-    private static PipelineCardDto ToCard(Customer c) => new(
+    private static PipelineCardDto ToCard(Customer c, IReadOnlyDictionary<Guid, NextTaskInfo>? nextActions = null) => new(
         Id: c.Id,
         Name: string.IsNullOrWhiteSpace(c.NormalizedName) ? c.Name : c.NormalizedName,
         CompanyName: c.CompanyName,
@@ -195,5 +209,7 @@ public class PipelineService : IApplicationService
         LeadScore: c.LeadScore,
         Segment: c.Segment?.ToString(),
         LastContactAt: c.LastContactAt,
-        Tags: c.Tags);
+        Tags: c.Tags,
+        NextActionTitle: nextActions != null && nextActions.TryGetValue(c.Id, out var n) ? n.Title : null,
+        NextActionDue: nextActions != null && nextActions.TryGetValue(c.Id, out var n2) ? n2.DueDate : null);
 }

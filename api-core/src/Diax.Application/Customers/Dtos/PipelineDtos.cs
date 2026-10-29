@@ -14,7 +14,10 @@ public record PipelineCardDto(
     int? LeadScore,
     string? Segment,
     DateTime? LastContactAt,
-    string? Tags
+    string? Tags,
+    /// <summary>Título da próxima tarefa aberta do lead (null = sem próxima ação).</summary>
+    string? NextActionTitle = null,
+    DateTime? NextActionDue = null
 );
 
 public record PipelineColumnDto(

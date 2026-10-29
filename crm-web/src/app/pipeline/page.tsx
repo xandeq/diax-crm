@@ -15,6 +15,7 @@ import { getBookingLinkUserId, publicBookingUrl } from '@/services/meetings';
 import { createProposal, publicProposalUrl, sendProposalEmail } from '@/services/proposals';
 import { listServicePackages, type ServicePackage } from '@/services/servicePackages';
 import { packageToDraft, parseBRL } from '@/lib/packageDraft';
+import { nextActionView, type NextActionTone } from '@/lib/nextAction';
 import {
   AlertCircle,
   Banknote,
@@ -53,6 +54,14 @@ const COLUMN_STYLE: Record<number, { border: string; header: string; dot: string
   [PIPELINE_STAGE.Qualified]:   { border: 'border-violet-500/25',header: 'bg-violet-500/10', dot: 'bg-violet-400' },
   [PIPELINE_STAGE.Negotiating]: { border: 'border-amber-500/25', header: 'bg-amber-500/10',  dot: 'bg-amber-400' },
   [PIPELINE_STAGE.Customer]:    { border: 'border-emerald-500/25', header: 'bg-emerald-500/10', dot: 'bg-emerald-400' },
+};
+
+const NEXT_ACTION_STYLE: Record<NextActionTone, string> = {
+  overdue: 'text-red-300 bg-red-500/10 border-red-500/25',
+  today: 'text-amber-300 bg-amber-500/10 border-amber-500/25',
+  soon: 'text-sky-300 bg-sky-500/10 border-sky-500/25',
+  later: 'text-white/50 bg-white/5 border-white/10',
+  none: 'text-white/30 bg-transparent border-dashed border-white/10',
 };
 
 const SEGMENT_BADGE: Record<string, string> = {
@@ -591,6 +600,15 @@ export default function PipelinePage() {
                             {card.estimatedValue != null ? formatBRL(card.estimatedValue) : '+ definir valor'}
                           </button>
                         )}
+
+                        {col.status !== PIPELINE_STAGE.Customer && (() => {
+                          const na = nextActionView(card.nextActionTitle, card.nextActionDue);
+                          return (
+                            <p className={`mt-2 truncate rounded-md border px-1.5 py-0.5 text-[10px] ${NEXT_ACTION_STYLE[na.tone]}`} title={na.label}>
+                              {na.tone === 'none' ? na.label : `➜ ${na.label}`}
+                            </p>
+                          );
+                        })()}
 
                         <div className="flex items-center gap-2 mt-2 text-[10px] text-white/30">
                           {card.leadScore != null && <span title="Lead score">⭐ {card.leadScore}</span>}

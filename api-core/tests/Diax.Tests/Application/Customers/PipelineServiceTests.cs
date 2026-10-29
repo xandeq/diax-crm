@@ -2,6 +2,7 @@ using Diax.Application.Customers;
 using Diax.Domain.Common;
 using Diax.Domain.Customers;
 using Diax.Domain.Customers.Enums;
+using Diax.Domain.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -10,10 +11,61 @@ namespace Diax.Tests.Application.Customers;
 public class PipelineServiceTests
 {
     private readonly Mock<ICustomerRepository> _repo = new();
+    private readonly Mock<ITaskRepository> _tasks = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
+    public PipelineServiceTests()
+    {
+        _tasks.Setup(t => t.GetNextOpenTasksByCustomerAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, NextTaskInfo>());
+    }
+
     private PipelineService CreateService() => new(
-        _repo.Object, _unitOfWork.Object, NullLogger<PipelineService>.Instance);
+        _repo.Object, _tasks.Object, _unitOfWork.Object, NullLogger<PipelineService>.Instance);
+
+    [Fact]
+    public async Task GetBoardAsync_ExposesNextAction_AndFlagsLeadsWithoutOne()
+    {
+        var comAcao = MakeCustomer("Com Acao", CustomerStatus.Contacted, 1000m);
+        var semAcao = MakeCustomer("Sem Acao", CustomerStatus.Contacted, 500m);
+        var fechado = MakeCustomer("Fechado", CustomerStatus.Negotiating, 900m, converted: true);
+        var due = DateTime.UtcNow.AddDays(2);
+        _repo.Setup(r => r.GetPipelineAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Customer> { comAcao, semAcao, fechado });
+        _tasks.Setup(t => t.GetNextOpenTasksByCustomerAsync(
+                It.Is<IEnumerable<Guid>>(ids => ids.Contains(comAcao.Id) && ids.Contains(semAcao.Id) && !ids.Contains(fechado.Id)),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, NextTaskInfo> { [comAcao.Id] = new("Ligar para o dono", due) });
+
+        var board = await CreateService().GetBoardAsync();
+
+        var cards = board.Columns.First(c => c.Status == CustomerStatus.Contacted).Cards;
+        var a = cards.Single(c => c.Id == comAcao.Id);
+        Assert.Equal("Ligar para o dono", a.NextActionTitle);
+        Assert.Equal(due, a.NextActionDue);
+        Assert.Null(cards.Single(c => c.Id == semAcao.Id).NextActionTitle);
+    }
+
+    [Fact]
+    public async Task GetBoardAsync_ConsultaProximaAcaoSoDosCardsVisiveis()
+    {
+        var todos = Enumerable.Range(0, PipelineService.MaxCardsPerColumn + 5)
+            .Select(i => MakeCustomer($"Lead {i}", CustomerStatus.Lead, 1000m + i))
+            .ToList();
+        _repo.Setup(r => r.GetPipelineAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(todos);
+        List<Guid>? consultados = null;
+        _tasks.Setup(t => t.GetNextOpenTasksByCustomerAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<Guid>, CancellationToken>((ids, _) => consultados = ids.ToList())
+            .ReturnsAsync(new Dictionary<Guid, NextTaskInfo>());
+
+        var board = await CreateService().GetBoardAsync();
+
+        var visiveis = board.Columns.First(c => c.Status == CustomerStatus.Lead).Cards.Select(c => c.Id).ToHashSet();
+        Assert.Equal(PipelineService.MaxCardsPerColumn, visiveis.Count);
+        Assert.NotNull(consultados);
+        Assert.Equal(visiveis, consultados!.ToHashSet());
+    }
 
     private static Customer MakeCustomer(
         string name, CustomerStatus status, decimal? value = null, bool converted = false)
