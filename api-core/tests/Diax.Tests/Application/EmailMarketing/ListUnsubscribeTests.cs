@@ -85,6 +85,42 @@ public class UnsubscribeOneClickControllerTests
     }
 }
 
+public class MailerSendListUnsubscribeTests
+{
+    [Fact]
+    public async Task MailerSend_NaoEnviaHeaders_PlanoNaoProfessionalRejeitaOCampo()
+    {
+        string? body = null;
+        var handler = new DelegatingStub(async (req, ct) =>
+        {
+            body = await req.Content!.ReadAsStringAsync(ct);
+            return new HttpResponseMessage(HttpStatusCode.Accepted) { Content = new StringContent("") };
+        });
+        var sender = new MailerSendEmailSender(
+            new HttpClient(handler),
+            Options.Create(new MailerSendSettings { ApiToken = "t", FromEmail = "a@b.test" }),
+            NullLogger<MailerSendEmailSender>.Instance);
+
+        var r = await sender.SendAsync(new EmailSendMessage
+        {
+            RecipientEmail = "x@y.test",
+            Subject = "Oi",
+            HtmlBody = "<p>oi</p>",
+            Headers = ListUnsubscribeHeaders.Build("https://api.test.local/unsubscribe?token=t&uid=u&email=e"),
+        });
+
+        Assert.True(r.Success);
+        Assert.NotNull(body);
+        Assert.DoesNotContain("headers", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("List-Unsubscribe", body);
+    }
+
+    private sealed class DelegatingStub(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> f) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => f(request, ct);
+    }
+}
+
 public class BrevoListUnsubscribeTests
 {
     private sealed class CaptureHandler : HttpMessageHandler

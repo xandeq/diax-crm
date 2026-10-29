@@ -66,7 +66,7 @@ public class EmailUnsubscribeController : BaseApiController
     [HttpPost("")]
     [AllowAnonymous]
     [ApiVersionNeutral]
-    [Consumes("application/x-www-form-urlencoded")]
+    [Consumes("application/x-www-form-urlencoded", "multipart/form-data")]
     public async Task<IActionResult> UnsubscribeOneClick(
         [FromQuery] string token,
         [FromQuery] string uid,
