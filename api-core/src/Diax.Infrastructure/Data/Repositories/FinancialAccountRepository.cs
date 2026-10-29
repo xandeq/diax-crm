@@ -50,6 +50,7 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
     public async Task<IEnumerable<FinancialAccount>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Where(x => x.UserId == userId)
             .OrderBy(a => a.Name)
             .ToListAsync(ct);
@@ -58,6 +59,7 @@ public class FinancialAccountRepository : Repository<FinancialAccount>, IFinanci
     public async Task<FinancialAccount?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
     }
 }
