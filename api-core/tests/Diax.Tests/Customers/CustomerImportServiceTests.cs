@@ -91,6 +91,25 @@ public class CustomerImportServiceTests
             _loggerMock.Object);
     }
 
+    [Theory]
+    [InlineData(0, 20, 1, 20)]
+    [InlineData(-3, 20, 1, 20)]
+    [InlineData(2, 0, 2, 20)]
+    [InlineData(2, -5, 2, 20)]
+    [InlineData(2, 100000, 2, 100)]
+    public async Task GetImportHistory_ClampsPagingBeforeQuerying(int page, int pageSize, int expectedPage, int expectedPageSize)
+    {
+        _importRepoMock
+            .Setup(r => r.GetPagedAsync(expectedPage, expectedPageSize, null, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<CustomerImport>(), 0));
+
+        var result = await _sut.GetImportHistoryAsync(page, pageSize);
+
+        Assert.Equal(expectedPage, result.Page);
+        Assert.Equal(expectedPageSize, result.PageSize);
+        _importRepoMock.Verify(r => r.GetPagedAsync(expectedPage, expectedPageSize, null, null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Fact]
     public async Task Import_ShouldReject_WhenSourceIsUnknown()
     {
