@@ -21,13 +21,15 @@ public class TaskRepository : Repository<TaskItem>, ITaskRepository
         var query = _context.TaskItems.Where(t => t.UserId == userId);
         if (!includeArchived)
             query = query.Where(t => !t.IsArchived);
-        return await query.OrderByDescending(t => t.Priority).ThenBy(t => t.DueDate).ToListAsync(cancellationToken);
+        return await query.OrderByDescending(t => t.Priority).ThenBy(t => t.DueDate == null).ThenBy(t => t.DueDate).ToListAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<TaskItem>> GetByStatusAsync(Guid userId, TaskItemStatus status, CancellationToken cancellationToken = default)
         => await _context.TaskItems
             .Where(t => t.UserId == userId && t.Status == status && !t.IsArchived)
             .OrderByDescending(t => t.Priority)
+            .ThenBy(t => t.DueDate == null) // SQL Server põe NULL primeiro: sem prazo vai para o fim
+            .ThenBy(t => t.DueDate == null) // SQL Server põe NULL primeiro: sem prazo vai para o fim
             .ThenBy(t => t.DueDate)
             .ToListAsync(cancellationToken);
 
