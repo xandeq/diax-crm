@@ -46,6 +46,27 @@ public class PipelineServiceTests
         Assert.Null(cards.Single(c => c.Id == semAcao.Id).NextActionTitle);
     }
 
+    [Fact]
+    public async Task GetBoardAsync_ConsultaProximaAcaoSoDosCardsVisiveis()
+    {
+        var todos = Enumerable.Range(0, PipelineService.MaxCardsPerColumn + 5)
+            .Select(i => MakeCustomer($"Lead {i}", CustomerStatus.Lead, 1000m + i))
+            .ToList();
+        _repo.Setup(r => r.GetPipelineAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(todos);
+        List<Guid>? consultados = null;
+        _tasks.Setup(t => t.GetNextOpenTasksByCustomerAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<Guid>, CancellationToken>((ids, _) => consultados = ids.ToList())
+            .ReturnsAsync(new Dictionary<Guid, NextTaskInfo>());
+
+        var board = await CreateService().GetBoardAsync();
+
+        var visiveis = board.Columns.First(c => c.Status == CustomerStatus.Lead).Cards.Select(c => c.Id).ToHashSet();
+        Assert.Equal(PipelineService.MaxCardsPerColumn, visiveis.Count);
+        Assert.NotNull(consultados);
+        Assert.Equal(visiveis, consultados!.ToHashSet());
+    }
+
     private static Customer MakeCustomer(
         string name, CustomerStatus status, decimal? value = null, bool converted = false)
     {

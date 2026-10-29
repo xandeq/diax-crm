@@ -77,16 +77,27 @@ public class PipelineService : IApplicationService
     {
         var wonSince = DateTime.UtcNow.AddDays(-30);
         var customers = (await _customerRepository.GetPipelineAsync(wonSince, ct)).ToList();
-        // Próxima ação só para os estágios abertos (cliente fechado não precisa de follow-up de venda)
-        var openIds = customers.Where(c => c.Status != CustomerStatus.Customer).Select(c => c.Id).ToList();
-        var nextActions = await _taskRepository.GetNextOpenTasksByCustomerAsync(openIds, ct);
-
-        var columns = new List<PipelineColumnDto>();
         var openStages = new[]
         {
             CustomerStatus.Lead, CustomerStatus.Contacted,
             CustomerStatus.Qualified, CustomerStatus.Negotiating,
         };
+
+        List<Customer> OrderedStage(CustomerStatus stage) => customers
+            .Where(c => c.Status == stage)
+            .OrderByDescending(c => c.EstimatedValue ?? 0)
+            .ThenByDescending(c => c.LeadScore ?? 0)
+            .ToList();
+
+        // Próxima ação só dos cards que aparecem (Take por coluna aberta): com milhares de leads,
+        // consultar todos viraria um IN gigante a cada carga do board.
+        var visibleIds = openStages
+            .SelectMany(st => OrderedStage(st).Take(MaxCardsPerColumn))
+            .Select(c => c.Id)
+            .ToList();
+        var nextActions = await _taskRepository.GetNextOpenTasksByCustomerAsync(visibleIds, ct);
+
+        var columns = new List<PipelineColumnDto>();
 
         decimal weightedForecast = 0;
         decimal totalOpenValue = 0;
@@ -94,11 +105,7 @@ public class PipelineService : IApplicationService
 
         foreach (var stage in openStages)
         {
-            var stageCustomers = customers
-                .Where(c => c.Status == stage)
-                .OrderByDescending(c => c.EstimatedValue ?? 0)
-                .ThenByDescending(c => c.LeadScore ?? 0)
-                .ToList();
+            var stageCustomers = OrderedStage(stage);
 
             var stageValue = stageCustomers.Sum(c => c.EstimatedValue ?? 0);
             var probability = StageProbability[stage];
