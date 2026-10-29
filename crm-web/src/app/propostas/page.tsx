@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Banknote,
   Check,
+  ChevronRight,
   Copy,
   Eye,
   FileText,
@@ -25,6 +26,7 @@ import {
   RotateCcw,
   XCircle,
 } from 'lucide-react';
+import { proposalFunnel } from '@/lib/proposalFunnel';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -138,6 +140,13 @@ export default function ProposalsPage() {
     (FILTERS.find(f => f.key === filter)?.statuses ?? []).includes(p.status));
   const openTotal = proposals.filter(p => p.status === 1 || p.status === 2).reduce((s, p) => s + p.amount, 0);
   const paidTotal = proposals.filter(p => p.status === 3).reduce((s, p) => s + p.amount, 0);
+  const funnel = proposalFunnel(proposals);
+  const funnelSteps = [
+    { label: 'Enviadas', n: funnel.sent, pct: null as number | null, color: 'text-white/80' },
+    { label: 'Vistas', n: funnel.viewed, pct: funnel.pct.viewed, color: 'text-sky-300' },
+    { label: 'Aceitas', n: funnel.accepted, pct: funnel.pct.accepted, color: 'text-violet-300' },
+    { label: 'Pagas', n: funnel.paid, pct: funnel.pct.paid, color: 'text-emerald-300' },
+  ];
 
   if (authLoading || (isLoading && proposals.length === 0 && !error)) {
     return (
@@ -192,6 +201,26 @@ export default function ProposalsPage() {
           </div>
         </div>
       </div>
+
+      {/* Funil: onde as propostas param entre o envio e o pagamento */}
+      {funnel.sent > 0 && (
+        <div className="max-w-screen-xl mx-auto px-6 pt-4">
+          <div className="grid grid-cols-4 gap-1.5 sm:flex sm:items-stretch" aria-label="Funil das propostas">
+            {funnelSteps.map((st, i) => (
+              <div key={st.label} className="flex items-center gap-1.5 min-w-0">
+                {i > 0 && <ChevronRight className="hidden sm:block h-3.5 w-3.5 text-white/20 shrink-0" aria-hidden="true" />}
+                <div className="w-full rounded-lg bg-white/[0.03] border border-white/10 px-2 sm:px-3 py-1.5 sm:min-w-[84px]">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40">{st.label}</p>
+                  <p className={`text-sm font-semibold ${st.color}`}>
+                    {st.n}
+                    {st.pct !== null && <span className="text-[11px] font-normal text-white/40"> · {st.pct}%</span>}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="max-w-screen-xl mx-auto px-6 pt-4">
