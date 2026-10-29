@@ -31,7 +31,35 @@ public partial class NameNormalizationService : INameNormalizationService
         "outlook", "gmail", "hotmail", "yahoo", "bol", "uol", "ig", "terra",
         "admin", "info", "contato", "contact", "suporte", "support", "vendas",
         "sales", "comercial", "marketing", "noreply", "no-reply",
+        // Lixo de scraping de página/perfil (título da aba, alt de imagem, rótulo de rede social)
+        "cliente", "clientes", "instagram", "facebook", "whatsapp", "linkedin", "youtube",
+        "tiktok", "twitter", "logo", "logotipo", "home", "pagina", "inicial", "perfil",
+        "site", "oficial", "official", "bio", "link", "links", "encontre", "bemvindo",
+        // Substantivos genéricos de negócio (nunca são nome de pessoa)
+        "advogado", "advogados", "centro", "medico", "medica", "hospital", "instituto",
+        "escola", "colegio", "shop", "store", "club", "clube", "sport", "studio", "diagnostico",
+        "educacional", "ordem", "associados", "gastronomia",
     };
+
+    // Conectivos que marcam frase/título ("Pet Shop Abertos Em Fundão", "Encontre Um Contador"), não nome.
+    // De/Da/Do/Dos/Das/E ficam de fora: aparecem em nomes reais ("Maria da Silva").
+    private static readonly HashSet<string> PhraseWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "em", "que", "para", "por", "com", "um", "uma", "os", "as", "na", "no", "nas", "nos", "ao", "pelo", "pela",
+    };
+
+    // Separadores de título ("Clínica Kairós – Vitória, ES", "Ribeiro Fialho | Advocacia"): só o 1º trecho é o nome.
+    private static readonly string[] TitleSeparators = [" – ", " — ", " | ", " - ", " • ", " · "];
+
+    private static string FirstTitleSegment(string raw)
+    {
+        foreach (var sep in TitleSeparators)
+        {
+            var idx = raw.IndexOf(sep, StringComparison.Ordinal);
+            if (idx > 1) raw = raw[..idx];
+        }
+        return raw;
+    }
 
     // Backward-compat: returns only the first valid token (firstName)
     public string NormalizeName(string? raw)
@@ -39,7 +67,7 @@ public partial class NameNormalizationService : INameNormalizationService
         if (string.IsNullOrWhiteSpace(raw))
             return string.Empty;
 
-        raw = ParenRegex().Replace(raw, "").Trim();
+        raw = FirstTitleSegment(ParenRegex().Replace(raw, "")).Trim();
         raw = raw.Trim('.', ',', ';', ':', '-', '_', '@', '#', '/', ' ');
 
         if (string.IsNullOrWhiteSpace(raw))
@@ -101,7 +129,7 @@ public partial class NameNormalizationService : INameNormalizationService
         if (string.IsNullOrWhiteSpace(raw))
             return new("", 0, NormalizationSource.Deterministic);
 
-        raw = ParenRegex().Replace(raw, "").Trim();
+        raw = FirstTitleSegment(ParenRegex().Replace(raw, "")).Trim();
         raw = raw.Trim('.', ',', ';', ':', '-', '_', '@', '#', '/', ' ');
 
         if (string.IsNullOrWhiteSpace(raw))
@@ -134,8 +162,12 @@ public partial class NameNormalizationService : INameNormalizationService
         {
             1 => 75,
             2 => 88,
-            _ => 95
+            3 => 92,
+            4 => 80,
+            _ => 55 // frase longa, não nome
         };
+        if (validTokens.Any(t => PhraseWords.Contains(RemoveDiacritics(t))))
+            score = Math.Min(score, 60);
 
         return new(result, score, NormalizationSource.Deterministic);
     }
