@@ -20,6 +20,12 @@ public class UnsubscribeRoundTripTests
     private readonly Mock<IEmailSuppressionRepository> _suppressions = new();
     private readonly Mock<IUnitOfWork> _uow = new();
 
+    public UnsubscribeRoundTripTests()
+    {
+        _customers.Setup(r => r.GetAllByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Customer>());
+    }
+
     private EmailUnsubscribeController Controller() => new(
         _customers.Object, _suppressions.Object, _uow.Object,
         EmailTestDefaults.LinkBuilder(), NullLogger<EmailUnsubscribeController>.Instance);
@@ -44,6 +50,25 @@ public class UnsubscribeRoundTripTests
             It.Is<EmailSuppression>(x => x.Email == email && x.UserId == userId),
             It.IsAny<CancellationToken>()), Times.Once);
         _uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LinkFromEmail_OptsOutEveryCustomerWithThatEmail()
+    {
+        var userId = Guid.NewGuid();
+        const string email = "dup@example.com";
+        var a = new Customer("Dup A", email);
+        var b = new Customer("Dup B", "DUP@Example.com");
+        _customers.Setup(r => r.GetAllByEmailAsync(email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Customer> { a, b });
+        _customers.Setup(r => r.GetByEmailAsync(email, It.IsAny<CancellationToken>())).ReturnsAsync(a);
+        var q = QueryOf(EmailTestDefaults.LinkBuilder().BuildUnsubscribeUrl(userId, email));
+
+        await Controller().Unsubscribe(q["token"], q["uid"], q["email"], CancellationToken.None);
+
+        Assert.True(a.EmailOptOut);
+        Assert.True(b.EmailOptOut);
+        _customers.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]

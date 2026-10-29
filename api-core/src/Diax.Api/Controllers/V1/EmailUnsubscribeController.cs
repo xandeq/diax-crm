@@ -58,9 +58,10 @@ public class EmailUnsubscribeController : BaseApiController
             return Unauthorized();
         }
 
-        var customer = await _customerRepository.GetByEmailAsync(email, cancellationToken);
-        if (customer != null && !customer.EmailOptOut)
+        // Todos os cadastros com esse email (duplicados incluídos): senão o duplicado segue recebendo
+        foreach (var customer in await _customerRepository.GetAllByEmailAsync(email, cancellationToken))
         {
+            if (customer.EmailOptOut) continue;
             customer.OptOutEmail();
             await _customerRepository.UpdateAsync(customer, cancellationToken);
         }
