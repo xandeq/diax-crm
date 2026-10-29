@@ -64,6 +64,17 @@ public class EmailQueueRepository : Repository<EmailQueueItem>, IEmailQueueRepos
                 cancellationToken);
     }
 
+    public async Task<int> CountCommittedForDayAsync(DateTime dayStartUtc, CancellationToken cancellationToken = default)
+    {
+        var dayEnd = dayStartUtc.AddDays(1);
+        return await DbSet
+            .CountAsync(
+                item => (item.Status == EmailQueueStatus.Sent && item.SentAt.HasValue && item.SentAt.Value >= dayStartUtc)
+                    || ((item.Status == EmailQueueStatus.Queued || item.Status == EmailQueueStatus.Processing)
+                        && item.ScheduledAt < dayEnd),
+                cancellationToken);
+    }
+
     public async Task<int> CountSentByProviderSinceAsync(
         EmailProvider provider,
         DateTime fromUtc,
