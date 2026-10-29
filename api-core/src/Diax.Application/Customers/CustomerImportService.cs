@@ -876,6 +876,11 @@ public class CustomerImportService : IApplicationService
         DateTime? to = null,
         CancellationToken cancellationToken = default)
     {
+        // Query string sem validação: page<1 gera OFFSET negativo (500) e pageSize<=0 quebra TotalPages
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        else if (pageSize > 100) pageSize = 100;
+
         var (items, totalCount) = await _importRepository.GetPagedAsync(
             page,
             pageSize,
