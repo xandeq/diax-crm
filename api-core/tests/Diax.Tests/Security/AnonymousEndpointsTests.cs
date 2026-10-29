@@ -20,6 +20,7 @@ public class AnonymousEndpointsTests
         "BlogController.GetPublishedPosts",
         "BrevoWebhookController.HandleWebhook",
         "EmailUnsubscribeController.Unsubscribe",
+        "EmailUnsubscribeController.UnsubscribeOneClick",
         "ErrorLogsController.Ingest",          // API key com escopo
         "ErrorLogsController.IngestBatch",     // API key com escopo
         "HealthController.Get",
