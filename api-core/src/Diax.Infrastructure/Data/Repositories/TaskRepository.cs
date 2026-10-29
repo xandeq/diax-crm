@@ -68,6 +68,12 @@ public class TaskRepository : Repository<TaskItem>, ITaskRepository
                 });
     }
 
+    public async Task<bool> HasOpenTaskWithTitleAsync(Guid customerId, string title, CancellationToken cancellationToken = default)
+        => await _context.TaskItems.AnyAsync(t => t.CustomerId == customerId
+            && t.Title == title
+            && (t.Status == TaskItemStatus.Todo || t.Status == TaskItemStatus.InProgress)
+            && !t.IsArchived, cancellationToken);
+
     public async Task<HashSet<Guid>> GetCustomerIdsWithOpenTasksAsync(
         IEnumerable<Guid> customerIds, CancellationToken cancellationToken = default)
     {

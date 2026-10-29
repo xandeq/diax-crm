@@ -16,6 +16,9 @@ public interface ITaskRepository : IRepository<TaskItem>
     /// IDs de customers (dentre os informados) que JÁ têm task aberta
     /// (Todo/InProgress, não arquivada) — dedup dos follow-ups automáticos.
     /// </summary>
+    /// <summary>Existe tarefa aberta (Todo/InProgress, não arquivada) do cliente com exatamente este título?</summary>
+    Task<bool> HasOpenTaskWithTitleAsync(Guid customerId, string title, CancellationToken cancellationToken = default);
+
     Task<HashSet<Guid>> GetCustomerIdsWithOpenTasksAsync(
         IEnumerable<Guid> customerIds, CancellationToken cancellationToken = default);
 
