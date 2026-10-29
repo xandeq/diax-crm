@@ -55,7 +55,8 @@ public class BrevoEmailSender : IEmailSender
                 Subject = message.Subject,
                 HtmlContent = message.HtmlBody,
                 TextContent = ConvertHtmlToPlainText(message.HtmlBody),
-                Tags = message.Tags
+                Tags = message.Tags,
+                Headers = message.Headers
             };
 
             if (!string.IsNullOrWhiteSpace(_settings.ReplyTo))
@@ -218,6 +219,7 @@ public class BrevoEmailSender : IEmailSender
         public BrevoEmailAddress? ReplyTo { get; set; }
         public List<BrevoAttachment>? Attachment { get; set; }
         public List<string>? Tags { get; set; }
+        public Dictionary<string, string>? Headers { get; set; }
     }
 
     private sealed class BrevoEmailAddress

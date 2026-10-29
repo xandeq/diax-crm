@@ -68,6 +68,9 @@ public class MailerSendEmailSender : IEmailSender
                 }).ToList();
             }
 
+            // message.Headers (List-Unsubscribe) NÃO é enviado: o campo `headers` da API do MailerSend
+            // só existe nos planos Professional/Enterprise; nos demais a API responde MS42233 e o envio falha.
+
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailersend.com/v1/email");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiToken);
             request.Content = JsonContent.Create(payload, options: JsonOptions);

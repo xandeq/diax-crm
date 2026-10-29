@@ -67,6 +67,8 @@ public class MailjetEmailSender : IEmailSender
 
             var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.ApiKey}:{_settings.SecretKey}"));
 
+            payload.Messages[0].Headers = message.Headers;
+
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailjet.com/v3.1/send");
             request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
             request.Content = JsonContent.Create(payload, options: JsonOptions);
@@ -160,6 +162,8 @@ public class MailjetEmailSender : IEmailSender
         public string Subject { get; set; } = string.Empty;
         [JsonPropertyName("HTMLPart")]
         public string HtmlPart { get; set; } = string.Empty;
+        [JsonPropertyName("Headers")]
+        public Dictionary<string, string>? Headers { get; set; }
     }
 
     private sealed class MailjetContact

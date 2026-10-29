@@ -8,6 +8,9 @@ public class EmailSendMessage
     public string HtmlBody { get; set; } = string.Empty;
     public List<EmailSendAttachment> Attachments { get; set; } = [];
     public List<string>? Tags { get; set; }
+
+    /// <summary>Cabeçalhos MIME extras (ex.: List-Unsubscribe one-click, RFC 8058). Cada sender mapeia para o formato do provider.</summary>
+    public Dictionary<string, string>? Headers { get; set; }
 }
 
 public class EmailSendAttachment
