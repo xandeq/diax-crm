@@ -18,6 +18,7 @@ public class CreditCardRepository : Repository<CreditCard>, ICreditCardRepositor
     public async Task<IEnumerable<CreditCard>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Where(x => x.UserId == userId)
             .ToListAsync(ct);
     }
@@ -25,6 +26,7 @@ public class CreditCardRepository : Repository<CreditCard>, ICreditCardRepositor
     public async Task<CreditCard?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, ct);
     }
 }

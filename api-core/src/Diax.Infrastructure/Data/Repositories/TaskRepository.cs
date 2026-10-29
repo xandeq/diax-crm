@@ -18,7 +18,7 @@ public class TaskRepository : Repository<TaskItem>, ITaskRepository
 
     public async Task<IEnumerable<TaskItem>> GetByUserAsync(Guid userId, bool includeArchived = false, CancellationToken cancellationToken = default)
     {
-        var query = _context.TaskItems.Where(t => t.UserId == userId);
+        var query = _context.TaskItems.IgnoreQueryFilters().Where(t => t.UserId == userId);
         if (!includeArchived)
             query = query.Where(t => !t.IsArchived);
         return await query.OrderByDescending(t => t.Priority).ThenBy(t => t.DueDate == null).ThenBy(t => t.DueDate).ToListAsync(cancellationToken);
@@ -82,6 +82,7 @@ public class TaskRepository : Repository<TaskItem>, ITaskRepository
         if (ids.Count == 0) return new HashSet<Guid>();
 
         var found = await _context.TaskItems
+            .IgnoreQueryFilters() // chamado pelo LeadScoringWorker (sem usuário corrente)
             .Where(t => t.CustomerId != null
                 && ids.Contains(t.CustomerId.Value)
                 && (t.Status == TaskItemStatus.Todo || t.Status == TaskItemStatus.InProgress)

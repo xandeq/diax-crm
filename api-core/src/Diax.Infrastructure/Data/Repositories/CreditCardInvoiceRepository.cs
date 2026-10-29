@@ -117,6 +117,7 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     public async Task<IEnumerable<CreditCardInvoice>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(i => i.CreditCardGroup)
             .Where(x => x.UserId == userId)
             .OrderByDescending(i => i.ReferenceYear)
@@ -127,6 +128,7 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     public async Task<List<CreditCardInvoice>> GetByReferencePeriodAsync(Guid userId, int month, int year, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(i => i.CreditCardGroup)
             .Where(i => i.UserId == userId && i.ReferenceMonth == month && i.ReferenceYear == year)
             .OrderBy(i => i.DueDate)
@@ -136,6 +138,7 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     public async Task<List<CreditCardInvoice>> GetByDueDateRangeAsync(Guid userId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(i => i.CreditCardGroup)
             .Where(i => i.UserId == userId && i.DueDate >= from && i.DueDate <= to)
             .OrderBy(i => i.DueDate)
@@ -145,6 +148,7 @@ public class CreditCardInvoiceRepository : Repository<CreditCardInvoice>, ICredi
     public async Task<CreditCardInvoice?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken ct = default)
     {
         return await DbSet
+            .IgnoreQueryFilters()
             .Include(i => i.CreditCardGroup)
             .ThenInclude(g => g.Cards)
             .Include(i => i.PaidFromAccount)
