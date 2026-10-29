@@ -359,8 +359,10 @@ public class OutreachService : IApplicationService
 
         // Verificar limite diário
         var todayStart = DateTime.UtcNow.Date;
-        var sentToday = await _emailQueueRepository.CountSentSinceAsync(todayStart, cancellationToken);
-        var remainingBudget = config.DailyEmailLimit - sentToday;
+        // Enviados + ainda na fila (Queued/Processing) de hoje: sem isso, rodar duas vezes antes do worker
+        // processar enfileira o dobro do limite diário.
+        var committedToday = await _emailQueueRepository.CountCommittedForDayAsync(todayStart, cancellationToken);
+        var remainingBudget = config.DailyEmailLimit - committedToday;
 
         if (remainingBudget <= 0)
             return Result.Failure<OutreachSendResultResponse>(
