@@ -68,6 +68,9 @@ public class MailerSendEmailSender : IEmailSender
                 }).ToList();
             }
 
+            if (message.Headers is { Count: > 0 })
+                payload.Headers = message.Headers.Select(h => new MailerSendHeader { Name = h.Key, Value = h.Value }).ToList();
+
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.mailersend.com/v1/email");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiToken);
             request.Content = JsonContent.Create(payload, options: JsonOptions);
@@ -163,6 +166,13 @@ public class MailerSendEmailSender : IEmailSender
         public string Html { get; set; } = string.Empty;
         public MailerSendAddress? ReplyTo { get; set; }
         public List<MailerSendAttachment>? Attachments { get; set; }
+        public List<MailerSendHeader>? Headers { get; set; }
+    }
+
+    private sealed class MailerSendHeader
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
     }
 
     private sealed class MailerSendAddress

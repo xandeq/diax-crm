@@ -48,6 +48,42 @@ public class EmailUnsubscribeController : BaseApiController
         [FromQuery] string email,
         CancellationToken cancellationToken)
     {
+        var failure = await ApplyUnsubscribeAsync(token, uid, email, cancellationToken);
+        if (failure != null) return failure;
+
+        return Content(
+            "<html><body style='font-family:sans-serif;text-align:center;padding:60px'>" +
+            "<h2>Descadastramento realizado</h2>" +
+            "<p>Seu email foi removido da lista com sucesso.</p>" +
+            "</body></html>",
+            "text/html");
+    }
+
+    /// <summary>
+    /// One-click (RFC 8058): Gmail/Yahoo fazem POST na URL do header List-Unsubscribe com o corpo
+    /// <c>List-Unsubscribe=One-Click</c>. Mesmo token HMAC do GET; responde 200 sem HTML.
+    /// </summary>
+    [HttpPost("")]
+    [AllowAnonymous]
+    [ApiVersionNeutral]
+    [Consumes("application/x-www-form-urlencoded")]
+    public async Task<IActionResult> UnsubscribeOneClick(
+        [FromQuery] string token,
+        [FromQuery] string uid,
+        [FromQuery] string email,
+        [FromForm(Name = "List-Unsubscribe")] string? oneClick,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(oneClick, "One-Click", StringComparison.Ordinal))
+            return BadRequest("Requisicao one-click invalida.");
+
+        return await ApplyUnsubscribeAsync(token, uid, email, cancellationToken) ?? Ok();
+    }
+
+    /// <summary>Valida o token e aplica o opt-out. Retorna null em sucesso, ou o resultado HTTP de falha.</summary>
+    private async Task<IActionResult?> ApplyUnsubscribeAsync(
+        string token, string uid, string email, CancellationToken cancellationToken)
+    {
         if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(uid) || string.IsNullOrWhiteSpace(email))
             return BadRequest("Link de descadastro invalido.");
 
@@ -80,12 +116,6 @@ public class EmailUnsubscribeController : BaseApiController
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Unsubscribed email={Email}", email);
-
-        return Content(
-            "<html><body style='font-family:sans-serif;text-align:center;padding:60px'>" +
-            "<h2>Descadastramento realizado</h2>" +
-            "<p>Seu email foi removido da lista com sucesso.</p>" +
-            "</body></html>",
-            "text/html");
+        return null;
     }
 }

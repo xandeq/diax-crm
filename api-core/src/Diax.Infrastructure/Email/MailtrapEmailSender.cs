@@ -70,6 +70,8 @@ public class MailtrapEmailSender : IEmailSender
                 }).ToList();
             }
 
+            payload.Headers = message.Headers;
+
             return await PostAsync(payload, message.RecipientEmail, cancellationToken);
         }
         catch (Exception ex)
@@ -159,6 +161,7 @@ public class MailtrapEmailSender : IEmailSender
         public MailtrapAddress? ReplyTo { get; set; }
         public List<MailtrapAttachment>? Attachments { get; set; }
         public string? Category { get; set; }
+        public Dictionary<string, string>? Headers { get; set; }
     }
 
     private sealed class MailtrapAddress

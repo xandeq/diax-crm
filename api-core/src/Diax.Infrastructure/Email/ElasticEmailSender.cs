@@ -50,7 +50,8 @@ public class ElasticEmailSender : IEmailSender
                         ? _settings.FromEmail
                         : $"{_settings.FromName} <{_settings.FromEmail}>",
                     ReplyTo = _settings.ReplyTo,
-                    Subject = message.Subject
+                    Subject = message.Subject,
+                    Headers = message.Headers
                 }
             };
 
@@ -153,6 +154,7 @@ public class ElasticEmailSender : IEmailSender
         public string From { get; set; } = string.Empty;
         public string? ReplyTo { get; set; }
         public string Subject { get; set; } = string.Empty;
+        public Dictionary<string, string>? Headers { get; set; }
     }
 
     private sealed class ElasticEmailBody

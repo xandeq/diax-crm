@@ -51,6 +51,8 @@ public class ResendEmailSender : IEmailSender
                 Html = message.HtmlBody
             };
 
+            payload.Headers = message.Headers;
+
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
             request.Content = JsonContent.Create(payload, options: JsonOptions);
@@ -134,6 +136,7 @@ public class ResendEmailSender : IEmailSender
         public List<string> To { get; set; } = [];
         public string Subject { get; set; } = string.Empty;
         public string Html { get; set; } = string.Empty;
+        public Dictionary<string, string>? Headers { get; set; }
     }
 
     private sealed class ResendSendResponse

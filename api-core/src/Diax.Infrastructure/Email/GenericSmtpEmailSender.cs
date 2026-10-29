@@ -38,6 +38,9 @@ public class GenericSmtpEmailSender : IEmailSender
 
             mailMessage.To.Add(new MailAddress(message.RecipientEmail, message.RecipientName));
 
+            foreach (var (name, value) in message.Headers ?? [])
+                mailMessage.Headers.Add(name, value);
+
             foreach (var attachment in message.Attachments)
             {
                 var bytes = Convert.FromBase64String(attachment.Base64Content);

@@ -330,7 +330,9 @@ public class EmailQueueCycleProcessor
             Subject = renderedSubject,
             HtmlBody = renderedHtmlBody,
             Attachments = ParseAttachments(item.AttachmentsJson),
-            Tags = item.CampaignId.HasValue ? [item.CampaignId.Value.ToString()] : null
+            Tags = item.CampaignId.HasValue ? [item.CampaignId.Value.ToString()] : null,
+            // RFC 8058: Gmail/Yahoo exigem descadastro one-click em envio em massa
+            Headers = ListUnsubscribeHeaders.Build(unsubscribeUrl)
         };
 
         var sendResult = await emailSender.SendAsync(message, cancellationToken);

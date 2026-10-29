@@ -74,6 +74,8 @@ public class SendGridEmailSender : IEmailSender
                 }).ToList();
             }
 
+            payload.Headers = message.Headers;
+
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.sendgrid.com/v3/mail/send");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
             request.Content = JsonContent.Create(payload, options: JsonOptions);
@@ -173,6 +175,7 @@ public class SendGridEmailSender : IEmailSender
         public List<SendGridContent> Content { get; set; } = [];
         public SendGridAddress? ReplyTo { get; set; }
         public List<SendGridAttachment>? Attachments { get; set; }
+        public Dictionary<string, string>? Headers { get; set; }
     }
 
     private sealed class SendGridPersonalization
